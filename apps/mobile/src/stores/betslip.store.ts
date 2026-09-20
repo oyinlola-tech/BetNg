@@ -44,6 +44,9 @@ export const useBetSlip = create<BetSlipState>()(
       setOpen: (open) => {
         set({ open });
       },
+      resumeSubmit: (submitOnOpen) => {
+        set({ submitOnOpen });
+      },
     }),
     {
       name: "betng.mobile.betslip",

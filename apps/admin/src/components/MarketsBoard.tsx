@@ -3,7 +3,7 @@ import { Link } from "react-router";
 import { ArrowDown, ArrowUp, Minus, Pause, Play } from "lucide-react";
 import type { AdminMarketOdds, AdminSelectionOdds } from "@betng/contracts";
 import { formatMoney, formatOdds } from "@betng/ui-core";
-import { EmptyState, ErrorState, Panel, SkeletonRows, cn } from "@betng/ui-web";
+import { Button, EmptyState, ErrorState, Panel, SkeletonRows, cn } from "@betng/ui-web";
 import { useAdminAction } from "../hooks/queries";
 import { formatPercent } from "../lib/format";
 import { adminSource } from "../services/sources";
@@ -133,6 +133,7 @@ const MarketBlock = memo(function MarketBlock({ market, mode, ask }: { readonly 
 
 export function MarketsBoard({ markets, loading, error, onRetry, mode, linkMatches = true }: { readonly markets: readonly AdminMarketOdds[] | undefined; readonly loading: boolean; readonly error: unknown; readonly onRetry: () => void; readonly mode: "markets" | "odds"; readonly linkMatches?: boolean }): React.JSX.Element {
   const { ask, dialog } = useReasonAction();
+  const [limit, setLimit] = useState(6);
   const byMatch = useMemo(() => {
     const groups = new Map<string, AdminMarketOdds[]>();
 
@@ -146,7 +147,7 @@ export function MarketsBoard({ markets, loading, error, onRetry, mode, linkMatch
 
   return (
     <div className="space-y-4">
-      {byMatch.map((group) => {
+      {byMatch.slice(0, limit).map((group) => {
         const first = group[0];
 
         if (first === undefined) return null;
@@ -171,6 +172,13 @@ export function MarketsBoard({ markets, loading, error, onRetry, mode, linkMatch
           </Panel>
         );
       })}
+      {byMatch.length > limit && (
+        <div className="flex justify-center">
+          <Button variant="secondary" size="sm" onClick={() => setLimit((n) => n + 6)}>
+            Show {Math.min(6, byMatch.length - limit)} more matches
+          </Button>
+        </div>
+      )}
       {dialog}
     </div>
   );

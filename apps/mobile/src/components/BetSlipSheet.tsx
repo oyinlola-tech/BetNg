@@ -22,6 +22,7 @@ import {
 } from "@betng/ui-core";
 import { useAccountVersion } from "../hooks/useAccount";
 import { useAsync } from "../hooks/useAsync";
+import { useAuth } from "../hooks/useAuth";
 import { presentError } from "../lib/errors";
 import { getDataSource } from "../services/dataSource";
 import { useBetSlip } from "../stores/betslip.store";
@@ -38,10 +39,14 @@ export function BetSlipSheet({
 }): React.JSX.Element {
   const t = useTheme();
   const insets = useSafeAreaInsets();
-  const { open, setOpen, selections, stake, remove, clear, setStake } =
+  const { open, setOpen, selections, stake, remove, clear, setStake, submitOnOpen, resumeSubmit } =
     useBetSlip();
+  const { isAuthenticated, requireAuth } = useAuth();
   const version = useAccountVersion();
-  const wallet = useAsync(() => getDataSource().getWallet(), [version, open]);
+  const wallet = useAsync(
+    () => (isAuthenticated ? getDataSource().getWallet() : Promise.resolve(undefined)),
+    [version, open, isAuthenticated],
+  );
   const [stakeText, setStakeText] = useState(() => (stake / 100).toString());
   const [placing, setPlacing] = useState(false);
   const [feedback, setFeedback] = useState<
@@ -87,6 +92,28 @@ export function BetSlipSheet({
       setPlacing(false);
     }
   };
+
+  const place = (): void => {
+    if (isAuthenticated) return void submit();
+
+    /* The sheet is a native modal, so it steps aside for sign-in and reopens to finish the bet. */
+    setOpen(false);
+    requireAuth({
+      reason: "Log in to place this bet. Your slip stays as it is.",
+      run: () => {
+        resumeSubmit(true);
+        setOpen(true);
+      },
+    });
+  };
+
+  useEffect(() => {
+    if (!open || !submitOnOpen || !isAuthenticated) return;
+
+    resumeSubmit(false);
+    void submit();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, submitOnOpen, isAuthenticated]);
 
   return (
     <Modal
@@ -377,11 +404,11 @@ export function BetSlipSheet({
                   </View>
                 </View>
                 <Button
-                  label="Place simulated bet"
+                  label={isAuthenticated ? "Place simulated bet" : "Log in to place bet"}
                   size="lg"
                   loading={placing}
                   disabled={problem !== undefined}
-                  onPress={() => void submit()}
+                  onPress={place}
                 />
                 <Text variant="caption" tone="muted" align="center">
                   Play-money only. No real funds are involved.
