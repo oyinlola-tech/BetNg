@@ -22,6 +22,7 @@ import {
   HttpMiddlewarePipeline,
 } from "@zudojs/http";
 import type { HttpRequestContext, HttpRouter, HttpServer } from "@zudojs/http";
+import type { Server } from "node:http";
 import type { RPCServer } from "@zudojs/rpc";
 import type { Logger } from "@zudojs/logger";
 import type { ServiceConfig } from "../serviceConfig/index.js";
@@ -47,6 +48,16 @@ export interface ServiceServerOptions {
    * `POST /rpc` on this same listener, so RPC needs no second port.
    */
   readonly rpcServer?: RPCServer;
+  /**
+   * An HTTP server to serve on instead of one the adapter creates.
+   *
+   * Supplying one is how a service adds a protocol the ZudoJS HTTP adapter
+   * does not own — the event service attaches its WebSocket upgrade handler
+   * to this server, so REST and the live stream share one port. The node
+   * adapter reattaches only its own `request` listener, leaving `upgrade`
+   * alone.
+   */
+  readonly server?: Server;
 }
 
 export interface ServiceServer {
@@ -104,6 +115,7 @@ export function createServiceServer(
       host: config.host,
       port: config.port,
       maxBodySize: MAX_BODY_BYTES,
+      ...(options.server === undefined ? {} : { server: options.server }),
     }),
     handler: async (request: HttpRequestContext) =>
       pipeline.execute(request, createResponseContext()),

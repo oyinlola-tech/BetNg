@@ -164,6 +164,26 @@ export type {
 } from "./simulation/index.js";
 
 export {
+  clientFrameSchema,
+  liveEventSchema,
+  liveEventTypeSchema,
+  MATCH_CHANNEL_PATTERN,
+  matchChannel,
+} from "./realtime/index.js";
+export type {
+  ClientFrame,
+  ErrorFrame,
+  EventFrame,
+  LiveEvent,
+  LiveEventType,
+  PingFrame,
+  ServerFrame,
+  SubscribedFrame,
+  UnsubscribedFrame,
+  WelcomeFrame,
+} from "./realtime/index.js";
+
+export {
   exposureReportSchema,
   exposureRequestSchema,
   riskActionSchema,

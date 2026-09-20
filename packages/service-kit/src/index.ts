@@ -114,6 +114,17 @@ export type {
   RpcClientOptions,
 } from "./rpc/index.js";
 
+export {
+  createWebSocketAdapter,
+  WebSocketReadyState,
+} from "./websocket/index.js";
+export type {
+  BetNgWebSocketAdapter,
+  WebSocketAdapter,
+  WebSocketAdapterOptions,
+  WebSocketSession,
+} from "./websocket/index.js";
+
 export { runService } from "./serviceRunner/index.js";
 export type { RunnableService } from "./serviceRunner/index.js";
 
