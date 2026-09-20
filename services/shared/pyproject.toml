@@ -5,6 +5,7 @@ description = "The shared FastAPI bootstrap for BetNG Python services: configura
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.120",
+    "httpx>=0.28",
     "pydantic>=2.10",
     "pydantic-settings>=2.7",
 ]
@@ -15,3 +16,6 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/betng_service_kit"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"src/betng_service_kit/py.typed" = "betng_service_kit/py.typed"

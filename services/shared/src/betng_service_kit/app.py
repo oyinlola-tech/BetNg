@@ -19,6 +19,7 @@ from .errors import install_error_handlers
 from .health import DependencyProbe, create_health_router
 from .logging import configure_logging
 from .middleware import AccessLogMiddleware, RequestIdMiddleware
+from .rpc import RpcServer, create_rpc_router
 
 
 def create_service_app(
@@ -27,6 +28,7 @@ def create_service_app(
     description: str,
     routers: list[APIRouter] | None = None,
     probes: list[DependencyProbe] | None = None,
+    rpc_server: RpcServer | None = None,
 ) -> FastAPI:
     """Build a BetNG Python service.
 
@@ -35,6 +37,8 @@ def create_service_app(
         description: What the service does, shown in the OpenAPI document.
         routers: The service's domain routers.
         probes: The dependencies ``/ready`` probes.
+        rpc_server: The service's RPC procedures. Mounted at ``POST /rpc``
+            on this same listener, so RPC needs no second port.
 
     Returns:
         The configured application.
@@ -64,6 +68,9 @@ def create_service_app(
     install_error_handlers(app)
 
     app.include_router(create_health_router(settings, probes or []))
+
+    if rpc_server is not None:
+        app.include_router(create_rpc_router(rpc_server))
 
     for router in routers or []:
         app.include_router(router)

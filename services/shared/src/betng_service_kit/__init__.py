@@ -40,6 +40,23 @@ from .errors import (
 )
 from .health import DependencyProbe, create_health_router
 from .logging import configure_logging, parse_log_level
+from .rpc import (
+    RPC_INTERNAL_ERROR,
+    RPC_NOT_IMPLEMENTED,
+    RPC_PATH,
+    RPC_PROCEDURE_NOT_FOUND,
+    RPC_TIMEOUT,
+    RPC_UNAVAILABLE,
+    RPC_VALIDATION_ERROR,
+    RpcClient,
+    RpcError,
+    RpcNotImplementedError,
+    RpcProcedure,
+    RpcRequestFrame,
+    RpcResponseFrame,
+    RpcServer,
+    create_rpc_router,
+)
 from .middleware import REQUEST_ID_HEADER, get_request_id
 
 __all__ = [
@@ -56,7 +73,21 @@ __all__ = [
     "Query",
     "QueryBus",
     "QueryHandler",
+    "RPC_INTERNAL_ERROR",
+    "RPC_NOT_IMPLEMENTED",
+    "RPC_PATH",
+    "RPC_PROCEDURE_NOT_FOUND",
+    "RPC_TIMEOUT",
+    "RPC_UNAVAILABLE",
+    "RPC_VALIDATION_ERROR",
     "RegistrationNotFoundError",
+    "RpcClient",
+    "RpcError",
+    "RpcNotImplementedError",
+    "RpcProcedure",
+    "RpcRequestFrame",
+    "RpcResponseFrame",
+    "RpcServer",
     "Token",
     "DEFAULT_PORTS",
     "DependencyProbe",
@@ -72,6 +103,7 @@ __all__ = [
     "build_error_body",
     "configure_logging",
     "create_health_router",
+    "create_rpc_router",
     "create_service_app",
     "get_request_id",
     "load_settings",

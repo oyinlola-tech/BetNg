@@ -48,6 +48,7 @@ class RequestIdMiddleware(BaseHTTPMiddleware):
         request: Request,
         call_next: Callable[[Request], Awaitable[Response]],
     ) -> Response:
+        """Assign the identifier, then echo it on the way out."""
         inbound = request.headers.get(REQUEST_ID_HEADER)
 
         request_id = (
@@ -68,6 +69,7 @@ class AccessLogMiddleware(BaseHTTPMiddleware):
     """Logs one line when a request arrives and one when it completes."""
 
     def __init__(self, app: FastAPI, logger_name: str) -> None:
+        """Log through the named service logger."""
         super().__init__(app)
         self._logger = logging.getLogger(logger_name)
 
@@ -76,6 +78,7 @@ class AccessLogMiddleware(BaseHTTPMiddleware):
         request: Request,
         call_next: Callable[[Request], Awaitable[Response]],
     ) -> Response:
+        """Log the request, run it, then log the outcome."""
         level = (
             logging.DEBUG
             if request.url.path in _PROBE_PATHS

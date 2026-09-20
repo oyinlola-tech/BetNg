@@ -68,6 +68,7 @@ class JsonFormatter(logging.Formatter):
     """Renders a log record as one JSON object."""
 
     def __init__(self, service: str, version: str, environment: str) -> None:
+        """Stamp every line with the service identity."""
         super().__init__()
         self._base = {
             "service": service,
@@ -76,6 +77,7 @@ class JsonFormatter(logging.Formatter):
         }
 
     def format(self, record: logging.LogRecord) -> str:
+        """Render one record as a JSON object."""
         metadata: dict[str, Any] = dict(self._base)
         metadata.update(
             {

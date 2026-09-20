@@ -60,6 +60,7 @@ class ServiceError(Exception):
         status_code: int = 500,
         details: list[dict[str, str]] | None = None,
     ) -> None:
+        """Record the status, code and detail the client will be told."""
         super().__init__(message)
         self.message = message
         self.code = code

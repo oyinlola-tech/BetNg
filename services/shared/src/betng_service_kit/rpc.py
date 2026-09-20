@@ -1,0 +1,331 @@
+"""RPC over HTTP, speaking the ``@zudojs/rpc`` wire format.
+
+The Python services are RPC-primary: betting calls risk and odds, match calls
+simulation, and those calls want typed procedure names, typed errors and
+deadlines rather than resource URLs.
+
+``@zudojs/rpc`` is transport-agnostic and ships no transport, so BetNG defines
+one: an ``RPCRequest`` envelope posted to the peer's ``/rpc`` endpoint, an
+``RPCResponse`` back. This module implements the same envelope in Python, so a
+TypeScript service and a Python service can call each other without either
+side knowing which language answered.
+
+The envelope, mirrored from ``@zudojs/rpc``::
+
+    request  {"id", "procedure", "payload", "metadata", "timestamp"}
+    response {"id", "success", "result"?, "error"? {"code","message","details"?}}
+
+``metadata.requestId`` carries the platform's correlation identifier, so one
+request stays followable across an RPC hop exactly as it does across a REST
+one.
+"""
+
+from __future__ import annotations
+
+import time
+import uuid
+from collections.abc import Awaitable, Callable
+from dataclasses import dataclass, field
+from typing import Any
+
+import httpx
+from fastapi import APIRouter, Request
+from pydantic import BaseModel, Field, ValidationError
+
+#: Where every BetNG service mounts its RPC endpoint.
+RPC_PATH = "/rpc"
+
+#: Wire codes, mirroring the ones ``RPCServer`` emits in ``@zudojs/rpc``.
+RPC_PROCEDURE_NOT_FOUND = "RPC_PROCEDURE_NOT_FOUND"
+RPC_VALIDATION_ERROR = "RPC_VALIDATION_ERROR"
+RPC_INVALID_REQUEST = "RPC_INVALID_REQUEST"
+RPC_INTERNAL_ERROR = "RPC_INTERNAL_ERROR"
+RPC_UNAVAILABLE = "RPC_UNAVAILABLE"
+RPC_TIMEOUT = "RPC_TIMEOUT"
+RPC_NOT_IMPLEMENTED = "RPC_NOT_IMPLEMENTED"
+
+#: Never returned over the wire: internal exception text can name hosts,
+#: paths, credentials or queries, and the caller is an untrusted peer.
+INTERNAL_RPC_MESSAGE = "An internal error occurred."
+
+
+class RpcRequestFrame(BaseModel):
+    """An incoming RPC request."""
+
+    id: str
+    procedure: str
+    payload: Any = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    timestamp: int = 0
+
+
+class RpcErrorPayload(BaseModel):
+    """The error half of an RPC response."""
+
+    code: str
+    message: str
+    details: Any = None
+
+
+class RpcResponseFrame(BaseModel):
+    """An outgoing RPC response."""
+
+    id: str
+    success: bool
+    result: Any = None
+    error: RpcErrorPayload | None = None
+    metadata: dict[str, Any] | None = None
+
+
+class RpcError(Exception):
+    """A failure a procedure can describe to its caller."""
+
+    def __init__(
+        self, code: str, message: str, details: Any = None
+    ) -> None:
+        """Record the wire code, message and detail the caller will receive."""
+        super().__init__(message)
+        self.code = code
+        self.message = message
+        self.details = details
+
+
+class RpcNotImplementedError(RpcError):
+    """Raised while a procedure's implementation has not been built.
+
+    The procedure name and its payload shape are fixed now, so callers can be
+    written against them. Refusing is the honest answer; returning a
+    fabricated result would let a caller build on a number that means nothing.
+    """
+
+    def __init__(self, capability: str) -> None:
+        """Name what cannot be produced yet."""
+        super().__init__(
+            RPC_NOT_IMPLEMENTED,
+            f"{capability} is not implemented yet. See docs/api/rpc.md.",
+        )
+
+
+#: What a procedure does: take a payload, return a result.
+RpcHandler = Callable[[Any], Awaitable[Any]]
+
+
+@dataclass(frozen=True)
+class RpcProcedure:
+    """One named, callable procedure."""
+
+    name: str
+    handler: RpcHandler
+    #: The model the payload is validated against before the handler runs.
+    payload_model: type[BaseModel] | None = None
+
+
+@dataclass
+class RpcServer:
+    """Holds a service's procedures and dispatches to them."""
+
+    procedures: dict[str, RpcProcedure] = field(default_factory=dict)
+
+    def register(self, procedure: RpcProcedure) -> None:
+        """Register a procedure.
+
+        Args:
+            procedure: The procedure to register.
+
+        Raises:
+            ValueError: When the name is already registered, which is a wiring
+                mistake rather than something to resolve silently.
+        """
+        if procedure.name in self.procedures:
+            raise ValueError(
+                f"A procedure named {procedure.name!r} is already registered."
+            )
+
+        self.procedures[procedure.name] = procedure
+
+    def size(self) -> int:
+        """Return the number of registered procedures."""
+        return len(self.procedures)
+
+    async def handle(self, frame: RpcRequestFrame) -> RpcResponseFrame:
+        """Dispatch one RPC request.
+
+        Every failure is mapped to a typed wire code. An unexpected exception
+        is answered with a fixed message, never its text.
+
+        Args:
+            frame: The decoded request.
+
+        Returns:
+            The response to send back.
+        """
+        procedure = self.procedures.get(frame.procedure)
+
+        if procedure is None:
+            return _failure(
+                frame,
+                RPC_PROCEDURE_NOT_FOUND,
+                f"No procedure named {frame.procedure!r}.",
+            )
+
+        payload: Any = frame.payload
+
+        if procedure.payload_model is not None:
+            try:
+                payload = procedure.payload_model.model_validate(frame.payload)
+            except ValidationError as error:
+                return _failure(
+                    frame,
+                    RPC_VALIDATION_ERROR,
+                    "The payload failed validation.",
+                    [
+                        {
+                            "path": ".".join(str(p) for p in issue["loc"]),
+                            "message": issue["msg"],
+                        }
+                        for issue in error.errors()
+                    ],
+                )
+
+        try:
+            result = await procedure.handler(payload)
+        except RpcError as error:
+            return _failure(frame, error.code, error.message, error.details)
+        except Exception:  # noqa: BLE001 - the caller is an untrusted peer
+            import logging
+
+            logging.getLogger("rpc").exception(
+                "RPC procedure raised",
+                extra={"procedure": frame.procedure, "rpcId": frame.id},
+            )
+            return _failure(frame, RPC_INTERNAL_ERROR, INTERNAL_RPC_MESSAGE)
+
+        return RpcResponseFrame(
+            id=frame.id,
+            success=True,
+            result=(
+                result.model_dump() if isinstance(result, BaseModel) else result
+            ),
+        )
+
+
+def _failure(
+    frame: RpcRequestFrame, code: str, message: str, details: Any = None
+) -> RpcResponseFrame:
+    return RpcResponseFrame(
+        id=frame.id,
+        success=False,
+        error=RpcErrorPayload(code=code, message=message, details=details),
+    )
+
+
+def create_rpc_router(server: RpcServer) -> APIRouter:
+    """Mount an :class:`RpcServer` at ``POST /rpc``.
+
+    The endpoint serves on the same listener as the service's REST API: one
+    process, one port, one thing to health-check. It sits outside ``/api/v1``
+    because it is internal — the gateway does not forward to it.
+
+    A failed *procedure* still answers 200 with the RPC envelope: the
+    transport succeeded, the call did not. The only non-200 is a body that is
+    not an RPC frame at all.
+
+    Args:
+        server: The procedures this service exposes.
+
+    Returns:
+        A router to include on the application.
+    """
+    router = APIRouter(tags=["rpc"])
+
+    @router.post(RPC_PATH, include_in_schema=False)
+    async def handle_rpc(frame: RpcRequestFrame, request: Request) -> Any:
+        response = await server.handle(frame)
+
+        return response.model_dump(exclude_none=True)
+
+    return router
+
+
+class RpcClient:
+    """Calls a peer service's procedures over HTTP."""
+
+    def __init__(self, base_url: str, peer: str, timeout_ms: int) -> None:
+        """Point the client at one peer.
+
+        Args:
+            base_url: The peer's base URL, from configuration.
+            peer: The peer's name, used in error messages.
+            timeout_ms: How long to wait before giving up.
+        """
+        self._url = base_url.rstrip("/") + RPC_PATH
+        self._peer = peer
+        self._timeout = timeout_ms / 1000
+
+    async def call(
+        self, procedure: str, payload: Any, *, request_id: str | None = None
+    ) -> Any:
+        """Call a procedure on the peer.
+
+        Args:
+            procedure: The procedure name, e.g. ``"risk.calculateExposure"``.
+            payload: The procedure's input.
+            request_id: The correlation identifier to carry across the hop.
+
+        Returns:
+            The procedure's result.
+
+        Raises:
+            RpcError: When the peer refused, failed or could not be reached.
+        """
+        frame = {
+            "id": str(uuid.uuid4()),
+            "procedure": procedure,
+            "payload": (
+                payload.model_dump()
+                if isinstance(payload, BaseModel)
+                else payload
+            ),
+            "metadata": {} if request_id is None else {"requestId": request_id},
+            "timestamp": int(time.time() * 1000),
+        }
+
+        headers = {"content-type": "application/json"}
+        if request_id is not None:
+            headers["x-request-id"] = request_id
+
+        try:
+            async with httpx.AsyncClient(timeout=self._timeout) as client:
+                http_response = await client.post(
+                    self._url, json=frame, headers=headers
+                )
+        except httpx.TimeoutException as error:
+            raise RpcError(
+                RPC_TIMEOUT,
+                f"The {self._peer} service did not answer within "
+                f"{int(self._timeout * 1000)}ms.",
+            ) from error
+        except httpx.HTTPError as error:
+            raise RpcError(
+                RPC_UNAVAILABLE,
+                f"The {self._peer} service could not be reached.",
+            ) from error
+
+        if http_response.status_code != 200:
+            raise RpcError(
+                RPC_UNAVAILABLE,
+                f"The {self._peer} service answered {RPC_PATH} with "
+                f"{http_response.status_code}.",
+            )
+
+        body = RpcResponseFrame.model_validate(http_response.json())
+
+        if not body.success:
+            error_payload = body.error
+            raise RpcError(
+                error_payload.code if error_payload else RPC_INTERNAL_ERROR,
+                error_payload.message if error_payload else INTERNAL_RPC_MESSAGE,
+                error_payload.details if error_payload else None,
+            )
+
+        return body.result
