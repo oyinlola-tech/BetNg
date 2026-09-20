@@ -24,6 +24,6 @@
     "@zudojs/validation": "^1.0.3"
   },
   "devDependencies": {
-    "typescript": "^7.0.2"
+    "typescript": "7.0.2"
   }
 }

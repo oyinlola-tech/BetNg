@@ -1,38 +1,37 @@
 {
-  "name": "betng-wallet",
+  "name": "@betng/wallet-service",
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "description": "BetNG wallet service \u2014 Simulated balances and the append-only transaction ledger.",
   "zudojs": {
     "features": [
-      "observability",
-      "database",
-      "security"
+      "database"
     ]
   },
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "start": "node dist/server.js",
-    "build": "tsc",
-    "typecheck": "tsc --noEmit"
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "@zudojs/config": "^1.2.0",
-    "@zudojs/constants": "^1.1.1",
-    "@zudojs/container": "^1.1.2",
-    "@zudojs/core": "^1.2.1",
-    "@zudojs/database": "^1.2.1",
-    "@zudojs/errors": "^1.2.0",
-    "@zudojs/events": "^1.2.0",
-    "@zudojs/http": "^1.3.0",
-    "@zudojs/logger": "^1.3.0",
-    "@zudojs/observability": "^1.1.1",
-    "@zudojs/runtime": "^1.2.1",
-    "@zudojs/security": "^1.2.0"
+    "@betng/contracts": "workspace:*",
+    "@betng/service-kit": "workspace:*",
+    "@zudojs/constants": "1.1.1",
+    "@zudojs/container": "1.1.2",
+    "@zudojs/core": "1.2.1",
+    "@zudojs/errors": "1.2.0",
+    "@zudojs/events": "1.2.0",
+    "@zudojs/http": "1.3.0",
+    "@zudojs/logger": "1.3.0",
+    "@zudojs/runtime": "1.2.1",
+    "@zudojs/validation": "1.0.3"
   },
   "devDependencies": {
     "@types/node": "^26.6.2",
     "tsx": "^4.23.15",
-    "typescript": "^7.0.2"
+    "typescript": "7.0.2"
   }
 }

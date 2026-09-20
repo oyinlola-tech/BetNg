@@ -1,24 +1,35 @@
 import { BaseModule, type ModuleContext } from "@zudojs/core";
+import type { BetRepository } from "../repositories/betRepository.js";
 
 /**
- * betting module.
+ * The betting module.
  *
- * Registered with the runtime in app.ts. The runtime calls onInitialize
- * during start and onShutdown during stop.
+ * Owns bet state and nothing else. It holds no client for the simulation
+ * service, which is what makes "betting cannot influence a result" a
+ * property of the wiring rather than a promise in a document.
  */
 export class BettingModule extends BaseModule {
   public readonly id = "betting";
   public readonly name = "betting";
 
-  public constructor() {
+  readonly #repository: BetRepository;
+
+  public constructor(repository: BetRepository) {
     super({ version: "0.1.0" });
+    this.#repository = repository;
   }
 
-  public override async onInitialize(context: ModuleContext): Promise<void> {
-    context.logger.info("betting module initialized");
+  public get repository(): BetRepository {
+    return this.#repository;
   }
 
-  public override async onShutdown(context: ModuleContext): Promise<void> {
-    context.logger.info("betting module stopped");
+  public override onInitialize(context: ModuleContext): Promise<void> {
+    context.logger.info("Betting module initialized");
+    return Promise.resolve();
+  }
+
+  public override onShutdown(context: ModuleContext): Promise<void> {
+    context.logger.info("Betting module stopped");
+    return Promise.resolve();
   }
 }

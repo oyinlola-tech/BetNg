@@ -1,44 +1,90 @@
-import { resolveEnvironment } from "@zudojs/constants";
+/**
+ * Assembles the match service.
+ *
+ * Two things are built here and handed back together:
+ *
+ *   - the ZudoJS **runtime**, which owns the module lifecycle, the DI
+ *     container and the event bus, and
+ *   - the **HTTP server**, built by `@betng/service-kit` from this service's
+ *     routes and dependency probes.
+ *
+ * They are separate on purpose: the runtime is where things with an
+ * application-long lifetime live, and the HTTP server is one way of reaching
+ * them. A worker process would start the same runtime with no server at all.
+ */
+
 import { createContainer } from "@zudojs/container";
+import { resolveEnvironment } from "@zudojs/constants";
 import type { Module } from "@zudojs/core";
 import { createEventBus } from "@zudojs/events";
-import { createLogger } from "@zudojs/logger";
 import { createRuntime, type Runtime } from "@zudojs/runtime";
-import { MatchModule } from "./modules/index.js";
+import {
+  createPostgresPool,
+  createServiceLogger,
+  createServiceServer,
+  postgresProbe,
+  type DependencyProbe,
+  type Logger,
+  type ServiceConfig,
+  type ServiceServer,
+} from "@betng/service-kit";
 
-/**
- * Assembles the application runtime.
- *
- * `createRuntime` takes two arguments: the dependencies the runtime and its
- * modules share, and the options describing this application.
- */
-export function createApp(): Runtime {
-  const logger = createLogger({ name: "betng-match" });
-  const container = createContainer();
-  const eventBus = createEventBus();
+import { SERVICE_VERSION } from "./config/index.js";
+import { createMatchControllers } from "./controllers/matchController.js";
+import { MatchModule } from "./modules/index.js";
+import { createInMemoryMatchRepository } from "./repositories/matchRepository.js";
+import { registerMatchRoutes } from "./routes/index.js";
+
+export interface MatchApp {
+  readonly runtime: Runtime;
+  readonly server: ServiceServer;
+  readonly logger: Logger;
+  /** Released on shutdown, after the listener closes. */
+  readonly onShutdown: readonly (() => Promise<void>)[];
+}
+
+export async function createApp(config: ServiceConfig): Promise<MatchApp> {
+  const logger = createServiceLogger(config);
+  const repository = createInMemoryMatchRepository();
 
   const modules = new Map<string, Module>();
-  for (const module of [
-    new MatchModule(),
-  ]) {
-    modules.set(module.id, module);
-  }
+  const matchModule = new MatchModule(repository);
+  modules.set(matchModule.id, matchModule);
 
   const runtime = createRuntime(
-    { modules, logger, container, eventBus },
+    { modules, logger, container: createContainer(), eventBus: createEventBus() },
     {
-      applicationName: "betng-match",
-      applicationVersion: "0.1.0",
-      // NODE_ENV is read the same way the framework reads it: `prod` and
-      // `Production` are production, an unknown value warns once.
+      applicationName: `betng-${config.serviceName}`,
+      applicationVersion: SERVICE_VERSION,
       environment: resolveEnvironment(),
-      // Signals are handled explicitly in server.ts.
+      // The service kit installs its own signal handling in runService.
       handleSignals: false,
-      metadata: { port: 3001 },
     },
   );
 
-  runtime.registerReadinessCheck("modules", () => runtime.state === "running");
+  await runtime.start();
 
-  return runtime;
+  const probes: DependencyProbe[] = [];
+  const onShutdown: (() => Promise<void>)[] = [() => runtime.stop()];
+
+  // The database is probed only because this service owns one. A service
+  // with no database reports no database, rather than an invented "ok".
+  if (config.databaseUrl !== undefined) {
+    const postgres = createPostgresPool(config.databaseUrl);
+    probes.push(postgresProbe(postgres));
+    onShutdown.unshift(() => postgres.close());
+  }
+
+  const controllers = createMatchControllers(repository);
+
+  const server = createServiceServer({
+    config,
+    logger,
+    probes,
+    routes: (router) => {
+      registerMatchRoutes(router, controllers);
+    },
+  });
+
+  return { runtime, server, logger, onShutdown };
 }

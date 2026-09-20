@@ -10,9 +10,11 @@
 import {
   createJsonLoggerFormatter,
   createLogger,
+  createLoggerTransport,
   loggerLevelFromName,
   LoggerLevel,
   type Logger,
+  type RegisteredLoggerTransport,
 } from "@zudojs/logger";
 import { ConfigurationError } from "@zudojs/errors";
 import type { ServiceConfig } from "../config/serviceConfig.js";
@@ -36,19 +38,41 @@ export function parseLogLevel(name: string): LoggerLevel {
 }
 
 /**
+ * Writes each formatted entry to stdout as one line.
+ *
+ * The JSON formatter already turned the entry into a JSON string, which
+ * `@zudojs/logger` puts on `entry.message` before the transport runs. The
+ * console transport would then wrap that string in a second object and hand
+ * it to `console.info`, which Node pretty-prints — two layers of escaping
+ * around what should be one line a collector can parse. Writing the
+ * formatted string straight to stdout keeps the formatter's output intact.
+ */
+function createStdoutTransport(): RegisteredLoggerTransport {
+  return createLoggerTransport({
+    name: "stdout",
+    enabled: true,
+    write(entry): void {
+      process.stdout.write(`${entry.message}\n`);
+    },
+  });
+}
+
+/**
  * Creates the root logger for a service.
  *
- * Development gets a pretty-printed JSON line; anything else gets one line
- * per entry, which is what a log collector expects.
+ * Every line is one JSON object. Development pretty-prints it across several
+ * lines, which is readable in a terminal; every other environment emits a
+ * single line, which is what a log collector expects.
  */
 export function createServiceLogger(config: ServiceConfig): Logger {
+  const pretty = config.environment === "development";
+
   return createLogger({
     name: config.serviceName,
     level: parseLogLevel(config.logLevel),
     environment: config.environment,
-    formatter: createJsonLoggerFormatter({
-      pretty: config.environment === "development",
-    }),
+    formatter: createJsonLoggerFormatter({ pretty }),
+    transports: [createStdoutTransport()],
     metadata: {
       service: config.serviceName,
       version: config.version,
