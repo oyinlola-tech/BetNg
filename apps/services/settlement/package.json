@@ -10,21 +10,29 @@
     ]
   },
   "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "rm -rf dist *.tsbuildinfo",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate deploy",
+    "db:migrate:dev": "prisma migrate dev",
+    "db:studio": "prisma studio",
     "dev": "tsx watch src/server.ts",
     "start": "node dist/server.js",
-    "build": "tsc -p tsconfig.json",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
-    "clean": "rm -rf dist *.tsbuildinfo"
+    "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "@betng/contracts": "workspace:*",
     "@betng/service-kit": "workspace:*",
+    "@prisma/adapter-pg": "7.10.0",
+    "@prisma/client": "7.10.0",
     "@zudojs/container": "1.1.2",
     "@zudojs/cqrs": "1.1.1",
+    "@zudojs/database": "1.2.1",
     "@zudojs/errors": "1.2.0"
   },
   "devDependencies": {
     "@types/node": "^26.6.2",
+    "prisma": "7.10.0",
     "tsx": "^4.23.15",
     "typescript": "7.0.2"
   }

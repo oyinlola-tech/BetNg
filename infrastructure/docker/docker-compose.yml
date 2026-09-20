@@ -24,10 +24,11 @@ services:
       # only the database `psql` connects to first.
       POSTGRES_DB: postgres
     ports:
-      # 5433 by default: a developer machine often already runs PostgreSQL
-      # on 5432, and a port clash at `compose up` is a worse first experience
-      # than a non-default port written down in .env.example.
-      - "${POSTGRES_PORT:-5433}:5432"
+      # 55432, not 5432: a developer machine commonly already runs
+      # PostgreSQL, and often a second one for another project. A port clash
+      # at `compose up` is a worse first experience than a non-default port
+      # written down in .env.example. Override with POSTGRES_PORT.
+      - "${POSTGRES_PORT:-55432}:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
       # Runs once, on an empty data directory, to create one database per
@@ -52,8 +53,8 @@ services:
     # that own them. Persisting it would create a second source of truth.
     command: ["redis-server", "--save", "", "--appendonly", "no"]
     ports:
-      # 6380 by default, for the same reason as PostgreSQL above.
-      - "${REDIS_PORT:-6380}:6379"
+      # 56379, for the same reason as PostgreSQL above.
+      - "${REDIS_PORT:-56379}:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s

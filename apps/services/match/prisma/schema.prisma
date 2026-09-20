@@ -1,0 +1,153 @@
+// BetNG match service schema.
+//
+// This service owns leagues, teams, fixtures, matches and match events, and nothing else. It connects to `betng_match`
+// with its own login and holds no credentials for another service's
+// database, which is what makes the ownership boundary in
+// `docs/architecture.md` enforceable rather than a convention.
+//
+// Identifiers belonging to another service appear as plain columns rather
+// than foreign keys: the referenced table is in a different database, so the
+// constraint could not be enforced and pretending otherwise would mislead.
+// Referential integrity across services is the API's job.
+//
+// Prisma 7 no longer takes the connection URL here: migrations read it from
+// `prisma.config.ts`, and the client is built with a driver adapter.
+// Migrations live in `prisma/migrations`; see `docs/development.md`.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// A competition the platform runs.
+model League {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @db.VarChar(120)
+  /// Short display code, e.g. BVPL.
+  code      String   @unique @db.VarChar(8)
+  country   String   @db.VarChar(60)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  teams    Team[]
+  fixtures Fixture[]
+
+  @@map("leagues")
+}
+
+/// A team competing in a league.
+model Team {
+  id        String   @id @default(uuid()) @db.Uuid
+  leagueId  String   @map("league_id") @db.Uuid
+  name      String   @db.VarChar(120)
+  shortName String   @map("short_name") @db.VarChar(8)
+  /// Simulated strength, 0-100. Read by the simulation service as one input
+  /// to match probability. A property of the team, never of a bettor.
+  strength  Int
+  createdAt DateTime @default(now()) @map("created_at")
+
+  league       League    @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  homeFixtures Fixture[] @relation("HomeTeam")
+  awayFixtures Fixture[] @relation("AwayTeam")
+
+  @@index([leagueId])
+  @@map("teams")
+}
+
+/// A scheduled pairing. The Match is the instance of it that gets played.
+model Fixture {
+  id              String   @id @default(uuid()) @db.Uuid
+  leagueId        String   @map("league_id") @db.Uuid
+  /// One-based matchday within the league's season.
+  matchday        Int
+  homeTeamId      String   @map("home_team_id") @db.Uuid
+  awayTeamId      String   @map("away_team_id") @db.Uuid
+  kickoffAt       DateTime @map("kickoff_at")
+  /// After this instant the betting service rejects new bets.
+  bettingClosesAt DateTime @map("betting_closes_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  league   League @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  homeTeam Team   @relation("HomeTeam", fields: [homeTeamId], references: [id])
+  awayTeam Team   @relation("AwayTeam", fields: [awayTeamId], references: [id])
+  match    Match?
+
+  @@unique([leagueId, matchday, homeTeamId, awayTeamId])
+  @@index([bettingClosesAt])
+  @@map("fixtures")
+}
+
+/// The lifecycle states a match moves through, in order.
+///
+/// The ordering encodes the platform's central integrity rule: betting
+/// closes before the simulation runs, so no accepted bet can influence the
+/// result. See docs/architecture.md.
+enum MatchStatus {
+  SCHEDULED
+  BETTING_OPEN
+  BETTING_CLOSED
+  IN_PLAY
+  COMPLETED
+  CANCELLED
+
+  @@map("match_status")
+}
+
+/// One virtual match.
+model Match {
+  id          String      @id @default(uuid()) @db.Uuid
+  fixtureId   String      @unique @map("fixture_id") @db.Uuid
+  status      MatchStatus @default(SCHEDULED)
+  /// Set only once status is COMPLETED.
+  homeScore   Int?        @map("home_score")
+  awayScore   Int?        @map("away_score")
+  /// When the simulation produced the result.
+  completedAt DateTime?   @map("completed_at")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  fixture Fixture      @relation(fields: [fixtureId], references: [id], onDelete: Cascade)
+  events  MatchEvent[]
+
+  @@index([status])
+  @@map("matches")
+}
+
+enum MatchEventType {
+  KICK_OFF
+  GOAL
+  YELLOW_CARD
+  RED_CARD
+  SUBSTITUTION
+  HALF_TIME
+  FULL_TIME
+
+  @@map("match_event_type")
+}
+
+enum MatchSide {
+  HOME
+  AWAY
+
+  @@map("match_side")
+}
+
+/// One entry on a played match's timeline, produced by the simulation.
+model MatchEvent {
+  id          String         @id @default(uuid()) @db.Uuid
+  matchId     String         @map("match_id") @db.Uuid
+  type        MatchEventType
+  /// Match minute, 0-120.
+  minute      Int
+  /// Absent for an event belonging to neither side, e.g. HALF_TIME.
+  side        MatchSide?
+  description String         @db.VarChar(240)
+
+  match Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@index([matchId, minute])
+  @@map("match_events")
+}

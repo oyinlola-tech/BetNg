@@ -30,8 +30,20 @@ CREATE DATABASE betng_settlement OWNER betng_settlement;
 -- existence means every database above it already exists.
 CREATE DATABASE betng_match OWNER betng_match;
 
--- The development superuser keeps access to every database so `pnpm
--- db:migrate` and a developer's psql session work without four logins.
+-- Prisma's `migrate dev` diffs the schema against a throwaway "shadow"
+-- database. By default it creates one on the fly, which needs CREATEDB —
+-- a privilege these roles deliberately do not have, because a service that
+-- can create databases can create one outside its boundary.
+--
+-- Each service gets a shadow database instead, owned by the same role. The
+-- roles stay unprivileged and `migrate dev` works.
+CREATE DATABASE betng_match_shadow OWNER betng_match;
+CREATE DATABASE betng_betting_shadow OWNER betng_betting;
+CREATE DATABASE betng_wallet_shadow OWNER betng_wallet;
+CREATE DATABASE betng_settlement_shadow OWNER betng_settlement;
+
+-- The development superuser keeps access to every database so a developer's
+-- psql session works without four logins.
 GRANT ALL PRIVILEGES ON DATABASE betng_match TO betng;
 GRANT ALL PRIVILEGES ON DATABASE betng_betting TO betng;
 GRANT ALL PRIVILEGES ON DATABASE betng_wallet TO betng;

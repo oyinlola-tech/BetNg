@@ -9,7 +9,9 @@ onlyBuiltDependencies:
 
 # The same list in the form pnpm 11 reads.
 allowBuilds:
+  '@prisma/engines': set this to true or false
   "esbuild": true
+  prisma: set this to true or false
 
 minimumReleaseAgeExclude:
   - '@zudojs/config@1.2.0'

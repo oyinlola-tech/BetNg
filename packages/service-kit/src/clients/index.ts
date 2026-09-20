@@ -4,8 +4,8 @@
  * The boundaries a BetNG service reaches the outside world through.
  */
 
-export { createPostgresPool, postgresProbe } from "./postgres.client.js";
-export type { PostgresPool } from "./postgres.client.js";
+export { createServiceDatabase, databaseProbe } from "./prisma.client.js";
+export type { ServiceDatabase } from "./prisma.client.js";
 
 export { createRedisConnection, redisProbe } from "./redis.client.js";
 export type { RedisConnection } from "./redis.client.js";

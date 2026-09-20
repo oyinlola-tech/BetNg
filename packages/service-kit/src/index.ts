@@ -87,16 +87,16 @@ export type {
 } from "./healthProbe/index.js";
 
 export {
-  createPostgresPool,
   createRedisConnection,
+  createServiceDatabase,
   createServiceClient,
-  postgresProbe,
+  databaseProbe,
   redisProbe,
   serviceProbe,
 } from "./clients/index.js";
 export type {
-  PostgresPool,
   RedisConnection,
+  ServiceDatabase,
   ServiceClient,
   ServiceProbeOptions,
   ServiceRequest,

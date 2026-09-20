@@ -1,0 +1,97 @@
+// BetNG betting service schema.
+//
+// This service owns bets and their selections, and nothing else. It connects to `betng_betting`
+// with its own login and holds no credentials for another service's
+// database, which is what makes the ownership boundary in
+// `docs/architecture.md` enforceable rather than a convention.
+//
+// Identifiers belonging to another service appear as plain columns rather
+// than foreign keys: the referenced table is in a different database, so the
+// constraint could not be enforced and pretending otherwise would mislead.
+// Referential integrity across services is the API's job.
+//
+// Prisma 7 no longer takes the connection URL here: migrations read it from
+// `prisma.config.ts`, and the client is built with a driver adapter.
+// Migrations live in `prisma/migrations`; see `docs/development.md`.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// What a bet is currently worth to its holder.
+enum BetStatus {
+  PENDING
+  WON
+  LOST
+  VOID
+
+  @@map("bet_status")
+}
+
+/// One accepted bet slip.
+model Bet {
+  id       String    @id @default(uuid()) @db.Uuid
+  userId   String    @map("user_id") @db.Uuid
+
+  /// Stake in minor units. Integer for the same reason the wallet uses one:
+  /// a fraction of a kobo cannot be represented, so it cannot be mis-rounded.
+  stake    BigInt
+  currency String    @default("NGN") @db.Char(3)
+
+  /// Product of every selection's odds. `Decimal` rather than a float,
+  /// because odds are exact decimal quantities a customer was shown and
+  /// binary floating point cannot represent 1.10 exactly.
+  totalOdds Decimal  @map("total_odds") @db.Decimal(12, 4)
+  /// `stake * totalOdds`, floored to minor units. Stored rather than
+  /// recomputed, so what was promised at placement is what is paid.
+  potentialPayout BigInt @map("potential_payout")
+
+  status   BetStatus @default(PENDING)
+
+  /// Caller-supplied key making placement idempotent. A retried request
+  /// must not place the same slip twice.
+  idempotencyKey String @unique @map("idempotency_key") @db.VarChar(120)
+
+  /// What the risk service decided when the slip was offered, and whether
+  /// it actually assessed it. Recorded because "accepted" and "assessed and
+  /// approved" are different claims and an audit must tell them apart.
+  riskAction   String?  @map("risk_action") @db.VarChar(32)
+  riskAssessed Boolean  @default(false) @map("risk_assessed")
+
+  placedAt  DateTime  @default(now()) @map("placed_at")
+  /// Set once, by the settlement service, when the match completes.
+  settledAt DateTime? @map("settled_at")
+
+  selections BetSelection[]
+
+  @@index([userId, status])
+  @@index([status, placedAt])
+  @@map("bets")
+}
+
+/// One leg of a bet: the outcome backed, at the price offered.
+model BetSelection {
+  id          String  @id @default(uuid()) @db.Uuid
+  betId       String  @map("bet_id") @db.Uuid
+
+  /// Identifiers owned by the match and odds services. Plain columns, not
+  /// foreign keys: those tables live in other databases.
+  matchId     String  @map("match_id") @db.Uuid
+  marketId    String  @map("market_id") @db.Uuid
+  selectionId String  @map("selection_id") @db.Uuid
+
+  /// The price when the bet was accepted. Captured here rather than read
+  /// back at settlement, so a later re-price cannot change what was agreed.
+  odds        Decimal @db.Decimal(12, 4)
+
+  bet Bet @relation(fields: [betId], references: [id], onDelete: Cascade)
+
+  @@unique([betId, selectionId])
+  @@index([matchId])
+  @@map("bet_selections")
+}

@@ -25,3 +25,7 @@ __pycache__/
 .DS_Store
 .idea/
 .vscode/
+
+# Prisma generates a client into each service's src tree; it is a build
+# artefact of schema.prisma, not source.
+src/generated/

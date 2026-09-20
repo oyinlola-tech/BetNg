@@ -1,0 +1,84 @@
+// BetNG settlement service schema.
+//
+// This service owns settlement records, and nothing else. It connects to `betng_settlement`
+// with its own login and holds no credentials for another service's
+// database, which is what makes the ownership boundary in
+// `docs/architecture.md` enforceable rather than a convention.
+//
+// Identifiers belonging to another service appear as plain columns rather
+// than foreign keys: the referenced table is in a different database, so the
+// constraint could not be enforced and pretending otherwise would mislead.
+// Referential integrity across services is the API's job.
+//
+// Prisma 7 no longer takes the connection URL here: migrations read it from
+// `prisma.config.ts`, and the client is built with a driver adapter.
+// Migrations live in `prisma/migrations`; see `docs/development.md`.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum SettlementOutcome {
+  WON
+  LOST
+  VOID
+
+  @@map("settlement_outcome")
+}
+
+/// The record of one bet being resolved against a completed match result.
+///
+/// Written once and never changed. Re-settling means writing a second record
+/// that supersedes the first, not editing it, so the history of what was
+/// decided and when survives intact.
+model Settlement {
+  id       String            @id @default(uuid()) @db.Uuid
+
+  /// Owned by the betting service; a plain column, not a foreign key.
+  betId    String            @map("bet_id") @db.Uuid
+  /// The match result this settlement was computed from, so a disputed
+  /// payout can be traced back to the result that produced it.
+  matchId  String            @map("match_id") @db.Uuid
+
+  outcome  SettlementOutcome
+  /// Payout in minor units. Zero for a losing bet.
+  payout   BigInt
+  currency String            @default("NGN") @db.Char(3)
+
+  /// Increments when a bet is re-settled. The highest revision for a bet is
+  /// the current one; the rest are history.
+  revision Int               @default(1)
+  /// The settlement this one supersedes, when it is a correction.
+  supersedesId String?       @map("supersedes_id") @db.Uuid
+
+  settledAt DateTime         @default(now()) @map("settled_at")
+
+  selections SettledSelection[]
+
+  /// One settlement per bet per revision: the same bet cannot be settled
+  /// twice at the same revision, so a redelivered message is refused rather
+  /// than paying out again.
+  @@unique([betId, revision])
+  @@index([matchId])
+  @@index([outcome])
+  @@map("settlements")
+}
+
+/// How one selection on a bet resolved against the match result.
+model SettledSelection {
+  id           String            @id @default(uuid()) @db.Uuid
+  settlementId String            @map("settlement_id") @db.Uuid
+  selectionId  String            @map("selection_id") @db.Uuid
+  matchId      String            @map("match_id") @db.Uuid
+  outcome      SettlementOutcome
+
+  settlement Settlement @relation(fields: [settlementId], references: [id], onDelete: Cascade)
+
+  @@unique([settlementId, selectionId])
+  @@map("settled_selections")
+}
