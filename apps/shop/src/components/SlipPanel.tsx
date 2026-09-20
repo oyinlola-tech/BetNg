@@ -7,7 +7,6 @@ import { Button, EmptyState, Input, Modal, cn, presentError, useToast } from "@b
 import { usePlaceTicket } from "../hooks/queries";
 import { useShortcuts } from "../hooks/useShortcuts";
 import { useSlipWatch } from "../hooks/useSlipWatch";
-import { queryKeys } from "../lib/queryKeys";
 import { useSlip } from "../stores/slip.store";
 import { Kbd } from "./Kbd";
 

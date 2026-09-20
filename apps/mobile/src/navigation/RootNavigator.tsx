@@ -14,9 +14,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Home, Radio, Receipt, Trophy, UserRound } from "lucide-react-native";
 import { Pressable, SlipBar, Text } from "../components";
 import { useTheme } from "../theme";
+import { navigationRef } from "./ref";
 import type { RootStackParamList, TabParamList } from "./types";
 import {
   AccountScreen,
+  AuthScreen,
   BetsScreen,
   HistoryScreen,
   HomeScreen,
@@ -182,7 +184,7 @@ export function RootNavigator(): React.JSX.Element {
   };
 
   return (
-    <NavigationContainer theme={navTheme}>
+    <NavigationContainer ref={navigationRef} theme={navTheme}>
       <Stack.Navigator
         screenOptions={{
           headerStyle: { backgroundColor: t.colors.surface },
@@ -247,6 +249,11 @@ export function RootNavigator(): React.JSX.Element {
           name="History"
           component={HistoryScreen}
           options={{ title: "Watched" }}
+        />
+        <Stack.Screen
+          name="Auth"
+          component={AuthScreen}
+          options={{ title: "Log in", presentation: "modal", headerBackButtonDisplayMode: "minimal" }}
         />
       </Stack.Navigator>
     </NavigationContainer>

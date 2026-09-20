@@ -1,4 +1,5 @@
 import type { HealthStatus } from "@betng/contracts";
+import { formatBroadcastClock, matchClock } from "@betng/ui-core";
 import type { StatusTone } from "@betng/ui-web";
 
 export interface StatusView {
@@ -80,4 +81,14 @@ export function formatMoneyShort(minorUnits: number): string {
 
 export function formatClockTime(iso: string): string {
   return new Date(iso).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
+}
+
+export function liveClock(kickoffAt: string, now: number): string {
+  const clock = matchClock(kickoffAt, now);
+
+  if (clock.period === "HALF_TIME") return "HT";
+  if (clock.period === "FULL_TIME") return "FT";
+  if (clock.period === "PRE") return "--:--";
+
+  return formatBroadcastClock(clock.minute, clock.second);
 }

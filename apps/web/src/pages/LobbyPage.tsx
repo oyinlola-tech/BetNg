@@ -1,19 +1,13 @@
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router";
 import { Radio } from "lucide-react";
 import {
   formatMatchday,
   type MatchPhase,
   type MatchSummary,
 } from "@betng/ui-core";
-import {
-  EmptyState,
-  ErrorState,
-  MatchRow,
-  SectionHeader,
-  Select,
-  SkeletonRows,
-  Tabs,
-} from "@betng/ui-web";
+import { cn, EmptyState, ErrorState, LeagueMark, SectionHeader, SkeletonRows, Tabs } from "@betng/ui-web";
+import { LobbyMatchRow } from "../components/domain";
 import { useLeagues, useMatches } from "../hooks/queries";
 
 type View = "ALL" | "LIVE" | "UPCOMING" | "FINISHED";
@@ -54,7 +48,11 @@ function groupByMatchday(
 
 export function LobbyPage(): React.JSX.Element {
   const leagues = useLeagues();
-  const [leagueId, setLeagueId] = useState<string>("all");
+  const [params, setParams] = useSearchParams();
+  const leagueId = params.get("league") ?? "all";
+  const setLeagueId = (next: string): void => {
+    setParams(next === "all" ? {} : { league: next }, { replace: true });
+  };
   const [view, setView] = useState<View>("ALL");
 
   const filter = useMemo(
@@ -100,26 +98,31 @@ export function LobbyPage(): React.JSX.Element {
 
   return (
     <div className="space-y-5">
-      <SectionHeader
-        as="h1"
-        eyebrow="Lobby"
-        title="Virtual Football"
-        aside={
-          <Select
-            label="League"
-            size="sm"
-            value={leagueId}
-            onChange={setLeagueId}
-            options={[
-              { value: "all", label: "All leagues" },
-              ...(leagues.data ?? []).map((l) => ({
-                value: l.id,
-                label: l.name,
-              })),
-            ]}
-          />
-        }
-      />
+      <SectionHeader as="h1" eyebrow="Lobby" title="Virtual Football" />
+      <div role="radiogroup" aria-label="Competition" className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 scrollbar-thin md:mx-0 md:px-0">
+        {[{ id: "all", name: "All competitions", code: "ALL", slug: undefined }, ...(leagues.data ?? [])].map((l) => {
+          const active = leagueId === l.id;
+
+          return (
+            <button
+              key={l.id}
+              type="button"
+              role="radio"
+              aria-checked={active}
+              onClick={() => {
+                setLeagueId(l.id);
+              }}
+              className={cn(
+                "flex h-11 shrink-0 items-center gap-2 rounded-md border px-3 text-base font-semibold transition-colors focus-ring",
+                active ? "border-brand bg-brand-subtle text-text-primary" : "border-border bg-surface text-text-secondary hover:border-border-strong hover:text-text-primary",
+              )}
+            >
+              {l.id !== "all" && <LeagueMark slug={l.slug} code={l.code} size={22} />}
+              {l.name}
+            </button>
+          );
+        })}
+      </div>
       <Tabs
         label="Match state"
         value={view}
@@ -170,7 +173,7 @@ export function LobbyPage(): React.JSX.Element {
               <h2 className="caps-label mb-2">{g.label}</h2>
               <div className="divide-y divide-border rounded-md border border-border bg-surface">
                 {g.items.map((m) => (
-                  <MatchRow key={m.id} match={m} />
+                  <LobbyMatchRow key={m.id} match={m} />
                 ))}
               </div>
             </section>

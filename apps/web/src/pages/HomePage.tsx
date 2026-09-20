@@ -1,9 +1,12 @@
-import { Link } from "react-router";
-import { Radio, Trophy } from "lucide-react";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router";
+import { Flag, Radio, Receipt, Trophy, Wallet } from "lucide-react";
 import { toLocalDateKey } from "@betng/ui-core";
 import {
+  cn,
   EmptyState,
   ErrorState,
+  LeagueMark,
   LeagueTable,
   LiveMatchCard,
   MatchCardSkeleton,
@@ -12,6 +15,7 @@ import {
   SkeletonRows,
   UpcomingMatchCard,
 } from "@betng/ui-web";
+import { useAuth } from "../features/auth";
 import { useLeagues, useMatches, useStandings } from "../hooks/queries";
 
 export function HomePage(): React.JSX.Element {
@@ -26,8 +30,18 @@ export function HomePage(): React.JSX.Element {
   const recent = useMatches({ phases: ["FINISHED", "SETTLED"], limit: 8 });
   const today = useMatches({ date: toLocalDateKey(new Date()), limit: 10 });
   const leagues = useLeagues();
-  const firstLeague = leagues.data?.[0];
-  const standings = useStandings(firstLeague?.id);
+  const [tableLeagueId, setTableLeagueId] = useState<string>();
+  const tableLeague = leagues.data?.find((l) => l.id === tableLeagueId) ?? leagues.data?.[0];
+  const standings = useStandings(tableLeague?.id);
+  const navigate = useNavigate();
+  const { requireAuth } = useAuth();
+
+  const quick = [
+    { label: "Live", hint: `${String(live.data?.length ?? 0)} in play`, icon: Radio, to: "/live", account: false },
+    { label: "Results", hint: "Completed simulations", icon: Flag, to: "/results", account: false },
+    { label: "My Bets", hint: "Open and settled", icon: Receipt, to: "/history", account: true },
+    { label: "Wallet", hint: "Simulated balance", icon: Wallet, to: "/wallet", account: true },
+  ] as const;
 
   return (
     <div className="space-y-10">
@@ -105,33 +119,25 @@ export function HomePage(): React.JSX.Element {
       <div className="grid gap-10 lg:grid-cols-[1fr_minmax(0,22rem)] xl:grid-cols-[1fr_minmax(0,26rem)]">
         <div className="space-y-10">
           <section aria-labelledby="featured-leagues">
-            <SectionHeader
-              title="Competitions"
-              to="/leagues"
-              className="mb-4"
-            />
+            <SectionHeader title="Virtual Football" to="/virtuals" className="mb-4" />
             <div className="grid gap-3 sm:grid-cols-2">
-              {(leagues.data ?? []).map((l) => (
-                <Link
-                  key={l.id}
-                  to={`/leagues/${l.id}`}
-                  className="flex items-center gap-4 rounded-md border border-border bg-surface p-4 transition-colors hover:border-border-strong focus-ring"
-                >
-                  <span className="flex size-11 items-center justify-center rounded-md bg-surface-sunken font-display text-sm font-bold text-text-secondary">
-                    {l.code}
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block truncate font-display text-md font-semibold">
-                      {l.name}
-                    </span>
-                    <span className="block text-sm text-text-muted">
-                      {l.teamCount} clubs · Season {l.currentSeason} · Matchday{" "}
-                      {String(l.currentMatchday).padStart(2, "0")} of{" "}
-                      {l.matchdays}
-                    </span>
-                  </span>
-                </Link>
-              ))}
+              {leagues.isPending
+                ? Array.from({ length: 4 }, (_, i) => <div key={i} className="skeleton h-[76px] rounded-md" aria-busy />)
+                : (leagues.data ?? []).map((l) => (
+                    <Link
+                      key={l.id}
+                      to={`/virtuals?league=${l.id}`}
+                      className="flex items-center gap-4 rounded-md border border-border bg-surface p-4 transition-colors hover:border-border-strong focus-ring"
+                    >
+                      <LeagueMark slug={l.slug} code={l.code} size={44} className="shrink-0" />
+                      <span className="min-w-0">
+                        <span className="block truncate font-display text-md font-semibold">{l.name}</span>
+                        <span className="block truncate text-sm text-text-muted">
+                          {l.teamCount} clubs · Matchday {String(l.currentMatchday).padStart(2, "0")} of {l.matchdays}
+                        </span>
+                      </span>
+                    </Link>
+                  ))}
             </div>
           </section>
 
@@ -202,11 +208,31 @@ export function HomePage(): React.JSX.Element {
           className="lg:sticky lg:top-20"
         >
           <SectionHeader
-            title={firstLeague?.code ?? "Standings"}
+            title={tableLeague?.name ?? "Standings"}
             eyebrow="League table"
             to="/standings"
             className="mb-2"
           />
+          <div role="radiogroup" aria-label="League" className="mb-2 flex gap-1.5">
+            {(leagues.data ?? []).map((l) => (
+              <button
+                key={l.id}
+                type="button"
+                role="radio"
+                aria-checked={l.id === tableLeague?.id}
+                aria-label={l.name}
+                onClick={() => {
+                  setTableLeagueId(l.id);
+                }}
+                className={cn(
+                  "h-7 flex-1 rounded-xs border text-xs font-semibold tracking-caps focus-ring",
+                  l.id === tableLeague?.id ? "border-brand bg-brand-subtle text-brand" : "border-border bg-surface text-text-secondary hover:bg-surface-hover",
+                )}
+              >
+                {l.code}
+              </button>
+            ))}
+          </div>
           <div className="rounded-md border border-border bg-surface">
             {standings.isPending ? (
               <SkeletonRows rows={8} className="p-4" />
@@ -228,6 +254,31 @@ export function HomePage(): React.JSX.Element {
           </div>
         </section>
       </div>
+
+      <section aria-label="Quick access">
+        <SectionHeader title="Quick access" className="mb-4" />
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          {quick.map((item) => (
+            <button
+              key={item.to}
+              type="button"
+              onClick={() => {
+                if (item.account) requireAuth({ reason: `Log in to open ${item.label.toLowerCase()}.`, run: () => void navigate(item.to) });
+                else void navigate(item.to);
+              }}
+              className="flex items-center gap-3 rounded-md border border-border bg-surface p-3.5 text-left transition-colors hover:border-border-strong focus-ring"
+            >
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-sm bg-surface-sunken text-text-secondary">
+                <item.icon className="size-4" aria-hidden />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-base font-semibold">{item.label}</span>
+                <span className="block truncate text-sm text-text-muted">{item.hint}</span>
+              </span>
+            </button>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }

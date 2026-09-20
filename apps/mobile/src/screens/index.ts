@@ -13,3 +13,4 @@ export { TransactionsScreen } from "./TransactionsScreen";
 export { NotificationsScreen } from "./NotificationsScreen";
 export { SettingsScreen } from "./SettingsScreen";
 export { HistoryScreen } from "./HistoryScreen";
+export { AuthScreen } from "./AuthScreen";

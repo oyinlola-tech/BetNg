@@ -1,15 +1,18 @@
 import { useState } from "react";
-import { RefreshCcw, WifiOff } from "lucide-react";
+import { Link } from "react-router";
+import { Clock, RefreshCcw, WifiOff } from "lucide-react";
 import { Button, SectionHeader, Switch, ThemeSwitcher, useToast } from "@betng/ui-web";
 import { usePreferences, useSetPreferences } from "../hooks/queries";
 import { appConfig } from "../configs/app.config";
-import { asMock, dataSource } from "../services/dataSource";
+import { useAuth } from "../features/auth";
+import { asMock, authSource, dataSource } from "../services/dataSource";
 
 export function SettingsPage(): React.JSX.Element {
   const prefs = usePreferences();
   const setPrefs = useSetPreferences();
   const { toast } = useToast();
   const mock = asMock(dataSource);
+  const { isAuthenticated, user, openAuth } = useAuth();
   const [resetting, setResetting] = useState(false);
 
   const update = (
@@ -24,6 +27,28 @@ export function SettingsPage(): React.JSX.Element {
   return (
     <div className="max-w-2xl space-y-8">
       <SectionHeader as="h1" eyebrow="Preferences" title="Settings" />
+
+      <section className="flex items-center justify-between gap-4 rounded-md border border-border bg-surface p-5">
+        <div className="min-w-0">
+          <h2 className="text-md font-semibold">Account</h2>
+          <p className="mt-1 truncate text-sm text-text-muted">{user === undefined ? "Browsing is open to everyone. An account is only needed to bet and use the wallet." : `${user.displayName} · ${user.email}`}</p>
+        </div>
+        {isAuthenticated ? (
+          <Link to="/account" className="shrink-0 text-sm font-semibold text-brand hover:underline">
+            Manage account
+          </Link>
+        ) : (
+          <Button
+            size="sm"
+            className="shrink-0"
+            onClick={() => {
+              openAuth("login");
+            }}
+          >
+            Log in
+          </Button>
+        )}
+      </section>
 
       <section className="rounded-md border border-border bg-surface p-5">
         <h2 className="text-md font-semibold">Appearance</h2>
@@ -109,6 +134,17 @@ export function SettingsPage(): React.JSX.Element {
               }}
             >
               Simulate connection loss
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              icon={<Clock className="size-3.5" />}
+              disabled={!isAuthenticated}
+              onClick={() => {
+                authSource.session.expire();
+              }}
+            >
+              Simulate session expiry
             </Button>
             <Button
               variant="secondary"

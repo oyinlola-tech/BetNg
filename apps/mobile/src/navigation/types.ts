@@ -8,6 +8,8 @@ export type TabParamList = {
   Account: undefined;
 };
 
+export type AuthView = "login" | "register" | "verify" | "forgot" | "expired";
+
 export type RootStackParamList = {
   Tabs: NavigatorScreenParams<TabParamList>;
   Match: { matchId: string; tab?: "OVERVIEW" | "EVENTS" | "STATS" | "MARKETS" };
@@ -20,6 +22,7 @@ export type RootStackParamList = {
   Notifications: undefined;
   Settings: undefined;
   History: undefined;
+  Auth: { view: AuthView; email?: string };
 };
 
 declare global {

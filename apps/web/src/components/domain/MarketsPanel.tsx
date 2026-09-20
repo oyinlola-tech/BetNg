@@ -9,6 +9,7 @@ import {
   type SelectionView,
 } from "@betng/ui-core";
 import { useMarkets } from "../../hooks/queries";
+import { toSlipSelection } from "../../lib/slip";
 import { useBetSlip } from "../../stores/betslip.store";
 import { Countdown, EmptyState, ErrorState, MarketCard, Skeleton, Tabs } from "@betng/ui-web";
 
@@ -43,18 +44,7 @@ export function MarketsPanel({
 
   const onToggle = useCallback(
     (market: MarketView, selection: SelectionView) => {
-      toggle({
-        selectionId: selection.id,
-        marketId: market.id,
-        matchId: match.id,
-        marketKind: market.kind,
-        marketName: market.name,
-        selectionLabel: selection.label,
-        odds: selection.odds,
-        matchLabel: `${match.home.name} v ${match.away.name}`,
-        leagueCode: match.leagueCode,
-        kickoffAt: match.kickoffAt,
-      });
+      toggle(toSlipSelection(match, market, selection));
     },
     [toggle, match],
   );

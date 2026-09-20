@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import type { KeyValueStorage } from "@betng/ui-core";
+import type { SessionStorage } from "@betng/ui-core";
 
 const PREFIX = "betng.";
 const cache = new Map<string, string>();
@@ -15,11 +15,15 @@ export async function hydrateStorage(): Promise<void> {
   for (const [key, value] of pairs) if (value !== null) cache.set(key, value);
 }
 
-export const storage: KeyValueStorage = {
+export const storage: Required<SessionStorage> = {
   get: (key) => cache.get(key) ?? null,
   set: (key, value) => {
     cache.set(key, value);
     void AsyncStorage.setItem(key, value);
+  },
+  remove: (key) => {
+    cache.delete(key);
+    void AsyncStorage.removeItem(key);
   },
 };
 

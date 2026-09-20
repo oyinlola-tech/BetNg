@@ -12,11 +12,14 @@ interface BetSlipState {
   readonly selections: readonly SlipSelection[];
   readonly stake: number;
   readonly open: boolean;
+  /** Set when sign-in interrupted a submission, so the sheet places the bet as soon as it reopens. */
+  readonly submitOnOpen: boolean;
   toggle: (selection: SlipSelection) => void;
   remove: (selectionId: string) => void;
   clear: () => void;
   setStake: (stake: number) => void;
   setOpen: (open: boolean) => void;
+  resumeSubmit: (pending: boolean) => void;
 }
 
 export const useBetSlip = create<BetSlipState>()(
@@ -25,6 +28,7 @@ export const useBetSlip = create<BetSlipState>()(
       selections: [],
       stake: STAKE_LIMITS.default,
       open: false,
+      submitOnOpen: false,
       toggle: (selection) => {
         set((s) => ({ selections: toggleSelection(s.selections, selection) }));
       },

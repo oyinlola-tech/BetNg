@@ -23,6 +23,7 @@ export interface DropdownProps {
 /** An action menu: arrow keys move, Enter selects, Escape or an outside click closes. */
 export function Dropdown({ label, trigger, items, align = "end", className }: DropdownProps): React.JSX.Element {
   const [open, setOpen] = useState(false);
+  const [position, setPosition] = useState<React.CSSProperties>({});
   const root = useRef<HTMLDivElement>(null);
   const menuId = useId();
 
@@ -33,11 +34,19 @@ export function Dropdown({ label, trigger, items, align = "end", className }: Dr
       if (root.current !== null && !root.current.contains(event.target as Node)) setOpen(false);
     };
 
+    const close = (): void => {
+      setOpen(false);
+    };
+
     document.addEventListener("pointerdown", onPointer);
+    window.addEventListener("resize", close);
+    window.addEventListener("scroll", close, true);
     root.current?.querySelector<HTMLButtonElement>('[role="menuitem"]:not(:disabled)')?.focus();
 
     return () => {
       document.removeEventListener("pointerdown", onPointer);
+      window.removeEventListener("resize", close);
+      window.removeEventListener("scroll", close, true);
     };
   }, [open]);
 
@@ -74,6 +83,18 @@ export function Dropdown({ label, trigger, items, align = "end", className }: Dr
         aria-controls={menuId}
         aria-label={label}
         onClick={() => {
+          const rect = root.current?.getBoundingClientRect();
+
+          // Fixed to the viewport so a scrolling table or panel cannot clip the menu.
+          if (rect !== undefined) {
+            const below = window.innerHeight - rect.bottom > items.length * 34 + 24;
+
+            setPosition({
+              ...(below ? { top: rect.bottom + 4 } : { bottom: window.innerHeight - rect.top + 4 }),
+              ...(align === "end" ? { right: window.innerWidth - rect.right } : { left: rect.left }),
+            });
+          }
+
           setOpen((o) => !o);
         }}
         className="inline-flex items-center rounded-sm focus-ring"
@@ -85,7 +106,8 @@ export function Dropdown({ label, trigger, items, align = "end", className }: Dr
           id={menuId}
           role="menu"
           aria-label={label}
-          className={cn("absolute top-full z-drawer mt-1 min-w-44 rounded-md border border-border bg-surface-elevated p-1 shadow-md animate-fade-in", align === "end" ? "right-0" : "left-0")}
+          style={position}
+          className="fixed z-drawer min-w-44 rounded-md border border-border bg-surface-elevated p-1 shadow-md animate-fade-in"
         >
           {items.map((item) => (
             <button

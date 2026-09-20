@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { MatchId } from "@betng/contracts";
+import type { LeagueId, MatchId } from "@betng/contracts";
 import type { MatchFilter, PlaceTicketInput, TicketFilter } from "@betng/ui-core";
 import { queryKeys } from "../lib/queryKeys";
 import { dataSource, shopSource } from "../services/dataSource";
@@ -46,7 +46,7 @@ export function useMarketsFor(matchIds: readonly string[]) {
 export function useCompletedMatchdays(leagueId: string | undefined) {
   return useQuery({
     queryKey: queryKeys.matchdays(leagueId ?? ""),
-    queryFn: () => dataSource.listCompletedMatchdays(leagueId as never),
+    queryFn: () => dataSource.listCompletedMatchdays(leagueId as LeagueId),
     enabled: leagueId !== undefined,
     refetchInterval: 15_000,
   });
