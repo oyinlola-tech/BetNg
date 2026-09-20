@@ -177,9 +177,10 @@ function Terminal({ mode }: { readonly mode: TerminalMode }): React.JSX.Element 
 
       <section aria-label="Matches" className="flex min-h-0 min-w-0 flex-col">
         <div className="flex shrink-0 flex-wrap items-center gap-3 border-b border-border bg-surface px-3 py-2">
-          <h1 className="font-display text-lg font-semibold tracking-tight">
-            {TITLES[mode].title} <span className="ml-1 text-sm font-normal text-text-muted">{TITLES[mode].hint}</span>
-          </h1>
+          <div className="flex items-baseline gap-2">
+            <h1 className="font-display text-lg font-semibold tracking-tight">{TITLES[mode].title}</h1>
+            <p className="text-sm text-text-muted">{TITLES[mode].hint}</p>
+          </div>
           {mode !== "live" && (
             <Tabs
               label="Match status"

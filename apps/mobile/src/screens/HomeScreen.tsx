@@ -2,8 +2,9 @@ import { ScrollView, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Bell, Wallet } from "lucide-react-native";
-import { formatMoney } from "@betng/ui-core";
+import { formatMoney, formatOdds } from "@betng/ui-core";
 import {
+  Button,
   Card,
   EmptyState,
   ErrorState,
@@ -19,6 +20,7 @@ import {
 } from "../components";
 import { useAccountVersion } from "../hooks/useAccount";
 import { useAsync } from "../hooks/useAsync";
+import { useAuth } from "../hooks/useAuth";
 import { getDataSource } from "../services/dataSource";
 import { useTheme } from "../theme";
 
@@ -51,12 +53,23 @@ export function HomeScreen(): React.JSX.Element {
     8000,
   );
   const leagues = useAsync(() => getDataSource().listLeagues(), [], 30_000);
-  const wallet = useAsync(() => getDataSource().getWallet(), [version], 15_000);
+  const { isAuthenticated, openAuth } = useAuth();
+  const wallet = useAsync(
+    () => (isAuthenticated ? getDataSource().getWallet() : Promise.resolve(undefined)),
+    [version, isAuthenticated],
+    15_000,
+  );
   const notifications = useAsync(
-    () => getDataSource().listNotifications(),
-    [version],
+    () => (isAuthenticated ? getDataSource().listNotifications() : Promise.resolve([])),
+    [version, isAuthenticated],
     10_000,
   );
+  const bets = useAsync(
+    () => (isAuthenticated ? getDataSource().listBets() : Promise.resolve([])),
+    [version, isAuthenticated],
+    10_000,
+  );
+  const openBets = (bets.data ?? []).filter((b) => b.status === "PENDING");
   const unread = notifications.data?.filter((n) => !n.read).length ?? 0;
   const openMatch = (matchId: string): void => {
     navigation.navigate("Match", { matchId });
@@ -100,61 +113,118 @@ export function HomeScreen(): React.JSX.Element {
           </Text>
         </Text>
         <View style={{ flex: 1 }} />
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Wallet"
-          onPress={() => {
-            navigation.navigate("Wallet");
-          }}
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 6,
-            paddingHorizontal: 10,
-            height: 36,
-            borderRadius: t.radius.sm,
-            borderWidth: 1,
-            borderColor: t.colors.border,
-            backgroundColor: t.colors.surface,
-          }}
-        >
-          <Wallet size={14} color={t.colors.textMuted} />
-          <Text variant="caption" tabular style={{ fontWeight: "700" }}>
-            {wallet.data === undefined
-              ? "—"
-              : formatMoney(wallet.data.available)}
-          </Text>
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Notifications${unread > 0 ? `, ${String(unread)} unread` : ""}`}
-          onPress={() => {
-            navigation.navigate("Notifications");
-          }}
-          style={{
-            width: 40,
-            height: 40,
-            alignItems: "center",
-            justifyContent: "center",
-            marginLeft: 4,
-          }}
-        >
-          <Bell size={20} color={t.colors.textSecondary} />
-          {unread > 0 && (
-            <View
-              style={{
-                position: "absolute",
-                top: 8,
-                right: 8,
-                width: 8,
-                height: 8,
-                borderRadius: 4,
-                backgroundColor: t.colors.live,
+        {isAuthenticated ? (
+          <>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Wallet"
+              onPress={() => {
+                navigation.navigate("Wallet");
               }}
-            />
-          )}
-        </Pressable>
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 6,
+                paddingHorizontal: 10,
+                height: 36,
+                borderRadius: t.radius.sm,
+                borderWidth: 1,
+                borderColor: t.colors.border,
+                backgroundColor: t.colors.surface,
+              }}
+            >
+              <Wallet size={14} color={t.colors.textMuted} />
+              <Text variant="caption" tabular style={{ fontWeight: "700" }}>
+                {wallet.data === undefined
+                  ? "—"
+                  : formatMoney(wallet.data.available)}
+              </Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Notifications${unread > 0 ? `, ${String(unread)} unread` : ""}`}
+              onPress={() => {
+                navigation.navigate("Notifications");
+              }}
+              style={{
+                width: 40,
+                height: 40,
+                alignItems: "center",
+                justifyContent: "center",
+                marginLeft: 4,
+              }}
+            >
+              <Bell size={20} color={t.colors.textSecondary} />
+              {unread > 0 && (
+                <View
+                  style={{
+                    position: "absolute",
+                    top: 8,
+                    right: 8,
+                    width: 8,
+                    height: 8,
+                    borderRadius: 4,
+                    backgroundColor: t.colors.live,
+                  }}
+                />
+              )}
+            </Pressable>
+          </>
+        ) : (
+          <Button
+            label="Log in"
+            size="sm"
+            onPress={() => {
+              openAuth("login");
+            }}
+          />
+        )}
       </View>
+
+      {openBets.length > 0 && (
+        <View style={{ paddingHorizontal: 16 }}>
+          <SectionHeader
+            eyebrow="Your account"
+            title="Current bets"
+            onPress={() => {
+              navigation.navigate("Tabs", { screen: "Bets" });
+            }}
+          />
+          <Card>
+            {openBets.slice(0, 2).map((bet, i) => (
+              <Pressable
+                key={bet.id}
+                accessibilityRole="button"
+                accessibilityLabel={`Open bet, ${String(bet.legs.length)} selections, returns ${formatMoney(bet.potentialPayout)}`}
+                onPress={() => {
+                  navigation.navigate("Tabs", { screen: "Bets" });
+                }}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 12,
+                  paddingHorizontal: 14,
+                  height: 56,
+                  borderTopWidth: i === 0 ? 0 : 1,
+                  borderTopColor: t.colors.border,
+                }}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text variant="bodyStrong" numberOfLines={1}>
+                    {bet.legs.length === 1 ? (bet.legs[0]?.selectionLabel ?? "Single") : `${String(bet.legs.length)}-fold accumulator`}
+                  </Text>
+                  <Text variant="caption" tone="muted" numberOfLines={1}>
+                    {bet.legs.length === 1 ? bet.legs[0]?.matchLabel : `Stake ${formatMoney(bet.stake)}`} · @ {formatOdds(bet.totalOdds)}
+                  </Text>
+                </View>
+                <Text variant="bodyStrong" tabular>
+                  {formatMoney(bet.potentialPayout)}
+                </Text>
+              </Pressable>
+            ))}
+          </Card>
+        </View>
+      )}
 
       <View style={{ paddingHorizontal: 16 }}>
         <SectionHeader

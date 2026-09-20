@@ -12,7 +12,8 @@ import {
   useToast,
 } from "../components";
 import { useAsync } from "../hooks/useAsync";
-import { asMock, getDataSource } from "../services/dataSource";
+import { useAuth } from "../hooks/useAuth";
+import { asMock, getAuthSource, getDataSource } from "../services/dataSource";
 import { removeStored } from "../services/storage";
 import { useTheme, useThemeStore, type ThemePreference } from "../theme";
 import { appConfig } from "../configs/app.config";
@@ -41,6 +42,7 @@ export function SettingsScreen(): React.JSX.Element {
   );
   const current = local ?? prefs.data;
   const mock = asMock(getDataSource());
+  const { isAuthenticated } = useAuth();
 
   const update = (key: keyof NotificationPreferences, value: boolean): void => {
     if (current === undefined) return;
@@ -196,6 +198,16 @@ export function SettingsScreen(): React.JSX.Element {
               onPress={() => {
                 mock.platform.simulateOutage(6000);
                 toast("Connection dropped for 6 seconds");
+              }}
+              style={{ flex: 1 }}
+            />
+            <Button
+              label="Expire session"
+              size="sm"
+              variant="secondary"
+              disabled={!isAuthenticated}
+              onPress={() => {
+                getAuthSource().session.expire();
               }}
               style={{ flex: 1 }}
             />

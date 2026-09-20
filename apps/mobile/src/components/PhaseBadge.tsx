@@ -19,6 +19,7 @@ export function PhaseBadge({
     brand: [t.colors.brand, t.colors.brandSubtle],
     warning: [t.colors.warning, t.colors.warningSubtle],
     success: [t.colors.success, t.colors.successSubtle],
+    danger: [t.colors.danger, t.colors.dangerSubtle],
     neutral: [t.colors.textSecondary, t.colors.surfaceSunken],
     muted: [t.colors.textMuted, t.colors.surfaceSunken],
   }[tone] as [string, string];

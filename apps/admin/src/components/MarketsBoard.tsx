@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useMemo, useState } from "react";
 import { Link } from "react-router";
 import { ArrowDown, ArrowUp, Minus, Pause, Play } from "lucide-react";
 import type { AdminMarketOdds, AdminSelectionOdds } from "@betng/contracts";
@@ -7,7 +7,7 @@ import { Button, EmptyState, ErrorState, Panel, SkeletonRows, cn } from "@betng/
 import { useAdminAction } from "../hooks/queries";
 import { formatPercent } from "../lib/format";
 import { adminSource } from "../services/sources";
-import { Status } from "./Bits";
+import { Status, useFlashKey } from "./Bits";
 import { GuardedButton } from "./Guard";
 import { useReasonAction, type PendingAction } from "./ReasonAction";
 
@@ -33,15 +33,7 @@ function Movement({ selection }: { readonly selection: AdminSelectionOdds }): Re
 }
 
 function OddsCell({ value }: { readonly value: number }): React.JSX.Element {
-  const previous = useRef(value);
-  const [flash, setFlash] = useState(0);
-
-  useEffect(() => {
-    if (previous.current !== value) {
-      previous.current = value;
-      setFlash((n) => n + 1);
-    }
-  }, [value]);
+  const flash = useFlashKey(value);
 
   return (
     <span key={flash} className={cn("inline-block rounded-xs px-1 font-display font-semibold tabular", flash > 0 && "flash-cell")}>

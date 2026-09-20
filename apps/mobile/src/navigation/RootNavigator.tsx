@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Home, Radio, Receipt, Trophy, UserRound } from "lucide-react-native";
 import { Pressable, SlipBar, Text } from "../components";
 import { useTheme } from "../theme";
+import { gated } from "./gated";
 import { navigationRef } from "./ref";
 import type { RootStackParamList, TabParamList } from "./types";
 import {
@@ -34,6 +35,28 @@ import {
   VirtualsScreen,
   WalletScreen,
 } from "../screens";
+
+const GatedBets = gated(BetsScreen, {
+  heading: "Bets",
+  title: "Log in to see your bets",
+  description: "Open and settled bets belong to your account.",
+  reason: "Log in to see your bets",
+});
+const GatedWallet = gated(WalletScreen, {
+  title: "Log in to open your wallet",
+  description: "Your simulated balance, deposits and withdrawals belong to your account.",
+  reason: "Log in to open your wallet",
+});
+const GatedTransactions = gated(TransactionsScreen, {
+  title: "Log in to see transactions",
+  description: "The ledger of your simulated wallet belongs to your account.",
+  reason: "Log in to see your transactions",
+});
+const GatedNotifications = gated(NotificationsScreen, {
+  title: "Log in to see notifications",
+  description: "Match and settlement alerts are sent to your account.",
+  reason: "Log in to see your notifications",
+});
 
 const Tab = createBottomTabNavigator<TabParamList>();
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -155,7 +178,7 @@ function Tabs(): React.JSX.Element {
       />
       <Tab.Screen
         name="Bets"
-        component={BetsScreen}
+        component={GatedBets}
         options={{ title: "Bets" }}
       />
       <Tab.Screen
@@ -227,17 +250,17 @@ export function RootNavigator(): React.JSX.Element {
         />
         <Stack.Screen
           name="Wallet"
-          component={WalletScreen}
+          component={GatedWallet}
           options={{ title: "Wallet" }}
         />
         <Stack.Screen
           name="Transactions"
-          component={TransactionsScreen}
+          component={GatedTransactions}
           options={{ title: "Transactions" }}
         />
         <Stack.Screen
           name="Notifications"
-          component={NotificationsScreen}
+          component={GatedNotifications}
           options={{ title: "Notifications" }}
         />
         <Stack.Screen

@@ -5,7 +5,7 @@ import { Skeleton } from "./Skeleton";
 export interface KpiCardProps {
   readonly label: string;
   readonly value: string | undefined;
-  readonly hint?: string;
+  readonly hint?: string | undefined;
   /** Change against the comparison period, as a fraction (0.12 = +12%). */
   readonly delta?: number | undefined;
   /** Whether a rise is good news. Payouts rising is not. */

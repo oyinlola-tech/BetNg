@@ -8,12 +8,22 @@ import {
   ToastProvider,
   useToast,
 } from "./components";
+import { openAuth, useAuth } from "./hooks/useAuth";
 import { RootNavigator } from "./navigation/RootNavigator";
+import { useBetSlip } from "./stores/betslip.store";
 import { hydrateStorage } from "./services/storage";
 import { useTheme, useThemeStore } from "./theme";
 
 function Body(): React.JSX.Element {
   const { toast } = useToast();
+  const { status } = useAuth();
+
+  useEffect(() => {
+    if (status !== "EXPIRED") return;
+
+    useBetSlip.getState().setOpen(false);
+    openAuth("expired");
+  }, [status]);
 
   return (
     <>

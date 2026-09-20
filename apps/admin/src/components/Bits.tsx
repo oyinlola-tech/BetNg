@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Check, Copy } from "lucide-react";
 import { StatusBadge, cn } from "@betng/ui-web";
 import { statusView } from "../lib/format";
@@ -65,4 +65,19 @@ export function Meter({ value, limit, label }: { readonly value: number; readonl
 
 export function FilterBar({ children }: { readonly children: React.ReactNode }): React.JSX.Element {
   return <div className="flex flex-wrap items-center gap-2 border-b border-border px-3 py-2">{children}</div>;
+}
+
+/** Changes whenever `value` changes after mount, for replaying the flash animation on just that element. */
+export function useFlashKey(value: string | number): number {
+  const previous = useRef(value);
+  const [key, setKey] = useState(0);
+
+  useEffect(() => {
+    if (previous.current !== value) {
+      previous.current = value;
+      setKey((n) => n + 1);
+    }
+  }, [value]);
+
+  return key;
 }

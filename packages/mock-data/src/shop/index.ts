@@ -98,9 +98,14 @@ export function createMockShopSource(options: MockShopOptions): ShopDataSource {
 
     if (state.seededFor === today) return;
 
-    const seeded = todaySeedTickets(now());
+    const recent = todaySeedTickets(now());
 
-    if (seeded.length === 0) return;
+    if (recent.length === 0) return;
+
+    /* The day so far: generated trade up to a quarter of an hour ago, then tickets on matches that really finished. */
+    const cutoff = now() - 15 * 60_000;
+    const earlier = pastDayTickets(today, now()).filter((t) => Date.parse(t.settledAt ?? t.placedAt) < cutoff && (t.paidAt === undefined || Date.parse(t.paidAt) < cutoff));
+    const seeded = [...earlier, ...recent];
 
     const events = seeded
       .flatMap((t) => [

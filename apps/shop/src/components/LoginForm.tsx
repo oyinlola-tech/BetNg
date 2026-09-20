@@ -56,7 +56,7 @@ export function LoginForm({ fixed, submitLabel = "Sign in", onSuccess }: LoginFo
   return (
     <form onSubmit={(event) => void submit(event)} noValidate className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2">
-        <Input label="Shop code" placeholder="BNG-LAG-001" autoCapitalize="characters" autoComplete="organization" spellCheck={false} readOnly={fixed !== undefined} autoFocus={fixed === undefined} error={errors.shopCode?.message} className="uppercase" {...register("shopCode")} />
+        <Input label="Shop code" placeholder="BNG-LAG-001" autoCapitalize="characters" autoComplete="organization" spellCheck={false} readOnly={fixed !== undefined} autoFocus={fixed === undefined} error={errors.shopCode?.message} {...register("shopCode")} />
         <Input label="Username" autoComplete="username" spellCheck={false} readOnly={fixed !== undefined} error={errors.username?.message} {...register("username")} />
       </div>
       <PasswordInput label="Password" autoComplete="current-password" autoFocus={fixed !== undefined} error={errors.password?.message} {...register("password")} />

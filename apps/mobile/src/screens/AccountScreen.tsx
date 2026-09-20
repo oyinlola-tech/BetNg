@@ -1,4 +1,4 @@
-import { View } from "react-native";
+import { Alert, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
@@ -7,15 +7,18 @@ import {
   CircleHelp,
   History,
   Info,
+  LogOut,
   Receipt,
   Settings,
   Wallet,
 } from "lucide-react-native";
 import { formatMoney } from "@betng/ui-core";
-import { Card, Divider, Pressable, Screen, Text } from "../components";
+import { Button, Card, Divider, Pressable, Screen, Text, useToast } from "../components";
 import { useAccountVersion } from "../hooks/useAccount";
 import { useAsync } from "../hooks/useAsync";
+import { requireAuth, useAuth } from "../hooks/useAuth";
 import { getDataSource } from "../services/dataSource";
+import { useBetSlip } from "../stores/betslip.store";
 import { useTheme } from "../theme";
 
 export function AccountScreen(): React.JSX.Element {
@@ -23,12 +26,42 @@ export function AccountScreen(): React.JSX.Element {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const version = useAccountVersion();
-  const wallet = useAsync(() => getDataSource().getWallet(), [version], 15_000);
-  const notifications = useAsync(
-    () => getDataSource().listNotifications(),
-    [version],
+  const { isAuthenticated, user, status, openAuth, logout } = useAuth();
+  const { toast } = useToast();
+  const selectionCount = useBetSlip((s) => s.selections.length);
+  const wallet = useAsync(
+    () => (isAuthenticated ? getDataSource().getWallet() : Promise.resolve(undefined)),
+    [version, isAuthenticated],
     15_000,
   );
+  const notifications = useAsync(
+    () => (isAuthenticated ? getDataSource().listNotifications() : Promise.resolve([])),
+    [version, isAuthenticated],
+    15_000,
+  );
+
+  const gate = (label: string, to: "Wallet" | "Transactions" | "Notifications") => (): void => {
+    requireAuth({
+      reason: `Log in to open ${label}.`,
+      run: () => {
+        navigation.navigate(to);
+      },
+    });
+  };
+
+  const signOut = async (): Promise<void> => {
+    await logout();
+    toast("You are logged out");
+  };
+
+  const confirmLogout = (): void => {
+    if (selectionCount === 0) return void signOut();
+
+    Alert.alert("Log out?", `Your bet slip has ${String(selectionCount)} selection${selectionCount === 1 ? "" : "s"}. They stay on this device, but you will need to log in again to place the bet.`, [
+      { text: "Cancel", style: "cancel" },
+      { text: "Log out", style: "destructive", onPress: () => void signOut() },
+    ]);
+  };
   const unread = notifications.data?.filter((n) => !n.read).length ?? 0;
 
   const rows: readonly {
@@ -44,24 +77,18 @@ export function AccountScreen(): React.JSX.Element {
           ? undefined
           : formatMoney(wallet.data.available),
       Icon: Wallet,
-      onPress: () => {
-        navigation.navigate("Wallet");
-      },
+      onPress: gate("your wallet", "Wallet"),
     },
     {
       label: "Transactions",
       Icon: Receipt,
-      onPress: () => {
-        navigation.navigate("Transactions");
-      },
+      onPress: gate("your transactions", "Transactions"),
     },
     {
       label: "Notifications",
       hint: unread > 0 ? `${String(unread)} unread` : undefined,
       Icon: Bell,
-      onPress: () => {
-        navigation.navigate("Notifications");
-      },
+      onPress: gate("your notifications", "Notifications"),
     },
     {
       label: "Watched matches",
@@ -81,21 +108,73 @@ export function AccountScreen(): React.JSX.Element {
 
   return (
     <Screen style={{ paddingTop: insets.top + 12 }}>
-      <Text variant="caps" tone="muted">
-        Demo user
-      </Text>
       <Text variant="heading">Account</Text>
-      <Card style={{ marginTop: 14, padding: 16 }}>
-        <Text variant="caps" tone="muted">
-          Simulated balance
-        </Text>
-        <Text variant="display" tabular style={{ marginTop: 4 }}>
-          {wallet.data === undefined ? "…" : formatMoney(wallet.data.available)}
-        </Text>
-        <Text variant="caption" tone="muted" style={{ marginTop: 4 }}>
-          Play-money. Nothing here has real-world value.
-        </Text>
-      </Card>
+      {user === undefined ? (
+        <Card style={{ marginTop: 14, padding: 16, gap: 12 }}>
+          <Text variant="title">{status === "EXPIRED" ? "Your session has ended" : "Bet, track and manage in one place"}</Text>
+          <Text variant="caption" tone="secondary">
+            {status === "EXPIRED"
+              ? "Log in again to pick up where you left off."
+              : "Browsing is open to everyone. An account is only needed to place simulated bets and use the wallet."}
+          </Text>
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            <Button
+              label="Log in"
+              style={{ flex: 1 }}
+              onPress={() => {
+                openAuth(status === "EXPIRED" ? "expired" : "login");
+              }}
+            />
+            {status !== "EXPIRED" && (
+              <Button
+                label="Create account"
+                variant="secondary"
+                style={{ flex: 1 }}
+                onPress={() => {
+                  openAuth("register");
+                }}
+              />
+            )}
+          </View>
+        </Card>
+      ) : (
+        <Card style={{ marginTop: 14, padding: 16 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            <View
+              accessible={false}
+              style={{ width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center", backgroundColor: t.colors.brandSubtle }}
+            >
+              <Text variant="bodyStrong" tone="brand">
+                {user.displayName
+                  .split(/\s+/)
+                  .map((part) => part[0] ?? "")
+                  .slice(0, 2)
+                  .join("")
+                  .toUpperCase()}
+              </Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text variant="title" numberOfLines={1}>
+                {user.displayName}
+              </Text>
+              <Text variant="caption" tone="muted" numberOfLines={1}>
+                {user.email}
+              </Text>
+            </View>
+          </View>
+          <View style={{ marginTop: 14, paddingTop: 14, borderTopWidth: 1, borderTopColor: t.colors.border }}>
+            <Text variant="caps" tone="muted">
+              Simulated balance
+            </Text>
+            <Text variant="display" tabular style={{ marginTop: 4 }}>
+              {wallet.data === undefined ? "…" : formatMoney(wallet.data.available)}
+            </Text>
+            <Text variant="caption" tone="muted" style={{ marginTop: 4 }}>
+              Play-money. Nothing here has real-world value.
+            </Text>
+          </View>
+        </Card>
+      )}
       <Card style={{ marginTop: 14 }}>
         {rows.map((row, i) => (
           <View key={row.label}>
@@ -160,6 +239,9 @@ export function AccountScreen(): React.JSX.Element {
           </Text>
         </View>
       </Card>
+      {user !== undefined && (
+        <Button label="Log out" variant="secondary" icon={<LogOut size={16} color={t.colors.textPrimary} />} onPress={confirmLogout} style={{ marginTop: 14 }} />
+      )}
     </Screen>
   );
 }

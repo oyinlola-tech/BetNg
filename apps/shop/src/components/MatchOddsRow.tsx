@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { ChevronDown, Lock } from "lucide-react";
+import { ChevronDown, Lock, Timer } from "lucide-react";
 import { canBet, formatKickoffTime, isInPlay, matchClock, type MarketView, type MatchMarketsView, type MatchSummary, type SelectionView } from "@betng/ui-core";
 import { Countdown, MarketCard, OddsButton, PhaseBadge, Skeleton, TeamBadge, cn, useNow } from "@betng/ui-web";
 
@@ -37,7 +37,15 @@ export const MatchOddsRow = memo(function MatchOddsRow({ match, markets, expande
           ) : (
             <p className="font-semibold tabular text-text-primary">{formatKickoffTime(match.kickoffAt)}</p>
           )}
-          {bettable ? <Countdown to={match.bettingClosesAt} className="text-xs text-text-muted" /> : !live && <PhaseBadge phase={match.phase} />}
+          {bettable ? (
+            <p className="flex items-center gap-1 text-xs text-text-muted" title="Betting closes in">
+              <Timer className="size-3" aria-hidden />
+              <span className="sr-only">Betting closes in</span>
+              <Countdown to={match.bettingClosesAt} />
+            </p>
+          ) : (
+            !live && <PhaseBadge phase={match.phase} />
+          )}
         </div>
 
         <div className="min-w-0 space-y-0.5">

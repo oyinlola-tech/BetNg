@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "BetNG \u2014 a virtual football platform simulation. Portfolio project; not a real betting service.",
+  "description": "BetNG — a virtual football platform simulation. Portfolio project; not a real betting service.",
   "license": "MIT",
   "engines": {
     "node": ">=24.0.0",
@@ -37,8 +37,8 @@
     "infra:down": "docker compose -f infrastructure/docker/docker-compose.yml down",
     "infra:logs": "docker compose -f infrastructure/docker/docker-compose.yml logs -f",
     "infra:up": "docker compose -f infrastructure/docker/docker-compose.yml up -d",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
+    "lint": "node tools/lint/node_modules/eslint/bin/eslint.js .",
+    "lint:fix": "node tools/lint/node_modules/eslint/bin/eslint.js . --fix",
     "py:check": "bash scripts/python-check.sh",
     "py:install": "bash scripts/python-install.sh",
     "py:test": "bash scripts/python-test.sh",
@@ -48,13 +48,10 @@
     "verify": "bash scripts/verify.sh"
   },
   "devDependencies": {
-    "@eslint/js": "^10.0.1",
     "@types/node": "^26.6.2",
-    "eslint": "^10.11.0",
     "prettier": "^3.9.8",
     "tsx": "^4.23.15",
     "typescript": "7.0.2",
-    "typescript-eslint": "^8.70.0",
     "vitest": "^5.0.1"
   }
 }

@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { ArrowRight, Lock, ReceiptText, RefreshCw, Trash2, TriangleAlert, X } from "lucide-react";
@@ -33,6 +33,12 @@ export function SlipPanel({ className }: { readonly className?: string }): React
   const stakeError = problem === "BELOW_MIN" || problem === "ABOVE_MAX" ? STAKE_MESSAGE[problem] : undefined;
   const blocked = watch.priceChanges > 0 || watch.closed > 0;
   const ready = selections.length > 0 && problem === undefined && !blocked && !watch.updating;
+
+  const resetPlace = place.reset;
+
+  useEffect(() => {
+    resetPlace();
+  }, [selections, resetPlace]);
 
   const bindings = useMemo(
     () => ({
@@ -185,7 +191,7 @@ export function SlipPanel({ className }: { readonly className?: string }): React
 
             {place.isError && (
               <div role="alert" className="rounded-sm border border-danger/30 bg-danger-subtle p-2.5 text-sm text-text-primary">
-                <span className="font-semibold text-danger">{presentError(place.error).title}.</span> {place.error instanceof Error ? place.error.message : presentError(place.error).message}
+                <span className="font-semibold text-danger">Ticket not issued.</span> {place.error instanceof Error ? place.error.message : presentError(place.error).message}
               </div>
             )}
 

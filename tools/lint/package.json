@@ -1,0 +1,16 @@
+{
+  "name": "@betng/lint",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "ESLint and its TypeScript API. typescript-eslint cannot load TypeScript 7 yet, so this package alone resolves `typescript` to the official TS 6 side-by-side build; every compile in the repo stays on TypeScript 7.",
+  "exports": {
+    ".": "./index.js"
+  },
+  "dependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.11.0",
+    "typescript": "npm:@typescript/typescript6@6.0.2",
+    "typescript-eslint": "^8.70.0"
+  }
+}
