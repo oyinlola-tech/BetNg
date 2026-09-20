@@ -1,28 +1,45 @@
 /**
  * The wallet service's PostgreSQL connection.
  *
- * The service connects to `WALLET_DATABASE_URL` and to nothing else, so it
- * holds no credentials for a table it does not own. The ledger is the one
- * place in BetNG where that matters most: no other service may write it.
+ * The service connects to `WALLET_DATABASE_URL` and to nothing else,
+ * with a login that has rights to wallets and the append-only transaction ledger and no other service's tables. The
+ * boundary is enforced by the database, not by convention: a query outside
+ * it is refused.
+ *
+ * The ledger is the authority here: `Wallet.balance` is a projection of
+ * the sum of its transactions, and the database refuses any update or
+ * delete on that table. A balance can always be re-derived and audited.
+ *
+ * Prisma 7 takes a driver adapter rather than a URL, and `@zudojs/database`
+ * wraps the resulting client to give every BetNG service the same connection
+ * lifecycle, transaction handling and health check.
  */
 
-import { createPostgresPool, postgresProbe } from "@betng/service-kit";
-import type { DependencyProbe, PostgresPool } from "@betng/service-kit";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { createServiceDatabase, databaseProbe } from "@betng/service-kit";
+import type { DependencyProbe, ServiceDatabase } from "@betng/service-kit";
+import { PrismaClient } from "../generated/prisma/client.js";
 
 /** The wallet database connection and the probe that watches it. */
 export interface WalletDatabase {
-  readonly pool: PostgresPool;
+  readonly database: ServiceDatabase;
   readonly probe: DependencyProbe;
+  /** The generated client, for the repositories that run queries. */
+  readonly prisma: PrismaClient;
 }
 
 /**
  * Opens the wallet service's database connection.
  *
  * @param databaseUrl - The value of `WALLET_DATABASE_URL`.
- * @returns The pool and its readiness probe.
+ * @returns The connection, its readiness probe and the Prisma client.
  */
 export function createWalletDatabase(databaseUrl: string): WalletDatabase {
-  const pool = createPostgresPool(databaseUrl);
+  const prisma = new PrismaClient({
+    adapter: new PrismaPg({ connectionString: databaseUrl }),
+  });
 
-  return { pool, probe: postgresProbe(pool) };
+  const database = createServiceDatabase(prisma);
+
+  return { database, probe: databaseProbe(database), prisma };
 }

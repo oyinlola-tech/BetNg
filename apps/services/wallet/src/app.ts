@@ -56,7 +56,7 @@ export function createApp(config: ServiceConfig): WalletApp {
   if (config.databaseUrl !== undefined) {
     const database = createWalletDatabase(config.databaseUrl);
     probes.push(database.probe);
-    onShutdown.unshift(async () => database.pool.close());
+    onShutdown.unshift(async () => database.database.close());
   }
 
   const controller = createWalletController(loadServices(container));

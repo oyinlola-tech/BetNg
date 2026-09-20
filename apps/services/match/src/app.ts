@@ -52,7 +52,7 @@ export function createApp(config: ServiceConfig): MatchApp {
   if (config.databaseUrl !== undefined) {
     const database = createMatchDatabase(config.databaseUrl);
     probes.push(database.probe);
-    onShutdown.unshift(async () => database.pool.close());
+    onShutdown.unshift(async () => database.database.close());
   }
 
   const controller = createMatchController(loadServices(container));

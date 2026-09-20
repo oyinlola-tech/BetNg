@@ -47,7 +47,7 @@ export function createApp(config: ServiceConfig): SettlementApp {
   if (config.databaseUrl !== undefined) {
     const database = createSettlementDatabase(config.databaseUrl);
     probes.push(database.probe);
-    onShutdown.unshift(async () => database.pool.close());
+    onShutdown.unshift(async () => database.database.close());
   }
 
   const controller = createSettlementController(loadServices(container));

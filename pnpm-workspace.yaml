@@ -6,12 +6,14 @@ packages:
 # Dependencies allowed to run install scripts (pnpm 10).
 onlyBuiltDependencies:
   - "esbuild"
+  - "@prisma/engines"
+  - "prisma"
 
 # The same list in the form pnpm 11 reads.
 allowBuilds:
-  '@prisma/engines': set this to true or false
+  '@prisma/engines': true
   "esbuild": true
-  prisma: set this to true or false
+  prisma: true
 
 minimumReleaseAgeExclude:
   - '@zudojs/config@1.2.0'

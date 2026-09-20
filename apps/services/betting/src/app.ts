@@ -87,7 +87,7 @@ export function createApp(config: ServiceConfig): BettingApp {
   if (config.databaseUrl !== undefined) {
     const database = createBettingDatabase(config.databaseUrl);
     probes.push(database.probe);
-    onShutdown.unshift(async () => database.pool.close());
+    onShutdown.unshift(async () => database.database.close());
   }
 
   const controller = createBettingController(loadServices(container));

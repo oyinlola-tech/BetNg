@@ -1,0 +1,27 @@
+{
+  "name": "@betng/client-sdk",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The shared BetNG client: the REST calls every client makes through the gateway, and the live match stream every client subscribes to.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@betng/contracts": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "7.0.2"
+  }
+}

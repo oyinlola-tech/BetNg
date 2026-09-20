@@ -16,5 +16,8 @@
     {
       "path": "../../../packages/service-kit"
     }
+  ],
+  "exclude": [
+    "src/generated/**"
   ]
 }
