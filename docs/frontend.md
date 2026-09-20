@@ -67,3 +67,7 @@ See `docs/frontend-api.md` for every route, its schema and its status. The adapt
 ## 17. Implementation status
 
 Done: tokens, ui-core, mock platform, contracts/SDK extensions, web (15 routes), TV (7 screens + director), mobile (15 screens), light/dark on all three, loading/empty/error states, reconnect handling. Verified: `tsc --noEmit` green on all apps and packages; Vite builds for web and TV; headless screenshots of web (dark/light/phone) and TV. Not verified here: mobile on a device (typecheck only). Known gaps: ESLint is broken repo-wide (typescript-eslint does not support TS 7); no automated tests yet for ui-core/mock-data; team badges are generated monograms until real kit assets exist.
+
+## Screenshots
+
+Captured headless from the mock season (`docs/screenshots/`): `web-home`, `web-home-light`, `web-match`, `web-lobby`, `web-home-phone`, `tv-home`, `tv-live`, `tv-standings`, `tv-results`. Mobile was verified by typecheck only; run `pnpm dev:mobile` to see it in Expo.
