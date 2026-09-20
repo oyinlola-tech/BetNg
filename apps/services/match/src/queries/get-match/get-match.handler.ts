@@ -1,4 +1,5 @@
 import { QueryHandler } from "@zudojs/cqrs";
+import { MATCH_QUERY } from "../../constants/index.js";
 import type { Match } from "@betng/contracts";
 import type { MatchRepository } from "../../interfaces/index.js";
 import { MatchNotFoundError } from "../../errors/index.js";
@@ -11,7 +12,7 @@ import { GetMatchQuery } from "./get-match.query.js";
  * "no such match" is answered the same way whichever caller asked.
  */
 export class GetMatchHandler extends QueryHandler<GetMatchQuery, Match> {
-  public readonly queryType = "match.get-match" as const;
+  public readonly queryType = MATCH_QUERY.GET_MATCH;
 
   private readonly repository: MatchRepository;
 

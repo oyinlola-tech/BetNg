@@ -9,6 +9,7 @@
 import { createQueryBus } from "@zudojs/cqrs";
 import type { QueryBus } from "@zudojs/cqrs";
 import type { Logger } from "@betng/service-kit";
+import { MATCH_QUERY } from "../constants/index.js";
 import type { MatchRepository } from "../interfaces/index.js";
 import {
   GetMatchHandler,
@@ -41,19 +42,19 @@ export function loadCqrs(options: CqrsLoaderOptions): QueryBus {
 
   queryBus.registerMany([
     {
-      queryType: "match.list-leagues",
+      queryType: MATCH_QUERY.LIST_LEAGUES,
       handler: new ListLeaguesHandler(repository),
     },
-    { queryType: "match.list-teams", handler: new ListTeamsHandler(repository) },
+    { queryType: MATCH_QUERY.LIST_TEAMS, handler: new ListTeamsHandler(repository) },
     {
-      queryType: "match.list-fixtures",
+      queryType: MATCH_QUERY.LIST_FIXTURES,
       handler: new ListFixturesHandler(repository),
     },
     {
-      queryType: "match.list-matches",
+      queryType: MATCH_QUERY.LIST_MATCHES,
       handler: new ListMatchesHandler(repository),
     },
-    { queryType: "match.get-match", handler: new GetMatchHandler(repository) },
+    { queryType: MATCH_QUERY.GET_MATCH, handler: new GetMatchHandler(repository) },
   ]);
 
   logger.debug("Query handlers registered", { handlers: queryBus.size() });

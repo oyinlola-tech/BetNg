@@ -1,4 +1,5 @@
 import { Query } from "@zudojs/cqrs";
+import { MATCH_QUERY } from "../../constants/index.js";
 import type { MatchStatus } from "@betng/contracts";
 
 /** Asks for matches, optionally narrowed by league and lifecycle state. */
@@ -11,7 +12,7 @@ export class ListMatchesQuery extends Query<"match.list-matches"> {
     readonly leagueId?: string;
     readonly status?: MatchStatus;
   } = {}) {
-    super("match.list-matches");
+    super(MATCH_QUERY.LIST_MATCHES);
     this.leagueId = filter.leagueId;
     this.status = filter.status;
   }

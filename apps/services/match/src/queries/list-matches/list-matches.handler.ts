@@ -1,4 +1,5 @@
 import { QueryHandler } from "@zudojs/cqrs";
+import { MATCH_QUERY } from "../../constants/index.js";
 import type { Match } from "@betng/contracts";
 import type { MatchFilter, MatchRepository } from "../../interfaces/index.js";
 import { ListMatchesQuery } from "./list-matches.query.js";
@@ -8,7 +9,7 @@ export class ListMatchesHandler extends QueryHandler<
   ListMatchesQuery,
   readonly Match[]
 > {
-  public readonly queryType = "match.list-matches" as const;
+  public readonly queryType = MATCH_QUERY.LIST_MATCHES;
 
   private readonly repository: MatchRepository;
 

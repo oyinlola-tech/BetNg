@@ -29,3 +29,4 @@ minimumReleaseAgeExclude:
   - '@zudojs/types@1.1.1'
   - '@zudojs/validation@1.0.3'
   - tsx@4.23.15
+  - '@zudojs/cqrs@1.1.1'
