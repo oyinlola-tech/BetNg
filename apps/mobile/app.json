@@ -1,0 +1,23 @@
+{
+  "expo": {
+    "name": "BetNG",
+    "slug": "betng",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "betng",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "site.oyinlola.betng"
+    },
+    "android": {
+      "package": "site.oyinlola.betng",
+      "edgeToEdgeEnabled": true
+    },
+    "extra": {
+      "gatewayUrl": "http://localhost:3000",
+      "liveUrl": "ws://localhost:3008/live"
+    }
+  }
+}

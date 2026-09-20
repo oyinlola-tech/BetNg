@@ -49,8 +49,14 @@ export interface LiveEvent {
   readonly type: LiveEventType;
   /** Match minute, 0 to 120. */
   readonly minute: number;
-  /** Absent for an event belonging to neither side, such as `HALF_TIME`. */
-  readonly side?: "HOME" | "AWAY";
+  /**
+   * Absent for an event belonging to neither side, such as `HALF_TIME`.
+   *
+   * Explicitly `| undefined` rather than only optional: the schema below
+   * infers that, and under `exactOptionalPropertyTypes` a validated event
+   * would otherwise not be assignable to this type.
+   */
+  readonly side?: "HOME" | "AWAY" | undefined;
   /** The running score after this event. */
   readonly score: { readonly home: number; readonly away: number };
   readonly description: string;

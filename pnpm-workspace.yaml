@@ -1,5 +1,8 @@
 packages:
   - "apps/gateway"
+  - "apps/web"
+  - "apps/tv"
+  - "apps/mobile"
   - "apps/services/*"
   - "packages/*"
 
