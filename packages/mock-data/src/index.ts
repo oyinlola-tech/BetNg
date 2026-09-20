@@ -1,6 +1,4 @@
 /**
- * @betng/mock-data
- *
  * A stand-in platform: a deterministic virtual season that runs on the
  * wall clock, behind the same `BetNgDataSource` the clients use against
  * the real gateway. Every method notes the endpoint it mirrors.

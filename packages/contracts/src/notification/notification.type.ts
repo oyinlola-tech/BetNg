@@ -50,9 +50,7 @@ export const notificationSchema = z.object({
   createdAt: isoTimestampSchema,
 });
 
-/** The body of `POST /users/:id/notifications/read`. */
 export const markNotificationsReadRequestSchema = z.object({
-  /** Absent marks every notification read. */
   ids: z.array(z.uuid()).max(200).optional(),
 });
 

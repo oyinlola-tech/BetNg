@@ -36,7 +36,6 @@ export interface ScriptEvent {
   readonly player?: string;
   readonly secondaryPlayer?: string;
   readonly description: string;
-  /** Running score after the event. */
   readonly score: Score;
   /** Real seconds after kick-off at which the event is released. */
   readonly releaseSeconds: number;
@@ -57,7 +56,6 @@ export interface MatchScript {
   readonly finalScore: Score;
 }
 
-/** Expected goals for each side, from the two strengths. */
 export function expectedGoals(home: Club, away: Club): { readonly home: number; readonly away: number } {
   const diff = (home.strength - away.strength) / 40;
   const clamp = (x: number): number => Math.min(3.4, Math.max(0.35, x));
@@ -96,7 +94,6 @@ function releaseFor(r: Rng, minute: number): number {
 
 const scriptCache = new Map<string, MatchScript>();
 
-/** The full script for a fixture. Cached; cheap to compute. */
 export function scriptFor(fixture: FixtureRef): MatchScript {
   const cached = scriptCache.get(fixture.matchId);
 
@@ -118,7 +115,6 @@ export function scriptFor(fixture: FixtureRef): MatchScript {
   const drafts: Draft[] = [];
   const clubFor = (side: MatchSide): Club => (side === "HOME" ? home : away);
 
-  /* Goals. */
   for (const side of ["HOME", "AWAY"] as const) {
     const goals = r.poisson(side === "HOME" ? xg.home : xg.away);
     const squad = clubFor(side).squad;
@@ -141,7 +137,6 @@ export function scriptFor(fixture: FixtureRef): MatchScript {
     }
   }
 
-  /* Cards. */
   for (const side of ["HOME", "AWAY"] as const) {
     const squad = clubFor(side).squad;
     const yellows = r.poisson(1.5);
@@ -194,7 +189,6 @@ export function scriptFor(fixture: FixtureRef): MatchScript {
     }
   }
 
-  /* Corners. */
   for (const side of ["HOME", "AWAY"] as const) {
     const corners = r.poisson(side === "HOME" ? 5 : 4);
 
@@ -205,7 +199,6 @@ export function scriptFor(fixture: FixtureRef): MatchScript {
     }
   }
 
-  /* Structural events. */
   drafts.push({ kind: "KICK_OFF", minute: 0, release: 0 });
   drafts.push({ kind: "HALF_TIME", minute: 45, release: FIRST_HALF_SECONDS });
   drafts.push({ kind: "SECOND_HALF", minute: 45, release: SECOND_HALF_START_SECONDS });
@@ -238,7 +231,6 @@ export function scriptFor(fixture: FixtureRef): MatchScript {
 
   ticks.sort((a, b) => a.minute - b.minute);
 
-  /* Narrate, with the running score. */
   let score: Score = { home: 0, away: 0 };
   const scoreline = (): string => `${home.name} ${String(score.home)}–${String(score.away)} ${away.name}`;
 
@@ -310,7 +302,6 @@ export function scriptFor(fixture: FixtureRef): MatchScript {
   return script;
 }
 
-/** Events released by `elapsedSeconds` after kick-off. */
 export function releasedEvents(script: MatchScript, elapsedSeconds: number): readonly ScriptEvent[] {
   if (elapsedSeconds < 0) return [];
 
@@ -324,7 +315,6 @@ export function releasedEvents(script: MatchScript, elapsedSeconds: number): rea
   return script.events.slice(0, count);
 }
 
-/** Statistics as of a match minute. */
 export function statsAt(script: MatchScript, released: readonly ScriptEvent[], minute: number, matchId: MatchId): MatchStats {
   const side = (which: MatchSide): SideStats => {
     const ticks = script.ticks.filter((t) => t.side === which && t.minute <= minute);

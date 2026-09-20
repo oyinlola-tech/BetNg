@@ -45,13 +45,10 @@ export interface KeyValueStorage {
 }
 
 export interface MockPlatformOptions {
-  /** The clock. Injected by tests; real time otherwise. */
   readonly now?: () => number;
-  /** Persists the account between sessions. */
   readonly storage?: KeyValueStorage;
   /** Simulated network latency for reads, so loading states are exercised. */
   readonly latencyMs?: number;
-  /** Opening balance in kobo. */
   readonly openingBalance?: number;
 }
 
@@ -134,9 +131,6 @@ export class MockPlatform {
     if (this.outageTimer !== undefined) clearTimeout(this.outageTimer);
   }
 
-  /* ---- Latency ------------------------------------------------------- */
-
-  /** Resolves after a short, slightly variable delay. */
   public async delay(): Promise<void> {
     const ms = this.latencyMs * (0.6 + Math.random() * 0.8);
 
@@ -146,8 +140,6 @@ export class MockPlatform {
       throw new DataSourceError("NETWORK", "You appear to be offline.");
     }
   }
-
-  /* ---- Matches ------------------------------------------------------- */
 
   public fixture(matchId: string): FixtureRef | undefined {
     return findFixture(matchId, this.now(), COMPETITIONS);
@@ -202,8 +194,6 @@ export class MockPlatform {
     };
   }
 
-  /* ---- Live ---------------------------------------------------------- */
-
   public getConnection(): ConnectionState {
     return this.connection;
   }
@@ -235,7 +225,6 @@ export class MockPlatform {
     }, ms);
   }
 
-  /** Mirrors the device's own online/offline state. */
   public setOnline(online: boolean): void {
     if (online) {
       if (this.connection === "OFFLINE") this.setConnection("RECONNECTING");
@@ -277,8 +266,6 @@ export class MockPlatform {
       clearInterval(timer);
     };
   }
-
-  /* ---- Account ------------------------------------------------------- */
 
   private loadAccount(openingBalance: number): AccountState {
     const fresh: AccountState = {
@@ -541,7 +528,6 @@ export class MockPlatform {
       }
     }
 
-    /* Settlement. */
     for (const bet of this.account.bets) {
       if (bet.status !== "PENDING") continue;
 
@@ -597,7 +583,6 @@ export class MockPlatform {
     if (changed) this.persist();
   }
 
-  /** The market code a slip selection was made on, recovered from its id. */
   private codeFor(leg: BetView["legs"][number]): string {
     const fixture = this.fixture(leg.matchId);
 

@@ -79,7 +79,6 @@ export function rng(seed: string | number): Rng {
   };
 }
 
-/** A stable UUID-shaped identifier derived from a name. */
 export function uuidFrom(name: string): string {
   const r = rng(`uuid:${name}`);
   const hex = (): string => Math.floor(r.next() * 16).toString(16);

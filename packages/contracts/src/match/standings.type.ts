@@ -23,7 +23,6 @@ export interface StandingRow {
   readonly goalsAgainst: number;
   readonly goalDifference: number;
   readonly points: number;
-  /** Most recent last, up to five. */
   readonly form: readonly FormResult[];
 }
 

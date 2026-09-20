@@ -1,9 +1,3 @@
-/**
- * @betng/contracts/notification
- *
- * In-app notifications and the call that marks them read.
- */
-
 export {
   markNotificationsReadRequestSchema,
   notificationKindSchema,

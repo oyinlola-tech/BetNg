@@ -10,7 +10,6 @@ import { z } from "@zudojs/validation";
 import { brandedIdSchema, type MatchId } from "../common/index.js";
 
 export interface SideStats {
-  /** Percentage, 0 to 100. Home and away sum to 100. */
   readonly possession: number;
   readonly shots: number;
   readonly shotsOnTarget: number;
@@ -34,7 +33,6 @@ export const sideStatsSchema = z.object({
 
 export interface MatchStats {
   readonly matchId: MatchId;
-  /** The match minute these figures are current to. */
   readonly asOfMinute: number;
   readonly home: SideStats;
   readonly away: SideStats;

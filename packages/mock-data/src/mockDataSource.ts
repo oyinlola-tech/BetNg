@@ -32,7 +32,6 @@ import {
 import { scriptFor } from "./simulate.js";
 
 export interface MockDataSource extends BetNgDataSource {
-  /** The platform behind the source, for developer controls. */
   readonly platform: MockPlatform;
 }
 
@@ -62,9 +61,6 @@ function seasonRounds(competition: Competition, season: number, now: number): nu
   return rounds;
 }
 
-/**
- * Creates the mock data source.
- */
 export function createMockDataSource(options: MockPlatformOptions = {}): MockDataSource {
   const platform = new MockPlatform(options);
   const now = platform.now;
@@ -89,7 +85,6 @@ export function createMockDataSource(options: MockPlatformOptions = {}): MockDat
     return fixture;
   }
 
-  /** The fixtures a filter refers to, before phase filtering. */
   function candidates(filter: MatchFilter): readonly FixtureRef[] {
     const t = now();
     const out: FixtureRef[] = [];
@@ -103,7 +98,6 @@ export function createMockDataSource(options: MockPlatformOptions = {}): MockDat
       }
 
       if (filter.date !== undefined) {
-        // Walk back from the current round until the day is left behind.
         for (let round = current + 2; round >= 0; round -= 1) {
           const key = toLocalDateKey(new Date(kickoffMs(competition, round)));
 

@@ -23,7 +23,6 @@ export interface FixtureRef {
   readonly matchId: MatchId;
   readonly fixtureId: FixtureId;
   readonly competition: Competition;
-  /** Zero-based, since the epoch. */
   readonly round: number;
   readonly season: number;
   readonly matchday: number;
@@ -32,7 +31,6 @@ export interface FixtureRef {
   readonly kickoffMs: number;
 }
 
-/** The round-robin pairings for one season, home and away. */
 function pairings(competition: Competition, season: number): readonly (readonly [Club, Club])[][] {
   const order = rng(`season:${competition.seed.key}:${String(season)}`).shuffle(competition.clubs);
   const n = order.length;
@@ -78,7 +76,6 @@ export function kickoffMs(competition: Competition, round: number): number {
   return SEASON_EPOCH_MS + (competition.seed.offsetSeconds + round * CYCLE_SECONDS) * 1000;
 }
 
-/** The fixtures of one round (a global matchday index). */
 export function fixturesForRound(competition: Competition, round: number): readonly FixtureRef[] {
   if (round < 0) return [];
 
@@ -113,7 +110,6 @@ export function currentRound(competition: Competition, now: number): number {
   return Math.floor((now - kickoffMs(competition, 0)) / (CYCLE_SECONDS * 1000));
 }
 
-/** Contract status of a fixture at `now`. */
 export function statusAt(
   fixture: FixtureRef,
   now: number,
@@ -127,7 +123,6 @@ export function statusAt(
   return "COMPLETED";
 }
 
-/** Finds a fixture by match id by searching a window of rounds around now. */
 export function findFixture(matchId: string, now: number, competitions: readonly Competition[]): FixtureRef | undefined {
   for (const competition of competitions) {
     const centre = currentRound(competition, now);

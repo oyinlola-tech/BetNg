@@ -26,7 +26,6 @@ export interface LeagueSeed {
   readonly name: string;
   readonly code: string;
   readonly country: string;
-  /** Seconds this league's kick-offs sit after the season epoch. */
   readonly offsetSeconds: number;
   readonly clubs: readonly ClubSeed[];
 }
