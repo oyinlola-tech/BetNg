@@ -1,0 +1,29 @@
+{
+  "name": "@betng/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Language-independent BetNG domain contracts, expressed as TypeScript types and validation schemas.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@zudojs/validation": "^1.0.3"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2"
+  }
+}

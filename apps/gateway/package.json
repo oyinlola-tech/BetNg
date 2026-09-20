@@ -1,0 +1,37 @@
+{
+  "name": "betng-gateway",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "start": "node dist/server.js",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@zudojs/core": "^1.0.0",
+    "@zudojs/runtime": "^1.0.0",
+    "@zudojs/container": "^1.0.0",
+    "@zudojs/events": "^1.0.0",
+    "@zudojs/logger": "^1.0.0",
+    "@zudojs/constants": "^1.0.0",
+    "@zudojs/http": "^1.0.0",
+    "@zudojs/config": "^1.0.0",
+    "@zudojs/database": "^1.0.0",
+    "@zudojs/observability": "^1.0.0",
+    "@zudojs/security": "^1.0.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.7.0",
+    "typescript": "^5.7.0",
+    "@types/node": "^24.0.0"
+  },
+  "zudojs": {
+    "features": [
+      "database",
+      "observability",
+      "security"
+    ]
+  }
+}

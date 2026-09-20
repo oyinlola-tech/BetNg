@@ -1,0 +1,53 @@
+{
+  "name": "betng",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "BetNG — a virtual football platform simulation. Portfolio project; not a real betting service.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=24.0.0",
+    "pnpm": ">=11.0.0"
+  },
+  "packageManager": "pnpm@11.24.0",
+  "zudojs": {
+    "projectType": "backend",
+    "architecture": "microservice",
+    "features": [
+      "database",
+      "observability",
+      "security"
+    ]
+  },
+  "scripts": {
+    "build": "pnpm -r run build",
+    "typecheck": "pnpm -r run typecheck",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write \"**/*.{ts,tsx,json,md,yml,yaml}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,json,md,yml,yaml}\"",
+    "dev": "node scripts/dev.mjs",
+    "dev:ts": "node scripts/dev.mjs --ts-only",
+    "dev:py": "node scripts/dev.mjs --py-only",
+    "db:migrate": "node scripts/migrate.mjs",
+    "infra:up": "docker compose -f infrastructure/docker/docker-compose.yml up -d",
+    "infra:down": "docker compose -f infrastructure/docker/docker-compose.yml down",
+    "infra:logs": "docker compose -f infrastructure/docker/docker-compose.yml logs -f",
+    "py:install": "bash scripts/python-install.sh",
+    "py:test": "bash scripts/python-test.sh",
+    "py:check": "bash scripts/python-check.sh",
+    "verify": "bash scripts/verify.sh"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^26.6.2",
+    "eslint": "^10.11.0",
+    "prettier": "^3.9.8",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "typescript-eslint": "^8.70.0",
+    "vitest": "^5.0.1"
+  }
+}

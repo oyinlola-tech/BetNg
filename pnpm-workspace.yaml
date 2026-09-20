@@ -1,0 +1,12 @@
+packages:
+  - "apps/gateway"
+  - "apps/services/*"
+  - "packages/*"
+
+# Dependencies allowed to run install scripts (pnpm 10).
+onlyBuiltDependencies:
+  - "esbuild"
+
+# The same list in the form pnpm 11 reads.
+allowBuilds:
+  "esbuild": true

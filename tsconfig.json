@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.base.json",
+  "files": [],
+  "references": [
+    { "path": "./packages/contracts" },
+    { "path": "./packages/service-kit" },
+    { "path": "./apps/gateway" },
+    { "path": "./apps/services/match" },
+    { "path": "./apps/services/betting" },
+    { "path": "./apps/services/wallet" },
+    { "path": "./apps/services/settlement" }
+  ]
+}

@@ -1,0 +1,27 @@
+# Node
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+
+# Environment — never commit real secrets
+.env
+.env.*
+!.env.example
+
+# Local data and logs
+.data/
+*.log
+
+# Editors / OS
+.DS_Store
+.idea/
+.vscode/
