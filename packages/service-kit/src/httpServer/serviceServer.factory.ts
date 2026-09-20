@@ -1,0 +1,124 @@
+/**
+ * The HTTP bootstrap shared by every BetNG TypeScript service.
+ *
+ * A service supplies its configuration, its routes and its dependency
+ * probes; this assembles the ZudoJS pieces around them:
+ *
+ *   `createNodeHttpAdapter` → `createHttpServer`
+ *        handler      = middleware pipeline ending in `HttpRouter.dispatch`
+ *        errorHandler = the BetNG error envelope
+ *
+ * The pipeline order matters. Correlation runs first so every later stage
+ * can log the identifier; access logging runs next so it times the whole
+ * request including routing; the router runs last, as the terminal stage
+ * that produces the response.
+ */
+
+import {
+  createHttpServer,
+  createNodeHttpAdapter,
+  createResponseContext,
+  createRouter,
+  HttpMiddlewarePipeline,
+} from "@zudojs/http";
+import type { HttpRequestContext, HttpRouter, HttpServer } from "@zudojs/http";
+import type { Logger } from "@zudojs/logger";
+import type { ServiceConfig } from "../serviceConfig/index.js";
+import type { DependencyProbe } from "../healthProbe/index.js";
+import { createErrorHandler } from "../httpError/index.js";
+import {
+  createAccessLogMiddleware,
+  createRequestIdMiddleware,
+} from "../httpMiddleware/index.js";
+import { registerHealthRoutes } from "./healthRoute.registrar.js";
+import { createRouterFallbacks } from "./routerFallback.handler.js";
+
+export interface ServiceServerOptions {
+  readonly config: ServiceConfig;
+  readonly logger: Logger;
+  /** Registers this service's domain routes. Health routes are added here. */
+  readonly routes: (router: HttpRouter) => void;
+  /** The dependencies `/ready` probes. Empty when the service has none. */
+  readonly probes?: readonly DependencyProbe[];
+}
+
+export interface ServiceServer {
+  readonly router: HttpRouter;
+  readonly server: HttpServer;
+  /** The port actually bound. Differs from the configured one only for 0. */
+  readonly port: number;
+  readonly start: () => Promise<void>;
+  readonly stop: () => Promise<void>;
+}
+
+/**
+ * A request body larger than this is refused before it is buffered. Far
+ * more than any BetNG payload needs.
+ */
+const MAX_BODY_BYTES = 256 * 1024;
+
+/**
+ * Builds a service's HTTP server.
+ *
+ * @param options - The service's configuration, logger, routes and probes.
+ * @returns The server, with start and stop.
+ */
+export function createServiceServer(
+  options: ServiceServerOptions,
+): ServiceServer {
+  const { config, logger } = options;
+
+  const router = createRouter(createRouterFallbacks());
+  registerHealthRoutes(router, config, options.probes ?? []);
+  options.routes(router);
+
+  const pipeline = new HttpMiddlewarePipeline();
+  pipeline.use(createRequestIdMiddleware(), { name: "request-id" });
+  pipeline.use(createAccessLogMiddleware(logger), { name: "access-log" });
+  pipeline.use(
+    async (context) => {
+      const result = await router.dispatch(context.request, {
+        signal: context.signal,
+      });
+
+      return result.response;
+    },
+    { name: "router" },
+  );
+
+  const server = createHttpServer({
+    name: config.serviceName,
+    adapter: createNodeHttpAdapter({
+      host: config.host,
+      port: config.port,
+      maxBodySize: MAX_BODY_BYTES,
+    }),
+    handler: async (request: HttpRequestContext) =>
+      pipeline.execute(request, createResponseContext()),
+    errorHandler: createErrorHandler(logger),
+  });
+
+  return {
+    router,
+    server,
+
+    get port(): number {
+      return server.address?.port ?? config.port;
+    },
+
+    start: async () => {
+      await server.start();
+
+      logger.info("Service listening", {
+        host: config.host,
+        port: server.address?.port ?? config.port,
+        environment: config.environment,
+      });
+    },
+
+    stop: async () => {
+      await server.stop();
+      logger.info("Service stopped");
+    },
+  };
+}

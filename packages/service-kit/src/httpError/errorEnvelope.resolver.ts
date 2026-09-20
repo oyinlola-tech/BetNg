@@ -2,6 +2,10 @@
  * Extraction of the answerable failure from a thrown value.
  */
 
+import {
+  HttpMiddlewareError,
+  HttpMiddlewarePipelineError,
+} from "@zudojs/errors";
 import type { ErrorDetail } from "@betng/contracts";
 
 /**
@@ -19,8 +23,25 @@ export interface StatusCarrying {
   readonly details?: unknown;
 }
 
-/** How far a `cause` chain is followed before the search gives up. */
+/** How far a wrapper chain is followed before the search gives up. */
 const MAX_UNWRAP_DEPTH = 8;
+
+/**
+ * Whether an error is one of the framework's own pipeline wrappers.
+ *
+ * The middleware pipeline wraps every handler failure in
+ * `HttpMiddlewareError`, and then in `HttpMiddlewarePipelineError`. Both
+ * report status 500, so taking the outermost status would answer every
+ * `notFound()` and every validation failure with a 500. These two are
+ * looked through; nothing else is, because an application that throws a 502
+ * wrapping an upstream 401 means the 502.
+ */
+function isPipelineWrapper(error: object): boolean {
+  return (
+    error instanceof HttpMiddlewareError ||
+    error instanceof HttpMiddlewarePipelineError
+  );
+}
 
 function asStatusCarrying(error: unknown): StatusCarrying | undefined {
   if (error === null || typeof error !== "object") {
@@ -37,29 +58,57 @@ function asStatusCarrying(error: unknown): StatusCarrying | undefined {
     : undefined;
 }
 
+function collectNested(error: object): readonly unknown[] {
+  const candidate = error as { errors?: unknown; cause?: unknown };
+  const nested: unknown[] = [];
+
+  if (Array.isArray(candidate.errors)) {
+    nested.push(...candidate.errors);
+  }
+
+  if (candidate.cause !== undefined) {
+    nested.push(candidate.cause);
+  }
+
+  return nested;
+}
+
 /**
  * Finds the error whose status answers the request.
  *
- * The middleware pipeline wraps a handler failure before it reaches the
- * error handler, so the original error is reached through `cause`. The
- * depth bound stops a cyclic chain from looping.
- *
  * @param error - The thrown value.
  * @param depth - The current recursion depth.
+ * @param seen - Errors already visited, so a cyclic chain cannot loop.
  * @returns The answerable error, or `undefined` when there is none.
  */
 export function unwrapStatusError(
   error: unknown,
   depth = 0,
+  seen: Set<unknown> = new Set(),
 ): StatusCarrying | undefined {
   if (depth > MAX_UNWRAP_DEPTH || error === null || typeof error !== "object") {
     return undefined;
   }
 
-  return (
-    asStatusCarrying(error) ??
-    unwrapStatusError((error as { cause?: unknown }).cause, depth + 1)
-  );
+  if (seen.has(error)) {
+    return undefined;
+  }
+
+  seen.add(error);
+
+  if (!isPipelineWrapper(error)) {
+    return asStatusCarrying(error);
+  }
+
+  for (const inner of collectNested(error)) {
+    const found = unwrapStatusError(inner, depth + 1, seen);
+
+    if (found !== undefined) {
+      return found;
+    }
+  }
+
+  return undefined;
 }
 
 /**
