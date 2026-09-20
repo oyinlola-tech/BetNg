@@ -1,0 +1,65 @@
+# BetNG local development infrastructure.
+#
+# Only what the foundation actually needs: PostgreSQL for the four services
+# that own data, and Redis for the two that are configured to use it.
+#
+# There is no Kafka, no Kubernetes, no Elasticsearch and no metrics stack,
+# because nothing in this phase uses them. Infrastructure arrives when a
+# service needs it, not in anticipation.
+#
+# The credentials here are for a local container that holds simulated data
+# and is never exposed beyond the developer's machine.
+
+name: betng
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: betng-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-betng}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-betng_local_dev}
+      # The init script creates one database per owning service; this is
+      # only the database `psql` connects to first.
+      POSTGRES_DB: postgres
+    ports:
+      # 5433 by default: a developer machine often already runs PostgreSQL
+      # on 5432, and a port clash at `compose up` is a worse first experience
+      # than a non-default port written down in .env.example.
+      - "${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      # Runs once, on an empty data directory, to create one database per
+      # data-owning service. Ownership is enforced by credentials, not by
+      # convention: a service has no login for a database it does not own.
+      - ../postgres/init-databases.sql:/docker-entrypoint-initdb.d/10-databases.sql:ro
+    healthcheck:
+      # `pg_isready` answers before the init scripts have run, so the check
+      # queries a table the last init script creates instead.
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-betng} -d betng_match"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  redis:
+    image: redis:8-alpine
+    container_name: betng-redis
+    restart: unless-stopped
+    # No persistence: everything BetNG puts in Redis is a cache or
+    # short-lived match state, and both are rebuildable from the services
+    # that own them. Persisting it would create a second source of truth.
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    ports:
+      # 6380 by default, for the same reason as PostgreSQL above.
+      - "${REDIS_PORT:-6380}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  postgres-data:
+    name: betng-postgres-data
