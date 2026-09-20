@@ -1,12 +1,4 @@
-/**
- * The calendar of the virtual season.
- *
- * Every league runs a matchday every `CYCLE_SECONDS`, all of its matches
- * kicking off together, forever. Which matchday is on is a function of the
- * clock; the fixture list for any matchday of any season is a function of
- * the league and the season number. Nothing is stored, so there is nothing
- * to get out of step.
- */
+/** The calendar of the virtual season. */
 
 import type { FixtureId, MatchId } from "@betng/contracts";
 import { FULL_TIME_SECONDS, VIRTUAL_TIMING } from "@betng/ui-core";
@@ -31,8 +23,13 @@ export interface FixtureRef {
   readonly kickoffMs: number;
 }
 
-function pairings(competition: Competition, season: number): readonly (readonly [Club, Club])[][] {
-  const order = rng(`season:${competition.seed.key}:${String(season)}`).shuffle(competition.clubs);
+function pairings(
+  competition: Competition,
+  season: number,
+): readonly (readonly [Club, Club])[][] {
+  const order = rng(`season:${competition.seed.key}:${String(season)}`).shuffle(
+    competition.clubs,
+  );
   const n = order.length;
   const rounds: (readonly [Club, Club])[][] = [];
   const rotating = order.slice(1);
@@ -53,14 +50,19 @@ function pairings(competition: Competition, season: number): readonly (readonly 
     rotating.unshift(rotating.pop() as Club);
   }
 
-  const reversed = rounds.map((round) => round.map(([h, a]): readonly [Club, Club] => [a, h]));
+  const reversed = rounds.map((round) =>
+    round.map(([h, a]): readonly [Club, Club] => [a, h]),
+  );
 
   return [...rounds, ...reversed];
 }
 
 const pairingCache = new Map<string, readonly (readonly [Club, Club])[][]>();
 
-function seasonPairings(competition: Competition, season: number): readonly (readonly [Club, Club])[][] {
+function seasonPairings(
+  competition: Competition,
+  season: number,
+): readonly (readonly [Club, Club])[][] {
   const key = `${competition.seed.key}:${String(season)}`;
   let cached = pairingCache.get(key);
 
@@ -73,10 +75,16 @@ function seasonPairings(competition: Competition, season: number): readonly (rea
 }
 
 export function kickoffMs(competition: Competition, round: number): number {
-  return SEASON_EPOCH_MS + (competition.seed.offsetSeconds + round * CYCLE_SECONDS) * 1000;
+  return (
+    SEASON_EPOCH_MS +
+    (competition.seed.offsetSeconds + round * CYCLE_SECONDS) * 1000
+  );
 }
 
-export function fixturesForRound(competition: Competition, round: number): readonly FixtureRef[] {
+export function fixturesForRound(
+  competition: Competition,
+  round: number,
+): readonly FixtureRef[] {
   if (round < 0) return [];
 
   const season = Math.floor(round / competition.matchdays) + 1;
@@ -101,7 +109,11 @@ export function fixturesForRound(competition: Competition, round: number): reado
   });
 }
 
-export function roundFor(competition: Competition, season: number, matchday: number): number {
+export function roundFor(
+  competition: Competition,
+  season: number,
+  matchday: number,
+): number {
   return (season - 1) * competition.matchdays + (matchday - 1);
 }
 
@@ -123,13 +135,23 @@ export function statusAt(
   return "COMPLETED";
 }
 
-export function findFixture(matchId: string, now: number, competitions: readonly Competition[]): FixtureRef | undefined {
+export function findFixture(
+  matchId: string,
+  now: number,
+  competitions: readonly Competition[],
+): FixtureRef | undefined {
   for (const competition of competitions) {
     const centre = currentRound(competition, now);
 
     // Two seasons back covers every result a client can browse to.
-    for (let round = centre + 2; round >= Math.max(0, centre - competition.matchdays * 2); round -= 1) {
-      const found = fixturesForRound(competition, round).find((f) => f.matchId === matchId);
+    for (
+      let round = centre + 2;
+      round >= Math.max(0, centre - competition.matchdays * 2);
+      round -= 1
+    ) {
+      const found = fixturesForRound(competition, round).find(
+        (f) => f.matchId === matchId,
+      );
 
       if (found !== undefined) return found;
     }

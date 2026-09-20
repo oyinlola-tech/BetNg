@@ -1,26 +1,14 @@
-/**
- * Where this client finds the platform.
- *
- * Read from Vite's environment at build time. Nothing here is hard-coded,
- * so the same bundle is pointed at a local stack or a deployed one by
- * changing `.env` rather than the source.
- */
-
 import type { BetNgClientConfig } from "@betng/client-sdk";
 
-const GATEWAY_URL = import.meta.env["VITE_GATEWAY_URL"] ?? "http://localhost:3000";
+export type DataSourceMode = "mock" | "platform";
 
-/**
- * The event service's WebSocket address.
- *
- * Given separately rather than derived from the gateway: the live stream is
- * a direct connection to the event service, and a deployment may put the
- * two behind different hosts.
- */
-const LIVE_URL = import.meta.env["VITE_LIVE_URL"] ?? "ws://localhost:3008/live";
-
-export const appConfig: BetNgClientConfig = Object.freeze({
-  gatewayUrl: GATEWAY_URL,
-  liveUrl: LIVE_URL,
-  timeoutMs: 10_000,
+export const appConfig = Object.freeze({
+  dataSource: (import.meta.env["VITE_DATA_SOURCE"] ?? "mock") as DataSourceMode,
+  userId:
+    import.meta.env["VITE_USER_ID"] ?? "11111111-1111-4111-8111-111111111111",
+  client: Object.freeze({
+    gatewayUrl: import.meta.env["VITE_GATEWAY_URL"] ?? "http://localhost:3000",
+    liveUrl: import.meta.env["VITE_LIVE_URL"] ?? "ws://localhost:3008/live",
+    timeoutMs: 10_000,
+  }) satisfies BetNgClientConfig,
 });

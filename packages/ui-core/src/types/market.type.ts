@@ -1,13 +1,11 @@
-/**
- * Markets as a client lays them out.
- *
- * The contract knows three market types. The UI is built for six, so that
- * when the odds service grows the client already has a place for each. A
- * `MarketKind` the client does not recognise renders through the generic
- * layout rather than breaking.
- */
+/** Markets as a client lays them out. */
 
-import type { MarketId, MarketStatus, MatchId, SelectionId } from "@betng/contracts";
+import type {
+  MarketId,
+  MarketStatus,
+  MatchId,
+  SelectionId,
+} from "@betng/contracts";
 
 export type MarketKind =
   | "MATCH_RESULT"

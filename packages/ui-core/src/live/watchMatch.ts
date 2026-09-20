@@ -1,25 +1,17 @@
 /**
- * The live match controller every client wraps.
- *
- * Framework-free, so the reconnection rules live in exactly one place and a
- * hook on web, mobile or TV is a dozen lines around it. The rules:
- *
- *   1. Read the authoritative match first. Events on the stream are applied
- *      only on top of a snapshot, never to an empty screen.
- *   2. Apply an event only when its sequence is the next one expected.
- *      Older or repeated frames are dropped; a jump means frames were
- *      missed, and the match is re-read rather than patched.
- *   3. When the connection comes back after a drop, re-read. The stream
- *      is a projection; whatever happened while it was down is on the
- *      platform, not in a buffer.
- *   4. The clock is not stored. `phase` is re-derived from the kick-off
- *      time on every read and every tick, so a stale phase cannot survive.
+ * The live match controller every client wraps. Rules: read the authoritative
+ * match first; apply an event only when its sequence is the next expected
+ * (a gap triggers a re-read); re-read after a reconnect; never store the clock.
  */
 
 import type { MatchId } from "@betng/contracts";
 import type { BetNgDataSource } from "../dataSource.type.js";
 import { derivePhase } from "../phase.js";
-import type { ConnectionState, MatchEventView, MatchView } from "../types/index.js";
+import type {
+  ConnectionState,
+  MatchEventView,
+  MatchView,
+} from "../types/index.js";
 
 export interface LiveMatchSnapshot {
   readonly match: MatchView | undefined;
@@ -36,7 +28,10 @@ export interface LiveMatchController {
   readonly tick: (now?: number) => void;
 }
 
-export function watchMatch(source: BetNgDataSource, matchId: MatchId): LiveMatchController {
+export function watchMatch(
+  source: BetNgDataSource,
+  matchId: MatchId,
+): LiveMatchController {
   let snapshot: LiveMatchSnapshot = {
     match: undefined,
     connection: source.getConnectionState(),
@@ -71,7 +66,10 @@ export function watchMatch(source: BetNgDataSource, matchId: MatchId): LiveMatch
 
       publish({
         resyncing: false,
-        error: cause instanceof Error ? cause.message : "The match could not be read.",
+        error:
+          cause instanceof Error
+            ? cause.message
+            : "The match could not be read.",
       });
     }
   }

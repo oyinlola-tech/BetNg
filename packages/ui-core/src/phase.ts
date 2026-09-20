@@ -34,7 +34,8 @@ export function derivePhase(
     case "COMPLETED": {
       const elapsed = (now - Date.parse(kickoffAt)) / 1000;
 
-      return elapsed >= FULL_TIME_SECONDS + VIRTUAL_TIMING.settlementDelaySeconds
+      return elapsed >=
+        FULL_TIME_SECONDS + VIRTUAL_TIMING.settlementDelaySeconds
         ? "SETTLED"
         : "FINISHED";
     }
@@ -50,7 +51,11 @@ export function isFinished(phase: MatchPhase): boolean {
 }
 
 export function isUpcoming(phase: MatchPhase): boolean {
-  return phase === "SCHEDULED" || phase === "BETTING_OPEN" || phase === "BETTING_CLOSED";
+  return (
+    phase === "SCHEDULED" ||
+    phase === "BETTING_OPEN" ||
+    phase === "BETTING_CLOSED"
+  );
 }
 
 export function canBet(phase: MatchPhase): boolean {

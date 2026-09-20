@@ -1,10 +1,4 @@
-/**
- * `BetNgDataSource` over the in-process platform.
- *
- * Every method mirrors one gateway route (see the `@endpoint` notes); the
- * data source the clients use against the real platform has the same
- * method with the same signature, in `@betng/ui-core`.
- */
+/** `BetNgDataSource` over the in-process platform. */
 
 import type { LeagueId, MatchId, TeamId } from "@betng/contracts";
 import {
@@ -17,7 +11,12 @@ import {
   type MatchSummary,
   type TopScorer,
 } from "@betng/ui-core";
-import { COMPETITIONS, clubById, competitionById, type Competition } from "./clubs.js";
+import {
+  COMPETITIONS,
+  clubById,
+  competitionById,
+  type Competition,
+} from "./clubs.js";
 import { MockPlatform, teamView, type MockPlatformOptions } from "./engine.js";
 import { marketsFor } from "./markets.js";
 import {
@@ -51,9 +50,16 @@ function leagueView(competition: Competition, now: number): LeagueView {
   };
 }
 
-function seasonRounds(competition: Competition, season: number, now: number): number[] {
+function seasonRounds(
+  competition: Competition,
+  season: number,
+  now: number,
+): number[] {
   const first = roundFor(competition, season, 1);
-  const last = Math.min(first + competition.matchdays - 1, currentRound(competition, now));
+  const last = Math.min(
+    first + competition.matchdays - 1,
+    currentRound(competition, now),
+  );
   const rounds: number[] = [];
 
   for (let r = first; r <= last; r += 1) rounds.push(r);
@@ -61,14 +67,21 @@ function seasonRounds(competition: Competition, season: number, now: number): nu
   return rounds;
 }
 
-export function createMockDataSource(options: MockPlatformOptions = {}): MockDataSource {
+export function createMockDataSource(
+  options: MockPlatformOptions = {},
+): MockDataSource {
   const platform = new MockPlatform(options);
   const now = platform.now;
 
   const competitionsFor = (leagueId?: string): readonly Competition[] =>
-    leagueId === undefined ? COMPETITIONS : COMPETITIONS.filter((c) => c.id === leagueId);
+    leagueId === undefined
+      ? COMPETITIONS
+      : COMPETITIONS.filter((c) => c.id === leagueId);
 
-  function completedThisSeason(competition: Competition, season: number): readonly MatchSummary[] {
+  function completedThisSeason(
+    competition: Competition,
+    season: number,
+  ): readonly MatchSummary[] {
     const t = now();
 
     return seasonRounds(competition, season, t)
@@ -80,7 +93,8 @@ export function createMockDataSource(options: MockPlatformOptions = {}): MockDat
   function requireFixture(matchId: string): FixtureRef {
     const fixture = platform.fixture(matchId);
 
-    if (fixture === undefined) throw new DataSourceError("NOT_FOUND", "That match is not available.");
+    if (fixture === undefined)
+      throw new DataSourceError("NOT_FOUND", "That match is not available.");
 
     return fixture;
   }
@@ -93,7 +107,12 @@ export function createMockDataSource(options: MockPlatformOptions = {}): MockDat
       const current = currentRound(competition, t);
 
       if (filter.season !== undefined && filter.matchday !== undefined) {
-        out.push(...fixturesForRound(competition, roundFor(competition, filter.season, filter.matchday)));
+        out.push(
+          ...fixturesForRound(
+            competition,
+            roundFor(competition, filter.season, filter.matchday),
+          ),
+        );
         continue;
       }
 
@@ -110,13 +129,20 @@ export function createMockDataSource(options: MockPlatformOptions = {}): MockDat
       }
 
       if (filter.matchday !== undefined) {
-        const season = Math.floor(Math.max(0, current) / competition.matchdays) + 1;
+        const season =
+          Math.floor(Math.max(0, current) / competition.matchdays) + 1;
 
-        out.push(...fixturesForRound(competition, roundFor(competition, season, filter.matchday)));
+        out.push(
+          ...fixturesForRound(
+            competition,
+            roundFor(competition, season, filter.matchday),
+          ),
+        );
         continue;
       }
 
-      const wantsFinished = filter.phases?.some((p) => p === "FINISHED" || p === "SETTLED") ?? true;
+      const wantsFinished =
+        filter.phases?.some((p) => p === "FINISHED" || p === "SETTLED") ?? true;
       const back = wantsFinished ? 4 : 1;
 
       for (let round = current - back; round <= current + 2; round += 1) {
@@ -142,7 +168,8 @@ export function createMockDataSource(options: MockPlatformOptions = {}): MockDat
 
       const competition = competitionById(leagueId);
 
-      if (competition === undefined) throw new DataSourceError("NOT_FOUND", "That league is not available.");
+      if (competition === undefined)
+        throw new DataSourceError("NOT_FOUND", "That league is not available.");
 
       return leagueView(competition, now());
     },
@@ -159,7 +186,8 @@ export function createMockDataSource(options: MockPlatformOptions = {}): MockDat
 
       const club = clubById(teamId);
 
-      if (club === undefined) throw new DataSourceError("NOT_FOUND", "That team is not available.");
+      if (club === undefined)
+        throw new DataSourceError("NOT_FOUND", "That team is not available.");
 
       return club;
     },
@@ -170,12 +198,18 @@ export function createMockDataSource(options: MockPlatformOptions = {}): MockDat
 
       const competition = competitionById(leagueId);
 
-      if (competition === undefined) throw new DataSourceError("NOT_FOUND", "That league is not available.");
+      if (competition === undefined)
+        throw new DataSourceError("NOT_FOUND", "That league is not available.");
 
       const league = leagueView(competition, now());
       const s = season ?? league.currentSeason;
 
-      return computeStandings(leagueId, s, competition.clubs.map(teamView), completedThisSeason(competition, s));
+      return computeStandings(
+        leagueId,
+        s,
+        competition.clubs.map(teamView),
+        completedThisSeason(competition, s),
+      );
     },
 
     /** @endpoint GET /api/v1/leagues/:id/scorers?season= → { items: TopScorer[] } */
@@ -198,13 +232,23 @@ export function createMockDataSource(options: MockPlatformOptions = {}): MockDat
 
             const club = event.side === "HOME" ? fixture.home : fixture.away;
             const key = `${club.id}:${event.player}`;
-            const entry = tally.get(key) ?? { player: event.player, team: teamView(club), goals: 0, assists: 0 };
+            const entry = tally.get(key) ?? {
+              player: event.player,
+              team: teamView(club),
+              goals: 0,
+              assists: 0,
+            };
 
             tally.set(key, { ...entry, goals: entry.goals + 1 });
 
             if (event.secondaryPlayer !== undefined) {
               const aKey = `${club.id}:${event.secondaryPlayer}`;
-              const a = tally.get(aKey) ?? { player: event.secondaryPlayer, team: teamView(club), goals: 0, assists: 0 };
+              const a = tally.get(aKey) ?? {
+                player: event.secondaryPlayer,
+                team: teamView(club),
+                goals: 0,
+                assists: 0,
+              };
 
               tally.set(aKey, { ...a, assists: a.assists + 1 });
             }
@@ -213,7 +257,12 @@ export function createMockDataSource(options: MockPlatformOptions = {}): MockDat
       }
 
       return [...tally.values()]
-        .sort((a, b) => b.goals - a.goals || b.assists - a.assists || a.player.localeCompare(b.player))
+        .sort(
+          (a, b) =>
+            b.goals - a.goals ||
+            b.assists - a.assists ||
+            a.player.localeCompare(b.player),
+        )
         .slice(0, 10);
     },
 
@@ -225,14 +274,23 @@ export function createMockDataSource(options: MockPlatformOptions = {}): MockDat
       const { phases, teamId } = filter;
 
       const list = candidates(filter)
-        .filter((f) => teamId === undefined || f.home.id === teamId || f.away.id === teamId)
+        .filter(
+          (f) =>
+            teamId === undefined ||
+            f.home.id === teamId ||
+            f.away.id === teamId,
+        )
         .map((f) => platform.summary(f, t))
         .filter((m) => phases === undefined || phases.includes(m.phase));
 
-      const finishedOnly = phases !== undefined && phases.every((p) => p === "FINISHED" || p === "SETTLED");
+      const finishedOnly =
+        phases !== undefined &&
+        phases.every((p) => p === "FINISHED" || p === "SETTLED");
 
       list.sort((a, b) =>
-        finishedOnly ? b.kickoffAt.localeCompare(a.kickoffAt) : a.kickoffAt.localeCompare(b.kickoffAt),
+        finishedOnly
+          ? b.kickoffAt.localeCompare(a.kickoffAt)
+          : a.kickoffAt.localeCompare(b.kickoffAt),
       );
 
       return list.slice(0, filter.limit ?? Number.POSITIVE_INFINITY);
@@ -260,7 +318,11 @@ export function createMockDataSource(options: MockPlatformOptions = {}): MockDat
       const s = season ?? leagueView(competition, now()).currentSeason;
 
       return seasonRounds(competition, s, now())
-        .filter((round) => fixturesForRound(competition, round).every((f) => statusAt(f, now()) === "COMPLETED"))
+        .filter((round) =>
+          fixturesForRound(competition, round).every(
+            (f) => statusAt(f, now()) === "COMPLETED",
+          ),
+        )
         .map((round) => (round % competition.matchdays) + 1)
         .reverse();
     },
@@ -271,7 +333,10 @@ export function createMockDataSource(options: MockPlatformOptions = {}): MockDat
 
       handlers.onConnection(platform.getConnection());
 
-      const stop = fixture === undefined ? (): void => undefined : platform.stream(fixture, handlers.onEvent);
+      const stop =
+        fixture === undefined
+          ? (): void => undefined
+          : platform.stream(fixture, handlers.onEvent);
 
       return {
         unsubscribe: () => {
@@ -319,7 +384,8 @@ export function createMockDataSource(options: MockPlatformOptions = {}): MockDat
 
       const bet = platform.bet(betId);
 
-      if (bet === undefined) throw new DataSourceError("NOT_FOUND", "That bet is not available.");
+      if (bet === undefined)
+        throw new DataSourceError("NOT_FOUND", "That bet is not available.");
 
       return bet;
     },

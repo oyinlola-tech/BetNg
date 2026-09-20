@@ -16,7 +16,14 @@ export interface TabsProps<T extends string> {
   readonly label?: string;
 }
 
-export function Tabs<T extends string>({ items, value, onChange, variant = "underline", className, label }: TabsProps<T>): React.JSX.Element {
+export function Tabs<T extends string>({
+  items,
+  value,
+  onChange,
+  variant = "underline",
+  className,
+  label,
+}: TabsProps<T>): React.JSX.Element {
   const id = useId();
 
   const onKeyDown = (event: React.KeyboardEvent<HTMLDivElement>): void => {
@@ -24,7 +31,11 @@ export function Tabs<T extends string>({ items, value, onChange, variant = "unde
 
     if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
       event.preventDefault();
-      const next = items[(index + (event.key === "ArrowRight" ? 1 : items.length - 1)) % items.length];
+      const next =
+        items[
+          (index + (event.key === "ArrowRight" ? 1 : items.length - 1)) %
+            items.length
+        ];
 
       if (next !== undefined) {
         onChange(next.value);
@@ -64,18 +75,29 @@ export function Tabs<T extends string>({ items, value, onChange, variant = "unde
               variant === "underline" &&
                 cn(
                   "-mb-px h-10 border-b-2 px-3 text-sm",
-                  selected ? "border-brand text-text-primary" : "border-transparent text-text-muted hover:text-text-primary",
+                  selected
+                    ? "border-brand text-text-primary"
+                    : "border-transparent text-text-muted hover:text-text-primary",
                 ),
               variant === "segmented" &&
                 cn(
                   "h-8 flex-1 justify-center rounded-xs px-3 text-sm",
-                  selected ? "bg-surface text-text-primary shadow-sm" : "text-text-muted hover:text-text-primary",
+                  selected
+                    ? "bg-surface text-text-primary shadow-sm"
+                    : "text-text-muted hover:text-text-primary",
                 ),
             )}
           >
             {item.label}
             {item.count !== undefined && (
-              <span className={cn("rounded-xs px-1 text-[10px] tabular", selected ? "bg-brand-subtle text-brand" : "bg-surface-sunken text-text-muted")}>
+              <span
+                className={cn(
+                  "rounded-xs px-1 text-[10px] tabular",
+                  selected
+                    ? "bg-brand-subtle text-brand"
+                    : "bg-surface-sunken text-text-muted",
+                )}
+              >
                 {item.count}
               </span>
             )}

@@ -1,4 +1,9 @@
-export type { Player, TeamColors, TeamDetailView, TeamView } from "./team.type.js";
+export type {
+  Player,
+  TeamColors,
+  TeamDetailView,
+  TeamView,
+} from "./team.type.js";
 export type { LeagueView } from "./league.type.js";
 export type {
   MatchEventKind,

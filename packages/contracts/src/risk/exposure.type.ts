@@ -32,11 +32,7 @@ export const exposureRequestSchema = z.object({
 
 export type ExposureRequest = z.infer<typeof exposureRequestSchema>;
 
-export const riskActionSchema = z.enum([
-  "ACCEPT",
-  "REVIEW",
-  "SUSPEND_MARKET",
-]);
+export const riskActionSchema = z.enum(["ACCEPT", "REVIEW", "SUSPEND_MARKET"]);
 
 export type RiskAction = z.infer<typeof riskActionSchema>;
 

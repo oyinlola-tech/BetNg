@@ -89,38 +89,70 @@
   --animate-toast-in: toast-in var(--bn-duration-slow) var(--bn-ease-decelerate);
   --animate-fade-in: fade-in var(--bn-duration-base) var(--bn-ease-standard);
   --animate-slide-up: slide-up var(--bn-duration-slow) var(--bn-ease-decelerate);
-  --animate-slide-in-right: slide-in-right var(--bn-duration-slow) var(--bn-ease-decelerate);
+  --animate-slide-in-right: slide-in-right var(--bn-duration-slow)
+    var(--bn-ease-decelerate);
   --animate-pulse-live: pulse-live 1.6s ease-in-out infinite;
   --animate-shimmer: shimmer 1.4s linear infinite;
   --animate-flash: flash var(--bn-duration-broadcast) var(--bn-ease-standard);
 
   @keyframes toast-in {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
   @keyframes fade-in {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
   }
   @keyframes slide-up {
-    from { transform: translateY(100%); }
-    to { transform: translateY(0); }
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: translateY(0);
+    }
   }
   @keyframes slide-in-right {
-    from { transform: translateX(100%); }
-    to { transform: translateX(0); }
+    from {
+      transform: translateX(100%);
+    }
+    to {
+      transform: translateX(0);
+    }
   }
   @keyframes pulse-live {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.35; }
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.35;
+    }
   }
   @keyframes shimmer {
-    from { background-position: -200% 0; }
-    to { background-position: 200% 0; }
+    from {
+      background-position: -200% 0;
+    }
+    to {
+      background-position: 200% 0;
+    }
   }
   @keyframes flash {
-    0% { background-color: var(--bn-brand-subtle); }
-    100% { background-color: transparent; }
+    0% {
+      background-color: var(--bn-brand-subtle);
+    }
+    100% {
+      background-color: transparent;
+    }
   }
 }
 
@@ -141,7 +173,8 @@
   * {
     border-color: var(--bn-border);
   }
-  button, [role="button"] {
+  button,
+  [role="button"] {
     cursor: pointer;
   }
   button:disabled {
@@ -160,15 +193,27 @@
 @utility focus-ring {
   outline: none;
   &:focus-visible {
-    box-shadow: 0 0 0 2px var(--bn-background), 0 0 0 4px var(--bn-focus-ring);
+    box-shadow:
+      0 0 0 2px var(--bn-background),
+      0 0 0 4px var(--bn-focus-ring);
   }
 }
 
-@utility z-sticky { z-index: var(--bn-z-sticky); }
-@utility z-drawer { z-index: var(--bn-z-drawer); }
-@utility z-sheet { z-index: var(--bn-z-sheet); }
-@utility z-modal { z-index: var(--bn-z-modal); }
-@utility z-toast { z-index: var(--bn-z-toast); }
+@utility z-sticky {
+  z-index: var(--bn-z-sticky);
+}
+@utility z-drawer {
+  z-index: var(--bn-z-drawer);
+}
+@utility z-sheet {
+  z-index: var(--bn-z-sheet);
+}
+@utility z-modal {
+  z-index: var(--bn-z-modal);
+}
+@utility z-toast {
+  z-index: var(--bn-z-toast);
+}
 
 @utility scrollbar-thin {
   scrollbar-width: thin;
@@ -177,13 +222,20 @@
 
 @utility skeleton {
   @apply rounded-sm bg-skeleton;
-  background-image: linear-gradient(90deg, transparent 0%, var(--bn-surface-hover) 50%, transparent 100%);
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--bn-surface-hover) 50%,
+    transparent 100%
+  );
   background-size: 200% 100%;
   animation: var(--animate-shimmer);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;

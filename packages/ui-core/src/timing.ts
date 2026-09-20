@@ -1,12 +1,4 @@
-/**
- * The virtual match clock.
- *
- * A virtual match is played in compressed time. The platform decides the
- * rate; the clients agree on it here so a phone, a desktop and a TV opened
- * at the same instant show the same minute. The clock is a pure function of
- * kick-off time and now — nothing ticks in a store — which is what makes a
- * reconnecting client correct the moment it knows when the match began.
- */
+/** The virtual match clock: a pure function of kick-off time and now, shared by every client. */
 
 export const VIRTUAL_TIMING = Object.freeze({
   secondsPerMinute: 2,
@@ -16,10 +8,13 @@ export const VIRTUAL_TIMING = Object.freeze({
 });
 
 export const FIRST_HALF_SECONDS = 45 * VIRTUAL_TIMING.secondsPerMinute;
-export const SECOND_HALF_START_SECONDS = FIRST_HALF_SECONDS + VIRTUAL_TIMING.halfTimeSeconds;
-export const FULL_TIME_SECONDS = SECOND_HALF_START_SECONDS + 45 * VIRTUAL_TIMING.secondsPerMinute;
+export const SECOND_HALF_START_SECONDS =
+  FIRST_HALF_SECONDS + VIRTUAL_TIMING.halfTimeSeconds;
+export const FULL_TIME_SECONDS =
+  SECOND_HALF_START_SECONDS + 45 * VIRTUAL_TIMING.secondsPerMinute;
 
-export type ClockPeriod = "PRE" | "FIRST_HALF" | "HALF_TIME" | "SECOND_HALF" | "FULL_TIME";
+export type ClockPeriod =
+  "PRE" | "FIRST_HALF" | "HALF_TIME" | "SECOND_HALF" | "FULL_TIME";
 
 export interface MatchClock {
   readonly period: ClockPeriod;
@@ -46,7 +41,12 @@ export function matchClock(kickoffAt: string, now: number): MatchClock {
   }
 
   if (elapsed < SECOND_HALF_START_SECONDS) {
-    return { period: "HALF_TIME", minute: 45, second: 0, elapsedSeconds: elapsed };
+    return {
+      period: "HALF_TIME",
+      minute: 45,
+      second: 0,
+      elapsedSeconds: elapsed,
+    };
   }
 
   if (elapsed < FULL_TIME_SECONDS) {
@@ -60,7 +60,12 @@ export function matchClock(kickoffAt: string, now: number): MatchClock {
     };
   }
 
-  return { period: "FULL_TIME", minute: 90, second: 0, elapsedSeconds: elapsed };
+  return {
+    period: "FULL_TIME",
+    minute: 90,
+    second: 0,
+    elapsedSeconds: elapsed,
+  };
 }
 
 export function instantAtMinute(kickoffAt: string, minute: number): number {

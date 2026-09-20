@@ -1,0 +1,162 @@
+@import "tailwindcss";
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/archivo";
+@import "@betng/design-tokens/css";
+
+@theme {
+  --color-*: initial;
+  --color-white: #ffffff;
+  --color-black: #000000;
+  --color-background: var(--bn-background);
+  --color-surface: var(--bn-surface);
+  --color-surface-elevated: var(--bn-surface-elevated);
+  --color-surface-sunken: var(--bn-surface-sunken);
+  --color-surface-hover: var(--bn-surface-hover);
+  --color-text-primary: var(--bn-text-primary);
+  --color-text-secondary: var(--bn-text-secondary);
+  --color-text-muted: var(--bn-text-muted);
+  --color-text-on-brand: var(--bn-text-on-brand);
+  --color-border: var(--bn-border);
+  --color-border-strong: var(--bn-border-strong);
+  --color-focus-ring: var(--bn-focus-ring);
+  --color-brand: var(--bn-brand);
+  --color-brand-subtle: var(--bn-brand-subtle);
+  --color-success: var(--bn-success);
+  --color-danger: var(--bn-danger);
+  --color-warning: var(--bn-warning);
+  --color-warning-subtle: var(--bn-warning-subtle);
+  --color-live: var(--bn-live);
+  --color-live-subtle: var(--bn-live-subtle);
+  --color-overlay: var(--bn-overlay);
+  --color-skeleton: var(--bn-skeleton);
+
+  --font-sans: var(--bn-font-sans);
+  --font-display: var(--bn-font-display);
+
+  --radius-*: initial;
+  --radius-xs: 0.15rem;
+  --radius-sm: 0.25rem;
+  --radius-md: 0.4rem;
+  --radius-lg: 0.6rem;
+  --radius-full: 9999px;
+
+  --shadow-*: initial;
+  --shadow-lg: var(--bn-shadow-lg);
+
+  --tracking-caps: 0.1em;
+
+  --animate-fade-in: fade-in var(--bn-duration-slow) var(--bn-ease-standard);
+  --animate-rise: rise var(--bn-duration-broadcast) var(--bn-ease-decelerate);
+  --animate-pulse-live: pulse-live 1.6s ease-in-out infinite;
+  --animate-shimmer: shimmer 1.4s linear infinite;
+  --animate-lower-third: lower-third var(--bn-duration-broadcast)
+    var(--bn-ease-decelerate);
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(1.5rem);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes pulse-live {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.35;
+    }
+  }
+  @keyframes shimmer {
+    from {
+      background-position: -200% 0;
+    }
+    to {
+      background-position: 200% 0;
+    }
+  }
+  @keyframes lower-third {
+    from {
+      transform: translateX(-100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+}
+
+/* 1 rem scales with the display so 1080p, 1440p and 4K keep the same layout. */
+@layer base {
+  html {
+    font-size: clamp(16px, 1.25vw, 40px);
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    @apply bg-background text-text-primary font-sans;
+    font-size: 1.1rem;
+    line-height: 1.35;
+    overflow: hidden;
+    cursor: none;
+  }
+  * {
+    border-color: var(--bn-border);
+  }
+}
+
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+}
+@utility caps-label {
+  @apply text-[0.8rem] font-semibold uppercase tracking-caps text-text-muted;
+}
+
+/* The remote focus ring: thick, high-contrast, and scaled slightly so it reads across a room. */
+@utility tv-focus {
+  outline: none;
+  transition:
+    transform var(--bn-duration-base) var(--bn-ease-standard),
+    box-shadow var(--bn-duration-base) var(--bn-ease-standard);
+  &:focus-visible,
+  &[data-focused="true"] {
+    box-shadow:
+      0 0 0 0.2rem var(--bn-background),
+      0 0 0 0.45rem var(--bn-focus-ring);
+    transform: scale(1.03);
+    z-index: 1;
+  }
+}
+
+@utility skeleton {
+  @apply rounded-sm bg-skeleton;
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--bn-surface-hover) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: var(--animate-shimmer);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

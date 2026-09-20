@@ -1,4 +1,11 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
 export type ThemePreference = "light" | "dark" | "system";
 export type ResolvedTheme = "light" | "dark";
@@ -23,11 +30,18 @@ function readPreference(): ThemePreference {
 }
 
 function systemTheme(): ResolvedTheme {
-  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches
+    ? "dark"
+    : "light";
 }
 
-export function ThemeProvider({ children }: { readonly children: React.ReactNode }): React.JSX.Element {
-  const [preference, setPreferenceState] = useState<ThemePreference>(readPreference);
+export function ThemeProvider({
+  children,
+}: {
+  readonly children: React.ReactNode;
+}): React.JSX.Element {
+  const [preference, setPreferenceState] =
+    useState<ThemePreference>(readPreference);
   const [system, setSystem] = useState<ResolvedTheme>(systemTheme);
 
   useEffect(() => {
@@ -62,15 +76,21 @@ export function ThemeProvider({ children }: { readonly children: React.ReactNode
     }
   }, []);
 
-  const value = useMemo(() => ({ preference, resolved, setPreference }), [preference, resolved, setPreference]);
+  const value = useMemo(
+    () => ({ preference, resolved, setPreference }),
+    [preference, resolved, setPreference],
+  );
 
-  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+  return (
+    <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
+  );
 }
 
 export function useTheme(): ThemeContextValue {
   const ctx = useContext(ThemeContext);
 
-  if (ctx === undefined) throw new Error("useTheme must be used within ThemeProvider");
+  if (ctx === undefined)
+    throw new Error("useTheme must be used within ThemeProvider");
 
   return ctx;
 }

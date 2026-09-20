@@ -3,11 +3,7 @@ export {
   walletSchema,
   withdrawRequestSchema,
 } from "./wallet.type.js";
-export type {
-  DepositRequest,
-  Wallet,
-  WithdrawRequest,
-} from "./wallet.type.js";
+export type { DepositRequest, Wallet, WithdrawRequest } from "./wallet.type.js";
 
 export {
   transactionSchema,

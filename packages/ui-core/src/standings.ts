@@ -1,10 +1,4 @@
-/**
- * League table arithmetic.
- *
- * Standings are a projection of completed results. Computing them from
- * the results rather than storing them separately means the table can
- * never disagree with the scores beneath it.
- */
+/** League table arithmetic. */
 
 import type { LeagueId } from "@betng/contracts";
 import type {
@@ -26,7 +20,15 @@ interface Tally {
 }
 
 function blank(): Tally {
-  return { played: 0, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, form: [] };
+  return {
+    played: 0,
+    won: 0,
+    drawn: 0,
+    lost: 0,
+    goalsFor: 0,
+    goalsAgainst: 0,
+    form: [],
+  };
 }
 
 export function computeStandings(

@@ -1,14 +1,11 @@
-/**
- * A match as a client renders it.
- *
- * `MatchView` joins the contract's `Match`, `Fixture`, `League` and both
- * `Team`s into one object, so a card or a scoreboard reads one thing.
- * `MatchPhase` extends the contract's `MatchStatus` with the two states a
- * client can *see* but the match service does not store — half-time, and
- * settled — because a viewer and a bettor both care about them.
- */
+/** A match as a client renders it. */
 
-import type { FixtureId, LeagueId, MatchId, MatchStatus } from "@betng/contracts";
+import type {
+  FixtureId,
+  LeagueId,
+  MatchId,
+  MatchStatus,
+} from "@betng/contracts";
 import type { TeamView } from "./team.type.js";
 
 export type MatchPhase =
@@ -43,12 +40,14 @@ export interface Score {
 export interface MatchEventView {
   readonly id: string;
   readonly matchId: MatchId;
+  /** Per match, strictly increasing from 1. */
   readonly sequence: number;
   readonly kind: MatchEventKind;
   readonly minute: number;
   readonly side?: MatchSide;
   readonly player?: string;
   readonly secondaryPlayer?: string;
+  /** Running score after this event. */
   readonly score: Score;
   readonly description: string;
   readonly occurredAt: string;

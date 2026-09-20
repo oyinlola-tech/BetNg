@@ -1,4 +1,8 @@
-import type { TransactionId, TransactionType, WalletId } from "@betng/contracts";
+import type {
+  TransactionId,
+  TransactionType,
+  WalletId,
+} from "@betng/contracts";
 
 export interface WalletView {
   readonly id: WalletId;

@@ -27,7 +27,13 @@ const SOLID: Record<StateTone, string> = {
   warning: "bg-warning text-white",
 };
 
-export function Badge({ tone = "neutral", solid = false, size = "sm", className, children }: BadgeProps): React.JSX.Element {
+export function Badge({
+  tone = "neutral",
+  solid = false,
+  size = "sm",
+  className,
+  children,
+}: BadgeProps): React.JSX.Element {
   return (
     <span
       className={cn(

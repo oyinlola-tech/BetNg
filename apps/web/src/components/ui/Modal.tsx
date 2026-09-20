@@ -12,7 +12,14 @@ export interface ModalProps {
   readonly size?: "sm" | "md" | "lg";
 }
 
-export function Modal({ open, onClose, title, children, footer, size = "md" }: ModalProps): React.JSX.Element | null {
+export function Modal({
+  open,
+  onClose,
+  title,
+  children,
+  footer,
+  size = "md",
+}: ModalProps): React.JSX.Element | null {
   const ref = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
@@ -47,7 +54,11 @@ export function Modal({ open, onClose, title, children, footer, size = "md" }: M
         </IconButton>
       </div>
       <div className="px-5 py-4">{children}</div>
-      {footer !== undefined && <div className="flex justify-end gap-2 border-t border-border px-5 py-3">{footer}</div>}
+      {footer !== undefined && (
+        <div className="flex justify-end gap-2 border-t border-border px-5 py-3">
+          {footer}
+        </div>
+      )}
     </dialog>
   );
 }

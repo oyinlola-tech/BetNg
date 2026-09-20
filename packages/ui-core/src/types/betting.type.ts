@@ -1,11 +1,12 @@
-/**
- * Bets and the slip they are built on.
- *
- * Every amount here is simulated play-money in kobo. Nothing in this
- * package can move real funds; the wallet is a number in a store.
- */
+/** Bets and the slip they are built on. */
 
-import type { BetId, BetStatus, MarketId, MatchId, SelectionId } from "@betng/contracts";
+import type {
+  BetId,
+  BetStatus,
+  MarketId,
+  MatchId,
+  SelectionId,
+} from "@betng/contracts";
 import type { MarketKind } from "./market.type.js";
 
 export interface SlipSelection {

@@ -1,4 +1,11 @@
-import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { CheckCircle2, Info, TriangleAlert, X } from "lucide-react";
 import { cn } from "../lib/cn";
 
@@ -23,7 +30,11 @@ const ICONS: Record<ToastTone, React.ComponentType<{ className?: string }>> = {
   danger: TriangleAlert,
 };
 
-export function ToastProvider({ children }: { readonly children: React.ReactNode }): React.JSX.Element {
+export function ToastProvider({
+  children,
+}: {
+  readonly children: React.ReactNode;
+}): React.JSX.Element {
   const [toasts, setToasts] = useState<readonly Toast[]>([]);
   const counter = useRef(0);
 
@@ -75,8 +86,14 @@ export function ToastProvider({ children }: { readonly children: React.ReactNode
                 )}
               />
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-text-primary">{t.title}</p>
-                {t.message !== undefined && <p className="mt-0.5 text-sm text-text-secondary">{t.message}</p>}
+                <p className="text-sm font-semibold text-text-primary">
+                  {t.title}
+                </p>
+                {t.message !== undefined && (
+                  <p className="mt-0.5 text-sm text-text-secondary">
+                    {t.message}
+                  </p>
+                )}
               </div>
               <button
                 type="button"
@@ -99,7 +116,8 @@ export function ToastProvider({ children }: { readonly children: React.ReactNode
 export function useToast(): ToastContextValue {
   const ctx = useContext(ToastContext);
 
-  if (ctx === undefined) throw new Error("useToast must be used within ToastProvider");
+  if (ctx === undefined)
+    throw new Error("useToast must be used within ToastProvider");
 
   return ctx;
 }

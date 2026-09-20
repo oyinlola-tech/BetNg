@@ -1,17 +1,63 @@
+import { useEffect, useState } from "react";
+import { ActivityIndicator, View } from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import { SafeAreaView, StyleSheet } from "react-native";
+import {
+  BetSlipSheet,
+  ConnectionBanner,
+  ToastProvider,
+  useToast,
+} from "./components";
+import { RootNavigator } from "./navigation/RootNavigator";
+import { hydrateStorage } from "./services/storage";
+import { useTheme, useThemeStore } from "./theme";
 
-import { AppNavigator } from "./navigation";
+function Body(): React.JSX.Element {
+  const { toast } = useToast();
 
-export function App(): React.JSX.Element {
   return (
-    <SafeAreaView style={styles.root}>
-      <StatusBar style="auto" />
-      <AppNavigator />
-    </SafeAreaView>
+    <>
+      <ConnectionBanner />
+      <RootNavigator />
+      <BetSlipSheet
+        onPlaced={(message) => {
+          toast(message, "success");
+        }}
+      />
+    </>
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1 },
-});
+export function App(): React.JSX.Element {
+  const [ready, setReady] = useState(false);
+  const t = useTheme();
+
+  useEffect(() => {
+    void hydrateStorage().then(() => {
+      useThemeStore.setState((s) => ({ ...s }));
+      setReady(true);
+    });
+  }, []);
+
+  return (
+    <SafeAreaProvider>
+      <StatusBar style={t.name === "dark" ? "light" : "dark"} />
+      {ready ? (
+        <ToastProvider>
+          <Body />
+        </ToastProvider>
+      ) : (
+        <View
+          style={{
+            flex: 1,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: t.colors.background,
+          }}
+        >
+          <ActivityIndicator color={t.colors.textMuted} />
+        </View>
+      )}
+    </SafeAreaProvider>
+  );
+}

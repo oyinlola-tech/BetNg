@@ -1,18 +1,4 @@
-/**
- * BetNG's semantic colour system.
- *
- * Two themes, one vocabulary. A component never names a hex value; it names
- * a role — `surface`, `textMuted`, `live` — and the theme decides what that
- * role looks like. Dark mode is therefore its own designed palette rather
- * than an inversion of light: surfaces step *up* in lightness as they rise
- * off the page, borders are lifted rather than darkened, and the accent is
- * re-tuned so it keeps the same perceived weight on a dark ground.
- *
- * The palette is deliberately small. One brand accent (cobalt), one live
- * red, and the three status colours every sports product needs. Most of
- * the interface is neutral; the accent is for selection and action, the
- * live red for exactly one thing.
- */
+/** BetNG's semantic colour system. */
 
 export interface ColorTheme {
   readonly background: string;
@@ -29,6 +15,7 @@ export interface ColorTheme {
 
   readonly border: string;
   readonly borderStrong: string;
+  /** Distinct from brand so it reads even on a brand button. */
   readonly focusRing: string;
 
   readonly brand: string;
@@ -42,6 +29,7 @@ export interface ColorTheme {
   readonly dangerSubtle: string;
   readonly warning: string;
   readonly warningSubtle: string;
+  /** Reserved for in-play state and nothing else. */
   readonly live: string;
   readonly liveSubtle: string;
 
@@ -126,4 +114,5 @@ export const themes: Readonly<Record<ThemeName, ColorTheme>> = Object.freeze({
   dark: darkTheme,
 });
 
-export type StateTone = "live" | "brand" | "neutral" | "muted" | "success" | "warning";
+export type StateTone =
+  "live" | "brand" | "neutral" | "muted" | "success" | "warning";

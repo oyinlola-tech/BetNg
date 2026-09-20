@@ -52,7 +52,10 @@ export interface BetNgRestClient {
   getMatchStats(matchId: string): Promise<MatchStats>;
   getMatchOdds(matchId: string): Promise<MatchOdds>;
   getStandings(leagueId: string, season?: number): Promise<Standings>;
-  listTopScorers(leagueId: string, season?: number): Promise<readonly TopScorer[]>;
+  listTopScorers(
+    leagueId: string,
+    season?: number,
+  ): Promise<readonly TopScorer[]>;
   listNotifications(userId: string): Promise<readonly Notification[]>;
   markNotificationsRead(userId: string, ids?: readonly string[]): Promise<void>;
   placeBet(request: PlaceBetRequest): Promise<Bet>;
@@ -67,7 +70,9 @@ export interface BetNgRestClient {
   withdraw(userId: string, amount: number): Promise<LedgerEntry>;
 }
 
-function buildQuery(query: Readonly<Record<string, string | undefined>>): string {
+function buildQuery(
+  query: Readonly<Record<string, string | undefined>>,
+): string {
   const params = new URLSearchParams();
 
   for (const [key, value] of Object.entries(query)) {

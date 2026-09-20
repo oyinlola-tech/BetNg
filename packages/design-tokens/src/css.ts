@@ -1,13 +1,4 @@
-/**
- * Renders the tokens as CSS custom properties.
- *
- * Every property is prefixed `--bn-` so a Tailwind `@theme` block can map
- * `--color-surface: var(--bn-surface)` without the two names colliding.
- *
- * Light is the `:root` default. Dark applies when the document is marked
- * `data-theme="dark"`, or when the OS prefers dark and the document has not
- * been marked light — which is how "System" works with no JavaScript.
- */
+/** Renders the tokens as CSS custom properties. */
 
 import { darkTheme, lightTheme, type ColorTheme } from "./color.js";
 import { radius, shadow, spacing, zIndex } from "./layout.js";
@@ -15,7 +6,9 @@ import { duration, easing } from "./motion.js";
 import { fontFamily, fontSize, letterSpacing } from "./typography.js";
 
 function kebab(name: string): string {
-  return name.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`).replace(/\./g, "-");
+  return name
+    .replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)
+    .replace(/\./g, "-");
 }
 
 function colorBlock(theme: ColorTheme): string {
@@ -27,14 +20,22 @@ function colorBlock(theme: ColorTheme): string {
 export function renderCss(): string {
   const scalar = [
     ...Object.entries(fontFamily).map(([k, v]) => `  --bn-font-${k}: ${v};`),
-    ...Object.entries(fontSize).map(([k, v]) => `  --bn-text-${kebab(k)}: ${String(v)}px;`),
-    ...Object.entries(letterSpacing).map(([k, v]) => `  --bn-tracking-${k}: ${v};`),
+    ...Object.entries(fontSize).map(
+      ([k, v]) => `  --bn-text-${kebab(k)}: ${String(v)}px;`,
+    ),
+    ...Object.entries(letterSpacing).map(
+      ([k, v]) => `  --bn-tracking-${k}: ${v};`,
+    ),
     ...Object.entries(spacing).map(
       ([k, v]) => `  --bn-space-${k.replace(".", "_")}: ${String(v)}px;`,
     ),
-    ...Object.entries(radius).map(([k, v]) => `  --bn-radius-${k}: ${String(v)}px;`),
+    ...Object.entries(radius).map(
+      ([k, v]) => `  --bn-radius-${k}: ${String(v)}px;`,
+    ),
     ...Object.entries(shadow).map(([k, v]) => `  --bn-shadow-${k}: ${v};`),
-    ...Object.entries(duration).map(([k, v]) => `  --bn-duration-${kebab(k)}: ${String(v)}ms;`),
+    ...Object.entries(duration).map(
+      ([k, v]) => `  --bn-duration-${kebab(k)}: ${String(v)}ms;`,
+    ),
     ...Object.entries(easing).map(([k, v]) => `  --bn-ease-${k}: ${v};`),
     ...Object.entries(zIndex).map(([k, v]) => `  --bn-z-${k}: ${String(v)};`),
   ].join("\n");

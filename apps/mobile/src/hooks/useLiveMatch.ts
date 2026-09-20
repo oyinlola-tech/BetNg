@@ -1,88 +1,41 @@
-/**
- * Subscribes to one match's live stream and keeps its state correct.
- *
- * The same contract as the web and TV hooks: read over REST, apply live
- * frames, re-read whenever the stream reports a gap. The stream is a
- * projection, never the source of truth.
- *
- * Mobile adds one concern the others do not have — the operating system
- * suspends the app when it is backgrounded, so a returning user is almost
- * always behind. The SDK's reconnect reports that as a desync, and this
- * hook re-reads rather than showing a stale score.
- */
+import { useEffect, useState } from "react";
+import type { MatchId } from "@betng/contracts";
+import { watchMatch, type LiveMatchSnapshot } from "@betng/ui-core";
+import { getDataSource } from "../services/dataSource";
 
-import { useCallback, useEffect, useState } from "react";
+const IDLE: LiveMatchSnapshot = {
+  match: undefined,
+  connection: "CONNECTING",
+  resyncing: false,
+  error: undefined,
+  lastEvent: undefined,
+};
 
-import { api, openLiveStream } from "../services";
-import type { LiveEvent, Match } from "../types";
-
-export interface LiveMatchState {
-  readonly match: Match | undefined;
-  readonly events: readonly LiveEvent[];
-  readonly score: { readonly home: number; readonly away: number };
-  readonly connected: boolean;
-  readonly error: string | undefined;
-}
-
-const NO_SCORE = { home: 0, away: 0 } as const;
-
-export function useLiveMatch(matchId: string | undefined): LiveMatchState {
-  const [match, setMatch] = useState<Match | undefined>(undefined);
-  const [events, setEvents] = useState<readonly LiveEvent[]>([]);
-  const [connected, setConnected] = useState(false);
-  const [error, setError] = useState<string | undefined>(undefined);
-
-  const resynchronise = useCallback(async (id: string): Promise<void> => {
-    try {
-      setMatch(await api.getMatch(id));
-      setError(undefined);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
-    }
-  }, []);
+export function useLiveMatch(matchId: string | undefined): LiveMatchSnapshot {
+  const [snapshot, setSnapshot] = useState<LiveMatchSnapshot>(IDLE);
 
   useEffect(() => {
     if (matchId === undefined) {
-      setMatch(undefined);
-      setEvents([]);
+      setSnapshot(IDLE);
       return;
     }
 
-    void resynchronise(matchId);
-
-    const client = openLiveStream({
-      onEvent: (event) => {
-        setEvents((current) => [...current, event]);
-      },
-      onDesync: (desyncedId) => {
-        void resynchronise(desyncedId);
-      },
-      onOpen: () => {
-        setConnected(true);
-      },
-      onClose: () => {
-        setConnected(false);
-      },
-      onError: (code, message) => {
-        setError(`${code}: ${message}`);
-      },
+    const controller = watchMatch(getDataSource(), matchId as MatchId);
+    const unsubscribe = controller.subscribe(() => {
+      setSnapshot(controller.getSnapshot());
     });
+    const ticker = setInterval(() => {
+      controller.tick();
+    }, 1000);
 
-    client.connect();
-    client.subscribe(matchId);
+    setSnapshot(controller.getSnapshot());
 
     return () => {
-      client.close();
+      clearInterval(ticker);
+      unsubscribe();
+      controller.stop();
     };
-  }, [matchId, resynchronise]);
+  }, [matchId]);
 
-  const latest = events.at(-1);
-
-  return {
-    match,
-    events,
-    score: latest?.score ?? match?.score ?? NO_SCORE,
-    connected,
-    error,
-  };
+  return snapshot;
 }

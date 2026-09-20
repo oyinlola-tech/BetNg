@@ -1,6 +1,10 @@
 import { createLiveClient, createRestClient } from "@betng/client-sdk";
 import { createMockDataSource, type MockDataSource } from "@betng/mock-data";
-import { createPlatformDataSource, type BetNgDataSource, type KeyValueStorage } from "@betng/ui-core";
+import {
+  createPlatformDataSource,
+  type BetNgDataSource,
+  type KeyValueStorage,
+} from "@betng/ui-core";
 import { appConfig } from "../configs/app.config";
 
 const storage: KeyValueStorage = {
@@ -24,7 +28,8 @@ function create(): BetNgDataSource {
   if (appConfig.dataSource === "platform") {
     return createPlatformDataSource({
       rest: createRestClient(appConfig.client),
-      openLive: (handlers) => createLiveClient({ config: appConfig.client, handlers }),
+      openLive: (handlers) =>
+        createLiveClient({ config: appConfig.client, handlers }),
       userId: appConfig.userId,
       storage,
     });

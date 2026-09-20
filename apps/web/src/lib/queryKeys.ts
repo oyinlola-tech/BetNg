@@ -8,9 +8,12 @@ export const queryKeys = {
   matches: (filter: MatchFilter) => ["matches", filter] as const,
   match: (id: string) => ["match", id] as const,
   markets: (id: string) => ["markets", id] as const,
-  standings: (leagueId: string, season?: number) => ["standings", leagueId, season ?? "current"] as const,
-  scorers: (leagueId: string, season?: number) => ["scorers", leagueId, season ?? "current"] as const,
-  matchdays: (leagueId: string, season?: number) => ["matchdays", leagueId, season ?? "current"] as const,
+  standings: (leagueId: string, season?: number) =>
+    ["standings", leagueId, season ?? "current"] as const,
+  scorers: (leagueId: string, season?: number) =>
+    ["scorers", leagueId, season ?? "current"] as const,
+  matchdays: (leagueId: string, season?: number) =>
+    ["matchdays", leagueId, season ?? "current"] as const,
   wallet: ["wallet"] as const,
   transactions: ["transactions"] as const,
   bets: ["bets"] as const,

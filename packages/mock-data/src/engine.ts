@@ -1,13 +1,4 @@
-/**
- * The in-process platform.
- *
- * Holds what the real services hold — the clock-driven state of every
- * match, one user's simulated wallet, bets and notifications — and does
- * what they do: releases live events against the clock, settles bets when
- * matches finish, and raises notifications. Every public method notes the
- * gateway endpoint it stands in for, so the backend can be implemented
- * against this file.
- */
+/** The in-process platform. */
 
 import type { BetId, MatchId, TransactionId, WalletId } from "@betng/contracts";
 import {
@@ -37,7 +28,12 @@ import { COMPETITIONS } from "./clubs.js";
 import { marketsFor, settleSelection } from "./markets.js";
 import { uuidFrom } from "./prng.js";
 import { findFixture, statusAt, type FixtureRef } from "./season.js";
-import { releasedEvents, scriptFor, statsAt, type ScriptEvent } from "./simulate.js";
+import {
+  releasedEvents,
+  scriptFor,
+  statsAt,
+  type ScriptEvent,
+} from "./simulate.js";
 
 export interface KeyValueStorage {
   get(key: string): string | null | undefined;
@@ -81,7 +77,11 @@ export function teamView(club: Club): TeamView {
   };
 }
 
-function toEventView(event: ScriptEvent, index: number, fixture: FixtureRef): MatchEventView {
+function toEventView(
+  event: ScriptEvent,
+  index: number,
+  fixture: FixtureRef,
+): MatchEventView {
   return {
     id: event.id,
     matchId: fixture.matchId,
@@ -90,10 +90,14 @@ function toEventView(event: ScriptEvent, index: number, fixture: FixtureRef): Ma
     minute: event.minute,
     ...(event.side === undefined ? {} : { side: event.side }),
     ...(event.player === undefined ? {} : { player: event.player }),
-    ...(event.secondaryPlayer === undefined ? {} : { secondaryPlayer: event.secondaryPlayer }),
+    ...(event.secondaryPlayer === undefined
+      ? {}
+      : { secondaryPlayer: event.secondaryPlayer }),
     score: event.score,
     description: event.description,
-    occurredAt: new Date(fixture.kickoffMs + event.releaseSeconds * 1000).toISOString(),
+    occurredAt: new Date(
+      fixture.kickoffMs + event.releaseSeconds * 1000,
+    ).toISOString(),
   };
 }
 
@@ -105,7 +109,9 @@ export class MockPlatform {
   private account: AccountState;
 
   private connection: ConnectionState = "CONNECTING";
-  private readonly connectionListeners = new Set<(s: ConnectionState) => void>();
+  private readonly connectionListeners = new Set<
+    (s: ConnectionState) => void
+  >();
   private readonly accountListeners = new Set<() => void>();
   private outageTimer: ReturnType<typeof setTimeout> | undefined;
   private accountTimer: ReturnType<typeof setInterval> | undefined;
@@ -152,7 +158,10 @@ export class MockPlatform {
     const script = scriptFor(fixture);
     const elapsed = (now - fixture.kickoffMs) / 1000;
     const released = releasedEvents(script, elapsed);
-    const score = status === "COMPLETED" ? script.finalScore : (released.at(-1)?.score ?? { home: 0, away: 0 });
+    const score =
+      status === "COMPLETED"
+        ? script.finalScore
+        : (released.at(-1)?.score ?? { home: 0, away: 0 });
     const phase = derivePhase(status, kickoffAt, now);
 
     return {
@@ -166,7 +175,9 @@ export class MockPlatform {
       home: teamView(fixture.home),
       away: teamView(fixture.away),
       kickoffAt,
-      bettingClosesAt: new Date(fixture.kickoffMs - VIRTUAL_TIMING.bettingCloseLeadSeconds * 1000).toISOString(),
+      bettingClosesAt: new Date(
+        fixture.kickoffMs - VIRTUAL_TIMING.bettingCloseLeadSeconds * 1000,
+      ).toISOString(),
       status,
       phase,
       score,
@@ -190,7 +201,9 @@ export class MockPlatform {
     return {
       ...summary,
       events,
-      ...(elapsed < 0 ? {} : { stats: statsAt(script, released, minute, fixture.matchId) }),
+      ...(elapsed < 0
+        ? {}
+        : { stats: statsAt(script, released, minute, fixture.matchId) }),
     };
   }
 
@@ -229,7 +242,11 @@ export class MockPlatform {
     if (online) {
       if (this.connection === "OFFLINE") this.setConnection("RECONNECTING");
       setTimeout(() => {
-        if (this.connection === "RECONNECTING" && this.outageTimer === undefined) this.setConnection("CONNECTED");
+        if (
+          this.connection === "RECONNECTING" &&
+          this.outageTimer === undefined
+        )
+          this.setConnection("CONNECTED");
       }, 800);
     } else {
       this.setConnection("OFFLINE");
@@ -241,16 +258,25 @@ export class MockPlatform {
    *
    * @endpoint WS /live · SUBSCRIBE match:<id> → EVENT frames (LiveEvent)
    */
-  public stream(fixture: FixtureRef, onEvent: (event: MatchEventView) => void): () => void {
+  public stream(
+    fixture: FixtureRef,
+    onEvent: (event: MatchEventView) => void,
+  ): () => void {
     const script = scriptFor(fixture);
-    let delivered = releasedEvents(script, (this.now() - fixture.kickoffMs) / 1000).length;
+    let delivered = releasedEvents(
+      script,
+      (this.now() - fixture.kickoffMs) / 1000,
+    ).length;
 
     const timer = setInterval(() => {
       // Nothing flows while the socket is down. The controller re-reads on
       // recovery, which is where the gap is closed.
       if (this.connection !== "CONNECTED") return;
 
-      const released = releasedEvents(script, (this.now() - fixture.kickoffMs) / 1000);
+      const released = releasedEvents(
+        script,
+        (this.now() - fixture.kickoffMs) / 1000,
+      );
 
       while (delivered < released.length) {
         const event = released[delivered] as ScriptEvent;
@@ -283,7 +309,12 @@ export class MockPlatform {
       ],
       bets: [],
       notifications: [],
-      preferences: { matchStarting: true, matchFinished: true, betSettled: true, goals: false },
+      preferences: {
+        matchStarting: true,
+        matchFinished: true,
+        betSettled: true,
+        goals: false,
+      },
       viewed: [],
       raised: [],
     };
@@ -330,10 +361,17 @@ export class MockPlatform {
     return [...this.account.transactions].reverse();
   }
 
-  private ledger(type: TransactionView["type"], amount: number, description: string, reference?: string): void {
+  private ledger(
+    type: TransactionView["type"],
+    amount: number,
+    description: string,
+    reference?: string,
+  ): void {
     this.account.balance += amount;
     this.account.transactions.push({
-      id: uuidFrom(`tx:${String(this.account.transactions.length)}:${String(this.now())}`) as TransactionId,
+      id: uuidFrom(
+        `tx:${String(this.account.transactions.length)}:${String(this.now())}`,
+      ) as TransactionId,
       type,
       amount,
       balanceAfter: this.account.balance,
@@ -361,7 +399,10 @@ export class MockPlatform {
       throw new DataSourceError("VALIDATION", "Enter an amount to withdraw.");
     }
     if (amount > this.account.balance - this.account.reserved) {
-      throw new DataSourceError("INSUFFICIENT_FUNDS", "That is more than your available balance.");
+      throw new DataSourceError(
+        "INSUFFICIENT_FUNDS",
+        "That is more than your available balance.",
+      );
     }
 
     this.ledger("WITHDRAWAL", -amount, "Simulated withdrawal");
@@ -372,25 +413,43 @@ export class MockPlatform {
 
   /** @endpoint POST /api/v1/bets PlaceBetRequest → Bet */
   public placeBet(input: PlaceBetInput): BetView {
-    const problem = validateSlip(input.selections, input.stake, this.account.balance - this.account.reserved);
+    const problem = validateSlip(
+      input.selections,
+      input.stake,
+      this.account.balance - this.account.reserved,
+    );
 
-    if (problem === "EMPTY") throw new DataSourceError("VALIDATION", "Add a selection first.");
-    if (problem === "BELOW_MIN") throw new DataSourceError("VALIDATION", "The minimum stake is ₦50.");
-    if (problem === "ABOVE_MAX") throw new DataSourceError("VALIDATION", "The maximum stake is ₦500,000.");
+    if (problem === "EMPTY")
+      throw new DataSourceError("VALIDATION", "Add a selection first.");
+    if (problem === "BELOW_MIN")
+      throw new DataSourceError("VALIDATION", "The minimum stake is ₦50.");
+    if (problem === "ABOVE_MAX")
+      throw new DataSourceError("VALIDATION", "The maximum stake is ₦500,000.");
     if (problem === "INSUFFICIENT") {
-      throw new DataSourceError("INSUFFICIENT_FUNDS", "Your simulated balance does not cover that stake.");
+      throw new DataSourceError(
+        "INSUFFICIENT_FUNDS",
+        "Your simulated balance does not cover that stake.",
+      );
     }
 
     for (const leg of input.selections) {
       const fixture = this.fixture(leg.matchId);
 
-      if (fixture === undefined || statusAt(fixture, this.now()) !== "BETTING_OPEN") {
-        throw new DataSourceError("BETTING_CLOSED", `Betting has closed on ${leg.matchLabel}.`);
+      if (
+        fixture === undefined ||
+        statusAt(fixture, this.now()) !== "BETTING_OPEN"
+      ) {
+        throw new DataSourceError(
+          "BETTING_CLOSED",
+          `Betting has closed on ${leg.matchLabel}.`,
+        );
       }
     }
 
     const totals = slipTotals(input.selections, input.stake);
-    const id = uuidFrom(`bet:${String(this.account.bets.length)}:${String(this.now())}`) as BetId;
+    const id = uuidFrom(
+      `bet:${String(this.account.bets.length)}:${String(this.now())}`,
+    ) as BetId;
 
     const bet: BetView = {
       id,
@@ -402,7 +461,12 @@ export class MockPlatform {
       placedAt: new Date(this.now()).toISOString(),
     };
 
-    this.ledger("BET_STAKE", -input.stake, `Stake · ${bet.legs.map((l) => l.matchLabel).join(", ")}`, id);
+    this.ledger(
+      "BET_STAKE",
+      -input.stake,
+      `Stake · ${bet.legs.map((l) => l.matchLabel).join(", ")}`,
+      id,
+    );
     this.account.bets.push(bet);
     this.persist();
 
@@ -446,11 +510,17 @@ export class MockPlatform {
   }
 
   public recordView(matchId: string): void {
-    this.account.viewed = [matchId, ...this.account.viewed.filter((id) => id !== matchId)].slice(0, 30);
+    this.account.viewed = [
+      matchId,
+      ...this.account.viewed.filter((id) => id !== matchId),
+    ].slice(0, 30);
     this.storage?.set(STORAGE_KEY, JSON.stringify(this.account));
   }
 
-  private raise(key: string, notification: Omit<NotificationView, "id" | "createdAt" | "read">): boolean {
+  private raise(
+    key: string,
+    notification: Omit<NotificationView, "id" | "createdAt" | "read">,
+  ): boolean {
     if (this.account.raised.includes(key)) return false;
 
     this.account.raised = [...this.account.raised.slice(-300), key];
@@ -476,14 +546,17 @@ export class MockPlatform {
 
     const fixtureCache = new Map<string, FixtureRef | undefined>();
     const fixtureOf = (matchId: string): FixtureRef | undefined => {
-      if (!fixtureCache.has(matchId)) fixtureCache.set(matchId, this.fixture(matchId));
+      if (!fixtureCache.has(matchId))
+        fixtureCache.set(matchId, this.fixture(matchId));
 
       return fixtureCache.get(matchId);
     };
 
     /* Matches the user cares about: those with a pending bet, and those recently watched. */
     const betMatches = new Set<string>(
-      this.account.bets.filter((b) => b.status === "PENDING").flatMap((b) => b.legs.map((l) => l.matchId)),
+      this.account.bets
+        .filter((b) => b.status === "PENDING")
+        .flatMap((b) => b.legs.map((l) => l.matchId)),
     );
     const watched = new Set<string>(this.account.viewed.slice(0, 5));
 
@@ -497,33 +570,40 @@ export class MockPlatform {
       const label = `${s.home.name} v ${s.away.name}`;
 
       if (status === "BETTING_CLOSED" && prefs.matchStarting) {
-        changed = this.raise(`starting:${matchId}`, {
-          kind: "MATCH_STARTING",
-          title: "Kicking off shortly",
-          body: `${label} · ${s.leagueCode} ${String(s.matchday).padStart(2, "0")}`,
-          matchId: matchId as MatchId,
-        }) || changed;
+        changed =
+          this.raise(`starting:${matchId}`, {
+            kind: "MATCH_STARTING",
+            title: "Kicking off shortly",
+            body: `${label} · ${s.leagueCode} ${String(s.matchday).padStart(2, "0")}`,
+            matchId: matchId as MatchId,
+          }) || changed;
       }
 
       if (status === "COMPLETED" && prefs.matchFinished) {
-        changed = this.raise(`finished:${matchId}`, {
-          kind: betMatches.has(matchId) ? "RESULT_AVAILABLE" : "MATCH_FINISHED",
-          title: "Full time",
-          body: `${s.home.name} ${formatScore(s.score.home, s.score.away)} ${s.away.name}`,
-          matchId: matchId as MatchId,
-        }) || changed;
+        changed =
+          this.raise(`finished:${matchId}`, {
+            kind: betMatches.has(matchId)
+              ? "RESULT_AVAILABLE"
+              : "MATCH_FINISHED",
+            title: "Full time",
+            body: `${s.home.name} ${formatScore(s.score.home, s.score.away)} ${s.away.name}`,
+            matchId: matchId as MatchId,
+          }) || changed;
       }
 
       if (status === "IN_PLAY" && prefs.goals && watched.has(matchId)) {
-        const goals = this.view(fixture, now).events.filter((e) => e.kind === "GOAL");
+        const goals = this.view(fixture, now).events.filter(
+          (e) => e.kind === "GOAL",
+        );
 
         for (const goal of goals) {
-          changed = this.raise(`goal:${goal.id}`, {
-            kind: "MATCH_EVENT",
-            title: `Goal · ${goal.side === "HOME" ? s.home.name : s.away.name}`,
-            body: `${goal.player ?? ""} · ${formatScore(goal.score.home, goal.score.away)} · ${String(goal.minute)}'`,
-            matchId: matchId as MatchId,
-          }) || changed;
+          changed =
+            this.raise(`goal:${goal.id}`, {
+              kind: "MATCH_EVENT",
+              title: `Goal · ${goal.side === "HOME" ? s.home.name : s.away.name}`,
+              body: `${goal.player ?? ""} · ${formatScore(goal.score.home, goal.score.away)} · ${String(goal.minute)}'`,
+              matchId: matchId as MatchId,
+            }) || changed;
         }
       }
     }
@@ -538,13 +618,18 @@ export class MockPlatform {
 
         const seconds = (now - fixture.kickoffMs) / 1000;
 
-        if (seconds < FULL_TIME_SECONDS + VIRTUAL_TIMING.settlementDelaySeconds) return leg;
+        if (seconds < FULL_TIME_SECONDS + VIRTUAL_TIMING.settlementDelaySeconds)
+          return leg;
 
         const score = scriptFor(fixture).finalScore;
 
         return {
           ...leg,
-          outcome: settleSelection(leg.marketKind, leg.selectionId === "" ? "" : this.codeFor(leg), score),
+          outcome: settleSelection(
+            leg.marketKind,
+            leg.selectionId === "" ? "" : this.codeFor(leg),
+            score,
+          ),
           result: formatScore(score.home, score.away),
         };
       });
@@ -552,7 +637,9 @@ export class MockPlatform {
       if (legs.some((l) => l.outcome === "PENDING")) continue;
 
       const voided = legs.every((l) => l.outcome === "VOID");
-      const won = !voided && legs.every((l) => l.outcome === "WON" || l.outcome === "VOID");
+      const won =
+        !voided &&
+        legs.every((l) => l.outcome === "WON" || l.outcome === "VOID");
       const payout = voided ? bet.stake : won ? bet.potentialPayout : 0;
       const settled: BetView = {
         ...bet,
@@ -562,17 +649,30 @@ export class MockPlatform {
         payout,
       };
 
-      this.account.bets = this.account.bets.map((b) => (b.id === bet.id ? settled : b));
+      this.account.bets = this.account.bets.map((b) =>
+        b.id === bet.id ? settled : b,
+      );
 
       if (payout > 0) {
-        this.ledger(voided ? "BET_REFUND" : "BET_PAYOUT", payout, `${voided ? "Refund" : "Payout"} · ${legs.map((l) => l.matchLabel).join(", ")}`, bet.id);
+        this.ledger(
+          voided ? "BET_REFUND" : "BET_PAYOUT",
+          payout,
+          `${voided ? "Refund" : "Payout"} · ${legs.map((l) => l.matchLabel).join(", ")}`,
+          bet.id,
+        );
       }
 
       if (prefs.betSettled) {
         this.raise(`settled:${bet.id}`, {
           kind: "BET_SETTLED",
-          title: won ? `Bet won · ${formatMoney(payout)}` : voided ? "Bet voided" : "Bet lost",
-          body: legs.map((l) => `${l.selectionLabel} · ${l.matchLabel}`).join(" · "),
+          title: won
+            ? `Bet won · ${formatMoney(payout)}`
+            : voided
+              ? "Bet voided"
+              : "Bet lost",
+          body: legs
+            .map((l) => `${l.selectionLabel} · ${l.matchLabel}`)
+            .join(" · "),
           betId: bet.id,
         });
       }

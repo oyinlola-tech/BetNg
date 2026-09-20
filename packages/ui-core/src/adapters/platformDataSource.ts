@@ -1,21 +1,15 @@
 /**
- * The real platform, through `@betng/client-sdk`.
- *
- * This is the implementation every screen is built for; the mock exists
- * only until the services serve what this reads. The gateway serves
- * matches, fixtures, teams and leagues separately, and this adapter joins
- * them into the view models the screens render.
- *
- * Some endpoints are specified in the contracts but not yet served —
- * `/matches/:id/events`, `/matches/:id/stats`, `/leagues/:id/standings`,
- * `/leagues/:id/scorers`, `/users/:id/notifications`. A call to one of
- * those that answers 404 or `NOT_IMPLEMENTED` degrades to an honest empty
- * value, so a screen shows its empty state and everything else keeps
- * working. Standings fall back to being computed from completed results,
- * which is what the match service will do server-side.
+ * The real platform, through `@betng/client-sdk`. Endpoints the gateway does
+ * not serve yet (events, stats, standings, scorers, notifications) degrade to
+ * an empty value so the screen shows its empty state; see docs/frontend-api.md.
  */
 
-import { BetNgApiError, type BetNgRestClient, type LiveClient, type LiveHandlers } from "@betng/client-sdk";
+import {
+  BetNgApiError,
+  type BetNgRestClient,
+  type LiveClient,
+  type LiveHandlers,
+} from "@betng/client-sdk";
 import type {
   Bet,
   Fixture,
@@ -117,13 +111,21 @@ function toTeamView(team: Team): TeamView {
     leagueId: team.leagueId,
     name: team.name,
     shortName: team.shortName,
-    code: team.shortName.replace(/[^A-Za-z]/g, "").slice(0, 3).toUpperCase().padEnd(3, "X"),
+    code: team.shortName
+      .replace(/[^A-Za-z]/g, "")
+      .slice(0, 3)
+      .toUpperCase()
+      .padEnd(3, "X"),
     city: team.city ?? "",
     stadium: team.stadium ?? "",
     colors:
       team.colors === undefined
         ? fallbackColors(team.id)
-        : { primary: team.colors.primary, secondary: team.colors.secondary, onPrimary: "#FFFFFF" },
+        : {
+            primary: team.colors.primary,
+            secondary: team.colors.secondary,
+            onPrimary: "#FFFFFF",
+          },
     strength: team.strength,
   };
 }
@@ -162,20 +164,28 @@ function translate(cause: unknown): DataSourceError {
     if (cause.status === 404 || cause.code === "NOT_FOUND") {
       return new DataSourceError("NOT_FOUND", cause.message);
     }
-    if (cause.status === 0) return new DataSourceError("NETWORK", cause.message);
-    if (cause.code === "VALIDATION_FAILED") return new DataSourceError("VALIDATION", cause.message);
-    if (cause.code === "CONFLICT") return new DataSourceError("BETTING_CLOSED", cause.message);
+    if (cause.status === 0)
+      return new DataSourceError("NETWORK", cause.message);
+    if (cause.code === "VALIDATION_FAILED")
+      return new DataSourceError("VALIDATION", cause.message);
+    if (cause.code === "CONFLICT")
+      return new DataSourceError("BETTING_CLOSED", cause.message);
     return new DataSourceError("SERVER", cause.message);
   }
 
-  return new DataSourceError("SERVER", cause instanceof Error ? cause.message : "Something went wrong.");
+  return new DataSourceError(
+    "SERVER",
+    cause instanceof Error ? cause.message : "Something went wrong.",
+  );
 }
 
 /** Whether a failure means "the platform does not serve this yet". */
 function notServed(cause: unknown): boolean {
   return (
     cause instanceof BetNgApiError &&
-    (cause.status === 404 || cause.status === 501 || cause.code === "NOT_IMPLEMENTED")
+    (cause.status === 404 ||
+      cause.status === 501 ||
+      cause.code === "NOT_IMPLEMENTED")
   );
 }
 
@@ -197,7 +207,9 @@ async function required<T>(read: () => Promise<T>): Promise<T> {
   }
 }
 
-export function createPlatformDataSource(options: PlatformDataSourceOptions): BetNgDataSource {
+export function createPlatformDataSource(
+  options: PlatformDataSourceOptions,
+): BetNgDataSource {
   const { rest, userId, storage } = options;
 
   /* ---- Reference data, cached for the session ------------------------ */
@@ -206,8 +218,10 @@ export function createPlatformDataSource(options: PlatformDataSourceOptions): Be
   let teamsCache: Promise<readonly Team[]> | undefined;
   let fixturesCache: Promise<readonly Fixture[]> | undefined;
 
-  const leagues = (): Promise<readonly League[]> => (leaguesCache ??= required(() => rest.listLeagues()));
-  const teams = (): Promise<readonly Team[]> => (teamsCache ??= required(() => rest.listTeams()));
+  const leagues = (): Promise<readonly League[]> =>
+    (leaguesCache ??= required(() => rest.listLeagues()));
+  const teams = (): Promise<readonly Team[]> =>
+    (teamsCache ??= required(() => rest.listTeams()));
   const fixtures = (): Promise<readonly Fixture[]> =>
     (fixturesCache ??= required(() => rest.listFixtures()));
 
@@ -229,7 +243,11 @@ export function createPlatformDataSource(options: PlatformDataSourceOptions): Be
   }
 
   async function toSummary(match: Match): Promise<MatchSummary> {
-    const [allLeagues, allTeams, fixture] = await Promise.all([leagues(), teams(), fixtureFor(match)]);
+    const [allLeagues, allTeams, fixture] = await Promise.all([
+      leagues(),
+      teams(),
+      fixtureFor(match),
+    ]);
     const league = allLeagues.find((l) => l.id === fixture.leagueId);
     const home = allTeams.find((t) => t.id === fixture.homeTeamId);
     const away = allTeams.find((t) => t.id === fixture.awayTeamId);
@@ -259,7 +277,11 @@ export function createPlatformDataSource(options: PlatformDataSourceOptions): Be
     };
   }
 
-  function toEventView(event: MatchEvent, sequence: number, running: { home: number; away: number }): MatchEventView {
+  function toEventView(
+    event: MatchEvent,
+    sequence: number,
+    running: { home: number; away: number },
+  ): MatchEventView {
     const score = event.score ?? running;
 
     return {
@@ -270,7 +292,9 @@ export function createPlatformDataSource(options: PlatformDataSourceOptions): Be
       minute: event.minute,
       ...(event.side === undefined ? {} : { side: event.side }),
       ...(event.player === undefined ? {} : { player: event.player }),
-      ...(event.secondaryPlayer === undefined ? {} : { secondaryPlayer: event.secondaryPlayer }),
+      ...(event.secondaryPlayer === undefined
+        ? {}
+        : { secondaryPlayer: event.secondaryPlayer }),
       score,
       description: event.description,
       occurredAt: "",
@@ -280,7 +304,10 @@ export function createPlatformDataSource(options: PlatformDataSourceOptions): Be
   async function toView(match: Match): Promise<MatchView> {
     const [summary, events, stats] = await Promise.all([
       toSummary(match),
-      optional(() => rest.listMatchEvents(match.id), [] as readonly MatchEvent[]),
+      optional(
+        () => rest.listMatchEvents(match.id),
+        [] as readonly MatchEvent[],
+      ),
       optional(() => rest.getMatchStats(match.id), undefined),
     ]);
 
@@ -291,7 +318,10 @@ export function createPlatformDataSource(options: PlatformDataSourceOptions): Be
       if (event.score !== undefined) {
         running = event.score;
       } else if (event.type === "GOAL") {
-        running = event.side === "AWAY" ? { ...running, away: running.away + 1 } : { ...running, home: running.home + 1 };
+        running =
+          event.side === "AWAY"
+            ? { ...running, away: running.away + 1 }
+            : { ...running, home: running.home + 1 };
       }
 
       return toEventView(event, index + 1, running);
@@ -301,7 +331,9 @@ export function createPlatformDataSource(options: PlatformDataSourceOptions): Be
       ...summary,
       score: match.score ?? views.at(-1)?.score ?? summary.score,
       events: views,
-      ...(stats === undefined ? {} : { stats: { home: stats.home, away: stats.away } }),
+      ...(stats === undefined
+        ? {}
+        : { stats: { home: stats.home, away: stats.away } }),
     };
   }
 
@@ -313,7 +345,8 @@ export function createPlatformDataSource(options: PlatformDataSourceOptions): Be
   function setConnection(state: ConnectionState): void {
     connection = state;
     for (const l of connectionListeners) l(state);
-    for (const set of matchHandlers.values()) for (const h of set) h.onConnection(state);
+    for (const set of matchHandlers.values())
+      for (const h of set) h.onConnection(state);
   }
 
   function ensureLive(): LiveClient {
@@ -358,13 +391,18 @@ export function createPlatformDataSource(options: PlatformDataSourceOptions): Be
     try {
       const raw = storage?.get(key);
 
-      return raw === null || raw === undefined ? fallback : (JSON.parse(raw) as T);
+      return raw === null || raw === undefined
+        ? fallback
+        : (JSON.parse(raw) as T);
     } catch {
       return fallback;
     }
   }
 
-  let preferences = readJson<NotificationPreferences>(PREFS_KEY, DEFAULT_PREFERENCES);
+  let preferences = readJson<NotificationPreferences>(
+    PREFS_KEY,
+    DEFAULT_PREFERENCES,
+  );
   let viewed = readJson<string[]>(VIEWED_KEY, []);
 
   /* ---- Bets ---------------------------------------------------------- */
@@ -383,7 +421,8 @@ export function createPlatformDataSource(options: PlatformDataSourceOptions): Be
           matchLabel = `${summary.home.name} v ${summary.away.name}`;
           leagueCode = summary.leagueCode;
           kickoffAt = summary.kickoffAt;
-          if (isFinished(summary.phase)) result = formatScore(summary.score.home, summary.score.away);
+          if (isFinished(summary.phase))
+            result = formatScore(summary.score.home, summary.score.away);
         } catch {
           /* A leg on a match the platform no longer serves still renders. */
         }
@@ -401,7 +440,8 @@ export function createPlatformDataSource(options: PlatformDataSourceOptions): Be
           matchLabel,
           leagueCode,
           kickoffAt,
-          outcome: leg.outcome ?? (bet.status === "PENDING" ? "PENDING" : bet.status),
+          outcome:
+            leg.outcome ?? (bet.status === "PENDING" ? "PENDING" : bet.status),
           ...(result === undefined ? {} : { result }),
         };
       }),
@@ -420,7 +460,11 @@ export function createPlatformDataSource(options: PlatformDataSourceOptions): Be
     };
   }
 
-  function toWalletView(w: { id: string; balance: number; reserved: number }): WalletView {
+  function toWalletView(w: {
+    id: string;
+    balance: number;
+    reserved: number;
+  }): WalletView {
     return {
       id: w.id as WalletView["id"],
       balance: w.balance,
@@ -445,10 +489,15 @@ export function createPlatformDataSource(options: PlatformDataSourceOptions): Be
   }
 
   async function leagueView(league: League): Promise<LeagueView> {
-    const count = (await teams()).filter((t) => t.leagueId === league.id).length;
-    const leagueFixtures = (await fixtures()).filter((f) => f.leagueId === league.id);
+    const count = (await teams()).filter(
+      (t) => t.leagueId === league.id,
+    ).length;
+    const leagueFixtures = (await fixtures()).filter(
+      (f) => f.leagueId === league.id,
+    );
     const latest = leagueFixtures.reduce<Fixture | undefined>(
-      (best, f) => (best === undefined || f.kickoffAt > best.kickoffAt ? f : best),
+      (best, f) =>
+        best === undefined || f.kickoffAt > best.kickoffAt ? f : best,
       undefined,
     );
 
@@ -471,25 +520,34 @@ export function createPlatformDataSource(options: PlatformDataSourceOptions): Be
     getLeague: async (leagueId) => {
       const found = (await leagues()).find((l) => l.id === leagueId);
 
-      if (found === undefined) throw new DataSourceError("NOT_FOUND", "League not found.");
+      if (found === undefined)
+        throw new DataSourceError("NOT_FOUND", "League not found.");
 
       return leagueView(found);
     },
 
     listTeams: async (leagueId?: LeagueId) =>
-      (await teams()).filter((t) => leagueId === undefined || t.leagueId === leagueId).map(toTeamView),
+      (await teams())
+        .filter((t) => leagueId === undefined || t.leagueId === leagueId)
+        .map(toTeamView),
 
     getTeam: async (teamId: TeamId) => {
       const team = (await teams()).find((t) => t.id === teamId);
 
-      if (team === undefined) throw new DataSourceError("NOT_FOUND", "Team not found.");
+      if (team === undefined)
+        throw new DataSourceError("NOT_FOUND", "Team not found.");
 
       return { ...toTeamView(team), manager: "", founded: 0, squad: [] };
     },
 
     getStandings: async (leagueId, season): Promise<StandingsView> => {
-      const allTeams = (await teams()).filter((t) => t.leagueId === leagueId).map(toTeamView);
-      const served = await optional(() => rest.getStandings(leagueId, season), undefined);
+      const allTeams = (await teams())
+        .filter((t) => t.leagueId === leagueId)
+        .map(toTeamView);
+      const served = await optional(
+        () => rest.getStandings(leagueId, season),
+        undefined,
+      );
 
       if (served !== undefined) {
         const byId = new Map(allTeams.map((t) => [t.id, t]));
@@ -506,27 +564,43 @@ export function createPlatformDataSource(options: PlatformDataSourceOptions): Be
         };
       }
 
-      const completed = await required(() => rest.listMatches({ leagueId, status: "COMPLETED" }));
+      const completed = await required(() =>
+        rest.listMatches({ leagueId, status: "COMPLETED" }),
+      );
       const summaries = await Promise.all(completed.map(toSummary));
-      const inSeason = summaries.filter((m) => season === undefined || m.season === season);
+      const inSeason = summaries.filter(
+        (m) => season === undefined || m.season === season,
+      );
 
-      return computeStandings(leagueId, season ?? inSeason[0]?.season ?? 1, allTeams, inSeason);
+      return computeStandings(
+        leagueId,
+        season ?? inSeason[0]?.season ?? 1,
+        allTeams,
+        inSeason,
+      );
     },
 
     getTopScorers: async (leagueId, season): Promise<readonly TopScorer[]> => {
-      const served = await optional(() => rest.listTopScorers(leagueId, season), []);
+      const served = await optional(
+        () => rest.listTopScorers(leagueId, season),
+        [],
+      );
       const byId = new Map((await teams()).map((t) => [t.id, toTeamView(t)]));
 
       return served.flatMap((s) => {
         const team = byId.get(s.teamId);
 
-        return team === undefined ? [] : [{ player: s.player, team, goals: s.goals, assists: s.assists }];
+        return team === undefined
+          ? []
+          : [{ player: s.player, team, goals: s.goals, assists: s.assists }];
       });
     },
 
     listMatches: async (filter: MatchFilter = {}) => {
       const matches = await required(() =>
-        rest.listMatches(filter.leagueId === undefined ? {} : { leagueId: filter.leagueId }),
+        rest.listMatches(
+          filter.leagueId === undefined ? {} : { leagueId: filter.leagueId },
+        ),
       );
       const views = await Promise.all(matches.map(toSummary));
       const { phases, matchday, season, teamId, date } = filter;
@@ -535,13 +609,19 @@ export function createPlatformDataSource(options: PlatformDataSourceOptions): Be
         .filter((m) => phases === undefined || phases.includes(m.phase))
         .filter((m) => matchday === undefined || m.matchday === matchday)
         .filter((m) => season === undefined || m.season === season)
-        .filter((m) => teamId === undefined || m.home.id === teamId || m.away.id === teamId)
+        .filter(
+          (m) =>
+            teamId === undefined ||
+            m.home.id === teamId ||
+            m.away.id === teamId,
+        )
         .filter((m) => date === undefined || m.kickoffAt.slice(0, 10) === date)
         .sort((a, b) => a.kickoffAt.localeCompare(b.kickoffAt))
         .slice(0, filter.limit ?? Number.POSITIVE_INFINITY);
     },
 
-    getMatch: async (matchId: MatchId) => toView(await required(() => rest.getMatch(matchId))),
+    getMatch: async (matchId: MatchId) =>
+      toView(await required(() => rest.getMatch(matchId))),
 
     getMatchMarkets: async (matchId: MatchId) => {
       const odds = await required(() => rest.getMatchOdds(matchId));
@@ -549,36 +629,40 @@ export function createPlatformDataSource(options: PlatformDataSourceOptions): Be
       return {
         matchId,
         generatedAt: odds.generatedAt,
-        markets: odds.markets.map(
-          (m): MarketView => ({
-            id: m.id,
-            matchId: m.matchId,
-            kind: m.type,
-            name: MARKET_NAMES[m.type],
-            ...(m.line === undefined ? {} : { line: m.line }),
-            status: m.status,
-            columns: MARKET_COLUMNS[m.type],
-            selections: m.selections.map((s) => ({
-              id: s.id,
-              marketId: s.marketId,
-              code: s.code,
-              label: s.label,
-              shortLabel: s.label,
-              odds: s.odds,
-              probability: s.probability,
-              trend: "STEADY",
-            })),
-          }),
-        ),
+        markets: odds.markets.map((m): MarketView => ({
+          id: m.id,
+          matchId: m.matchId,
+          kind: m.type,
+          name: MARKET_NAMES[m.type],
+          ...(m.line === undefined ? {} : { line: m.line }),
+          status: m.status,
+          columns: MARKET_COLUMNS[m.type],
+          selections: m.selections.map((s) => ({
+            id: s.id,
+            marketId: s.marketId,
+            code: s.code,
+            label: s.label,
+            shortLabel: s.label,
+            odds: s.odds,
+            probability: s.probability,
+            trend: "STEADY",
+          })),
+        })),
       };
     },
 
     listCompletedMatchdays: async (leagueId, season) => {
-      const matches = await required(() => rest.listMatches({ leagueId, status: "COMPLETED" }));
+      const matches = await required(() =>
+        rest.listMatches({ leagueId, status: "COMPLETED" }),
+      );
       const views = await Promise.all(matches.map(toSummary));
 
       return [
-        ...new Set(views.filter((m) => season === undefined || m.season === season).map((m) => m.matchday)),
+        ...new Set(
+          views
+            .filter((m) => season === undefined || m.season === season)
+            .map((m) => m.matchday),
+        ),
       ].sort((a, b) => b - a);
     },
 
@@ -613,7 +697,8 @@ export function createPlatformDataSource(options: PlatformDataSourceOptions): Be
 
     getConnectionState: () => connection,
 
-    getWallet: async () => toWalletView(await required(() => rest.getWallet(userId))),
+    getWallet: async () =>
+      toWalletView(await required(() => rest.getWallet(userId))),
 
     listTransactions: async () =>
       (await required(() => rest.listTransactions(userId))).map(
@@ -675,7 +760,10 @@ export function createPlatformDataSource(options: PlatformDataSourceOptions): Be
 
       return {
         id: bet.id,
-        legs: input.selections.map((s) => ({ ...s, outcome: "PENDING" as const })),
+        legs: input.selections.map((s) => ({
+          ...s,
+          outcome: "PENDING" as const,
+        })),
         stake: bet.stake,
         totalOdds: bet.totalOdds,
         potentialPayout: bet.potentialPayout,
@@ -691,10 +779,16 @@ export function createPlatformDataSource(options: PlatformDataSourceOptions): Be
       return views.sort((a, b) => b.placedAt.localeCompare(a.placedAt));
     },
 
-    getBet: async (betId) => toBetView(await required(() => rest.getBet(betId))),
+    getBet: async (betId) =>
+      toBetView(await required(() => rest.getBet(betId))),
 
     listNotifications: async () =>
-      (await optional(() => rest.listNotifications(userId), [] as readonly Notification[]))
+      (
+        await optional(
+          () => rest.listNotifications(userId),
+          [] as readonly Notification[],
+        )
+      )
         .map(toNotificationView)
         .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
 
@@ -714,10 +808,14 @@ export function createPlatformDataSource(options: PlatformDataSourceOptions): Be
 
     listViewedMatches: async () => {
       const results = await Promise.allSettled(
-        viewed.slice(0, 10).map(async (id) => toSummary(await rest.getMatch(id))),
+        viewed
+          .slice(0, 10)
+          .map(async (id) => toSummary(await rest.getMatch(id))),
       );
 
-      return results.flatMap((r) => (r.status === "fulfilled" ? [r.value] : []));
+      return results.flatMap((r) =>
+        r.status === "fulfilled" ? [r.value] : [],
+      );
     },
 
     recordView: (matchId) => {

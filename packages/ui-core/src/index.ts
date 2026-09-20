@@ -63,7 +63,13 @@ export type { StakeProblem } from "./betslip.js";
 export { computeStandings } from "./standings.js";
 
 export { watchMatch } from "./live/watchMatch.js";
-export type { LiveMatchController, LiveMatchSnapshot } from "./live/watchMatch.js";
+export type {
+  LiveMatchController,
+  LiveMatchSnapshot,
+} from "./live/watchMatch.js";
 
 export { createPlatformDataSource } from "./adapters/platformDataSource.js";
-export type { KeyValueStorage, PlatformDataSourceOptions } from "./adapters/platformDataSource.js";
+export type {
+  KeyValueStorage,
+  PlatformDataSourceOptions,
+} from "./adapters/platformDataSource.js";

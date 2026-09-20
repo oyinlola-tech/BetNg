@@ -1,12 +1,4 @@
-/**
- * Motion.
- *
- * Every animation communicates a change — a selection added, a score
- * moving, a connection dropping — or it does not exist. The durations are
- * short because the product is about live information, and the client
- * always honours `prefers-reduced-motion`, which each platform maps to
- * `duration.instant` for everything.
- */
+/** Motion. */
 
 export const duration = Object.freeze({
   instant: 0,

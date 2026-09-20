@@ -1,15 +1,4 @@
-/**
- * Plays a virtual match.
- *
- * Stands in for the simulation service. The script — every goal, card,
- * substitution, corner and the statistics — is a pure function of the
- * fixture, so any client that asks gets the same match, and the "live"
- * stream is simply this script released against the clock.
- *
- * The frontend never decides a result. This module is the platform's job
- * done in-process; when the simulation service serves
- * `GET /matches/:id/events` and `GET /matches/:id/stats`, it is unused.
- */
+/** Plays a virtual match. */
 
 import type { MatchId } from "@betng/contracts";
 import {
@@ -56,7 +45,10 @@ export interface MatchScript {
   readonly finalScore: Score;
 }
 
-export function expectedGoals(home: Club, away: Club): { readonly home: number; readonly away: number } {
+export function expectedGoals(
+  home: Club,
+  away: Club,
+): { readonly home: number; readonly away: number } {
   const diff = (home.strength - away.strength) / 40;
   const clamp = (x: number): number => Math.min(3.4, Math.max(0.35, x));
 
@@ -66,15 +58,36 @@ export function expectedGoals(home: Club, away: Club): { readonly home: number; 
   };
 }
 
-function pickByPosition(r: Rng, squad: readonly Player[], weights: Record<Player["position"], number>): Player {
-  const pool = squad.flatMap((p) => Array.from({ length: weights[p.position] }, () => p));
+function pickByPosition(
+  r: Rng,
+  squad: readonly Player[],
+  weights: Record<Player["position"], number>,
+): Player {
+  const pool = squad.flatMap((p) =>
+    Array.from({ length: weights[p.position] }, () => p),
+  );
 
   return r.pick(pool);
 }
 
-const SCORER_WEIGHTS: Record<Player["position"], number> = { GK: 0, DF: 1, MF: 3, FW: 7 };
-const BOOKED_WEIGHTS: Record<Player["position"], number> = { GK: 1, DF: 5, MF: 4, FW: 2 };
-const SUB_OFF_WEIGHTS: Record<Player["position"], number> = { GK: 0, DF: 2, MF: 4, FW: 4 };
+const SCORER_WEIGHTS: Record<Player["position"], number> = {
+  GK: 0,
+  DF: 1,
+  MF: 3,
+  FW: 7,
+};
+const BOOKED_WEIGHTS: Record<Player["position"], number> = {
+  GK: 1,
+  DF: 5,
+  MF: 4,
+  FW: 2,
+};
+const SUB_OFF_WEIGHTS: Record<Player["position"], number> = {
+  GK: 0,
+  DF: 2,
+  MF: 4,
+  FW: 4,
+};
 
 /** Minutes a normal event may fall on: never on the half-time boundary. */
 function eventMinute(r: Rng, half: 1 | 2 | undefined = undefined): number {
@@ -122,7 +135,11 @@ export function scriptFor(fixture: FixtureRef): MatchScript {
     for (let i = 0; i < goals; i += 1) {
       const scorer = pickByPosition(r, squad, SCORER_WEIGHTS);
       const assist = r.chance(0.7)
-        ? pickByPosition(r, squad.filter((p) => p.id !== scorer.id), SCORER_WEIGHTS)
+        ? pickByPosition(
+            r,
+            squad.filter((p) => p.id !== scorer.id),
+            SCORER_WEIGHTS,
+          )
         : undefined;
       const minute = eventMinute(r);
 
@@ -151,14 +168,26 @@ export function scriptFor(fixture: FixtureRef): MatchScript {
 
       const minute = eventMinute(r);
 
-      drafts.push({ kind: "YELLOW_CARD", minute, side, player: player.name, release: releaseFor(r, minute) });
+      drafts.push({
+        kind: "YELLOW_CARD",
+        minute,
+        side,
+        player: player.name,
+        release: releaseFor(r, minute),
+      });
     }
 
     if (r.chance(0.06)) {
       const player = pickByPosition(r, squad, BOOKED_WEIGHTS);
       const minute = r.int(50, 88);
 
-      drafts.push({ kind: "RED_CARD", minute, side, player: player.name, release: releaseFor(r, minute) });
+      drafts.push({
+        kind: "RED_CARD",
+        minute,
+        side,
+        player: player.name,
+        release: releaseFor(r, minute),
+      });
     }
   }
 
@@ -171,7 +200,11 @@ export function scriptFor(fixture: FixtureRef): MatchScript {
     const used = new Set<string>();
 
     for (let i = 0; i < count && i < bench.length; i += 1) {
-      const off = pickByPosition(r, starters.filter((p) => !used.has(p.id)), SUB_OFF_WEIGHTS);
+      const off = pickByPosition(
+        r,
+        starters.filter((p) => !used.has(p.id)),
+        SUB_OFF_WEIGHTS,
+      );
       const on = bench[i] as Player;
 
       used.add(off.id);
@@ -195,50 +228,71 @@ export function scriptFor(fixture: FixtureRef): MatchScript {
     for (let i = 0; i < corners; i += 1) {
       const minute = eventMinute(r);
 
-      drafts.push({ kind: "CORNER", minute, side, release: releaseFor(r, minute) });
+      drafts.push({
+        kind: "CORNER",
+        minute,
+        side,
+        release: releaseFor(r, minute),
+      });
     }
   }
 
   drafts.push({ kind: "KICK_OFF", minute: 0, release: 0 });
   drafts.push({ kind: "HALF_TIME", minute: 45, release: FIRST_HALF_SECONDS });
-  drafts.push({ kind: "SECOND_HALF", minute: 45, release: SECOND_HALF_START_SECONDS });
+  drafts.push({
+    kind: "SECOND_HALF",
+    minute: 45,
+    release: SECOND_HALF_START_SECONDS,
+  });
   drafts.push({ kind: "FULL_TIME", minute: 90, release: FULL_TIME_SECONDS });
 
   drafts.sort((a, b) => a.release - b.release);
 
   /* Hidden statistics ticks. */
   const ticks: StatTick[] = [];
-  const goalsFor = (side: MatchSide): number => drafts.filter((d) => d.kind === "GOAL" && d.side === side).length;
+  const goalsFor = (side: MatchSide): number =>
+    drafts.filter((d) => d.kind === "GOAL" && d.side === side).length;
 
   for (const side of ["HOME", "AWAY"] as const) {
     const lambda = side === "HOME" ? xg.home : xg.away;
     const goals = goalsFor(side);
     const shots = goals + r.poisson(6.5 * (lambda / 1.3) + 2);
-    const onTarget = goals + Math.round((shots - goals) * (0.28 + r.next() * 0.16));
+    const onTarget =
+      goals + Math.round((shots - goals) * (0.28 + r.next() * 0.16));
 
     for (let i = 0; i < shots; i += 1) {
-      ticks.push({ minute: eventMinute(r), side, kind: i < onTarget ? "SHOT_ON_TARGET" : "SHOT" });
+      ticks.push({
+        minute: eventMinute(r),
+        side,
+        kind: i < onTarget ? "SHOT_ON_TARGET" : "SHOT",
+      });
     }
 
     const fouls = r.poisson(9);
 
-    for (let i = 0; i < fouls; i += 1) ticks.push({ minute: eventMinute(r), side, kind: "FOUL" });
+    for (let i = 0; i < fouls; i += 1)
+      ticks.push({ minute: eventMinute(r), side, kind: "FOUL" });
 
     const offsides = r.poisson(1.8);
 
-    for (let i = 0; i < offsides; i += 1) ticks.push({ minute: eventMinute(r), side, kind: "OFFSIDE" });
+    for (let i = 0; i < offsides; i += 1)
+      ticks.push({ minute: eventMinute(r), side, kind: "OFFSIDE" });
   }
 
   ticks.sort((a, b) => a.minute - b.minute);
 
   let score: Score = { home: 0, away: 0 };
-  const scoreline = (): string => `${home.name} ${String(score.home)}–${String(score.away)} ${away.name}`;
+  const scoreline = (): string =>
+    `${home.name} ${String(score.home)}–${String(score.away)} ${away.name}`;
 
   const events = drafts.map((d, index): ScriptEvent => {
     const team = d.side === undefined ? undefined : clubFor(d.side);
 
     if (d.kind === "GOAL") {
-      score = d.side === "HOME" ? { ...score, home: score.home + 1 } : { ...score, away: score.away + 1 };
+      score =
+        d.side === "HOME"
+          ? { ...score, home: score.home + 1 }
+          : { ...score, away: score.away + 1 };
     }
 
     let description: string;
@@ -249,7 +303,9 @@ export function scriptFor(fixture: FixtureRef): MatchScript {
         break;
       case "GOAL":
         description = `${d.player ?? "Goal"} scores for ${team?.name ?? ""}${
-          d.secondaryPlayer === undefined ? "" : `, assisted by ${d.secondaryPlayer}`
+          d.secondaryPlayer === undefined
+            ? ""
+            : `, assisted by ${d.secondaryPlayer}`
         }`;
         break;
       case "YELLOW_CARD":
@@ -284,7 +340,9 @@ export function scriptFor(fixture: FixtureRef): MatchScript {
       minute: d.minute,
       ...(d.side === undefined ? {} : { side: d.side }),
       ...(d.player === undefined ? {} : { player: d.player }),
-      ...(d.secondaryPlayer === undefined ? {} : { secondaryPlayer: d.secondaryPlayer }),
+      ...(d.secondaryPlayer === undefined
+        ? {}
+        : { secondaryPlayer: d.secondaryPlayer }),
       description,
       score,
       releaseSeconds: d.release,
@@ -292,17 +350,31 @@ export function scriptFor(fixture: FixtureRef): MatchScript {
   });
 
   const possessionHome = Math.round(
-    Math.min(68, Math.max(32, 50 + ((home.strength - away.strength) / 40) * 11 + (r.next() - 0.5) * 6)),
+    Math.min(
+      68,
+      Math.max(
+        32,
+        50 + ((home.strength - away.strength) / 40) * 11 + (r.next() - 0.5) * 6,
+      ),
+    ),
   );
 
-  const script: MatchScript = { events, ticks, possessionHome, finalScore: score };
+  const script: MatchScript = {
+    events,
+    ticks,
+    possessionHome,
+    finalScore: score,
+  };
 
   scriptCache.set(fixture.matchId, script);
 
   return script;
 }
 
-export function releasedEvents(script: MatchScript, elapsedSeconds: number): readonly ScriptEvent[] {
+export function releasedEvents(
+  script: MatchScript,
+  elapsedSeconds: number,
+): readonly ScriptEvent[] {
   if (elapsedSeconds < 0) return [];
 
   let count = 0;
@@ -315,9 +387,16 @@ export function releasedEvents(script: MatchScript, elapsedSeconds: number): rea
   return script.events.slice(0, count);
 }
 
-export function statsAt(script: MatchScript, released: readonly ScriptEvent[], minute: number, matchId: MatchId): MatchStats {
+export function statsAt(
+  script: MatchScript,
+  released: readonly ScriptEvent[],
+  minute: number,
+  matchId: MatchId,
+): MatchStats {
   const side = (which: MatchSide): SideStats => {
-    const ticks = script.ticks.filter((t) => t.side === which && t.minute <= minute);
+    const ticks = script.ticks.filter(
+      (t) => t.side === which && t.minute <= minute,
+    );
     const events = released.filter((e) => e.side === which);
     const onTarget = ticks.filter((t) => t.kind === "SHOT_ON_TARGET").length;
     const shots = onTarget + ticks.filter((t) => t.kind === "SHOT").length;
@@ -327,7 +406,8 @@ export function statsAt(script: MatchScript, released: readonly ScriptEvent[], m
     const ramp = Math.min(1, minute / 20);
     const wobble = Math.sin(minute * 0.7 + which.length) * 2.5;
     const home = 50 + (script.possessionHome - 50) * ramp + wobble;
-    const possession = minute === 0 ? 50 : Math.round(which === "HOME" ? home : 100 - home);
+    const possession =
+      minute === 0 ? 50 : Math.round(which === "HOME" ? home : 100 - home);
 
     return {
       possession,

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useSyncExternalStore } from "react";
+import { useEffect, useState } from "react";
 import type { MatchId } from "@betng/contracts";
 import { watchMatch, type LiveMatchSnapshot } from "@betng/ui-core";
 import { dataSource } from "../services/dataSource";
@@ -12,27 +12,30 @@ const IDLE: LiveMatchSnapshot = {
 };
 
 export function useLiveMatch(matchId: string | undefined): LiveMatchSnapshot {
-  const controller = useMemo(
-    () => (matchId === undefined ? undefined : watchMatch(dataSource, matchId as MatchId)),
-    [matchId],
-  );
+  const [snapshot, setSnapshot] = useState<LiveMatchSnapshot>(IDLE);
 
   useEffect(() => {
-    if (controller === undefined) return;
+    if (matchId === undefined) {
+      setSnapshot(IDLE);
+      return;
+    }
 
-    const timer = setInterval(() => {
+    const controller = watchMatch(dataSource, matchId as MatchId);
+    const unsubscribe = controller.subscribe(() => {
+      setSnapshot(controller.getSnapshot());
+    });
+    const ticker = setInterval(() => {
       controller.tick();
     }, 1000);
 
+    setSnapshot(controller.getSnapshot());
+
     return () => {
-      clearInterval(timer);
+      clearInterval(ticker);
+      unsubscribe();
       controller.stop();
     };
-  }, [controller]);
+  }, [matchId]);
 
-  return useSyncExternalStore(
-    (onChange) => controller?.subscribe(onChange) ?? (() => undefined),
-    () => controller?.getSnapshot() ?? IDLE,
-    () => IDLE,
-  );
+  return snapshot;
 }

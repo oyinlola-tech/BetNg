@@ -1,16 +1,7 @@
 /**
- * The boundary between a screen and the platform.
- *
- * Every client — web, mobile, TV — talks to one of these and nothing else.
- * Two implementations exist: `@betng/mock-data` runs a deterministic
- * virtual season in-process, and `createPlatformDataSource` adapts the
- * real gateway and event stream through `@betng/client-sdk`. A screen
- * cannot tell which it has, which is the point: the interface is the
- * contract the frontend is built against, and the backend grows into it.
- *
- * Reads return view models, already joined. Writes are the handful of
- * simulated actions a user can take. Live is a subscription that resolves
- * to an unsubscribe.
+ * The boundary between a screen and the platform. Two implementations:
+ * `createPlatformDataSource` (the gateway + event stream) and the in-process
+ * season in `@betng/mock-data`. Screens cannot tell which they have.
  */
 
 import type { LeagueId, MatchId, TeamId } from "@betng/contracts";
@@ -59,14 +50,23 @@ export interface BetNgDataSource {
   listTeams(leagueId?: LeagueId): Promise<readonly TeamView[]>;
   getTeam(teamId: TeamId): Promise<TeamDetailView>;
   getStandings(leagueId: LeagueId, season?: number): Promise<StandingsView>;
-  getTopScorers(leagueId: LeagueId, season?: number): Promise<readonly TopScorer[]>;
+  getTopScorers(
+    leagueId: LeagueId,
+    season?: number,
+  ): Promise<readonly TopScorer[]>;
 
   listMatches(filter?: MatchFilter): Promise<readonly MatchSummary[]>;
   getMatch(matchId: MatchId): Promise<MatchView>;
   getMatchMarkets(matchId: MatchId): Promise<MatchMarketsView>;
-  listCompletedMatchdays(leagueId: LeagueId, season?: number): Promise<readonly number[]>;
+  listCompletedMatchdays(
+    leagueId: LeagueId,
+    season?: number,
+  ): Promise<readonly number[]>;
 
-  subscribeMatch(matchId: MatchId, handlers: LiveMatchHandlers): LiveSubscription;
+  subscribeMatch(
+    matchId: MatchId,
+    handlers: LiveMatchHandlers,
+  ): LiveSubscription;
   subscribeConnection(listener: (state: ConnectionState) => void): () => void;
   getConnectionState(): ConnectionState;
 
@@ -80,7 +80,9 @@ export interface BetNgDataSource {
   listNotifications(): Promise<readonly NotificationView[]>;
   markNotificationsRead(ids?: readonly string[]): Promise<void>;
   getNotificationPreferences(): Promise<NotificationPreferences>;
-  setNotificationPreferences(preferences: NotificationPreferences): Promise<void>;
+  setNotificationPreferences(
+    preferences: NotificationPreferences,
+  ): Promise<void>;
   listViewedMatches(): Promise<readonly MatchSummary[]>;
   recordView(matchId: MatchId): void;
 

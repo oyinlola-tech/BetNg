@@ -1,11 +1,4 @@
-/**
- * Deterministic randomness.
- *
- * Every match in the mock season is a pure function of its fixture id, so
- * the same match plays out identically on web, mobile and TV, on every
- * reload, and a result table computed today matches the one computed
- * tomorrow. Nothing here is cryptographic and nothing needs to be.
- */
+/** Deterministic randomness. */
 
 /** FNV-1a, 32-bit. */
 export function hash(text: string): number {

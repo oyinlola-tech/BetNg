@@ -8,12 +8,27 @@ export interface SwitchProps {
   readonly disabled?: boolean;
 }
 
-export function Switch({ checked, onChange, label, description, disabled = false }: SwitchProps): React.JSX.Element {
+export function Switch({
+  checked,
+  onChange,
+  label,
+  description,
+  disabled = false,
+}: SwitchProps): React.JSX.Element {
   return (
-    <label className={cn("flex cursor-pointer items-center justify-between gap-4 py-3", disabled && "opacity-50")}>
+    <label
+      className={cn(
+        "flex cursor-pointer items-center justify-between gap-4 py-3",
+        disabled && "opacity-50",
+      )}
+    >
       <span>
-        <span className="block text-base font-medium text-text-primary">{label}</span>
-        {description !== undefined && <span className="block text-sm text-text-muted">{description}</span>}
+        <span className="block text-base font-medium text-text-primary">
+          {label}
+        </span>
+        {description !== undefined && (
+          <span className="block text-sm text-text-muted">{description}</span>
+        )}
       </span>
       <button
         type="button"

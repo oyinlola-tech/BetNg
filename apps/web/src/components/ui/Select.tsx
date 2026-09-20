@@ -15,7 +15,14 @@ export interface SelectProps<T extends string> {
   readonly size?: "sm" | "md";
 }
 
-export function Select<T extends string>({ value, onChange, options, label, className, size = "md" }: SelectProps<T>): React.JSX.Element {
+export function Select<T extends string>({
+  value,
+  onChange,
+  options,
+  label,
+  className,
+  size = "md",
+}: SelectProps<T>): React.JSX.Element {
   return (
     <div className={cn("relative inline-flex", className)}>
       <select
@@ -35,7 +42,10 @@ export function Select<T extends string>({ value, onChange, options, label, clas
           </option>
         ))}
       </select>
-      <ChevronDown aria-hidden className="pointer-events-none absolute right-2 top-1/2 size-4 -translate-y-1/2 text-text-muted" />
+      <ChevronDown
+        aria-hidden
+        className="pointer-events-none absolute right-2 top-1/2 size-4 -translate-y-1/2 text-text-muted"
+      />
     </div>
   );
 }

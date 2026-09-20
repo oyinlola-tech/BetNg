@@ -1,15 +1,4 @@
-/**
- * The type system.
- *
- * Two families. Inter carries the interface — labels, tables, odds, body —
- * because it stays legible at 12px and has tabular figures, which every
- * column of odds and every score needs. Archivo carries display: scores,
- * team names in a scoreboard, section headings on TV. It is a grotesque
- * with a wide, athletic stance that reads as sport without a novelty face.
- *
- * Sizes are unitless pixels here; each platform converts (rem for web and
- * TV, dp for React Native). TV multiplies the whole scale, see `tvScale`.
- */
+/** The type system. */
 
 export const fontFamily = Object.freeze({
   sans: "'Inter Variable', Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",

@@ -1,11 +1,4 @@
-/**
- * Bet-slip arithmetic, shared so web, mobile and TV agree on every number.
- *
- * One selection per match: an accumulator across two outcomes of the same
- * match is not a bet the platform offers, so adding a second selection for
- * a match replaces the first. Stakes are kobo integers; the total return
- * is rounded to the kobo the way the betting service will round it.
- */
+/** Bet-slip arithmetic, shared so web, mobile and TV agree on every number. */
 
 import type { SlipSelection, SlipTotals } from "./types/index.js";
 
@@ -45,7 +38,10 @@ export function removeSelection(
   return current.filter((s) => s.selectionId !== selectionId);
 }
 
-export function isSelected(current: readonly SlipSelection[], selectionId: string): boolean {
+export function isSelected(
+  current: readonly SlipSelection[],
+  selectionId: string,
+): boolean {
   return current.some((s) => s.selectionId === selectionId);
 }
 
@@ -57,7 +53,10 @@ export function combinedOdds(selections: readonly SlipSelection[]): number {
   return Math.round(product * 100) / 100;
 }
 
-export function slipTotals(selections: readonly SlipSelection[], stake: number): SlipTotals {
+export function slipTotals(
+  selections: readonly SlipSelection[],
+  stake: number,
+): SlipTotals {
   const totalOdds = combinedOdds(selections);
   const potentialReturn = Math.round(stake * totalOdds);
 
@@ -70,7 +69,8 @@ export function slipTotals(selections: readonly SlipSelection[], stake: number):
   };
 }
 
-export type StakeProblem = "EMPTY" | "BELOW_MIN" | "ABOVE_MAX" | "INSUFFICIENT" | undefined;
+export type StakeProblem =
+  "EMPTY" | "BELOW_MIN" | "ABOVE_MAX" | "INSUFFICIENT" | undefined;
 
 export function validateSlip(
   selections: readonly SlipSelection[],

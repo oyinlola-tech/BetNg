@@ -54,4 +54,6 @@ export const markNotificationsReadRequestSchema = z.object({
   ids: z.array(z.uuid()).max(200).optional(),
 });
 
-export type MarkNotificationsReadRequest = z.infer<typeof markNotificationsReadRequestSchema>;
+export type MarkNotificationsReadRequest = z.infer<
+  typeof markNotificationsReadRequestSchema
+>;

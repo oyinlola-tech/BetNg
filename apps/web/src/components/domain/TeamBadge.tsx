@@ -15,12 +15,20 @@ const SIZES = {
   xl: "size-16 text-lg",
 };
 
-export function TeamBadge({ team, size = "sm", className }: TeamBadgeProps): React.JSX.Element {
+export function TeamBadge({
+  team,
+  size = "sm",
+  className,
+}: TeamBadgeProps): React.JSX.Element {
   return (
     <span
       role="img"
       aria-label={team.name}
-      className={cn("inline-flex shrink-0 items-center justify-center rounded-full font-display font-bold tracking-wide select-none", SIZES[size], className)}
+      className={cn(
+        "inline-flex shrink-0 items-center justify-center rounded-full font-display font-bold tracking-wide select-none",
+        SIZES[size],
+        className,
+      )}
       style={{
         background: team.colors.primary,
         color: team.colors.onPrimary,

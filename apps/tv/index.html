@@ -4,10 +4,16 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>BetNG TV — Virtual Football Broadcast</title>
-    <meta
-      name="description"
-      content="BetNG TV: the live virtual football broadcast."
-    />
+    <meta name="description" content="BetNG TV: the live virtual football broadcast." />
+    <meta name="color-scheme" content="dark light" />
+    <script>
+      try {
+        var t = localStorage.getItem("betng.tv.theme");
+        document.documentElement.dataset.theme = t === "light" ? "light" : "dark";
+      } catch (e) {
+        document.documentElement.dataset.theme = "dark";
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

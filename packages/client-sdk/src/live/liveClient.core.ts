@@ -84,7 +84,8 @@ export function createLiveClient(options: LiveClientOptions): LiveClient {
   const { config, handlers = {} } = options;
 
   const resolved =
-    options.webSocket ?? (globalThis as { WebSocket?: WebSocketLike }).WebSocket;
+    options.webSocket ??
+    (globalThis as { WebSocket?: WebSocketLike }).WebSocket;
 
   if (resolved === undefined) {
     throw new Error(
@@ -215,8 +216,7 @@ export function createLiveClient(options: LiveClientOptions): LiveClient {
 
     // `onerror` is always followed by `onclose`, so reconnection is handled
     // there and this only exists to stop an unhandled error event.
-    connection.onerror = (): void => {
-    };
+    connection.onerror = (): void => {};
   }
 
   return {

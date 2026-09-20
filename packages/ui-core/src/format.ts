@@ -1,10 +1,4 @@
-/**
- * Formatters shared by every client.
- *
- * Money is play-money in kobo and is always rendered with the naira sign so
- * a screenshot can never be mistaken for a bank balance without the
- * "simulated" label that accompanies it.
- */
+/** Formatters shared by every client. */
 
 const nairaFormatter = new Intl.NumberFormat("en-NG", {
   minimumFractionDigits: 2,

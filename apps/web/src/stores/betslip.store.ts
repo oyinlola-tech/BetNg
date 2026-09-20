@@ -25,10 +25,14 @@ export const useBetSlip = create<BetSlipState>()(
       stake: STAKE_LIMITS.default,
       open: false,
       toggle: (selection) => {
-        set((state) => ({ selections: toggleSelection(state.selections, selection) }));
+        set((state) => ({
+          selections: toggleSelection(state.selections, selection),
+        }));
       },
       remove: (selectionId) => {
-        set((state) => ({ selections: removeSelection(state.selections, selectionId) }));
+        set((state) => ({
+          selections: removeSelection(state.selections, selectionId),
+        }));
       },
       clear: () => {
         set({ selections: [] });
@@ -42,7 +46,10 @@ export const useBetSlip = create<BetSlipState>()(
     }),
     {
       name: "betng.betslip",
-      partialize: (state) => ({ selections: state.selections, stake: state.stake }),
+      partialize: (state) => ({
+        selections: state.selections,
+        stake: state.stake,
+      }),
     },
   ),
 );

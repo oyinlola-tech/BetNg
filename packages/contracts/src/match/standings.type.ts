@@ -6,7 +6,11 @@
  */
 
 import { z } from "@zudojs/validation";
-import { brandedIdSchema, type LeagueId, type TeamId } from "../common/index.js";
+import {
+  brandedIdSchema,
+  type LeagueId,
+  type TeamId,
+} from "../common/index.js";
 
 export const formResultSchema = z.enum(["W", "D", "L"]);
 
