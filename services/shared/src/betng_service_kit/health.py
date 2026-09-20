@@ -1,0 +1,109 @@
+"""The ``/health`` and ``/ready`` endpoints every BetNG service exposes.
+
+They sit outside ``/api/v1`` on purpose: they describe the process, not the
+domain, and an orchestrator probing them should not be coupled to an API
+version.
+
+``/health`` is liveness: the process is up and serving. It inspects no
+dependency, so it can never report one as healthy.
+
+``/ready`` is readiness: every dependency the service actually declared is
+probed right now. A service with no configured dependency reports an empty
+list rather than inventing one.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import time
+from collections.abc import Awaitable, Callable
+from dataclasses import dataclass
+from datetime import UTC, datetime
+
+from fastapi import APIRouter, Response
+
+from .config import ServiceSettings
+
+#: How long a single probe may run before it is abandoned.
+PROBE_TIMEOUT_SECONDS = 2.0
+
+
+@dataclass(frozen=True)
+class DependencyProbe:
+    """A named check that answers "can I reach this right now?"."""
+
+    name: str
+    #: Returns normally when the dependency answered; raises when it did not.
+    check: Callable[[], Awaitable[None]]
+    #: An optional dependency degrades the service; a required one stops it.
+    optional: bool = False
+
+
+async def _run_probe(probe: DependencyProbe) -> dict[str, object]:
+    started_at = time.perf_counter()
+
+    try:
+        await asyncio.wait_for(probe.check(), timeout=PROBE_TIMEOUT_SECONDS)
+    except Exception as error:  # noqa: BLE001 - every failure is reportable
+        return {
+            "name": probe.name,
+            "status": "degraded" if probe.optional else "unavailable",
+            "latencyMs": round((time.perf_counter() - started_at) * 1000),
+            "error": str(error) or type(error).__name__,
+        }
+
+    return {
+        "name": probe.name,
+        "status": "ok",
+        "latencyMs": round((time.perf_counter() - started_at) * 1000),
+    }
+
+
+def create_health_router(
+    settings: ServiceSettings, probes: list[DependencyProbe]
+) -> APIRouter:
+    """Build the liveness and readiness routes.
+
+    Args:
+        settings: The service's configuration.
+        probes: The dependencies to probe. Empty when there are none.
+
+    Returns:
+        A router to include on the application.
+    """
+    router = APIRouter(tags=["health"])
+    started_at = time.monotonic()
+
+    @router.get("/health")
+    async def health() -> dict[str, object]:
+        return {
+            "status": "ok",
+            "service": settings.service_name,
+            "version": settings.version,
+            "uptimeSeconds": round(time.monotonic() - started_at),
+            "timestamp": datetime.now(UTC).isoformat(),
+        }
+
+    @router.get("/ready")
+    async def ready(response: Response) -> dict[str, object]:
+        dependencies = list(
+            await asyncio.gather(*(_run_probe(probe) for probe in probes))
+        )
+
+        if any(entry["status"] == "unavailable" for entry in dependencies):
+            status = "unavailable"
+            response.status_code = 503
+        elif any(entry["status"] == "degraded" for entry in dependencies):
+            status = "degraded"
+        else:
+            status = "ok"
+
+        return {
+            "status": status,
+            "service": settings.service_name,
+            "version": settings.version,
+            "timestamp": datetime.now(UTC).isoformat(),
+            "dependencies": dependencies,
+        }
+
+    return router
