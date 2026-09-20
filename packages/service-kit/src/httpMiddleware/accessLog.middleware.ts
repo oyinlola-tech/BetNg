@@ -1,26 +1,34 @@
 /**
  * Access logging.
  *
- * One line when a request arrives, one when it completes, both carrying the
- * correlation id, so a slow or failing request can be found by id alone.
- * Health probes are logged at debug: a readiness check every few seconds
- * would otherwise bury everything else.
+ * One line when a request arrives and one when it completes, both carrying
+ * the correlation identifier, so a slow or failing request can be found by
+ * identifier alone. Health probes are logged at debug: a readiness check
+ * every few seconds would otherwise bury everything else.
  */
 
 import type { HttpMiddleware } from "@zudojs/http";
 import type { Logger } from "@zudojs/logger";
-import { getRequestId } from "./requestId.js";
+import { getRequestId } from "./requestId.middleware.js";
 
 const PROBE_PATHS = new Set(["/health", "/ready"]);
 
+/**
+ * Logs the start and end of every request.
+ *
+ * A request that throws still produces a completion line, because the
+ * failing requests are exactly the ones that must not be missing from the
+ * log.
+ *
+ * @param logger - The logger to write through.
+ * @returns The middleware.
+ */
 export function createAccessLogMiddleware(logger: Logger): HttpMiddleware {
   return async (context, next) => {
     const { request } = context;
     const requestId = getRequestId(request);
-    const isProbe = PROBE_PATHS.has(request.path);
+    const write = PROBE_PATHS.has(request.path) ? logger.debug : logger.info;
     const startedAt = performance.now();
-
-    const write = isProbe ? logger.debug : logger.info;
 
     write.call(logger, "Request received", {
       requestId,
@@ -28,9 +36,6 @@ export function createAccessLogMiddleware(logger: Logger): HttpMiddleware {
       path: request.path,
     });
 
-    // `finally` rather than a post-`next()` line: a handler that throws must
-    // still produce a completion line, otherwise the failing requests are
-    // exactly the ones missing from the log.
     try {
       const response = await next();
 
@@ -50,6 +55,7 @@ export function createAccessLogMiddleware(logger: Logger): HttpMiddleware {
         path: request.path,
         durationMs: Math.round(performance.now() - startedAt),
       });
+
       throw error;
     }
   };

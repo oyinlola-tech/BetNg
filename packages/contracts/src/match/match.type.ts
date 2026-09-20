@@ -7,7 +7,6 @@ import {
   brandedIdSchema,
   isoTimestampSchema,
   type FixtureId,
-  type LeagueId,
   type MatchId,
 } from "../common/index.js";
 
