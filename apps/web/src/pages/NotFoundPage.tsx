@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import { EmptyState } from "../components/ui";
+import { EmptyState } from "@betng/ui-web";
 
 export function NotFoundPage(): React.JSX.Element {
   return (

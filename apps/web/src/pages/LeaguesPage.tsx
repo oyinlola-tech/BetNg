@@ -1,6 +1,6 @@
 import { Link } from "react-router";
 import { ChevronRight } from "lucide-react";
-import { ErrorState, SectionHeader, SkeletonRows } from "../components/ui";
+import { ErrorState, SectionHeader, SkeletonRows } from "@betng/ui-web";
 import { useLeagues } from "../hooks/queries";
 
 export function LeaguesPage(): React.JSX.Element {

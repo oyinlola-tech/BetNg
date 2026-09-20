@@ -1,10 +1,8 @@
 import { useState } from "react";
 import { RefreshCcw, WifiOff } from "lucide-react";
-import { Button, SectionHeader, Switch } from "../components/ui";
-import { ThemeSwitcher } from "../components/domain";
+import { Button, SectionHeader, Switch, ThemeSwitcher, useToast } from "@betng/ui-web";
 import { usePreferences, useSetPreferences } from "../hooks/queries";
 import { appConfig } from "../configs/app.config";
-import { useToast } from "../providers/ToastProvider";
 import { asMock, dataSource } from "../services/dataSource";
 
 export function SettingsPage(): React.JSX.Element {

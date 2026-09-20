@@ -1,11 +1,12 @@
 import { Radio } from "lucide-react";
-import { LiveMatchCard, UpcomingMatchCard } from "../components/domain";
 import {
   EmptyState,
   ErrorState,
+  LiveMatchCard,
   MatchCardSkeleton,
   SectionHeader,
-} from "../components/ui";
+  UpcomingMatchCard,
+} from "@betng/ui-web";
 import { useMatches } from "../hooks/queries";
 
 export function LivePage(): React.JSX.Element {

@@ -1,7 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider } from "react-router";
-import { ThemeProvider } from "./providers/ThemeProvider";
-import { ToastProvider } from "./providers/ToastProvider";
+import { ThemeProvider, ToastProvider } from "@betng/ui-web";
 import { router } from "./routes";
 
 const queryClient = new QueryClient({

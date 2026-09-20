@@ -5,7 +5,8 @@
   "type": "module",
   "description": "BetNG's shared React + Tailwind components for the browser clients (web, shop, admin): primitives, brand marks, match and odds components.",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./theme.css": "./src/styles/theme.css"
   },
   "types": "./src/index.ts",
   "scripts": {
@@ -21,6 +22,8 @@
     "@betng/contracts": "workspace:*",
     "@betng/design-tokens": "workspace:*",
     "@betng/ui-core": "workspace:*",
+    "@fontsource-variable/archivo": "^5.3.0",
+    "@fontsource-variable/inter": "^5.3.0",
     "clsx": "^2.1.1",
     "lucide-react": "^1.47.0",
     "tailwind-merge": "^3.7.0"

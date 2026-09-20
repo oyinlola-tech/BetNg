@@ -1,5 +1,5 @@
 import type { MatchStats, MatchSummary, SideStats } from "@betng/ui-core";
-import { cn } from "../../lib/cn";
+import { cn } from "../lib/cn";
 import { EmptyState } from "../ui/States";
 
 export interface StatBarProps {

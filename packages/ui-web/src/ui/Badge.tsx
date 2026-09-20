@@ -1,5 +1,5 @@
 import type { StateTone } from "@betng/design-tokens";
-import { cn } from "../../lib/cn";
+import { cn } from "../lib/cn";
 
 export interface BadgeProps {
   readonly tone?: StateTone;

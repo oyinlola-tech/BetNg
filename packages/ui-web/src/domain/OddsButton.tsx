@@ -1,6 +1,6 @@
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { formatOdds, type SelectionView } from "@betng/ui-core";
-import { cn } from "../../lib/cn";
+import { cn } from "../lib/cn";
 
 export interface OddsButtonProps {
   readonly selection: SelectionView;

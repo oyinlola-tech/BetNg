@@ -11,6 +11,10 @@ export interface BetNgClientConfig {
   readonly gatewayUrl: string;
   readonly liveUrl: string;
   readonly timeoutMs?: number;
+  /** The bearer token for the signed-in customer, cashier or admin. Read per request so a login takes effect at once. */
+  readonly getToken?: () => string | undefined;
+  /** Called when the platform rejects the token, so the app can show its session-expired state. */
+  readonly onUnauthorized?: () => void;
 }
 
 export const DEFAULT_TIMEOUT_MS = 10_000;

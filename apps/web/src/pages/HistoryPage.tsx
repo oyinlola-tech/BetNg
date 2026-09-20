@@ -10,15 +10,15 @@ import {
 } from "@betng/ui-core";
 import {
   Badge,
+  cn,
   EmptyState,
   ErrorState,
+  MatchRow,
   SectionHeader,
   SkeletonRows,
   Tabs,
-} from "../components/ui";
-import { MatchRow } from "../components/domain";
+} from "@betng/ui-web";
 import { useBets, useTransactions, useViewedMatches } from "../hooks/queries";
-import { cn } from "../lib/cn";
 
 type Section = "BETS" | "VIEWED" | "TRANSACTIONS";
 

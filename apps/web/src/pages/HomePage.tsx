@@ -2,18 +2,16 @@ import { Link } from "react-router";
 import { Radio, Trophy } from "lucide-react";
 import { toLocalDateKey } from "@betng/ui-core";
 import {
-  LeagueTable,
-  LiveMatchCard,
-  MatchRow,
-  UpcomingMatchCard,
-} from "../components/domain";
-import {
   EmptyState,
   ErrorState,
+  LeagueTable,
+  LiveMatchCard,
   MatchCardSkeleton,
+  MatchRow,
   SectionHeader,
   SkeletonRows,
-} from "../components/ui";
+  UpcomingMatchCard,
+} from "@betng/ui-web";
 import { useLeagues, useMatches, useStandings } from "../hooks/queries";
 
 export function HomePage(): React.JSX.Element {

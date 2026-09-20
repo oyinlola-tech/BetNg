@@ -3,14 +3,16 @@ import { Link, useParams } from "react-router";
 import { ChevronLeft } from "lucide-react";
 import type { LeagueId } from "@betng/contracts";
 import { formatMatchday } from "@betng/ui-core";
-import { LeagueTable, MatchRow, TeamBadge } from "../components/domain";
 import {
   EmptyState,
   ErrorState,
+  LeagueTable,
+  MatchRow,
   SectionHeader,
   SkeletonRows,
   Tabs,
-} from "../components/ui";
+  TeamBadge,
+} from "@betng/ui-web";
 import {
   useLeague,
   useMatches,

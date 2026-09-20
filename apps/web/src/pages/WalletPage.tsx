@@ -8,22 +8,22 @@ import {
 } from "@betng/ui-core";
 import {
   Button,
+  cn,
   EmptyState,
   ErrorState,
   Input,
   Modal,
+  presentError,
   SectionHeader,
   SkeletonRows,
-} from "../components/ui";
+  useToast,
+} from "@betng/ui-web";
 import {
   useDeposit,
   useTransactions,
   useWallet,
   useWithdraw,
 } from "../hooks/queries";
-import { cn } from "../lib/cn";
-import { presentError } from "../lib/errors";
-import { useToast } from "../providers/ToastProvider";
 
 type Action = "DEPOSIT" | "WITHDRAW" | undefined;
 

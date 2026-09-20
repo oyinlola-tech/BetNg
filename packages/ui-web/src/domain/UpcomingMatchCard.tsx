@@ -1,6 +1,6 @@
 import { Link } from "react-router";
 import { type MatchSummary } from "@betng/ui-core";
-import { cn } from "../../lib/cn";
+import { cn } from "../lib/cn";
 import { Countdown } from "./Countdown";
 import { PhaseBadge } from "./PhaseBadge";
 import { TeamBadge } from "./TeamBadge";

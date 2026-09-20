@@ -12,12 +12,8 @@ import {
   validateSlip,
 } from "@betng/ui-core";
 import { usePlaceBet, useWallet } from "../../hooks/queries";
-import { cn } from "../../lib/cn";
-import { presentError } from "../../lib/errors";
-import { useToast } from "../../providers/ToastProvider";
+import { Button, cn, EmptyState, presentError, useToast } from "@betng/ui-web";
 import { useBetSlip } from "../../stores/betslip.store";
-import { Button } from "../ui/Button";
-import { EmptyState } from "../ui/States";
 
 export function BetSlip({
   className,

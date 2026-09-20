@@ -14,6 +14,8 @@ export interface AdminUser {
   readonly displayName: string;
   readonly role: AdminRole;
   readonly twoFactorEnabled: boolean;
+  /** What this admin may do, resolved by the platform. Clients gate UI on it and never widen it. */
+  readonly permissions?: readonly string[] | undefined;
   readonly lastLoginAt?: string | undefined;
 }
 
@@ -23,6 +25,7 @@ export const adminUserSchema = z.object({
   displayName: z.string().max(60),
   role: adminRoleSchema,
   twoFactorEnabled: z.boolean(),
+  permissions: z.array(z.string().max(40)).optional(),
   lastLoginAt: isoTimestampSchema.optional(),
 });
 
@@ -49,8 +52,11 @@ export interface AuditLogEntry {
   /** `admin:<id>`, `shop:<cashierId>`, or `system`. */
   readonly actor: string;
   readonly actorName: string;
+  readonly role?: string | undefined;
   readonly action: string;
   readonly resource: string;
+  readonly resourceId?: string | undefined;
+  readonly severity?: "INFO" | "NOTICE" | "WARNING" | "CRITICAL" | undefined;
   readonly before?: unknown;
   readonly after?: unknown;
   readonly ip?: string | undefined;
@@ -62,8 +68,11 @@ export const auditLogEntrySchema = z.object({
   timestamp: isoTimestampSchema,
   actor: z.string().max(80),
   actorName: z.string().max(80),
+  role: z.string().max(40).optional(),
   action: z.string().max(80),
   resource: z.string().max(160),
+  resourceId: z.string().max(80).optional(),
+  severity: z.enum(["INFO", "NOTICE", "WARNING", "CRITICAL"]).optional(),
   before: z.unknown().optional(),
   after: z.unknown().optional(),
   ip: z.string().max(45).optional(),

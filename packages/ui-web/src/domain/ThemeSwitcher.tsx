@@ -1,6 +1,6 @@
 import { Monitor, Moon, Sun } from "lucide-react";
-import { cn } from "../../lib/cn";
-import { useTheme, type ThemePreference } from "../../providers/ThemeProvider";
+import { cn } from "../lib/cn";
+import { useTheme, type ThemePreference } from "../providers/ThemeProvider";
 
 const OPTIONS: readonly {
   readonly value: ThemePreference;

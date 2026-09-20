@@ -2,11 +2,9 @@ import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router";
 import { Bell, Menu, Receipt, Settings, Wallet, X } from "lucide-react";
 import { formatMoney } from "@betng/ui-core";
-import { BetSlip, ConnectionBanner, ThemeSwitcher } from "../components/domain";
-import { IconButton, Sheet } from "../components/ui";
+import { cn, IconButton, Sheet, ThemeSwitcher, useIsDesktop } from "@betng/ui-web";
+import { BetSlip, ConnectionBanner } from "../components/domain";
 import { useAccountSync, useNotifications, useWallet } from "../hooks/queries";
-import { useIsDesktop } from "../hooks/useMediaQuery";
-import { cn } from "../lib/cn";
 import { useBetSlip } from "../stores/betslip.store";
 
 const NAV = [

@@ -1,12 +1,6 @@
 import { useState } from "react";
 import { formatMatchday } from "@betng/ui-core";
-import { LeagueTable } from "../components/domain";
-import {
-  ErrorState,
-  SectionHeader,
-  Select,
-  SkeletonRows,
-} from "../components/ui";
+import { ErrorState, LeagueTable, SectionHeader, Select, SkeletonRows } from "@betng/ui-web";
 import { useLeague, useLeagues, useStandings } from "../hooks/queries";
 
 export function StandingsPage(): React.JSX.Element {

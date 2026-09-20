@@ -1,6 +1,6 @@
 import { Link } from "react-router";
 import type { FormResult, StandingRow, StandingsView } from "@betng/ui-core";
-import { cn } from "../../lib/cn";
+import { cn } from "../lib/cn";
 import { TeamBadge } from "./TeamBadge";
 
 export function FormPips({

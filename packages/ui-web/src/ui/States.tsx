@@ -1,7 +1,7 @@
 import { Inbox, RefreshCw, WifiOff } from "lucide-react";
 import { Button } from "./Button";
-import { cn } from "../../lib/cn";
-import { presentError } from "../../lib/errors";
+import { cn } from "../lib/cn";
+import { presentError } from "../lib/errors";
 
 export interface EmptyStateProps {
   readonly icon?: React.ReactNode;

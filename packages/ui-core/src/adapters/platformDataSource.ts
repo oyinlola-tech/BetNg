@@ -29,6 +29,7 @@ import type {
   MatchFilter,
 } from "../dataSource.type.js";
 import { DataSourceError } from "../dataSource.type.js";
+import { translateApiError } from "./errors.js";
 import { formatScore } from "../format.js";
 import { derivePhase, isFinished } from "../phase.js";
 import { computeStandings } from "../standings.js";
@@ -60,7 +61,8 @@ export interface KeyValueStorage {
 export interface PlatformDataSourceOptions {
   readonly rest: BetNgRestClient;
   readonly openLive: (handlers: LiveHandlers) => LiveClient;
-  readonly userId: string;
+  /** A fixed demo user, or a getter reading the signed-in customer; `undefined` means signed out. */
+  readonly userId: string | (() => string | undefined);
   /** Persists notification preferences and viewing history locally. */
   readonly storage?: KeyValueStorage;
 }
@@ -156,27 +158,11 @@ function toLiveEventView(event: LiveEvent): MatchEventView {
   };
 }
 
-/** Translates the SDK's error into the one screens branch on. */
+/** Bets answer `CONFLICT` when betting has closed; everything else follows the shared mapping. */
 function translate(cause: unknown): DataSourceError {
-  if (cause instanceof DataSourceError) return cause;
+  if (cause instanceof BetNgApiError && cause.code === "CONFLICT") return new DataSourceError("BETTING_CLOSED", cause.message);
 
-  if (cause instanceof BetNgApiError) {
-    if (cause.status === 404 || cause.code === "NOT_FOUND") {
-      return new DataSourceError("NOT_FOUND", cause.message);
-    }
-    if (cause.status === 0)
-      return new DataSourceError("NETWORK", cause.message);
-    if (cause.code === "VALIDATION_FAILED")
-      return new DataSourceError("VALIDATION", cause.message);
-    if (cause.code === "CONFLICT")
-      return new DataSourceError("BETTING_CLOSED", cause.message);
-    return new DataSourceError("SERVER", cause.message);
-  }
-
-  return new DataSourceError(
-    "SERVER",
-    cause instanceof Error ? cause.message : "Something went wrong.",
-  );
+  return translateApiError(cause);
 }
 
 /** Whether a failure means "the platform does not serve this yet". */
@@ -210,7 +196,15 @@ async function required<T>(read: () => Promise<T>): Promise<T> {
 export function createPlatformDataSource(
   options: PlatformDataSourceOptions,
 ): BetNgDataSource {
-  const { rest, userId, storage } = options;
+  const { rest, storage } = options;
+
+  const uid = (): string => {
+    const id = typeof options.userId === "function" ? options.userId() : options.userId;
+
+    if (id === undefined) throw new DataSourceError("UNAUTHENTICATED", "Sign in to continue.");
+
+    return id;
+  };
 
   /* ---- Reference data, cached for the session ------------------------ */
 
@@ -384,8 +378,8 @@ export function createPlatformDataSource(
     for (const l of accountListeners) l();
   };
 
-  const PREFS_KEY = `betng.prefs.${userId}`;
-  const VIEWED_KEY = `betng.viewed.${userId}`;
+  const PREFS_KEY = "betng.prefs";
+  const VIEWED_KEY = "betng.viewed";
 
   function readJson<T>(key: string, fallback: T): T {
     try {
@@ -701,10 +695,10 @@ export function createPlatformDataSource(
     getConnectionState: () => connection,
 
     getWallet: async () =>
-      toWalletView(await required(() => rest.getWallet(userId))),
+      toWalletView(await required(() => rest.getWallet(uid()))),
 
     listTransactions: async () =>
-      (await required(() => rest.listTransactions(userId))).map(
+      (await required(() => rest.listTransactions(uid()))).map(
         (t): TransactionView => ({
           id: t.id,
           type: t.type,
@@ -726,7 +720,7 @@ export function createPlatformDataSource(
       ),
 
     deposit: async (amount) => {
-      const { wallet } = await required(() => rest.deposit(userId, amount));
+      const { wallet } = await required(() => rest.deposit(uid(), amount));
 
       notifyAccount();
 
@@ -734,7 +728,7 @@ export function createPlatformDataSource(
     },
 
     withdraw: async (amount) => {
-      const { wallet } = await required(() => rest.withdraw(userId, amount));
+      const { wallet } = await required(() => rest.withdraw(uid(), amount));
 
       notifyAccount();
 
@@ -744,7 +738,7 @@ export function createPlatformDataSource(
     placeBet: async (input) => {
       const bet = await required(() =>
         rest.placeBet({
-          userId: userId as Bet["userId"],
+          userId: uid() as Bet["userId"],
           stake: input.stake,
           currency: "NGN",
           selections: input.selections.map((s) => ({
@@ -776,7 +770,7 @@ export function createPlatformDataSource(
     },
 
     listBets: async () => {
-      const bets = await required(() => rest.listBets({ userId }));
+      const bets = await required(() => rest.listBets({ userId: uid() }));
       const views = await Promise.all(bets.map(toBetView));
 
       return views.sort((a, b) => b.placedAt.localeCompare(a.placedAt));
@@ -788,7 +782,7 @@ export function createPlatformDataSource(
     listNotifications: async () =>
       (
         await optional(
-          () => rest.listNotifications(userId),
+          () => rest.listNotifications(uid()),
           [] as readonly Notification[],
         )
       )
@@ -796,7 +790,7 @@ export function createPlatformDataSource(
         .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
 
     markNotificationsRead: async (ids) => {
-      await optional(() => rest.markNotificationsRead(userId, ids), undefined);
+      await optional(() => rest.markNotificationsRead(uid(), ids), undefined);
       notifyAccount();
     },
 

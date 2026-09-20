@@ -1,6 +1,6 @@
 import { phaseLabel, phaseTone, type MatchPhase } from "@betng/ui-core";
 import { Badge } from "../ui/Badge";
-import { cn } from "../../lib/cn";
+import { cn } from "../lib/cn";
 
 export function LiveDot({
   className,

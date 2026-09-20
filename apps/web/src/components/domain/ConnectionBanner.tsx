@@ -1,6 +1,6 @@
 import { WifiOff } from "lucide-react";
 import { useConnection } from "../../hooks/useConnection";
-import { cn } from "../../lib/cn";
+import { cn } from "@betng/ui-web";
 
 export function ConnectionBanner({
   className,

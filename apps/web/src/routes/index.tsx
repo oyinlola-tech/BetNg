@@ -1,6 +1,6 @@
 import { lazy, Suspense } from "react";
 import { createBrowserRouter } from "react-router";
-import { Spinner } from "../components/ui";
+import { Spinner } from "@betng/ui-web";
 import { AppShell } from "../layouts/AppShell";
 import { HomePage } from "../pages/HomePage";
 

@@ -20,7 +20,15 @@ export {
   createRestClient,
   isErrorResponse,
 } from "./rest/index.js";
-export type { BetNgRestClient, LedgerEntry } from "./rest/index.js";
+export type {
+  AdminFixtureQuery,
+  BetNgAdminClient,
+  BetNgAuthClient,
+  BetNgRestClient,
+  BetNgShopClient,
+  LedgerEntry,
+  TicketQuery,
+} from "./rest/index.js";
 
 export { createLiveClient } from "./live/index.js";
 export type {

@@ -10,11 +10,7 @@ import {
 } from "@betng/ui-core";
 import { useMarkets } from "../../hooks/queries";
 import { useBetSlip } from "../../stores/betslip.store";
-import { Skeleton } from "../ui/Skeleton";
-import { EmptyState, ErrorState } from "../ui/States";
-import { Tabs } from "../ui/Tabs";
-import { Countdown } from "./Countdown";
-import { MarketCard } from "./MarketCard";
+import { Countdown, EmptyState, ErrorState, MarketCard, Skeleton, Tabs } from "@betng/ui-web";
 
 type Group = "ALL" | "MAIN" | "GOALS" | "SCORE";
 

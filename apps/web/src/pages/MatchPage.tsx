@@ -8,24 +8,22 @@ import {
   type MatchPhase,
 } from "@betng/ui-core";
 import {
+  Button,
+  cn,
+  ErrorState,
   LeagueTable,
-  MarketsPanel,
   MatchTimeline,
   PitchView,
   Scoreboard,
-  StatsPanel,
-} from "../components/domain";
-import {
-  Button,
-  ErrorState,
   SectionHeader,
   Skeleton,
   SkeletonRows,
+  StatsPanel,
   Tabs,
-} from "../components/ui";
+} from "@betng/ui-web";
+import { MarketsPanel } from "../components/domain";
 import { useMatches, useStandings } from "../hooks/queries";
 import { useLiveMatch } from "../hooks/useLiveMatch";
-import { cn } from "../lib/cn";
 import { dataSource } from "../services/dataSource";
 
 type Panel = "EVENTS" | "STATS" | "STANDINGS";

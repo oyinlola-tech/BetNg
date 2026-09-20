@@ -49,3 +49,24 @@ export const customerSessionSchema = z.object({
   expiresAt: isoTimestampSchema,
   user: customerProfileSchema,
 });
+
+/** Registration answers with where the six-digit code went; the session starts after `POST /auth/verify`. */
+export interface RegistrationPending {
+  readonly email: string;
+  readonly verificationRequired: true;
+  readonly expiresAt: string;
+}
+
+export const registrationPendingSchema = z.object({
+  email: z.email(),
+  verificationRequired: z.literal(true),
+  expiresAt: isoTimestampSchema,
+});
+
+export const verifyEmailRequestSchema = z.object({ email: z.email(), code: z.string().regex(/^\d{6}$/) });
+
+export type VerifyEmailRequest = z.infer<typeof verifyEmailRequestSchema>;
+
+export const passwordResetRequestSchema = z.object({ email: z.email() });
+
+export type PasswordResetRequest = z.infer<typeof passwordResetRequestSchema>;

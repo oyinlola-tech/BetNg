@@ -1,15 +1,8 @@
 import { Link } from "react-router";
 import { Bell, CheckCheck, Goal, Receipt, Timer, Trophy } from "lucide-react";
 import { formatRelative, type NotificationKind } from "@betng/ui-core";
-import {
-  Button,
-  EmptyState,
-  ErrorState,
-  SectionHeader,
-  SkeletonRows,
-} from "../components/ui";
+import { Button, cn, EmptyState, ErrorState, SectionHeader, SkeletonRows } from "@betng/ui-web";
 import { useMarkNotificationsRead, useNotifications } from "../hooks/queries";
-import { cn } from "../lib/cn";
 
 const ICONS: Record<
   NotificationKind,

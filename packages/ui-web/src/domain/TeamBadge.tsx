@@ -1,5 +1,5 @@
 import type { TeamView } from "@betng/ui-core";
-import { cn } from "../../lib/cn";
+import { cn } from "../lib/cn";
 
 export interface TeamBadgeProps {
   readonly team: Pick<TeamView, "code" | "colors" | "name">;

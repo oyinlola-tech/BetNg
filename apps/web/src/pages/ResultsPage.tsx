@@ -6,16 +6,16 @@ import {
   toLocalDateKey,
   type MatchSummary,
 } from "@betng/ui-core";
-import { MatchRow } from "../components/domain";
 import {
   EmptyState,
   ErrorState,
   IconButton,
+  MatchRow,
   SectionHeader,
   Select,
   SkeletonRows,
   Tabs,
-} from "../components/ui";
+} from "@betng/ui-web";
 import {
   useCompletedMatchdays,
   useLeague,

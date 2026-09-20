@@ -5,8 +5,8 @@ import {
   matchClock,
   type MatchSummary,
 } from "@betng/ui-core";
-import { useNow } from "../../hooks/useNow";
-import { cn } from "../../lib/cn";
+import { useNow } from "../hooks/useNow";
+import { cn } from "../lib/cn";
 import { PhaseBadge } from "./PhaseBadge";
 import { TeamBadge } from "./TeamBadge";
 

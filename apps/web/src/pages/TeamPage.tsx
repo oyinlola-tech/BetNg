@@ -1,14 +1,16 @@
 import { Link, useParams } from "react-router";
 import { ChevronLeft } from "lucide-react";
 import type { TeamId } from "@betng/contracts";
-import { FormPips, MatchRow, TeamBadge } from "../components/domain";
 import {
   EmptyState,
   ErrorState,
+  FormPips,
+  MatchRow,
   SectionHeader,
   Skeleton,
   SkeletonRows,
-} from "../components/ui";
+  TeamBadge,
+} from "@betng/ui-web";
 import { useMatches, useStandings, useTeam } from "../hooks/queries";
 
 export function TeamPage(): React.JSX.Element {

@@ -1,6 +1,6 @@
 import { Lock } from "lucide-react";
 import type { MarketView, SelectionView } from "@betng/ui-core";
-import { cn } from "../../lib/cn";
+import { cn } from "../lib/cn";
 import { OddsButton } from "./OddsButton";
 
 export interface MarketCardProps {

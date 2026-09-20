@@ -97,7 +97,13 @@ export class DataSourceError extends Error {
       | "SERVER"
       | "BETTING_CLOSED"
       | "INSUFFICIENT_FUNDS"
-      | "VALIDATION",
+      | "VALIDATION"
+      | "INVALID_CREDENTIALS"
+      | "UNAUTHENTICATED"
+      | "SESSION_EXPIRED"
+      | "FORBIDDEN"
+      | "CONFLICT"
+      | "RATE_LIMITED",
     message: string,
   ) {
     super(message);

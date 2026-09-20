@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { X } from "lucide-react";
 import { IconButton } from "./IconButton";
-import { cn } from "../../lib/cn";
+import { cn } from "../lib/cn";
 
 export interface SheetProps {
   readonly open: boolean;

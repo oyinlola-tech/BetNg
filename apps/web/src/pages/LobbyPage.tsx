@@ -5,15 +5,15 @@ import {
   type MatchPhase,
   type MatchSummary,
 } from "@betng/ui-core";
-import { MatchRow } from "../components/domain";
 import {
   EmptyState,
   ErrorState,
+  MatchRow,
   SectionHeader,
   Select,
   SkeletonRows,
   Tabs,
-} from "../components/ui";
+} from "@betng/ui-web";
 import { useLeagues, useMatches } from "../hooks/queries";
 
 type View = "ALL" | "LIVE" | "UPCOMING" | "FINISHED";

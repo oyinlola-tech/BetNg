@@ -90,6 +90,8 @@ export interface ShopSession {
   readonly expiresAt: string;
   readonly shop: Shop;
   readonly cashier: Cashier;
+  /** What this cashier may do, resolved by the platform from the role. */
+  readonly permissions?: readonly string[] | undefined;
 }
 
 export const shopSessionSchema = z.object({
@@ -97,7 +99,12 @@ export const shopSessionSchema = z.object({
   expiresAt: isoTimestampSchema,
   shop: shopSchema,
   cashier: cashierSchema,
+  permissions: z.array(z.string().max(40)).optional(),
 });
+
+export const shopPermissionSchema = z.enum(["tickets:sell", "tickets:check", "tickets:payout", "tickets:cancel", "transactions:read", "reports:read", "cashiers:read"]);
+
+export type ShopPermission = z.infer<typeof shopPermissionSchema>;
 
 export const ticketStatusSchema = z.enum(["PENDING", "OPEN", "WON", "LOST", "VOID", "CANCELLED", "PAID", "EXPIRED"]);
 
@@ -188,6 +195,15 @@ export const placeTicketRequestSchema = z.object({
 });
 
 export type PlaceTicketRequest = z.infer<typeof placeTicketRequestSchema>;
+
+/** Paying out moves cash, so the cashier re-enters their PIN. */
+export const payoutTicketRequestSchema = z.object({ pin: z.string().regex(/^\d{4,6}$/) });
+
+export type PayoutTicketRequest = z.infer<typeof payoutTicketRequestSchema>;
+
+export const cancelTicketRequestSchema = z.object({ reason: z.string().min(4).max(160) });
+
+export type CancelTicketRequest = z.infer<typeof cancelTicketRequestSchema>;
 
 export const shopTransactionTypeSchema = z.enum(["TICKET_SALE", "TICKET_PAYOUT", "CASH_IN", "CASH_OUT", "TICKET_CANCEL"]);
 

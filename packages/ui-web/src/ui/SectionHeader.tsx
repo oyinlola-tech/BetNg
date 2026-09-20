@@ -1,6 +1,6 @@
 import { ChevronRight } from "lucide-react";
 import { Link } from "react-router";
-import { cn } from "../../lib/cn";
+import { cn } from "../lib/cn";
 
 export interface SectionHeaderProps {
   readonly title: string;

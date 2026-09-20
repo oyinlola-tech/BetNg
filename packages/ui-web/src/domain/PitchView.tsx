@@ -6,8 +6,8 @@ import {
   type MatchEventView,
   type MatchView,
 } from "@betng/ui-core";
-import { useNow } from "../../hooks/useNow";
-import { cn } from "../../lib/cn";
+import { useNow } from "../hooks/useNow";
+import { cn } from "../lib/cn";
 import { TeamBadge } from "./TeamBadge";
 
 export interface PitchViewProps {

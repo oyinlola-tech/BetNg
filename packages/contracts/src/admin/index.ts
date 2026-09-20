@@ -23,3 +23,4 @@ export type {
   ServiceHealth,
   SimulationRun,
 } from "./admin.type.js";
+export * from "./operations.type.js";
