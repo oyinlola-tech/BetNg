@@ -24,32 +24,23 @@ class Token(Generic[T]):
     __slots__ = ("description",)
 
     def __init__(self, description: str) -> None:
-        """Create a token described by a human-readable name."""
         self.description = description
 
     def __repr__(self) -> str:
-        """Render the token as its description, for error messages."""
         return f"Token({self.description!r})"
 
 
 class RegistrationNotFoundError(LookupError):
-    """Raised when a token has no registration."""
-
     def __init__(self, token: Token[Any]) -> None:
-        """Record which token had no registration."""
         super().__init__(f"Nothing is registered for {token!r}.")
         self.token = token
 
 
 class Container:
-    """Holds a service's singletons."""
-
     def __init__(self) -> None:
-        """Start an empty container."""
         self._values: dict[int, Any] = {}
 
     def register_value(self, token: Token[T], value: T) -> None:
-        """Register an instance against a token."""
         self._values[id(token)] = value
 
     def resolve(self, token: Token[T]) -> T:
@@ -65,5 +56,4 @@ class Container:
             raise RegistrationNotFoundError(token) from None
 
     def has(self, token: Token[Any]) -> bool:
-        """Whether a token has a registration."""
         return id(token) in self._values

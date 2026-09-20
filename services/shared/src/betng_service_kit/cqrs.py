@@ -43,20 +43,11 @@ TMessage = TypeVar("TMessage", bound=Message[Any])
 
 
 class Handler(ABC, Generic[TMessage, TResult]):
-    """Executes one message type."""
-
-    #: The message type this handler is registered against.
     message_type: ClassVar[str]
 
     @abstractmethod
     async def execute(self, message: TMessage) -> TResult:
         """Execute the message and return its result.
-
-        Args:
-            message: The command or query to execute.
-
-        Returns:
-            Whatever the message asked for.
         """
 
 
@@ -69,19 +60,13 @@ class QueryHandler(Handler[TMessage, TResult]):
 
 
 class HandlerNotFoundError(LookupError):
-    """Raised when a message is dispatched with no handler registered."""
-
     def __init__(self, kind: str, message_type: str) -> None:
-        """Record which kind of handler was missing, and for what."""
         super().__init__(f"No {kind} handler registered for {message_type!r}.")
         self.message_type = message_type
 
 
 class DuplicateHandlerError(ValueError):
-    """Raised when two handlers claim the same message type."""
-
     def __init__(self, kind: str, message_type: str) -> None:
-        """Record which kind of handler collided, and on what."""
         super().__init__(
             f"A {kind} handler is already registered for {message_type!r}."
         )
@@ -89,18 +74,12 @@ class DuplicateHandlerError(ValueError):
 
 
 class _Bus:
-    """Shared registration and dispatch."""
-
     def __init__(self, kind: str) -> None:
-        """Start an empty bus of the given kind."""
         self._kind = kind
         self._handlers: dict[str, Handler[Any, Any]] = {}
 
     def register(self, handler: Handler[Any, Any]) -> None:
         """Register a handler against its declared message type.
-
-        Args:
-            handler: The handler to register.
 
         Raises:
             DuplicateHandlerError: When the type is already registered, which
@@ -124,49 +103,20 @@ class _Bus:
         return result
 
     def size(self) -> int:
-        """Return the number of registered handlers."""
         return len(self._handlers)
 
 
 class CommandBus(_Bus):
-    """Routes commands to their handlers."""
-
     def __init__(self) -> None:
-        """Start an empty command bus."""
         super().__init__("command")
 
     async def execute(self, command: Command[TResult]) -> TResult:
-        """Dispatch a command to its handler.
-
-        Args:
-            command: The command to execute.
-
-        Returns:
-            The handler's result.
-
-        Raises:
-            HandlerNotFoundError: When nothing is registered for the type.
-        """
         return await self._dispatch(command)
 
 
 class QueryBus(_Bus):
-    """Routes queries to their handlers."""
-
     def __init__(self) -> None:
-        """Start an empty query bus."""
         super().__init__("query")
 
     async def execute(self, query: Query[TResult]) -> TResult:
-        """Dispatch a query to its handler.
-
-        Args:
-            query: The query to execute.
-
-        Returns:
-            The handler's result.
-
-        Raises:
-            HandlerNotFoundError: When nothing is registered for the type.
-        """
         return await self._dispatch(query)

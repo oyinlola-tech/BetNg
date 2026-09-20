@@ -23,7 +23,6 @@ export const settlementOutcomeSchema = z.enum(["WON", "LOST", "VOID"]);
 
 export type SettlementOutcome = z.infer<typeof settlementOutcomeSchema>;
 
-/** How one selection on a bet resolved against the match result. */
 export interface SettledSelection {
   readonly selectionId: SelectionId;
   readonly matchId: MatchId;
@@ -36,13 +35,11 @@ export const settledSelectionSchema = z.object({
   outcome: settlementOutcomeSchema,
 });
 
-/** The record of one bet being resolved. */
 export interface Settlement {
   readonly id: SettlementId;
   readonly betId: BetId;
   readonly outcome: SettlementOutcome;
   readonly selections: readonly SettledSelection[];
-  /** Simulated payout in minor units. Zero for a losing bet. */
   readonly payout: number;
   readonly currency: Currency;
   readonly settledAt: string;

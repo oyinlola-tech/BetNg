@@ -10,12 +10,6 @@ import { created, json } from "@betng/service-kit";
 import type { HttpRouter } from "@betng/service-kit";
 import type { WalletController } from "../controllers/index.js";
 
-/**
- * Binds the wallet endpoints to a router.
- *
- * @param router - The router the service dispatches through.
- * @param controller - The handlers to bind.
- */
 export function registerWalletRoutes(
   router: HttpRouter,
   controller: WalletController,

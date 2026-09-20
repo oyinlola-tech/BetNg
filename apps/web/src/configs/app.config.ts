@@ -8,7 +8,6 @@
 
 import type { BetNgClientConfig } from "@betng/client-sdk";
 
-/** The gateway's address. Every REST call goes through it. */
 const GATEWAY_URL = import.meta.env["VITE_GATEWAY_URL"] ?? "http://localhost:3000";
 
 /**

@@ -19,7 +19,6 @@ import {
 } from "../common/index.js";
 import { matchScoreSchema, matchSideSchema } from "../match/index.js";
 
-/** The event types a live match stream carries. */
 export const liveEventTypeSchema = z.enum([
   "MATCH_STARTED",
   "KICKOFF",
@@ -44,10 +43,8 @@ export type LiveEventType = z.infer<typeof liveEventTypeSchema>;
  */
 export interface LiveEvent {
   readonly matchId: MatchId;
-  /** Per-match, strictly increasing from 1. A gap means a missed frame. */
   readonly sequence: number;
   readonly type: LiveEventType;
-  /** Match minute, 0 to 120. */
   readonly minute: number;
   /**
    * Absent for an event belonging to neither side, such as `HALF_TIME`.
@@ -57,7 +54,6 @@ export interface LiveEvent {
    * would otherwise not be assignable to this type.
    */
   readonly side?: "HOME" | "AWAY" | undefined;
-  /** The running score after this event. */
   readonly score: { readonly home: number; readonly away: number };
   readonly description: string;
   readonly occurredAt: string;
@@ -74,5 +70,4 @@ export const liveEventSchema = z.object({
   occurredAt: isoTimestampSchema,
 });
 
-/** Re-exported from the framework-free entry: one definition, two entries. */
 export { MATCH_CHANNEL_PATTERN, matchChannel } from "../runtime.js";

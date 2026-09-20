@@ -1,7 +1,3 @@
-/**
- * The mobile client's root component.
- */
-
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView, StyleSheet } from "react-native";
 

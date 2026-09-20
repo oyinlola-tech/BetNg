@@ -1,7 +1,3 @@
-/**
- * One match, with its live event feed.
- */
-
 import { FlatList, StyleSheet, Text, View } from "react-native";
 
 import { useLiveMatch } from "../hooks";

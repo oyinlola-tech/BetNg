@@ -4,7 +4,6 @@ import { MATCH_QUERY } from "../../../../constants/index.js";
 import type { MatchRepository } from "../../../../interfaces/index.js";
 import type { ListFixturesQuery } from "./listFixtures.query.js";
 
-/** Reads every fixture from the match repository. */
 export class ListFixturesHandler extends QueryHandler<
   ListFixturesQuery,
   readonly Fixture[]

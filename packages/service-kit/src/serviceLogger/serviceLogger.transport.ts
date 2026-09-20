@@ -1,7 +1,3 @@
-/**
- * The stdout transport BetNG services log through.
- */
-
 import { createLoggerTransport } from "@zudojs/logger";
 import type { RegisteredLoggerTransport } from "@zudojs/logger";
 
@@ -14,8 +10,6 @@ import type { RegisteredLoggerTransport } from "@zudojs/logger";
  * and hand it to `console.info`, which Node pretty-prints — two layers of
  * escaping around what should be one parseable line. Writing the formatted
  * string straight to stdout keeps the formatter's output intact.
- *
- * @returns A transport ready to pass to `createLogger`.
  */
 export function createStdoutTransport(): RegisteredLoggerTransport {
   return createLoggerTransport({

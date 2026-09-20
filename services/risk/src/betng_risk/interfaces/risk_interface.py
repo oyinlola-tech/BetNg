@@ -18,8 +18,5 @@ from ..dtos import ExposureReport, ExposureRequest
 
 
 class RiskAnalyser(Protocol):
-    """Turns a market's accepted stakes into an exposure report."""
-
     async def evaluate(self, request: ExposureRequest) -> ExposureReport:
-        """Report a market's worst-case liability and the action to take."""
         ...

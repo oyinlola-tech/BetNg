@@ -1,6 +1,4 @@
 /**
- * @betng/match-service/models
- *
  * The demonstration rows the foundation serves until the match schema lands.
  */
 

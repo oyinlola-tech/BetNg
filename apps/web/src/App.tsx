@@ -1,7 +1,3 @@
-/**
- * The web client's root component.
- */
-
 import { AppLayout } from "./layouts/index";
 import { resolveRoute } from "./routes/index";
 

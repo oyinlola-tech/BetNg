@@ -1,7 +1,3 @@
-/**
- * Extraction of the answerable failure from a thrown value.
- */
-
 import {
   HttpMiddlewareError,
   HttpMiddlewarePipelineError,
@@ -23,7 +19,6 @@ export interface StatusCarrying {
   readonly details?: unknown;
 }
 
-/** How far a wrapper chain is followed before the search gives up. */
 const MAX_UNWRAP_DEPTH = 8;
 
 /**
@@ -73,14 +68,6 @@ function collectNested(error: object): readonly unknown[] {
   return nested;
 }
 
-/**
- * Finds the error whose status answers the request.
- *
- * @param error - The thrown value.
- * @param depth - The current recursion depth.
- * @param seen - Errors already visited, so a cyclic chain cannot loop.
- * @returns The answerable error, or `undefined` when there is none.
- */
 export function unwrapStatusError(
   error: unknown,
   depth = 0,
@@ -111,12 +98,6 @@ export function unwrapStatusError(
   return undefined;
 }
 
-/**
- * Narrows a value to the envelope's `details`.
- *
- * @param value - The candidate carried by an error.
- * @returns Whether it is a list of error details.
- */
 export function isErrorDetails(
   value: unknown,
 ): value is readonly ErrorDetail[] {

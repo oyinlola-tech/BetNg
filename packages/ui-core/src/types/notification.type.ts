@@ -1,11 +1,3 @@
-/**
- * In-app notifications.
- *
- * This is the surface a push provider would feed later; the architecture
- * is a list of typed notifications the client renders, whatever transport
- * delivered them.
- */
-
 import type { BetId, MatchId } from "@betng/contracts";
 
 export type NotificationKind =

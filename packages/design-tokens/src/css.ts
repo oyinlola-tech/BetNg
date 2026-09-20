@@ -21,7 +21,6 @@ function colorBlock(theme: ColorTheme): string {
     .join("\n");
 }
 
-/** @returns The full stylesheet text. */
 export function renderCss(): string {
   const scalar = [
     ...Object.entries(fontFamily).map(([k, v]) => `  --font-${k}: ${v};`),

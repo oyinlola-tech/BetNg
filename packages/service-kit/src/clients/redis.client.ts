@@ -12,21 +12,13 @@ import { createClient } from "redis";
 import type { RedisClientType } from "redis";
 import type { DependencyProbe } from "../healthProbe/index.js";
 
-/** A connection to Redis. */
 export interface RedisConnection {
   readonly connect: () => Promise<void>;
-  /** Issues `PING`, proving the connection works. */
   readonly ping: () => Promise<void>;
   readonly close: () => Promise<void>;
   readonly client: RedisClientType;
 }
 
-/**
- * Opens a Redis connection.
- *
- * @param redisUrl - The value of `REDIS_URL`.
- * @returns The connection, with ping and close.
- */
 export function createRedisConnection(redisUrl: string): RedisConnection {
   const client: RedisClientType = createClient({
     url: redisUrl,
@@ -60,12 +52,6 @@ export function createRedisConnection(redisUrl: string): RedisConnection {
   };
 }
 
-/**
- * Builds a readiness probe for Redis.
- *
- * @param connection - The connection to watch.
- * @returns The probe.
- */
 export function redisProbe(connection: RedisConnection): DependencyProbe {
   return { name: "redis", check: async () => connection.ping() };
 }

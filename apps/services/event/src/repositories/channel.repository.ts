@@ -26,9 +26,8 @@ interface ChannelRecord {
 /**
  * Creates the in-process channel registry.
  *
- * @param now - Supplies the current time. Injected so the heartbeat can be
- *   tested without waiting on the wall clock.
- * @returns A registry backed by process memory.
+ * `now` is injected so the heartbeat can be tested without waiting on the
+ * wall clock.
  */
 export function createInMemoryChannelRegistry(
   now: () => number = () => Date.now(),

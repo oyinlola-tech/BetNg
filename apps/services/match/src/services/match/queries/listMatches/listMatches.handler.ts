@@ -7,7 +7,6 @@ import type {
 } from "../../../../interfaces/index.js";
 import type { ListMatchesQuery } from "./listMatches.query.js";
 
-/** Reads matches from the match repository. */
 export class ListMatchesHandler extends QueryHandler<
   ListMatchesQuery,
   readonly Match[]

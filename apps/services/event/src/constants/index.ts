@@ -1,9 +1,3 @@
-/**
- * @betng/event-service/constants
- *
- * Fixed values shared across the event service's layers.
- */
-
 export {
   EVENT_COMMAND,
   EVENT_PROCEDURE,

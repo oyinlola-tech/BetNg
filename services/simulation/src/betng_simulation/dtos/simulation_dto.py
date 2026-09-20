@@ -29,8 +29,6 @@ MatchSide = Literal["HOME", "AWAY"]
 
 
 class SimulationTeam(BaseModel):
-    """A team as the simulation sees it."""
-
     model_config = ConfigDict(frozen=True)
 
     id: Annotated[str, Field(description="The team's UUID.")]
@@ -39,8 +37,6 @@ class SimulationTeam(BaseModel):
 
 
 class SimulationRequest(BaseModel):
-    """The body of ``POST /api/v1/simulations``."""
-
     model_config = ConfigDict(frozen=True)
 
     matchId: Annotated[str, Field(description="The match's UUID.")]
@@ -60,8 +56,6 @@ class SimulationRequest(BaseModel):
 
 
 class MatchScore(BaseModel):
-    """The final score of a completed match."""
-
     model_config = ConfigDict(frozen=True)
 
     home: Annotated[int, Field(ge=0)]
@@ -69,8 +63,6 @@ class MatchScore(BaseModel):
 
 
 class SimulatedEvent(BaseModel):
-    """One entry on the simulated timeline."""
-
     model_config = ConfigDict(frozen=True)
 
     type: MatchEventType
@@ -80,8 +72,6 @@ class SimulatedEvent(BaseModel):
 
 
 class SimulationResult(BaseModel):
-    """The response of ``POST /api/v1/simulations``."""
-
     model_config = ConfigDict(frozen=True)
 
     matchId: str
@@ -92,8 +82,6 @@ class SimulationResult(BaseModel):
 
 
 class ProbabilityRequest(BaseModel):
-    """The body of ``POST /api/v1/probabilities``."""
-
     model_config = ConfigDict(frozen=True)
 
     matchId: str

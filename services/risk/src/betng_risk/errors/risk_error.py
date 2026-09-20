@@ -1,5 +1,3 @@
-"""Risk domain errors."""
-
 from __future__ import annotations
 
 from betng_service_kit import NOT_IMPLEMENTED, ServiceError
@@ -18,7 +16,6 @@ class RiskAnalysisNotBuiltError(ServiceError):
     """
 
     def __init__(self, capability: str) -> None:
-        """Name what cannot be produced yet."""
         super().__init__(
             f"The risk model is not implemented yet, so {capability} cannot "
             f"be produced. See docs/architecture.md.",

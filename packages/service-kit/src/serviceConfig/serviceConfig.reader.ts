@@ -20,7 +20,6 @@ export function configKey(variable: string): string {
   return variable.toLowerCase();
 }
 
-/** Reads `NODE_ENV`. */
 export function readEnvironment(manager: ConfigManager): Environment {
   const raw = manager.string(configKey("NODE_ENV")) ?? "development";
 
@@ -63,7 +62,6 @@ export function readPort(
   return port;
 }
 
-/** Reads `SERVICE_TIMEOUT_MS`. */
 export function readTimeout(manager: ConfigManager): number {
   const raw = manager.string(configKey("SERVICE_TIMEOUT_MS"));
 

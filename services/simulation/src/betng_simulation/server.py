@@ -1,5 +1,3 @@
-"""Simulation service entrypoint."""
-
 from __future__ import annotations
 
 import uvicorn
@@ -9,7 +7,6 @@ from .configs import load_simulation_settings
 
 
 def main() -> None:
-    """Start the simulation service."""
     settings = load_simulation_settings()
 
     uvicorn.run(

@@ -1,11 +1,3 @@
-/**
- * Betting HTTP handlers.
- *
- * A controller validates what arrived, dispatches one command or query on
- * the bus, and returns the value. No data access and no domain rules live
- * here.
- */
-
 import {
   getRequestId,
   parseBody,
@@ -23,25 +15,17 @@ import {
   placeBetValidator,
 } from "../validators/index.js";
 
-/** The handlers the betting routes bind to. */
 export interface BettingController {
   placeBet(context: HttpRouterContext): Promise<Bet>;
   getBet(context: HttpRouterContext): Promise<Bet>;
   listBets(context: HttpRouterContext): Promise<BetListDto>;
 }
 
-/** What the betting controller dispatches through. */
 export interface BettingControllerOptions {
   readonly commandBus: CommandBus;
   readonly queryBus: QueryBus;
 }
 
-/**
- * Creates the betting controller.
- *
- * @param options - The buses the handlers are registered on.
- * @returns Handlers ready to bind to routes.
- */
 export function createBettingController(
   options: BettingControllerOptions,
 ): BettingController {

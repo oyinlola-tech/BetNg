@@ -1,13 +1,3 @@
-/**
- * Market contracts.
- *
- * Markets and prices are produced by the Python odds service from the
- * probabilities the simulation service exposes. The contracts live here so
- * the TypeScript and Python services agree on one wire format; the Python
- * service implements them from `docs/api.md` rather than importing this
- * package.
- */
-
 import { z } from "@zudojs/validation";
 import {
   brandedIdSchema,
@@ -17,7 +7,6 @@ import {
 } from "../common/index.js";
 import { selectionSchema, type Selection } from "./selection.type.js";
 
-/** The market types the foundation recognises. */
 export const marketTypeSchema = z.enum([
   "MATCH_RESULT",
   "DOUBLE_CHANCE",
@@ -54,7 +43,6 @@ export const marketSchema = z.object({
   updatedAt: isoTimestampSchema,
 });
 
-/** Every market currently priced for one match. */
 export interface MatchOdds {
   readonly matchId: MatchId;
   readonly markets: readonly Market[];

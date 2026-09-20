@@ -18,31 +18,14 @@ from ..interfaces import SimulationEngine
 
 
 class UnbuiltSimulationEngine(SimulationEngine):
-    """An engine that refuses, pending the real implementation."""
-
     async def simulate(self, request: SimulationRequest) -> SimulationResult:
-        """Refuse to produce a match result.
-
-        Raises:
-            SimulationEngineNotBuiltError: Always.
-        """
         raise SimulationEngineNotBuiltError("a match result")
 
     async def probabilities(
         self, home_strength: float, away_strength: float
     ) -> OutcomeProbabilities:
-        """Refuse to produce outcome probabilities.
-
-        Raises:
-            SimulationEngineNotBuiltError: Always.
-        """
         raise SimulationEngineNotBuiltError("outcome probabilities")
 
 
 def create_simulation_engine() -> SimulationEngine:
-    """Create the engine this phase ships.
-
-    Returns:
-        The engine registered in the container.
-    """
     return UnbuiltSimulationEngine()

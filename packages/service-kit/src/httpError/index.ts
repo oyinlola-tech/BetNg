@@ -1,9 +1,3 @@
-/**
- * @betng/service-kit/httpError
- *
- * The one error envelope every BetNG service answers a failure with.
- */
-
 export {
   buildErrorBody,
   FALLBACK_ERROR_CODE,

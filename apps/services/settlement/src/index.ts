@@ -1,10 +1,3 @@
-/**
- * @betng/settlement-service
- *
- * Reads completed match results, determines winning selections and records
- * the simulated payout for each bet.
- */
-
 export { createApp } from "./app.js";
 export type { SettlementApp } from "./app.js";
 export {

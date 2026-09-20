@@ -1,18 +1,3 @@
-/**
- * @betng/contracts
- *
- * The shared BetNG domain contracts: TypeScript types and the validation
- * schemas that back them.
- *
- * This package holds contracts only. It contains no business logic, no I/O
- * and no service-specific behaviour, so every service can depend on it
- * without depending on another service.
- *
- * The contracts are language independent: they describe JSON over HTTP. The
- * Python services implement the same shapes from `docs/api.md` rather than
- * importing anything from here.
- */
-
 export {
   API_PREFIX,
   asId,

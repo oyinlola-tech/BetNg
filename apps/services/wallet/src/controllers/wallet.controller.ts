@@ -21,7 +21,6 @@ import {
 } from "../services/wallet/queries/index.js";
 import { depositValidator, withdrawValidator } from "../validators/index.js";
 
-/** The handlers the wallet routes bind to. */
 export interface WalletController {
   getWallet(context: HttpRouterContext): Promise<Wallet>;
   listTransactions(context: HttpRouterContext): Promise<TransactionListDto>;
@@ -29,18 +28,11 @@ export interface WalletController {
   withdraw(context: HttpRouterContext): Promise<LedgerEntryDto>;
 }
 
-/** What the wallet controller dispatches through. */
 export interface WalletControllerOptions {
   readonly commandBus: CommandBus;
   readonly queryBus: QueryBus;
 }
 
-/**
- * Creates the wallet controller.
- *
- * @param options - The buses the handlers are registered on.
- * @returns Handlers ready to bind to routes.
- */
 export function createWalletController(
   options: WalletControllerOptions,
 ): WalletController {

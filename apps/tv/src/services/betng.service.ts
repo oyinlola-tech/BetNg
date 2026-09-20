@@ -10,7 +10,6 @@ import { createLiveClient, createRestClient } from "@betng/client-sdk";
 import type { LiveClient, LiveHandlers } from "@betng/client-sdk";
 import { appConfig } from "../configs/index";
 
-/** REST, through the gateway. One instance for the app's lifetime. */
 export const api = createRestClient(appConfig);
 
 /**
@@ -18,9 +17,6 @@ export const api = createRestClient(appConfig);
  *
  * Created per consumer rather than shared, so a screen that stops watching
  * can close its own connection without affecting another.
- *
- * @param handlers - What to do with events, gaps and connection changes.
- * @returns A connected live client.
  */
 export function openLiveStream(handlers: LiveHandlers): LiveClient {
   return createLiveClient({ config: appConfig, handlers });

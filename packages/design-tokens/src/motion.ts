@@ -13,9 +13,7 @@ export const duration = Object.freeze({
   fast: 120,
   base: 180,
   slow: 280,
-  /** Broadcast overlays: a goal card sliding in on TV. */
   broadcast: 600,
-  /** How long a broadcast overlay holds before leaving. */
   broadcastHold: 3200,
 });
 

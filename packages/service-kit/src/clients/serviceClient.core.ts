@@ -23,17 +23,14 @@ export interface ServiceResponse<T> {
 
 export interface ServiceRequest {
   readonly method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
-  /** Path relative to the peer's root, such as `/api/v1/matches`. */
   readonly path: string;
   readonly body?: unknown;
-  /** The correlation identifier to forward. */
   readonly requestId: string;
 }
 
 export interface ServiceClient {
   readonly endpoint: ServiceEndpoint;
   readonly request: <T>(options: ServiceRequest) => Promise<ServiceResponse<T>>;
-  /** Calls the peer's `/health`, for use as a readiness probe. */
   readonly health: (signal?: AbortSignal) => Promise<void>;
 }
 
@@ -43,12 +40,6 @@ function describeFailure(error: unknown, timeoutMs: number): string {
     : "could not be reached";
 }
 
-/**
- * Creates a client for one peer service.
- *
- * @param endpoint - The peer's address and call timeout.
- * @returns The client.
- */
 export function createServiceClient(endpoint: ServiceEndpoint): ServiceClient {
   async function send<T>(options: ServiceRequest): Promise<ServiceResponse<T>> {
     const controller = new AbortController();

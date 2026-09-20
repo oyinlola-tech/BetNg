@@ -13,11 +13,8 @@
 
 import type { BetSelection } from "@betng/contracts";
 
-/** What the gate decided about a slip. */
 export interface RiskDecision {
-  /** Whether the slip may be accepted. */
   readonly accepted: boolean;
-  /** Why, in terms a log or a client message can use. */
   readonly reason: string;
   /**
    * Whether risk actually assessed the slip.
@@ -29,13 +26,6 @@ export interface RiskDecision {
 }
 
 export interface RiskGate {
-  /**
-   * Asks risk whether a slip may be accepted.
-   *
-   * @param selections - The legs being backed.
-   * @param stake - The simulated stake in minor units.
-   * @param requestId - The correlation identifier to carry across the hop.
-   */
   evaluate(
     selections: readonly BetSelection[],
     stake: number,

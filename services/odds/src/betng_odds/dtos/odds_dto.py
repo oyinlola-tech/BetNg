@@ -17,8 +17,6 @@ MarketStatus = Literal["OPEN", "SUSPENDED", "SETTLED"]
 
 
 class Selection(BaseModel):
-    """One priced outcome within a market."""
-
     model_config = ConfigDict(frozen=True)
 
     id: str
@@ -30,8 +28,6 @@ class Selection(BaseModel):
 
 
 class Market(BaseModel):
-    """A market and every outcome priced within it."""
-
     model_config = ConfigDict(frozen=True)
 
     id: str
@@ -43,8 +39,6 @@ class Market(BaseModel):
 
 
 class MatchOdds(BaseModel):
-    """Every market currently priced for one match."""
-
     model_config = ConfigDict(frozen=True)
 
     matchId: str
@@ -68,8 +62,6 @@ class OutcomeProbabilities(BaseModel):
 
 
 class CalculateOddsRequest(BaseModel):
-    """The payload of the ``odds.calculateOdds`` procedure."""
-
     model_config = ConfigDict(frozen=True)
 
     matchId: str
@@ -77,8 +69,6 @@ class CalculateOddsRequest(BaseModel):
 
 
 class GetMatchOddsRequest(BaseModel):
-    """The payload of the ``odds.getMatchOdds`` procedure."""
-
     model_config = ConfigDict(frozen=True)
 
     matchId: str

@@ -1,5 +1,3 @@
-"""The simulation API validates its contract and refuses honestly."""
-
 from __future__ import annotations
 
 from betng_service_kit import ServiceSettings

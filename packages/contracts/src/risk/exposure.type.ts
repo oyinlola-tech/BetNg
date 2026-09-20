@@ -15,18 +15,14 @@ import {
   minorUnitsSchema,
 } from "../common/index.js";
 
-/** The liability carried if one particular selection wins. */
 export const selectionExposureSchema = z.object({
   selectionId: brandedIdSchema<"SelectionId">(),
-  /** Total simulated stake backing this selection, in minor units. */
   stake: minorUnitsSchema.min(0),
-  /** Simulated payout owed if this selection wins, in minor units. */
   liability: minorUnitsSchema.min(0),
 });
 
 export type SelectionExposure = z.infer<typeof selectionExposureSchema>;
 
-/** The body of `POST /api/v1/exposure`. */
 export const exposureRequestSchema = z.object({
   matchId: brandedIdSchema<"MatchId">(),
   marketId: brandedIdSchema<"MarketId">(),
@@ -36,7 +32,6 @@ export const exposureRequestSchema = z.object({
 
 export type ExposureRequest = z.infer<typeof exposureRequestSchema>;
 
-/** What the platform should do about a market's current exposure. */
 export const riskActionSchema = z.enum([
   "ACCEPT",
   "REVIEW",
@@ -45,11 +40,9 @@ export const riskActionSchema = z.enum([
 
 export type RiskAction = z.infer<typeof riskActionSchema>;
 
-/** The response of `POST /api/v1/exposure`. */
 export const exposureReportSchema = z.object({
   matchId: brandedIdSchema<"MatchId">(),
   marketId: brandedIdSchema<"MarketId">(),
-  /** The largest liability across all selections: the worst case. */
   worstCaseLiability: minorUnitsSchema.min(0),
   worstCaseSelectionId: brandedIdSchema<"SelectionId">(),
   totalStake: minorUnitsSchema.min(0),

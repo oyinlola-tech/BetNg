@@ -9,7 +9,6 @@
 
 import type { ServiceClient } from "@betng/service-kit";
 
-/** One client per service the gateway forwards to. */
 export interface UpstreamClients {
   readonly match: ServiceClient;
   readonly betting: ServiceClient;
@@ -18,5 +17,4 @@ export interface UpstreamClients {
   readonly odds: ServiceClient;
 }
 
-/** The upstream services the gateway can forward to. */
 export type UpstreamName = keyof UpstreamClients;

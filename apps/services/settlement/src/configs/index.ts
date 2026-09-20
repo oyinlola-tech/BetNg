@@ -1,9 +1,3 @@
-/**
- * @betng/settlement-service/configs
- *
- * Environment-backed configuration for the settlement service.
- */
-
 export {
   DEFAULT_PORT,
   loadSettlementConfig,

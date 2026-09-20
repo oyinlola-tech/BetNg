@@ -1,18 +1,3 @@
-/**
- * @betng/service-kit
- *
- * The bootstrap every BetNG TypeScript service is built from.
- *
- * It exists so the five services share one implementation of the things
- * that must not drift between them — configuration loading, log shape,
- * request correlation, the error envelope, health semantics and the
- * outbound client — rather than five copies that slowly diverge.
- * Everything here is a thin arrangement of `@zudojs/*` packages; none of it
- * reimplements the framework.
- *
- * Domain logic belongs in the services, never here.
- */
-
 export {
   DEFAULT_PORTS,
   DEFAULT_SERVICE_TIMEOUT_MS,

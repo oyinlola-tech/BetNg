@@ -6,7 +6,6 @@ import { WALLET_COMMAND } from "../../../../constants/index.js";
 export class WithdrawFundsCommand extends Command<"wallet.withdrawFunds"> {
   public readonly userId: string;
 
-  /** Simulated amount in minor units, always positive. */
   public readonly amount: number;
 
   public readonly currency: Currency;

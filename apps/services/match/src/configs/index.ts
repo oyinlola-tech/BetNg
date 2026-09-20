@@ -1,9 +1,3 @@
-/**
- * @betng/match-service/configs
- *
- * Environment-backed configuration for the match service.
- */
-
 export {
   DEFAULT_PORT,
   loadMatchConfig,

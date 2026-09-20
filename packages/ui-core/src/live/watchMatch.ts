@@ -24,10 +24,8 @@ import type { ConnectionState, MatchEventView, MatchView } from "../types/index.
 export interface LiveMatchSnapshot {
   readonly match: MatchView | undefined;
   readonly connection: ConnectionState;
-  /** True while a re-read is in flight after a gap or reconnect. */
   readonly resyncing: boolean;
   readonly error: string | undefined;
-  /** The most recent event applied from the stream, for a broadcast overlay. */
   readonly lastEvent: MatchEventView | undefined;
 }
 
@@ -35,16 +33,9 @@ export interface LiveMatchController {
   readonly getSnapshot: () => LiveMatchSnapshot;
   readonly subscribe: (listener: () => void) => () => void;
   readonly stop: () => void;
-  /** Re-derives the phase from the clock. Call from a ticker. */
   readonly tick: (now?: number) => void;
 }
 
-/**
- * Watches one match.
- *
- * @param source - The data source.
- * @param matchId - The match to watch.
- */
 export function watchMatch(source: BetNgDataSource, matchId: MatchId): LiveMatchController {
   let snapshot: LiveMatchSnapshot = {
     match: undefined,

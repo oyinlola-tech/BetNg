@@ -1,7 +1,6 @@
 import { Query } from "@zudojs/cqrs";
 import { MATCH_QUERY } from "../../../../constants/index.js";
 
-/** Asks for one match by identifier. */
 export class GetMatchQuery extends Query<"match.getMatch"> {
   public readonly matchId: string;
 

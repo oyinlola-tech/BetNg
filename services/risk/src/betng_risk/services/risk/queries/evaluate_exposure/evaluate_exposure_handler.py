@@ -1,5 +1,3 @@
-"""The handler behind ``risk.calculateExposure``."""
-
 from __future__ import annotations
 
 from betng_service_kit import QueryHandler
@@ -13,14 +11,10 @@ from .evaluate_exposure_query import EvaluateExposureQuery
 class EvaluateExposureHandler(
     QueryHandler[EvaluateExposureQuery, ExposureReport]
 ):
-    """Assesses a market's exposure through the analyser."""
-
     message_type = RiskQuery.EVALUATE_EXPOSURE
 
     def __init__(self, analyser: RiskAnalyser) -> None:
-        """Assess through the given analyser."""
         self._analyser = analyser
 
     async def execute(self, message: EvaluateExposureQuery) -> ExposureReport:
-        """Return the market's exposure report."""
         return await self._analyser.evaluate(message.request)

@@ -1,11 +1,6 @@
-/**
- * Wallet domain errors.
- */
-
 import { DomainError } from "@zudojs/errors";
 import { ErrorCodes } from "@betng/contracts";
 
-/** Raised when a user has no wallet yet. */
 export class WalletNotFoundError extends DomainError {
   public readonly userId: string;
 

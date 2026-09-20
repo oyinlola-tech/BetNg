@@ -1,9 +1,3 @@
-/**
- * @betng/service-kit/serviceConfig
- *
- * Environment-backed configuration, loaded through `@zudojs/config`.
- */
-
 export {
   DEFAULT_PORTS,
   DEFAULT_SERVICE_TIMEOUT_MS,

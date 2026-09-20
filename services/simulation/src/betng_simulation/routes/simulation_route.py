@@ -25,14 +25,6 @@ API_PREFIX = "/api/v1"
 
 
 def create_simulation_router(controller: SimulationController) -> APIRouter:
-    """Bind the simulation endpoints to a router.
-
-    Args:
-        controller: The handlers to bind.
-
-    Returns:
-        A router to include on the application.
-    """
     router = APIRouter(prefix=API_PREFIX, tags=["simulation"])
 
     @router.post(

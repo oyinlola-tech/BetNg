@@ -10,18 +10,12 @@ import { useEffect, useState } from "react";
 import type { Match } from "../types/index";
 import { api } from "../services/index";
 
-/** What the lobby needs to render. */
 export interface MatchesState {
   readonly matches: readonly Match[];
   readonly loading: boolean;
   readonly error: string | undefined;
 }
 
-/**
- * Loads the platform's matches once.
- *
- * @returns The matches, and whether they are still loading.
- */
 export function useMatches(): MatchesState {
   const [matches, setMatches] = useState<readonly Match[]>([]);
   const [loading, setLoading] = useState(true);

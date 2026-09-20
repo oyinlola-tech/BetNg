@@ -1,5 +1,3 @@
-"""The wire shapes of the simulation service."""
-
 from .simulation_dto import (
     MatchScore,
     MatchEventType,

@@ -28,9 +28,7 @@ import { matchChannel } from "@betng/contracts/runtime";
 import type { ClientFrame, LiveEvent, ServerFrame } from "@betng/contracts";
 import type { BetNgClientConfig } from "../config/index.js";
 
-/** What a subscriber is told. */
 export interface LiveHandlers {
-  /** One live event, in order, never repeated. */
   readonly onEvent?: (event: LiveEvent) => void;
   /**
    * Frames were missed on a channel, so local state is stale.
@@ -40,24 +38,16 @@ export interface LiveHandlers {
    * screen may no longer match what the platform recorded.
    */
   readonly onDesync?: (matchId: string) => void;
-  /** The socket opened, or re-opened. */
   readonly onOpen?: () => void;
-  /** The socket closed. `willReconnect` is false after `close()`. */
   readonly onClose?: (willReconnect: boolean) => void;
-  /** The server rejected something, e.g. an unknown channel. */
   readonly onError?: (code: string, message: string) => void;
 }
 
-/** A live connection. */
 export interface LiveClient {
-  /** Opens the socket. Safe to call more than once. */
   readonly connect: () => void;
-  /** Subscribes to a match's events. Re-established across reconnects. */
   readonly subscribe: (matchId: string) => void;
   readonly unsubscribe: (matchId: string) => void;
-  /** Closes the socket and stops reconnecting. */
   readonly close: () => void;
-  /** Whether the socket is currently open. */
   readonly isConnected: () => boolean;
 }
 
@@ -90,12 +80,6 @@ export interface LiveClientOptions {
   readonly webSocket?: WebSocketLike;
 }
 
-/**
- * Creates a live match stream client.
- *
- * @param options - Where the event service is, and what to call back.
- * @returns A client that stays connected and keeps its subscriptions.
- */
 export function createLiveClient(options: LiveClientOptions): LiveClient {
   const { config, handlers = {} } = options;
 
@@ -118,9 +102,7 @@ export function createLiveClient(options: LiveClientOptions): LiveClient {
   let attempt = 0;
   let retryTimer: ReturnType<typeof setTimeout> | undefined;
 
-  /** Channels the caller wants, independent of whether the socket is up. */
   const wanted = new Set<string>();
-  /** The last sequence applied per channel, for ordering and gap detection. */
   const lastSequence = new Map<string, number>();
 
   function send(frame: ClientFrame): void {
@@ -234,7 +216,6 @@ export function createLiveClient(options: LiveClientOptions): LiveClient {
     // `onerror` is always followed by `onclose`, so reconnection is handled
     // there and this only exists to stop an unhandled error event.
     connection.onerror = (): void => {
-      /* Reported through onClose. */
     };
   }
 

@@ -15,12 +15,6 @@ import type { HttpRouter } from "@betng/service-kit";
 import { proxyRead, proxyWrite } from "../controllers/index.js";
 import type { UpstreamClients } from "../interfaces/index.js";
 
-/**
- * Binds every public route to its owning service.
- *
- * @param router - The router the gateway dispatches through.
- * @param clients - The upstream clients.
- */
 export function registerGatewayRoutes(
   router: HttpRouter,
   clients: UpstreamClients,

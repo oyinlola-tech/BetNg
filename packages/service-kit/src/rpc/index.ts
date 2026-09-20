@@ -1,6 +1,4 @@
 /**
- * @betng/service-kit/rpc
- *
  * RPC over HTTP, built on `@zudojs/rpc`.
  *
  * RPC carries the platform's internal, service-to-service calls: typed

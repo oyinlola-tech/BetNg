@@ -34,14 +34,10 @@ export const healthResponseSchema = z.object({
   timestamp: z.iso.datetime(),
 });
 
-/** The outcome of probing one dependency. */
 export interface DependencyCheck {
-  /** The dependency's name, such as `postgres` or `match-service`. */
   readonly name: string;
   readonly status: HealthStatus;
-  /** How long the probe took, in milliseconds. */
   readonly latencyMs: number;
-  /** Present only when the probe failed. */
   readonly error?: string;
 }
 

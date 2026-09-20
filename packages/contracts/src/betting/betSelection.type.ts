@@ -1,7 +1,3 @@
-/**
- * Bet leg contracts.
- */
-
 import { z } from "@zudojs/validation";
 import {
   brandedIdSchema,
@@ -11,7 +7,6 @@ import {
   type SelectionId,
 } from "../common/index.js";
 
-/** One leg of a bet: the outcome backed, at the price offered. */
 export interface BetSelection {
   readonly matchId: MatchId;
   readonly marketId: MarketId;

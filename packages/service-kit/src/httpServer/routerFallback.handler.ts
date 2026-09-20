@@ -1,21 +1,9 @@
-/**
- * The router's own 404 and 405 responses.
- *
- * Rendered as the BetNG envelope so a missing route looks like every other
- * failure to a client, correlation identifier included.
- */
-
 import { createResponseContext } from "@zudojs/http";
 import type { RouterOptions } from "@zudojs/http";
 import { ErrorCodes } from "@betng/contracts";
 import { buildErrorBody } from "../httpError/index.js";
 import { getRequestId } from "../httpMiddleware/index.js";
 
-/**
- * Builds the router options carrying BetNG's unmatched-route responses.
- *
- * @returns Router options with both fallbacks installed.
- */
 export function createRouterFallbacks(): RouterOptions {
   return {
     notFoundHandler: (context) =>

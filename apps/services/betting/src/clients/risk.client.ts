@@ -14,13 +14,11 @@ import { createRpcClient } from "@betng/service-kit";
 import type { ServiceEndpoint } from "@betng/service-kit";
 import { createRPCMetadata, RPCClient } from "@zudojs/rpc";
 
-/** The procedures the risk service answers. */
 export const RISK_PROCEDURE = Object.freeze({
   CALCULATE_EXPOSURE: "risk.calculateExposure",
   CALCULATE_LIABILITY: "risk.calculateLiability",
 });
 
-/** What the risk service is told about a market. */
 export interface ExposureRequest {
   readonly matchId: string;
   readonly marketId: string;
@@ -32,7 +30,6 @@ export interface ExposureRequest {
   readonly currency: string;
 }
 
-/** What the risk service reports back. */
 export interface ExposureReport {
   readonly matchId: string;
   readonly marketId: string;
@@ -44,7 +41,6 @@ export interface ExposureReport {
   readonly evaluatedAt: string;
 }
 
-/** A typed façade over the raw RPC client. */
 export interface RiskClient {
   readonly calculateExposure: (
     request: ExposureRequest,
@@ -53,12 +49,6 @@ export interface RiskClient {
   readonly raw: RPCClient;
 }
 
-/**
- * Creates the risk client.
- *
- * @param endpoint - The risk service's address, from configuration.
- * @returns A typed client.
- */
 export function createRiskClient(endpoint: ServiceEndpoint): RiskClient {
   const client = createRpcClient(endpoint);
 

@@ -1,9 +1,3 @@
-"""The odds application service.
-
-Registers every odds command and query handler on the buses, resolving the
-pricer from the container.
-"""
-
 from __future__ import annotations
 
 from betng_service_kit import CommandBus, Container, QueryBus
@@ -16,13 +10,6 @@ from .queries import GetMatchOddsHandler
 def register_odds_service(
     container: Container, command_bus: CommandBus, query_bus: QueryBus
 ) -> None:
-    """Register the odds handlers with their buses.
-
-    Args:
-        container: The container the handlers' dependencies come from.
-        command_bus: The bus to register write handlers on.
-        query_bus: The bus to register read handlers on.
-    """
     pricer = container.resolve(ODDS_PRICER_TOKEN)
 
     command_bus.register(GenerateOddsHandler(pricer))

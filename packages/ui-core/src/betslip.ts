@@ -10,22 +10,17 @@
 import type { SlipSelection, SlipTotals } from "./types/index.js";
 
 export const STAKE_LIMITS = Object.freeze({
-  /** ₦50 */
   min: 5_000,
-  /** ₦500,000 */
   max: 50_000_000,
-  /** ₦200 */
   default: 20_000,
 });
 
-/** The quick-stake chips every slip shows, in kobo. */
 export const QUICK_STAKES: readonly number[] = Object.freeze([
   10_000, 20_000, 50_000, 100_000, 500_000,
 ]);
 
 export const MAX_SELECTIONS = 20;
 
-/** Adds or replaces a selection. Selecting the same outcome again removes it. */
 export function toggleSelection(
   current: readonly SlipSelection[],
   next: SlipSelection,
@@ -54,7 +49,6 @@ export function isSelected(current: readonly SlipSelection[], selectionId: strin
   return current.some((s) => s.selectionId === selectionId);
 }
 
-/** Product of the odds, rounded to two places as the platform does. */
 export function combinedOdds(selections: readonly SlipSelection[]): number {
   if (selections.length === 0) return 0;
 
@@ -78,7 +72,6 @@ export function slipTotals(selections: readonly SlipSelection[], stake: number):
 
 export type StakeProblem = "EMPTY" | "BELOW_MIN" | "ABOVE_MAX" | "INSUFFICIENT" | undefined;
 
-/** Why a slip cannot be placed, or undefined when it can. */
 export function validateSlip(
   selections: readonly SlipSelection[],
   stake: number,
@@ -91,7 +84,6 @@ export function validateSlip(
   return undefined;
 }
 
-/** Parses a naira string a user typed into kobo. `"1,500.5"` → 150050. */
 export function parseStakeInput(text: string): number {
   const cleaned = text.replace(/[^\d.]/g, "");
 

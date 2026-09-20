@@ -30,19 +30,6 @@ def create_service_app(
     probes: list[DependencyProbe] | None = None,
     rpc_server: RpcServer | None = None,
 ) -> FastAPI:
-    """Build a BetNG Python service.
-
-    Args:
-        settings: The configuration read from the environment.
-        description: What the service does, shown in the OpenAPI document.
-        routers: The service's domain routers.
-        probes: The dependencies ``/ready`` probes.
-        rpc_server: The service's RPC procedures. Mounted at ``POST /rpc``
-            on this same listener, so RPC needs no second port.
-
-    Returns:
-        The configured application.
-    """
     configure_logging(
         settings.service_name,
         settings.version,

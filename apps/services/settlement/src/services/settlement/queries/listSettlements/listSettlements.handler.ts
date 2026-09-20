@@ -4,7 +4,6 @@ import { SETTLEMENT_QUERY } from "../../../../constants/index.js";
 import type { SettlementRepository } from "../../../../interfaces/index.js";
 import type { ListSettlementsQuery } from "./listSettlements.query.js";
 
-/** Reads every settlement from the settlement repository. */
 export class ListSettlementsHandler extends QueryHandler<
   ListSettlementsQuery,
   readonly Settlement[]

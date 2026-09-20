@@ -1,14 +1,3 @@
-"""Assembles the simulation service.
-
-The pieces are wired in dependency order: the engine, the container that holds
-it, the CQRS buses the application service registers on, the controller, and
-the FastAPI application.
-
-``betng_service_kit`` supplies everything that must not differ between BetNG
-services — logging, correlation, the error envelope and the health endpoints —
-so this file contains only what is specific to the simulation service.
-"""
-
 from __future__ import annotations
 
 import logging
@@ -31,15 +20,6 @@ DESCRIPTION = (
 
 
 def create_app(settings: ServiceSettings | None = None) -> FastAPI:
-    """Build the simulation service.
-
-    Args:
-        settings: The configuration. Read from the environment when omitted;
-            the tests pass their own.
-
-    Returns:
-        The configured application.
-    """
     resolved = settings or load_simulation_settings()
 
     engine = create_simulation_engine()

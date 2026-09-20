@@ -1,7 +1,3 @@
-/**
- * League and team contracts, owned by the match service.
- */
-
 import { z } from "@zudojs/validation";
 import {
   brandedIdSchema,
@@ -13,7 +9,6 @@ import {
 export interface League {
   readonly id: LeagueId;
   readonly name: string;
-  /** Short display code, such as `BVPL`. */
   readonly code: string;
   readonly country: string;
   readonly createdAt: string;

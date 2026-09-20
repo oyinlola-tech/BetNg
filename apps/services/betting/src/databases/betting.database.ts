@@ -16,20 +16,12 @@ import { createServiceDatabase, databaseProbe } from "@betng/service-kit";
 import type { DependencyProbe, ServiceDatabase } from "@betng/service-kit";
 import { PrismaClient } from "../generated/prisma/client.js";
 
-/** The betting database connection and the probe that watches it. */
 export interface BettingDatabase {
   readonly database: ServiceDatabase;
   readonly probe: DependencyProbe;
-  /** The generated client, for the repositories that run queries. */
   readonly prisma: PrismaClient;
 }
 
-/**
- * Opens the betting service's database connection.
- *
- * @param databaseUrl - The value of `BETTING_DATABASE_URL`.
- * @returns The connection, its readiness probe and the Prisma client.
- */
 export function createBettingDatabase(databaseUrl: string): BettingDatabase {
   const prisma = new PrismaClient({
     adapter: new PrismaPg({ connectionString: databaseUrl }),

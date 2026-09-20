@@ -12,19 +12,14 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-#: What the platform should do about a market's current exposure.
 RiskAction = Literal["ACCEPT", "REVIEW", "SUSPEND_MARKET"]
 
 
 class SelectionExposure(BaseModel):
-    """The liability carried if one particular selection wins."""
-
     model_config = ConfigDict(frozen=True)
 
     selectionId: str
-    #: Total simulated stake backing this selection, in minor units.
     stake: Annotated[int, Field(ge=0)]
-    #: Simulated payout owed if this selection wins, in minor units.
     liability: Annotated[int, Field(ge=0)]
 
 
@@ -45,13 +40,10 @@ class ExposureRequest(BaseModel):
 
 
 class ExposureReport(BaseModel):
-    """The response of ``risk.calculateExposure``."""
-
     model_config = ConfigDict(frozen=True)
 
     matchId: str
     marketId: str
-    #: The largest liability across all selections: the worst case.
     worstCaseLiability: Annotated[int, Field(ge=0)]
     worstCaseSelectionId: str
     totalStake: Annotated[int, Field(ge=0)]

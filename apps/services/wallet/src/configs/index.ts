@@ -1,9 +1,3 @@
-/**
- * @betng/wallet-service/configs
- *
- * Environment-backed configuration for the wallet service.
- */
-
 export {
   DEFAULT_PORT,
   loadWalletConfig,

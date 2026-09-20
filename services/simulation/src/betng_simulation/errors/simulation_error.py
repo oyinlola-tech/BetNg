@@ -1,5 +1,3 @@
-"""Simulation domain errors."""
-
 from __future__ import annotations
 
 from betng_service_kit import NOT_IMPLEMENTED, ServiceError

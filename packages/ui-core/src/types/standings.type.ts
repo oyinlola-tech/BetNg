@@ -1,7 +1,3 @@
-/**
- * League tables and scorer charts.
- */
-
 import type { LeagueId } from "@betng/contracts";
 import type { TeamView } from "./team.type.js";
 
@@ -18,14 +14,12 @@ export interface StandingRow {
   readonly goalsAgainst: number;
   readonly goalDifference: number;
   readonly points: number;
-  /** Most recent last, up to five. */
   readonly form: readonly FormResult[];
 }
 
 export interface StandingsView {
   readonly leagueId: LeagueId;
   readonly season: number;
-  /** Matchdays completed so far this season. */
   readonly matchdaysPlayed: number;
   readonly rows: readonly StandingRow[];
 }

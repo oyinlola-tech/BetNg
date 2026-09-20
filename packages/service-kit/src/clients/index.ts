@@ -1,9 +1,3 @@
-/**
- * @betng/service-kit/clients
- *
- * The boundaries a BetNG service reaches the outside world through.
- */
-
 export { createServiceDatabase, databaseProbe } from "./prisma.client.js";
 export type { ServiceDatabase } from "./prisma.client.js";
 

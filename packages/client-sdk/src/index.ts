@@ -1,6 +1,4 @@
 /**
- * @betng/client-sdk
- *
  * The shared client for BetNG's web, mobile and TV applications.
  *
  * All three consume the same platform the same way: REST through the

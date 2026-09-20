@@ -11,11 +11,9 @@ import { getRequestId } from "@betng/service-kit";
 import type { HttpRouterContext, ServiceResponse } from "@betng/service-kit";
 import type { UpstreamClients, UpstreamName } from "../../interfaces/index.js";
 
-/** One forwarding instruction. */
 export interface ForwardOptions {
   readonly upstream: UpstreamName;
   readonly method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
-  /** The path on the upstream service, already resolved. */
   readonly path: string;
   readonly body?: unknown;
 }
@@ -27,11 +25,6 @@ export interface ForwardOptions {
  * request can be followed from the gateway's log line through the
  * upstream's. An unreachable upstream becomes a 503 carrying
  * `UPSTREAM_UNAVAILABLE`; the client never sees a raw fetch failure.
- *
- * @param clients - The upstream clients.
- * @param context - The inbound request, for its correlation identifier.
- * @param options - Which upstream to call, and how.
- * @returns The upstream's status and body.
  */
 export async function forward<T>(
   clients: UpstreamClients,
@@ -53,9 +46,6 @@ export async function forward<T>(
  * `/api/v1/matches/:id` is forwarded to the same path on the match
  * service. Keeping them identical means a route can be moved behind or out
  * from behind the gateway without a client noticing.
- *
- * @param context - The inbound request.
- * @returns The upstream path, query string included.
  */
 export function upstreamPath(context: HttpRouterContext): string {
   const search = new URLSearchParams();

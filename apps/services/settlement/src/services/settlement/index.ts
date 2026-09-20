@@ -23,19 +23,11 @@ import {
   ListSettlementsHandler,
 } from "./queries/index.js";
 
-/** What the settlement service registration needs. */
 export interface SettlementServiceConfig {
-  /** The container the handlers' dependencies are resolved from. */
   readonly container: Container;
-  /** The query bus to register read handlers on. */
   readonly queryBus: QueryBus;
 }
 
-/**
- * Registers the settlement read handlers with the query bus.
- *
- * @param config - The container and the bus to register on.
- */
 export function registerSettlementService(
   config: SettlementServiceConfig,
 ): void {

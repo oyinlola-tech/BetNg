@@ -24,7 +24,6 @@ export interface SelectionView {
   readonly marketId: MarketId;
   readonly code: string;
   readonly label: string;
-  /** Short form for a tight grid: "1", "X", "2", "O 2.5". */
   readonly shortLabel: string;
   readonly odds: number;
   readonly probability: number;
@@ -36,10 +35,8 @@ export interface MarketView {
   readonly matchId: MatchId;
   readonly kind: MarketKind;
   readonly name: string;
-  /** The line for a totals or spread market, e.g. 2.5 or -1. */
   readonly line?: number;
   readonly status: MarketStatus;
-  /** How many selections sit on one row. Correct score uses 3; totals 2. */
   readonly columns: number;
   readonly selections: readonly SelectionView[];
 }

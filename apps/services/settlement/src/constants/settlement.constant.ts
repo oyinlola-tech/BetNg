@@ -1,7 +1,3 @@
-/**
- * The settlement service's CQRS type discriminators.
- */
-
 export const SETTLEMENT_QUERY = Object.freeze({
   GET_SETTLEMENT: "settlement.getSettlement",
   LIST_SETTLEMENTS: "settlement.listSettlements",

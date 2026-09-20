@@ -1,9 +1,3 @@
-/**
- * @betng/match-service
- *
- * Leagues, teams, fixtures, matchdays and the match lifecycle.
- */
-
 export { createApp } from "./app.js";
 export type { MatchApp } from "./app.js";
 export {

@@ -1,9 +1,3 @@
-/**
- * @betng/gateway/configs
- *
- * Environment-backed configuration for the gateway.
- */
-
 export {
   DEFAULT_PORT,
   loadGatewayConfig,

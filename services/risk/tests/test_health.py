@@ -1,5 +1,3 @@
-"""The risk service starts, serves and reports its own state."""
-
 from __future__ import annotations
 
 from betng_service_kit import ServiceSettings

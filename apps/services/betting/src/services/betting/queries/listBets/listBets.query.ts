@@ -2,7 +2,6 @@ import { Query } from "@zudojs/cqrs";
 import type { BetStatus } from "@betng/contracts";
 import { BETTING_QUERY } from "../../../../constants/index.js";
 
-/** Asks for bets, optionally narrowed by holder and status. */
 export class ListBetsQuery extends Query<"betting.listBets"> {
   public readonly userId: string | undefined;
 

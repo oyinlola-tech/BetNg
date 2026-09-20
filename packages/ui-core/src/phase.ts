@@ -1,7 +1,3 @@
-/**
- * Match phases: the one vocabulary every client draws state in.
- */
-
 import type { StateTone } from "@betng/design-tokens";
 import type { MatchStatus } from "@betng/contracts";
 import { matchClock, FULL_TIME_SECONDS, VIRTUAL_TIMING } from "./timing.js";
@@ -61,7 +57,6 @@ export function canBet(phase: MatchPhase): boolean {
   return phase === "BETTING_OPEN";
 }
 
-/** The colour role each phase is drawn in, everywhere. */
 export function phaseTone(phase: MatchPhase): StateTone {
   switch (phase) {
     case "LIVE":
@@ -83,7 +78,6 @@ export function phaseTone(phase: MatchPhase): StateTone {
   }
 }
 
-/** The short label a badge shows. */
 export function phaseLabel(phase: MatchPhase): string {
   switch (phase) {
     case "LIVE":
@@ -105,7 +99,6 @@ export function phaseLabel(phase: MatchPhase): string {
   }
 }
 
-/** The long label a detail screen shows. */
 export function phaseDescription(phase: MatchPhase): string {
   switch (phase) {
     case "LIVE":

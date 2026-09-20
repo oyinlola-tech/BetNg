@@ -1,6 +1,4 @@
 /**
- * @betng/web/types
- *
  * The domain types this client renders.
  *
  * Re-exported from `@betng/contracts`, which is also what the services are

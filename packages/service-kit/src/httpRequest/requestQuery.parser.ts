@@ -1,7 +1,3 @@
-/**
- * Query-string and path-parameter reading.
- */
-
 import { ErrorCodes } from "@betng/contracts";
 import { unprocessableEntity } from "@zudojs/http";
 import { validate } from "@zudojs/validation";
@@ -14,9 +10,6 @@ import { toErrorDetails } from "../httpError/index.js";
  * A repeated parameter arrives as an array; the first value is taken, since
  * no BetNG endpoint currently accepts a repeated parameter.
  *
- * @param query - The parsed query string.
- * @param schema - The contract schema the query must satisfy.
- * @returns The validated query.
  * @throws A 422 listing every parameter that failed.
  */
 export function parseQuery<T>(
@@ -51,10 +44,6 @@ export function parseQuery<T>(
  * A missing parameter means the route pattern and its handler disagree, so
  * this raises a plain error and becomes a 500 rather than blaming a client
  * for a wiring mistake.
- *
- * @param params - The matched path parameters.
- * @param name - The parameter to read.
- * @returns The parameter's value.
  */
 export function requireParam(
   params: Readonly<Record<string, string>>,

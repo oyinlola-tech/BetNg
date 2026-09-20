@@ -8,12 +8,6 @@
 
 import { BroadcastPage } from "../pages/index";
 
-/**
- * Resolves the match this display was configured to show.
- *
- * @param search - The browser's query string.
- * @returns The element to render.
- */
 export function resolveRoute(search: string): React.JSX.Element {
   const matchId = new URLSearchParams(search).get("match");
 

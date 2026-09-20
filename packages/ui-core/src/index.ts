@@ -1,11 +1,3 @@
-/**
- * @betng/ui-core
- *
- * What a screen needs that is not a pixel: the view models it renders, the
- * boundary it reads them through, and the arithmetic — clock, phase, odds,
- * money, standings, slip — that must agree across web, mobile and TV.
- */
-
 export type * from "./types/index.js";
 
 export { DataSourceError } from "./dataSource.type.js";
@@ -74,4 +66,4 @@ export { watchMatch } from "./live/watchMatch.js";
 export type { LiveMatchController, LiveMatchSnapshot } from "./live/watchMatch.js";
 
 export { createPlatformDataSource } from "./adapters/platformDataSource.js";
-export type { PlatformDataSourceOptions } from "./adapters/platformDataSource.js";
+export type { KeyValueStorage, PlatformDataSourceOptions } from "./adapters/platformDataSource.js";

@@ -19,7 +19,6 @@ import {
   matchSideSchema,
 } from "../match/index.js";
 
-/** A team as the simulation sees it. */
 export const simulationTeamSchema = z.object({
   id: brandedIdSchema<"TeamId">(),
   name: z.string().min(1).max(120),
@@ -47,7 +46,6 @@ export const simulationRequestSchema = z.object({
 
 export type SimulationRequest = z.infer<typeof simulationRequestSchema>;
 
-/** One entry on the simulated timeline. */
 export const simulatedEventSchema = z.object({
   type: matchEventTypeSchema,
   minute: z.int().min(0).max(120),
@@ -57,12 +55,10 @@ export const simulatedEventSchema = z.object({
 
 export type SimulatedEvent = z.infer<typeof simulatedEventSchema>;
 
-/** The response of `POST /api/v1/simulations`. */
 export const simulationResultSchema = z.object({
   matchId: brandedIdSchema<"MatchId">(),
   score: matchScoreSchema,
   events: z.array(simulatedEventSchema),
-  /** The seed actually used, so any run can be replayed. */
   seed: z.int(),
   completedAt: isoTimestampSchema,
 });

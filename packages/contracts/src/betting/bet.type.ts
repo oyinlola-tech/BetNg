@@ -18,7 +18,6 @@ import {
 } from "../common/index.js";
 import { betSelectionSchema, type BetSelection } from "./betSelection.type.js";
 
-/** What a bet is currently worth to its holder. */
 export const betStatusSchema = z.enum(["PENDING", "WON", "LOST", "VOID"]);
 
 export type BetStatus = z.infer<typeof betStatusSchema>;
@@ -26,18 +25,13 @@ export type BetStatus = z.infer<typeof betStatusSchema>;
 export interface Bet {
   readonly id: BetId;
   readonly userId: UserId;
-  /** One selection is a single; more than one is an accumulator. */
   readonly selections: readonly BetSelection[];
-  /** Simulated stake in minor units. */
   readonly stake: number;
   readonly currency: Currency;
-  /** Product of every selection's odds, rounded to two decimal places. */
   readonly totalOdds: number;
-  /** Simulated payout if every selection wins, in minor units. */
   readonly potentialPayout: number;
   readonly status: BetStatus;
   readonly placedAt: string;
-  /** Set when the settlement service resolved this bet. */
   readonly settledAt?: string;
   /** The amount actually paid, in minor units, once settled. Zero for a loss. */
   readonly payout?: number | undefined;
@@ -57,7 +51,6 @@ export const betSchema = z.object({
   payout: minorUnitsSchema.min(0).optional(),
 });
 
-/** The body of `POST /api/v1/bets`. */
 export const placeBetRequestSchema = z.object({
   userId: brandedIdSchema<"UserId">(),
   selections: z.array(betSelectionSchema).min(1).max(20),

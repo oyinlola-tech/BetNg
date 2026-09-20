@@ -8,13 +8,9 @@
  */
 
 export interface BetNgClientConfig {
-  /** The gateway's base URL. Every REST call goes here. */
   readonly gatewayUrl: string;
-  /** The event service's WebSocket URL, e.g. `ws://localhost:3008/live`. */
   readonly liveUrl: string;
-  /** How long a REST call may run before it is abandoned. */
   readonly timeoutMs?: number;
 }
 
-/** How long a REST call waits before giving up, when unspecified. */
 export const DEFAULT_TIMEOUT_MS = 10_000;

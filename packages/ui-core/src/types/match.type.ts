@@ -43,16 +43,12 @@ export interface Score {
 export interface MatchEventView {
   readonly id: string;
   readonly matchId: MatchId;
-  /** Per match, strictly increasing from 1. */
   readonly sequence: number;
   readonly kind: MatchEventKind;
   readonly minute: number;
   readonly side?: MatchSide;
-  /** The player the event is about: scorer, booked player, player coming on. */
   readonly player?: string;
-  /** The assist for a goal, or the player going off for a substitution. */
   readonly secondaryPlayer?: string;
-  /** The running score after this event. */
   readonly score: Score;
   readonly description: string;
   readonly occurredAt: string;
@@ -86,18 +82,12 @@ export interface MatchView {
   readonly away: TeamView;
   readonly kickoffAt: string;
   readonly bettingClosesAt: string;
-  /** The contract status, as the match service reports it. */
   readonly status: MatchStatus;
-  /** The presentation phase, derived from status, events and the clock. */
   readonly phase: MatchPhase;
   readonly score: Score;
-  /** Events so far, oldest first. Empty before kick-off. */
   readonly events: readonly MatchEventView[];
-  /** Present once the match has kicked off. */
   readonly stats?: MatchStats;
-  /** How many markets are open, for a lobby row. */
   readonly openMarkets: number;
 }
 
-/** A short summary for a strip or a result row. Cheaper than a full view. */
 export type MatchSummary = Omit<MatchView, "events" | "stats">;

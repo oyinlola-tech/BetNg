@@ -10,12 +10,6 @@ import type { EventBus } from "@zudojs/events";
 import type { Logger } from "@betng/service-kit";
 import { BetPlacedEvent } from "../events/index.js";
 
-/**
- * Builds the event bus with every betting event registered.
- *
- * @param logger - The logger to report registration through.
- * @returns The started event bus.
- */
 export function loadEvents(logger: Logger): EventBus {
   const events = createEventBus();
 

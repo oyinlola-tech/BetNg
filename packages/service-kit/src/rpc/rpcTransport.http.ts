@@ -23,16 +23,11 @@ import {
   type RPCTransportRequestOptions,
 } from "@zudojs/rpc";
 
-/** Where every BetNG service mounts its RPC endpoint. */
 export const RPC_PATH = "/rpc";
 
-/** What an HTTP RPC transport needs to reach its peer. */
 export interface HttpRpcTransportOptions {
-  /** The peer's base URL, from configuration. Never a literal. */
   readonly baseUrl: string;
-  /** How long to wait for a response before giving up, in milliseconds. */
   readonly timeoutMs: number;
-  /** The peer's name, used in error messages. */
   readonly peer: string;
 }
 
@@ -52,9 +47,6 @@ function isRpcResponse(value: unknown): value is RPCResponse {
  * header so a peer's HTTP access log carries the same correlation
  * identifier as the RPC frame, and one request stays followable whether it
  * crossed the boundary by REST or by RPC.
- *
- * @param options - Where the peer is and how long to wait.
- * @returns A transport for `RPCClient`.
  */
 export function createHttpRpcTransport(
   options: HttpRpcTransportOptions,

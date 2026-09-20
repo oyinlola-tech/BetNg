@@ -9,13 +9,9 @@
  */
 
 export const VIRTUAL_TIMING = Object.freeze({
-  /** Real seconds per match minute. */
   secondsPerMinute: 2,
-  /** Real seconds the half-time break lasts. */
   halfTimeSeconds: 15,
-  /** Real seconds after full time before bets are settled. */
   settlementDelaySeconds: 8,
-  /** Real seconds before kick-off that betting closes. */
   bettingCloseLeadSeconds: 10,
 });
 
@@ -27,20 +23,11 @@ export type ClockPeriod = "PRE" | "FIRST_HALF" | "HALF_TIME" | "SECOND_HALF" | "
 
 export interface MatchClock {
   readonly period: ClockPeriod;
-  /** 0 to 90. Holds at 45 through half-time and 90 after full time. */
   readonly minute: number;
-  /** 0 to 59, the fraction of the current minute, for a broadcast clock. */
   readonly second: number;
-  /** Real seconds since kick-off, negative before it. */
   readonly elapsedSeconds: number;
 }
 
-/**
- * Where a match's clock stands.
- *
- * @param kickoffAt - The kick-off instant, ISO-8601.
- * @param now - The current instant in epoch milliseconds.
- */
 export function matchClock(kickoffAt: string, now: number): MatchClock {
   const elapsed = (now - Date.parse(kickoffAt)) / 1000;
   const spm = VIRTUAL_TIMING.secondsPerMinute;
@@ -76,12 +63,6 @@ export function matchClock(kickoffAt: string, now: number): MatchClock {
   return { period: "FULL_TIME", minute: 90, second: 0, elapsedSeconds: elapsed };
 }
 
-/**
- * The real instant at which a match reaches a given minute.
- *
- * @param kickoffAt - Kick-off, ISO-8601.
- * @param minute - Match minute, 0 to 90.
- */
 export function instantAtMinute(kickoffAt: string, minute: number): number {
   const spm = VIRTUAL_TIMING.secondsPerMinute;
   const start = Date.parse(kickoffAt);

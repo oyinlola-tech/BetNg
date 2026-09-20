@@ -1,9 +1,3 @@
-/**
- * @betng/service-kit/httpServer
- *
- * The ZudoJS HTTP server every BetNG service is assembled from.
- */
-
 export { created, json, withStatus } from "./routeHandler.adapter.js";
 export type { JsonHandler, RouteHandler } from "./routeHandler.adapter.js";
 

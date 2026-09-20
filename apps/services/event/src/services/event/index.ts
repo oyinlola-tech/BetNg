@@ -1,10 +1,3 @@
-/**
- * The event application service.
- *
- * Registers the publish handler and the channel read handler, resolving the
- * channel registry from the container.
- */
-
 import type { Container } from "@zudojs/container";
 import type { CommandBus, QueryBus } from "@zudojs/cqrs";
 import {
@@ -16,18 +9,12 @@ import {
 import { PublishEventHandler } from "./commands/index.js";
 import { GetChannelStateHandler } from "./queries/index.js";
 
-/** What the event service registration needs. */
 export interface EventServiceConfig {
   readonly container: Container;
   readonly commandBus: CommandBus;
   readonly queryBus: QueryBus;
 }
 
-/**
- * Registers the event handlers with their buses.
- *
- * @param config - The container and the buses to register on.
- */
 export function registerEventService(config: EventServiceConfig): void {
   const { container, commandBus, queryBus } = config;
 

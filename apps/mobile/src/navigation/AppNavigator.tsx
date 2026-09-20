@@ -13,7 +13,6 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { LobbyScreen, MatchScreen } from "../screens";
 
-/** Where the app currently is. */
 type Route =
   | { readonly name: "lobby" }
   | { readonly name: "match"; readonly matchId: string };

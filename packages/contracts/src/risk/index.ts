@@ -1,9 +1,3 @@
-/**
- * @betng/contracts/risk
- *
- * The wire format of the Python risk service: exposure in, an action out.
- */
-
 export {
   exposureReportSchema,
   exposureRequestSchema,

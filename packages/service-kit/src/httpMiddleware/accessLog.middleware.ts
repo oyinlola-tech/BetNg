@@ -19,9 +19,6 @@ const PROBE_PATHS = new Set(["/health", "/ready"]);
  * A request that throws still produces a completion line, because the
  * failing requests are exactly the ones that must not be missing from the
  * log.
- *
- * @param logger - The logger to write through.
- * @returns The middleware.
  */
 export function createAccessLogMiddleware(logger: Logger): HttpMiddleware {
   return async (context, next) => {

@@ -1,5 +1,3 @@
-"""The get-probabilities query and its handler."""
-
 from .get_probabilities_handler import GetProbabilitiesHandler
 from .get_probabilities_query import GetProbabilitiesQuery
 

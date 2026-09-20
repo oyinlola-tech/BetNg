@@ -13,12 +13,6 @@ from .queries import EvaluateExposureHandler
 
 
 def register_risk_service(container: Container, query_bus: QueryBus) -> None:
-    """Register the risk read handlers with the query bus.
-
-    Args:
-        container: The container the handlers' dependencies come from.
-        query_bus: The bus to register read handlers on.
-    """
     analyser = container.resolve(RISK_ANALYSER_TOKEN)
 
     query_bus.register(EvaluateExposureHandler(analyser))

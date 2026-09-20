@@ -1,7 +1,6 @@
 import { Query } from "@zudojs/cqrs";
 import { BETTING_QUERY } from "../../../../constants/index.js";
 
-/** Asks for one bet by identifier. */
 export class GetBetQuery extends Query<"betting.getBet"> {
   public readonly betId: string;
 

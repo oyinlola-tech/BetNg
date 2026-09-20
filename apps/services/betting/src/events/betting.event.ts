@@ -11,20 +11,16 @@
 import { defineEvent } from "@zudojs/events";
 import type { BetSelection, Currency } from "@betng/contracts";
 
-/** What a placed-bet event carries. */
 export interface BetPlacedPayload {
   readonly betId: string;
   readonly userId: string;
   readonly selections: readonly BetSelection[];
-  /** Simulated stake in minor units. */
   readonly stake: number;
   readonly totalOdds: number;
-  /** Simulated payout if the slip wins, in minor units. */
   readonly potentialPayout: number;
   readonly currency: Currency;
 }
 
-/** Published whenever a bet slip is accepted. */
 export const BetPlacedEvent = defineEvent<"betting.betPlaced", BetPlacedPayload>(
   "betting.betPlaced",
 );

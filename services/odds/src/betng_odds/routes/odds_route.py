@@ -15,14 +15,6 @@ API_PREFIX = "/api/v1"
 
 
 def create_odds_router(controller: OddsController) -> APIRouter:
-    """Bind the odds endpoints to a router.
-
-    Args:
-        controller: The handlers to bind.
-
-    Returns:
-        A router to include on the application.
-    """
     router = APIRouter(prefix=API_PREFIX, tags=["odds"])
 
     @router.get(

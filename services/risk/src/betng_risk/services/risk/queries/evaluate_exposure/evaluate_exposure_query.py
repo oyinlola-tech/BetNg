@@ -1,5 +1,3 @@
-"""The query that assesses a market's exposure."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass

@@ -10,7 +10,6 @@
 import { DomainError } from "@zudojs/errors";
 import { ErrorCodes } from "@betng/contracts";
 
-/** Raised when a match identifier matches nothing. */
 export class MatchNotFoundError extends DomainError {
   public readonly matchId: string;
 

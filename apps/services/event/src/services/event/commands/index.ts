@@ -1,6 +1,4 @@
 /**
- * @betng/event-service/services/event/commands
- *
  * The write side of the event service. Reachable only from inside the
  * platform: a client is a consumer and has no frame that publishes.
  */

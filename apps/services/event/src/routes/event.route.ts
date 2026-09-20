@@ -11,12 +11,6 @@ import { json } from "@betng/service-kit";
 import type { HttpRouter } from "@betng/service-kit";
 import type { EventController } from "../controllers/index.js";
 
-/**
- * Binds the event endpoints to a router.
- *
- * @param router - The router the service dispatches through.
- * @param controller - The handlers to bind.
- */
 export function registerEventRoutes(
   router: HttpRouter,
   controller: EventController,

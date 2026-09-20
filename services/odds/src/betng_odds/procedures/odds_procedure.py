@@ -23,15 +23,6 @@ from ..services.odds.queries import GetMatchOddsQuery
 def create_odds_rpc_server(
     command_bus: CommandBus, query_bus: QueryBus
 ) -> RpcServer:
-    """Build the RPC server holding the odds procedures.
-
-    Args:
-        command_bus: The bus the write handlers are registered on.
-        query_bus: The bus the read handlers are registered on.
-
-    Returns:
-        The server to mount at ``POST /rpc``.
-    """
     server = RpcServer()
 
     async def calculate_odds(payload: CalculateOddsRequest) -> MatchOdds:

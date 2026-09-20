@@ -15,9 +15,4 @@ DEFAULT_PORT = 3007
 
 
 def load_risk_settings() -> ServiceSettings:
-    """Read the risk service configuration from the environment.
-
-    Returns:
-        The frozen settings.
-    """
     return load_settings(SERVICE_NAME, SERVICE_VERSION)

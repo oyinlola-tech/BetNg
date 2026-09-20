@@ -1,5 +1,3 @@
-"""The risk service's CQRS and RPC discriminators."""
-
 from __future__ import annotations
 
 from typing import Final
@@ -17,7 +15,5 @@ class RiskQuery:
 
 
 class RiskProcedure:
-    """RPC procedure names the risk service answers."""
-
     CALCULATE_EXPOSURE: Final = "risk.calculateExposure"
     CALCULATE_LIABILITY: Final = "risk.calculateLiability"

@@ -15,18 +15,10 @@ import type { HttpResponseContext, HttpRouterContext } from "@betng/service-kit"
 import { forward, upstreamPath } from "../services/index.js";
 import type { UpstreamClients, UpstreamName } from "../interfaces/index.js";
 
-/** A handler that forwards one route to its owning service. */
 export type ProxyHandler = (
   context: HttpRouterContext,
 ) => Promise<HttpResponseContext>;
 
-/**
- * Builds a handler that forwards a read to an upstream service.
- *
- * @param clients - The upstream clients.
- * @param upstream - The service that owns the data.
- * @returns A route handler.
- */
 export function proxyRead(
   clients: UpstreamClients,
   upstream: UpstreamName,
@@ -50,11 +42,6 @@ export function proxyRead(
  * The upstream's status is passed through unchanged, so a validation
  * failure reaches the client as the 422 the owning service decided on
  * rather than being flattened into a generic gateway error.
- *
- * @param clients - The upstream clients.
- * @param upstream - The service that owns the data.
- * @param method - The HTTP method to forward with.
- * @returns A route handler.
  */
 export function proxyWrite(
   clients: UpstreamClients,

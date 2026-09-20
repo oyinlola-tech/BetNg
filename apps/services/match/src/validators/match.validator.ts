@@ -11,10 +11,8 @@ import { listMatchesQuerySchema, listTeamsQuerySchema } from "@betng/contracts";
 import type { ListMatchesQuery, ListTeamsQuery } from "@betng/contracts";
 import type { ValidationSchema } from "@zudojs/validation";
 
-/** Guards the query string of `GET /api/v1/matches`. */
 export const listMatchesQueryValidator: ValidationSchema<ListMatchesQuery> =
   listMatchesQuerySchema;
 
-/** Guards the query string of `GET /api/v1/teams`. */
 export const listTeamsQueryValidator: ValidationSchema<ListTeamsQuery> =
   listTeamsQuerySchema;

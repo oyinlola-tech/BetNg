@@ -1,12 +1,3 @@
-/**
- * Assembles the gateway.
- *
- * The gateway is the platform's front door: it owns the public API surface
- * and forwards each route to the service that owns the data. It holds no
- * domain state, so it has no repository, no CQRS buses and no database —
- * only clients, a route table and the shared request pipeline.
- */
-
 import {
   createRedisConnection,
   createServiceLogger,
@@ -21,20 +12,12 @@ import type {
 import { loadClients, loadContainer, loadProbes } from "./loaders/index.js";
 import { registerGatewayRoutes } from "./routes/index.js";
 
-/** The assembled gateway. */
 export interface GatewayApp {
   readonly server: ServiceServer;
   readonly logger: Logger;
-  /** Released on shutdown, in order, after the listener closes. */
   readonly onShutdown: readonly (() => Promise<void>)[];
 }
 
-/**
- * Builds the gateway from its configuration.
- *
- * @param config - The configuration read from the environment.
- * @returns The HTTP server, its logger and the shutdown steps.
- */
 export function createApp(config: ServiceConfig): GatewayApp {
   const logger = createServiceLogger(config);
   const clients = loadClients(config);

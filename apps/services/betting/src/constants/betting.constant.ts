@@ -1,7 +1,3 @@
-/**
- * The betting service's CQRS type discriminators.
- */
-
 export const BETTING_COMMAND = Object.freeze({
   PLACE_BET: "betting.placeBet",
 });

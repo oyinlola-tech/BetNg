@@ -42,10 +42,6 @@ function isRpcRequest(value: unknown): value is RPCRequest {
  * internal detail escape, so this returns 200 with the RPC envelope even for
  * a failed call — the transport succeeded, the procedure did not. The only
  * non-200 here is a frame that is not an RPC request at all.
- *
- * @param router - The router the service dispatches through.
- * @param server - The RPC server holding this service's procedures.
- * @param logger - Where internal failures are recorded.
  */
 export function registerRpcRoute(
   router: HttpRouter,

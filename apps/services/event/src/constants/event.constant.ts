@@ -1,7 +1,3 @@
-/**
- * The event service's CQRS and RPC discriminators.
- */
-
 export const EVENT_COMMAND = Object.freeze({
   PUBLISH_EVENT: "event.publishEvent",
 });
@@ -16,7 +12,6 @@ export const EVENT_QUERY = Object.freeze({
 export type EventQueryType = (typeof EVENT_QUERY)[keyof typeof EVENT_QUERY];
 
 export const EVENT_PROCEDURE = Object.freeze({
-  /** Called by the match service once the simulation has decided an event. */
   PUBLISH_EVENT: "event.publishEvent",
 });
 

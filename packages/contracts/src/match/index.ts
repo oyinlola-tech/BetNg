@@ -1,9 +1,3 @@
-/**
- * @betng/contracts/match
- *
- * Competition structure and the lifecycle of a single virtual match.
- */
-
 export { leagueSchema, teamColorsSchema, teamSchema } from "./league.type.js";
 export type { League, Team, TeamColors } from "./league.type.js";
 

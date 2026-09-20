@@ -24,7 +24,6 @@ import {
 export interface Wallet {
   readonly id: WalletId;
   readonly userId: UserId;
-  /** Simulated balance in minor units. Never negative. */
   readonly balance: number;
   /**
    * The part of `balance` committed to bets that have not settled.
@@ -47,7 +46,6 @@ export const walletSchema = z.object({
   updatedAt: isoTimestampSchema,
 });
 
-/** The body of `POST /api/v1/wallet/deposit`. Simulated. */
 export const depositRequestSchema = z.object({
   userId: brandedIdSchema<"UserId">(),
   amount: minorUnitsSchema.min(1),
@@ -56,7 +54,6 @@ export const depositRequestSchema = z.object({
 
 export type DepositRequest = z.infer<typeof depositRequestSchema>;
 
-/** The body of `POST /api/v1/wallet/withdraw`. Simulated. */
 export const withdrawRequestSchema = depositRequestSchema;
 
 export type WithdrawRequest = z.infer<typeof withdrawRequestSchema>;

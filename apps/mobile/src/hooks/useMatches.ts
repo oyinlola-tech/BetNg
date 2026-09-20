@@ -1,24 +1,14 @@
-/**
- * Reads the matches the lobby lists.
- */
-
 import { useEffect, useState } from "react";
 
 import { api } from "../services";
 import type { Match } from "../types";
 
-/** What the lobby needs to render. */
 export interface MatchesState {
   readonly matches: readonly Match[];
   readonly loading: boolean;
   readonly error: string | undefined;
 }
 
-/**
- * Loads the platform's matches once.
- *
- * @returns The matches, and whether they are still loading.
- */
 export function useMatches(): MatchesState {
   const [matches, setMatches] = useState<readonly Match[]>([]);
   const [loading, setLoading] = useState(true);

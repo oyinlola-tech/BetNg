@@ -1,8 +1,3 @@
-/**
- * Spacing, radius, elevation, breakpoints and stacking.
- */
-
-/** A 4px base. Components use the scale, never arbitrary pixel values. */
 export const spacing = Object.freeze({
   0: 0,
   0.5: 2,
@@ -43,7 +38,6 @@ export const shadow = Object.freeze({
   lg: "0 16px 40px rgba(10, 12, 16, 0.18), 0 2px 8px rgba(10, 12, 16, 0.08)",
 });
 
-/** Min-width breakpoints in pixels, matching Tailwind's defaults. */
 export const breakpoint = Object.freeze({
   sm: 640,
   md: 768,
@@ -60,9 +54,7 @@ export const zIndex = Object.freeze({
   sheet: 30,
   modal: 40,
   toast: 50,
-  /** The broadcast overlay a TV shows during a goal. */
   broadcast: 60,
 });
 
-/** The touch target floor on mobile, in dp. */
 export const minTouchTarget = 44;

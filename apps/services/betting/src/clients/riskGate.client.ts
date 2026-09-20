@@ -21,7 +21,6 @@ import { isRPCError } from "@zudojs/rpc";
 import type { RiskGate } from "../interfaces/index.js";
 import type { ExposureRequest, RiskClient } from "./risk.client.js";
 
-/** The wire code the risk service answers with while its model is unbuilt. */
 const NOT_IMPLEMENTED = "NOT_IMPLEMENTED";
 
 /**
@@ -51,13 +50,6 @@ function toExposureRequest(
   };
 }
 
-/**
- * Creates the RPC-backed risk gate.
- *
- * @param risk - The risk service client.
- * @param logger - Where degraded decisions are recorded.
- * @returns A gate the placement handler can consult.
- */
 export function createRpcRiskGate(risk: RiskClient, logger: Logger): RiskGate {
   return {
     evaluate: async (selections, stake, requestId) => {

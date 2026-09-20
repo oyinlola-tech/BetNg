@@ -22,14 +22,12 @@ import { validate } from "@zudojs/validation";
 import type { ChannelRegistry, ChannelState } from "../interfaces/index.js";
 import { GetChannelStateQuery } from "../services/event/queries/index.js";
 
-/** What the live controller needs. */
 export interface LiveControllerOptions {
   readonly channels: ChannelRegistry;
   readonly queryBus: QueryBus;
   readonly logger: Logger;
 }
 
-/** The connection callbacks the WebSocket adapter drives. */
 export interface LiveController {
   onConnection(session: WebSocketSession): void;
   onMessage(session: WebSocketSession, data: string): Promise<void>;
@@ -40,12 +38,6 @@ function send(session: WebSocketSession, frame: ServerFrame): void {
   session.send(JSON.stringify(frame));
 }
 
-/**
- * Creates the live protocol handler.
- *
- * @param options - The registry, the query bus and a logger.
- * @returns Callbacks for the WebSocket adapter.
- */
 export function createLiveController(
   options: LiveControllerOptions,
 ): LiveController {

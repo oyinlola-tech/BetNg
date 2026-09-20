@@ -20,20 +20,12 @@ import { createServiceDatabase, databaseProbe } from "@betng/service-kit";
 import type { DependencyProbe, ServiceDatabase } from "@betng/service-kit";
 import { PrismaClient } from "../generated/prisma/client.js";
 
-/** The settlement database connection and the probe that watches it. */
 export interface SettlementDatabase {
   readonly database: ServiceDatabase;
   readonly probe: DependencyProbe;
-  /** The generated client, for the repositories that run queries. */
   readonly prisma: PrismaClient;
 }
 
-/**
- * Opens the settlement service's database connection.
- *
- * @param databaseUrl - The value of `SETTLEMENT_DATABASE_URL`.
- * @returns The connection, its readiness probe and the Prisma client.
- */
 export function createSettlementDatabase(databaseUrl: string): SettlementDatabase {
   const prisma = new PrismaClient({
     adapter: new PrismaPg({ connectionString: databaseUrl }),

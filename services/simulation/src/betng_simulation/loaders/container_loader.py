@@ -1,5 +1,3 @@
-"""Builds the dependency-injection container."""
-
 from __future__ import annotations
 
 import logging
@@ -13,15 +11,6 @@ from ..interfaces import SimulationEngine
 def load_container(
     engine: SimulationEngine, logger: logging.Logger
 ) -> Container:
-    """Register the simulation service's singletons.
-
-    Args:
-        engine: The engine the handlers run through.
-        logger: The root logger.
-
-    Returns:
-        The container.
-    """
     container = Container()
 
     container.register_value(SIMULATION_ENGINE_TOKEN, engine)

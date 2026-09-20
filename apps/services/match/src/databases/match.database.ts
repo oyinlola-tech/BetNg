@@ -16,20 +16,12 @@ import { createServiceDatabase, databaseProbe } from "@betng/service-kit";
 import type { DependencyProbe, ServiceDatabase } from "@betng/service-kit";
 import { PrismaClient } from "../generated/prisma/client.js";
 
-/** The match database connection and the probe that watches it. */
 export interface MatchDatabase {
   readonly database: ServiceDatabase;
   readonly probe: DependencyProbe;
-  /** The generated client, for the repositories that run queries. */
   readonly prisma: PrismaClient;
 }
 
-/**
- * Opens the match service's database connection.
- *
- * @param databaseUrl - The value of `MATCH_DATABASE_URL`.
- * @returns The connection, its readiness probe and the Prisma client.
- */
 export function createMatchDatabase(databaseUrl: string): MatchDatabase {
   const prisma = new PrismaClient({
     adapter: new PrismaPg({ connectionString: databaseUrl }),

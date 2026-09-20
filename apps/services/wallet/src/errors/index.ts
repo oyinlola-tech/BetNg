@@ -1,9 +1,3 @@
-/**
- * @betng/wallet-service/errors
- *
- * The domain errors the wallet service raises.
- */
-
 export {
   InsufficientFundsError,
   WalletNotFoundError,

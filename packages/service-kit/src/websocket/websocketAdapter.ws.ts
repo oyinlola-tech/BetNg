@@ -22,29 +22,20 @@ import type {
 import type { Logger } from "@zudojs/logger";
 import { WebSocket, WebSocketServer } from "ws";
 
-/** What the adapter needs to attach itself to a server. */
 export interface WebSocketAdapterOptions {
-  /** The HTTP server to accept upgrades on. */
   readonly server: Server;
-  /** The path clients connect to, e.g. `/live`. */
   readonly path: string;
   readonly logger: Logger;
-  /** Called once per accepted connection. */
   readonly onConnection: (
     session: WebSocketSession,
     request: IncomingMessage,
   ) => void;
-  /** Called for each text frame a client sends. */
   readonly onMessage: (session: WebSocketSession, data: string) => void;
-  /** Called once when a connection closes, however it closed. */
   readonly onClose: (session: WebSocketSession) => void;
 }
 
-/** The adapter, plus the lifecycle the event service drives. */
 export interface BetNgWebSocketAdapter extends WebSocketAdapter {
-  /** Every currently open session. */
   readonly sessions: () => readonly WebSocketSession[];
-  /** Stops accepting upgrades and closes every open session. */
   readonly shutdown: () => Promise<void>;
 }
 
@@ -111,12 +102,6 @@ function createSession(socket: WebSocket): WebSocketSession {
   };
 }
 
-/**
- * Creates the WebSocket adapter and attaches it to an HTTP server.
- *
- * @param options - The server to attach to and the callbacks to drive.
- * @returns The adapter, implementing `@zudojs/adapters`' contract.
- */
 export function createWebSocketAdapter(
   options: WebSocketAdapterOptions,
 ): BetNgWebSocketAdapter {

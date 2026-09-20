@@ -4,7 +4,6 @@ import { MATCH_QUERY } from "../../../../constants/index.js";
 import type { MatchRepository } from "../../../../interfaces/index.js";
 import type { ListLeaguesQuery } from "./listLeagues.query.js";
 
-/** Reads every league from the match repository. */
 export class ListLeaguesHandler extends QueryHandler<
   ListLeaguesQuery,
   readonly League[]

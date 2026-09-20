@@ -20,20 +20,12 @@ import { loadContainer, loadServices } from "./loaders/index.js";
 import { createInMemorySettlementRepository } from "./repositories/index.js";
 import { registerSettlementRoutes } from "./routes/index.js";
 
-/** The assembled settlement service. */
 export interface SettlementApp {
   readonly server: ServiceServer;
   readonly logger: Logger;
-  /** Released on shutdown, in order, after the listener closes. */
   readonly onShutdown: readonly (() => Promise<void>)[];
 }
 
-/**
- * Builds the settlement service from its configuration.
- *
- * @param config - The configuration read from the environment.
- * @returns The HTTP server, its logger and the shutdown steps.
- */
 export function createApp(config: ServiceConfig): SettlementApp {
   const logger = createServiceLogger(config);
   const settlements = createInMemorySettlementRepository();

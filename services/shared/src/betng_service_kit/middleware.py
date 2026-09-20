@@ -19,10 +19,8 @@ from collections.abc import Awaitable, Callable
 from fastapi import FastAPI, Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
-#: The header carrying the correlation identifier between services.
 REQUEST_ID_HEADER = "x-request-id"
 
-#: Where the identifier is stored on the request.
 _REQUEST_ID_STATE = "betng_request_id"
 
 #: A client-supplied identifier is echoed back and written to logs, so it is
@@ -36,19 +34,15 @@ _PROBE_PATHS = frozenset({"/health", "/ready"})
 
 
 def get_request_id(request: Request) -> str:
-    """Return the correlation identifier assigned to a request."""
     return getattr(request.state, _REQUEST_ID_STATE, "unknown")
 
 
 class RequestIdMiddleware(BaseHTTPMiddleware):
-    """Assigns the correlation identifier and echoes it on the response."""
-
     async def dispatch(
         self,
         request: Request,
         call_next: Callable[[Request], Awaitable[Response]],
     ) -> Response:
-        """Assign the identifier, then echo it on the way out."""
         inbound = request.headers.get(REQUEST_ID_HEADER)
 
         request_id = (
@@ -66,10 +60,7 @@ class RequestIdMiddleware(BaseHTTPMiddleware):
 
 
 class AccessLogMiddleware(BaseHTTPMiddleware):
-    """Logs one line when a request arrives and one when it completes."""
-
     def __init__(self, app: FastAPI, logger_name: str) -> None:
-        """Log through the named service logger."""
         super().__init__(app)
         self._logger = logging.getLogger(logger_name)
 
@@ -78,7 +69,6 @@ class AccessLogMiddleware(BaseHTTPMiddleware):
         request: Request,
         call_next: Callable[[Request], Awaitable[Response]],
     ) -> Response:
-        """Log the request, run it, then log the outcome."""
         level = (
             logging.DEBUG
             if request.url.path in _PROBE_PATHS

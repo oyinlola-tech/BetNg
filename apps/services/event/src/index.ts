@@ -1,6 +1,4 @@
 /**
- * @betng/event-service
- *
  * Delivers live match events to web, mobile and TV over WebSocket.
  *
  * The stream is a projection of what the simulation already decided, never

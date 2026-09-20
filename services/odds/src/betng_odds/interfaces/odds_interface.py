@@ -17,14 +17,10 @@ from ..dtos import MatchOdds, OutcomeProbabilities
 
 
 class OddsPricer(Protocol):
-    """Turns outcome probabilities into priced markets."""
-
     async def price(
         self, match_id: str, probabilities: OutcomeProbabilities
     ) -> MatchOdds:
-        """Build the markets for a match from its probabilities."""
         ...
 
     async def current(self, match_id: str) -> MatchOdds:
-        """Return the markets currently priced for a match."""
         ...

@@ -6,7 +6,6 @@ import { EVENT_COMMAND } from "../../../../constants/index.js";
 import type { ChannelRegistry } from "../../../../interfaces/index.js";
 import type { PublishEventCommand } from "./publishEvent.command.js";
 
-/** What publishing produced: the event, and how many sockets received it. */
 export interface PublishResult {
   readonly event: LiveEvent;
   readonly delivered: number;

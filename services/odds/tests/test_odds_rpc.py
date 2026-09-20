@@ -1,5 +1,3 @@
-"""The odds service answers RPC, its primary API, and refuses honestly."""
-
 from __future__ import annotations
 
 from typing import Any

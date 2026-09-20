@@ -1,10 +1,3 @@
-/**
- * @betng/mobile/types
- *
- * The domain types this client renders, from `@betng/contracts` — the same
- * contracts the services are built against.
- */
-
 export type { LiveClient } from "@betng/client-sdk";
 export type {
   Bet,

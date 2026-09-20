@@ -19,14 +19,6 @@ from ..services.risk.queries import EvaluateExposureQuery
 
 
 def create_risk_rpc_server(query_bus: QueryBus) -> RpcServer:
-    """Build the RPC server holding the risk procedures.
-
-    Args:
-        query_bus: The bus the read handlers are registered on.
-
-    Returns:
-        The server to mount at ``POST /rpc``.
-    """
     server = RpcServer()
 
     async def evaluate(payload: ExposureRequest) -> ExposureReport:

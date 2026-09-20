@@ -20,21 +20,12 @@ import {
 import { DepositFundsHandler, WithdrawFundsHandler } from "./commands/index.js";
 import { GetWalletHandler, ListTransactionsHandler } from "./queries/index.js";
 
-/** What the wallet service registration needs. */
 export interface WalletServiceConfig {
-  /** The container the handlers' dependencies are resolved from. */
   readonly container: Container;
-  /** The command bus to register write handlers on. */
   readonly commandBus: CommandBus;
-  /** The query bus to register read handlers on. */
   readonly queryBus: QueryBus;
 }
 
-/**
- * Registers the wallet handlers with their buses.
- *
- * @param config - The container and the buses to register on.
- */
 export function registerWalletService(config: WalletServiceConfig): void {
   const { container, commandBus, queryBus } = config;
 

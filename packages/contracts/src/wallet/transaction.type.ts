@@ -16,7 +16,6 @@ import {
   type WalletId,
 } from "../common/index.js";
 
-/** The kinds of entry the simulated ledger records. */
 export const transactionTypeSchema = z.enum([
   "DEPOSIT",
   "WITHDRAWAL",
@@ -27,7 +26,6 @@ export const transactionTypeSchema = z.enum([
 
 export type TransactionType = z.infer<typeof transactionTypeSchema>;
 
-/** One append-only ledger entry. */
 export interface Transaction {
   readonly id: TransactionId;
   readonly walletId: WalletId;
@@ -39,7 +37,6 @@ export interface Transaction {
    */
   readonly amount: number;
   readonly currency: Currency;
-  /** The wallet balance immediately after this entry was applied. */
   readonly balanceAfter: number;
   /**
    * The domain object that caused this entry: a bet identifier for

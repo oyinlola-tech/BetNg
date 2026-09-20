@@ -17,21 +17,9 @@ from ..interfaces import RiskAnalyser
 
 
 class UnbuiltRiskAnalyser(RiskAnalyser):
-    """An analyser that refuses, pending the real model."""
-
     async def evaluate(self, request: ExposureRequest) -> ExposureReport:
-        """Refuse to assess a market's exposure.
-
-        Raises:
-            RiskAnalysisNotBuiltError: Always.
-        """
         raise RiskAnalysisNotBuiltError("an exposure report")
 
 
 def create_risk_analyser() -> RiskAnalyser:
-    """Create the analyser this phase ships.
-
-    Returns:
-        The analyser registered in the container.
-    """
     return UnbuiltRiskAnalyser()

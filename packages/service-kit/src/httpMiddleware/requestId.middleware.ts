@@ -15,7 +15,6 @@
 import { REQUEST_ID_HEADER } from "@betng/contracts";
 import type { HttpMiddleware, HttpRequestContext } from "@zudojs/http";
 
-/** The key the request identifier is stored under on the request context. */
 export const REQUEST_ID_STATE = "betng.requestId";
 
 /**
@@ -25,12 +24,6 @@ export const REQUEST_ID_STATE = "betng.requestId";
  */
 const SAFE_REQUEST_ID = /^[A-Za-z0-9_.:-]{8,128}$/;
 
-/**
- * Returns the correlation identifier the pipeline assigned to a request.
- *
- * @param request - The request context.
- * @returns The correlation identifier.
- */
 export function getRequestId(request: HttpRequestContext): string {
   return request.getState<string>(REQUEST_ID_STATE) ?? request.id;
 }
@@ -40,8 +33,6 @@ export function getRequestId(request: HttpRequestContext): string {
  *
  * Registered first in the pipeline so every later stage — logging, the
  * error handler, the router — can rely on the identifier being present.
- *
- * @returns The middleware.
  */
 export function createRequestIdMiddleware(): HttpMiddleware {
   return async (context, next) => {

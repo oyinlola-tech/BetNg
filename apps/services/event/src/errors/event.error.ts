@@ -1,11 +1,6 @@
-/**
- * Event domain errors.
- */
-
 import { DomainError } from "@zudojs/errors";
 import { ErrorCodes } from "@betng/contracts";
 
-/** Raised when a client asks for a channel the service does not serve. */
 export class UnknownChannelError extends DomainError {
   public readonly channel: string;
 
@@ -25,7 +20,6 @@ export class UnknownChannelError extends DomainError {
   }
 }
 
-/** Raised when a client sends a frame the protocol does not define. */
 export class InvalidClientFrameError extends DomainError {
   public constructor(reason: string) {
     super(`The frame was rejected: ${reason}`, {

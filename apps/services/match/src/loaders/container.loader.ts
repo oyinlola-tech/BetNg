@@ -12,18 +12,11 @@ import type { Logger } from "@betng/service-kit";
 import { LOGGER_TOKEN, MATCH_REPOSITORY_TOKEN } from "../constants/index.js";
 import type { MatchRepository } from "../interfaces/index.js";
 
-/** What the container is built from. */
 export interface ContainerLoaderConfig {
   readonly matches: MatchRepository;
   readonly logger: Logger;
 }
 
-/**
- * Registers the match service's singletons.
- *
- * @param config - The instances to register.
- * @returns The started container.
- */
 export function loadContainer(config: ContainerLoaderConfig): Container {
   const container = createContainer();
 

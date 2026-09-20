@@ -1,7 +1,3 @@
-/**
- * Gateway entrypoint.
- */
-
 import { runService } from "@betng/service-kit";
 import { createApp } from "./app.js";
 import { loadGatewayConfig } from "./configs/index.js";

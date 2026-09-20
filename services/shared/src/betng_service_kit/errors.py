@@ -19,7 +19,6 @@ from starlette.exceptions import HTTPException
 
 from .middleware import get_request_id
 
-#: The error codes BetNG services return, matching ``@betng/contracts``.
 VALIDATION_FAILED = "VALIDATION_FAILED"
 NOT_FOUND = "NOT_FOUND"
 METHOD_NOT_ALLOWED = "METHOD_NOT_ALLOWED"
@@ -31,7 +30,6 @@ INTERNAL_ERROR = "INTERNAL_ERROR"
 #: is not built yet. Answered with 501 rather than a fabricated result.
 NOT_IMPLEMENTED = "NOT_IMPLEMENTED"
 
-#: The message sent when nothing may be revealed about a failure.
 OPAQUE_MESSAGE = "An unexpected error occurred."
 
 _STATUS_CODES = {
@@ -60,7 +58,6 @@ class ServiceError(Exception):
         status_code: int = 500,
         details: list[dict[str, str]] | None = None,
     ) -> None:
-        """Record the status, code and detail the client will be told."""
         super().__init__(message)
         self.message = message
         self.code = code
@@ -74,7 +71,6 @@ def build_error_body(
     request_id: str,
     details: list[dict[str, str]] | None = None,
 ) -> dict[str, Any]:
-    """Build the envelope every BetNG failure is rendered as."""
     error: dict[str, Any] = {
         "code": code,
         "message": message,
@@ -88,12 +84,6 @@ def build_error_body(
 
 
 def install_error_handlers(app: FastAPI) -> None:
-    """Install the handlers that render every failure as the envelope.
-
-    Args:
-        app: The application to install them on.
-    """
-
     @app.exception_handler(ServiceError)
     async def _service_error(
         request: Request, exc: ServiceError

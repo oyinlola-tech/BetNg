@@ -1,10 +1,3 @@
-/**
- * @betng/contracts/common
- *
- * Primitives, the REST envelope, health shapes and the error vocabulary
- * shared by every BetNG domain.
- */
-
 export {
   asId,
   brandedIdSchema,

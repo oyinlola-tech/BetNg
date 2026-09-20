@@ -15,12 +15,6 @@ export const SERVICE_VERSION = "0.1.0";
 
 export const DEFAULT_PORT = 3001;
 
-/**
- * Reads the match service configuration from the environment.
- *
- * @param env - Overrides `process.env`. Used by the tests.
- * @returns The resolved configuration.
- */
 export async function loadMatchConfig(
   env?: Readonly<Record<string, string | undefined>>,
 ): Promise<ServiceConfig> {

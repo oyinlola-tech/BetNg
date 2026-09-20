@@ -1,16 +1,3 @@
-/**
- * Assembles the match service.
- *
- * The pieces are wired in dependency order: the repository the handlers
- * read through, the query bus they register on, the controller that
- * dispatches to it, and the HTTP server that binds the routes.
- *
- * `@betng/service-kit` supplies everything that must not differ between
- * BetNG services — the logger, the request pipeline, the error envelope and
- * the health endpoints — so this file contains only what is specific to the
- * match service.
- */
-
 import { createServiceLogger, createServiceServer } from "@betng/service-kit";
 import type {
   DependencyProbe,
@@ -24,20 +11,12 @@ import { loadContainer, loadServices } from "./loaders/index.js";
 import { createInMemoryMatchRepository } from "./repositories/index.js";
 import { registerMatchRoutes } from "./routes/index.js";
 
-/** The assembled match service. */
 export interface MatchApp {
   readonly server: ServiceServer;
   readonly logger: Logger;
-  /** Released on shutdown, in order, after the listener closes. */
   readonly onShutdown: readonly (() => Promise<void>)[];
 }
 
-/**
- * Builds the match service from its configuration.
- *
- * @param config - The configuration read from the environment.
- * @returns The HTTP server, its logger and the shutdown steps.
- */
 export function createApp(config: ServiceConfig): MatchApp {
   const logger = createServiceLogger(config);
   const matches = createInMemoryMatchRepository();

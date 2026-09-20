@@ -1,12 +1,3 @@
-/**
- * Match HTTP handlers.
- *
- * A controller is the translation layer and nothing else: it validates what
- * arrived, dispatches one query on the bus, and returns the value. No data
- * access and no domain rules live here, which is what keeps the read side
- * reusable by a caller that is not HTTP.
- */
-
 import type { HttpRouterContext } from "@betng/service-kit";
 import { parseQuery, requireParam } from "@betng/service-kit";
 import type { Fixture, League, Match, Team } from "@betng/contracts";
@@ -23,7 +14,6 @@ import {
   listTeamsQueryValidator,
 } from "../validators/index.js";
 
-/** The handlers the match routes bind to. */
 export interface MatchController {
   listLeagues(): Promise<{ readonly items: readonly League[] }>;
   listTeams(
@@ -36,12 +26,6 @@ export interface MatchController {
   getMatch(context: HttpRouterContext): Promise<Match>;
 }
 
-/**
- * Creates the match controller.
- *
- * @param queryBus - The bus the read handlers are registered on.
- * @returns Handlers ready to bind to routes.
- */
 export function createMatchController(queryBus: QueryBus): MatchController {
   return {
     listLeagues: async () => ({

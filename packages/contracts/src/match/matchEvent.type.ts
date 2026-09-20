@@ -1,10 +1,3 @@
-/**
- * Match timeline contracts.
- *
- * Events are produced by the simulation service once a match has been
- * played and stored by the match service.
- */
-
 import { z } from "@zudojs/validation";
 import {
   brandedIdSchema,
@@ -31,14 +24,11 @@ export const matchSideSchema = z.enum(["HOME", "AWAY"]);
 
 export type MatchSide = z.infer<typeof matchSideSchema>;
 
-/** One entry on a played match's timeline. */
 export interface MatchEvent {
   readonly id: MatchEventId;
   readonly matchId: MatchId;
   readonly type: MatchEventType;
-  /** Match minute, 0 to 120. */
   readonly minute: number;
-  /** Absent for an event belonging to neither side, such as `HALF_TIME`. */
   readonly side?: MatchSide;
   /** The player the event is about: scorer, booked player, player coming on. */
   readonly player?: string | undefined;

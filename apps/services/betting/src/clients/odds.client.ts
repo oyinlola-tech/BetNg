@@ -11,13 +11,11 @@ import { createRpcClient } from "@betng/service-kit";
 import type { ServiceEndpoint } from "@betng/service-kit";
 import { createRPCMetadata, RPCClient } from "@zudojs/rpc";
 
-/** The procedures the odds service answers. */
 export const ODDS_PROCEDURE = Object.freeze({
   CALCULATE_ODDS: "odds.calculateOdds",
   GET_MATCH_ODDS: "odds.getMatchOdds",
 });
 
-/** One priced outcome, as the odds service reports it. */
 export interface Selection {
   readonly id: string;
   readonly marketId: string;
@@ -27,7 +25,6 @@ export interface Selection {
   readonly probability: number;
 }
 
-/** Every market currently priced for a match. */
 export interface MatchOdds {
   readonly matchId: string;
   readonly markets: readonly {
@@ -41,7 +38,6 @@ export interface MatchOdds {
   readonly generatedAt: string;
 }
 
-/** A typed façade over the raw RPC client. */
 export interface OddsClient {
   readonly getMatchOdds: (
     matchId: string,
@@ -50,12 +46,6 @@ export interface OddsClient {
   readonly raw: RPCClient;
 }
 
-/**
- * Creates the odds client.
- *
- * @param endpoint - The odds service's address, from configuration.
- * @returns A typed client.
- */
 export function createOddsClient(endpoint: ServiceEndpoint): OddsClient {
   const client = createRpcClient(endpoint);
 

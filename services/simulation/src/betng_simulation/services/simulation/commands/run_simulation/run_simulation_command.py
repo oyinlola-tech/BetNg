@@ -1,5 +1,3 @@
-"""The command that plays one virtual match."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass

@@ -1,5 +1,3 @@
-"""The handler behind ``POST /api/v1/simulations``."""
-
 from __future__ import annotations
 
 from betng_service_kit import CommandHandler

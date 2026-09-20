@@ -1,7 +1,3 @@
-/**
- * Build step: writes `css/tokens.css` from the TypeScript tokens.
- */
-
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";

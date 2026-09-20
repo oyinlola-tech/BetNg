@@ -28,24 +28,13 @@ import { createEventRpcServer } from "./procedures/index.js";
 import { createInMemoryChannelRegistry } from "./repositories/index.js";
 import { registerEventRoutes } from "./routes/index.js";
 
-/** The assembled event service. */
 export interface EventApp {
   readonly server: ServiceServer;
   readonly logger: Logger;
-  /** The WebSocket adapter, for tests and for shutdown. */
   readonly websocket: BetNgWebSocketAdapter;
-  /** Released on shutdown, in order, after the listener closes. */
   readonly onShutdown: readonly (() => Promise<void>)[];
 }
 
-/**
- * Builds the event service from its configuration.
- *
- * @param config - The configuration read from the environment.
- * @param httpServer - The server to serve on. Created when omitted; the
- *   tests pass their own so they can bind an ephemeral port.
- * @returns The HTTP server, the WebSocket adapter and the shutdown steps.
- */
 export function createApp(
   config: ServiceConfig,
   httpServer: Server = createServer(),

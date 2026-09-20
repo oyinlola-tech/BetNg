@@ -23,10 +23,6 @@ import type { DependencyProbe } from "../healthProbe/index.js";
  * now. It answers 200 only when all of them are reachable and 503
  * otherwise, so a service with a dead database is taken out of rotation
  * rather than handed requests it cannot serve.
- *
- * @param router - The router to register on.
- * @param config - The service's configuration.
- * @param probes - The dependencies to probe. Empty when there are none.
  */
 export function registerHealthRoutes(
   router: HttpRouter,

@@ -15,7 +15,6 @@ import type {
   Team,
 } from "@betng/contracts";
 
-/** The filters `listMatches` accepts. */
 export interface MatchFilter {
   readonly leagueId?: string;
   readonly status?: MatchStatus;

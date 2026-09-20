@@ -39,7 +39,6 @@ export interface MatchFilter {
   readonly phases?: readonly MatchPhase[];
   readonly season?: number;
   readonly matchday?: number;
-  /** A local calendar date, `YYYY-MM-DD`, for results browsing. */
   readonly date?: string;
   readonly teamId?: TeamId;
   readonly limit?: number;
@@ -55,7 +54,6 @@ export interface LiveSubscription {
 }
 
 export interface BetNgDataSource {
-  /* ---- Competition ------------------------------------------------- */
   listLeagues(): Promise<readonly LeagueView[]>;
   getLeague(leagueId: LeagueId): Promise<LeagueView>;
   listTeams(leagueId?: LeagueId): Promise<readonly TeamView[]>;
@@ -63,20 +61,15 @@ export interface BetNgDataSource {
   getStandings(leagueId: LeagueId, season?: number): Promise<StandingsView>;
   getTopScorers(leagueId: LeagueId, season?: number): Promise<readonly TopScorer[]>;
 
-  /* ---- Matches ----------------------------------------------------- */
   listMatches(filter?: MatchFilter): Promise<readonly MatchSummary[]>;
   getMatch(matchId: MatchId): Promise<MatchView>;
   getMatchMarkets(matchId: MatchId): Promise<MatchMarketsView>;
-  /** Matchday numbers with at least one completed match, newest first. */
   listCompletedMatchdays(leagueId: LeagueId, season?: number): Promise<readonly number[]>;
 
-  /* ---- Live -------------------------------------------------------- */
   subscribeMatch(matchId: MatchId, handlers: LiveMatchHandlers): LiveSubscription;
-  /** The shared connection state, for a global banner. */
   subscribeConnection(listener: (state: ConnectionState) => void): () => void;
   getConnectionState(): ConnectionState;
 
-  /* ---- Account (simulated) ----------------------------------------- */
   getWallet(): Promise<WalletView>;
   listTransactions(): Promise<readonly TransactionView[]>;
   deposit(amount: number): Promise<WalletView>;
@@ -88,15 +81,12 @@ export interface BetNgDataSource {
   markNotificationsRead(ids?: readonly string[]): Promise<void>;
   getNotificationPreferences(): Promise<NotificationPreferences>;
   setNotificationPreferences(preferences: NotificationPreferences): Promise<void>;
-  /** Matches the user opened, most recent first. */
   listViewedMatches(): Promise<readonly MatchSummary[]>;
   recordView(matchId: MatchId): void;
 
-  /** Notifies listeners that account state (wallet, bets, notifications) changed. */
   subscribeAccount(listener: () => void): () => void;
 }
 
-/** Thrown by a data source for a failure a screen should show. */
 export class DataSourceError extends Error {
   public constructor(
     public readonly code:

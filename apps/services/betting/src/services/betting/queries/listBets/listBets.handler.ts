@@ -7,7 +7,6 @@ import type {
 } from "../../../../interfaces/index.js";
 import type { ListBetsQuery } from "./listBets.query.js";
 
-/** Reads bets from the betting repository. */
 export class ListBetsHandler extends QueryHandler<
   ListBetsQuery,
   readonly Bet[]

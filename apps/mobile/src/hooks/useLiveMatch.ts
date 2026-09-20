@@ -16,7 +16,6 @@ import { useCallback, useEffect, useState } from "react";
 import { api, openLiveStream } from "../services";
 import type { LiveEvent, Match } from "../types";
 
-/** What a consumer of the live stream sees. */
 export interface LiveMatchState {
   readonly match: Match | undefined;
   readonly events: readonly LiveEvent[];
@@ -27,12 +26,6 @@ export interface LiveMatchState {
 
 const NO_SCORE = { home: 0, away: 0 } as const;
 
-/**
- * Watches one match.
- *
- * @param matchId - The match to watch, or undefined to watch nothing.
- * @returns The match, its live events and the connection state.
- */
 export function useLiveMatch(matchId: string | undefined): LiveMatchState {
   const [match, setMatch] = useState<Match | undefined>(undefined);
   const [events, setEvents] = useState<readonly LiveEvent[]>([]);

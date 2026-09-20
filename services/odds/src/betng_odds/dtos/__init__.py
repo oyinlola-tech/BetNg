@@ -1,5 +1,3 @@
-"""The wire shapes of the odds service."""
-
 from .odds_dto import (
     CalculateOddsRequest,
     GetMatchOddsRequest,

@@ -15,34 +15,25 @@
  */
 
 export interface ColorTheme {
-  /** The page. */
   readonly background: string;
-  /** A panel resting on the page. */
   readonly surface: string;
-  /** A panel raised above other panels: menus, sheets, dialogs. */
   readonly surfaceElevated: string;
-  /** A recessed well inside a surface: odds buttons, inputs, table stripes. */
   readonly surfaceSunken: string;
-  /** Tinted surface for a hover or selected row. */
   readonly surfaceHover: string;
 
   readonly textPrimary: string;
   readonly textSecondary: string;
   readonly textMuted: string;
-  /** Text placed on a brand-coloured surface. */
   readonly textOnBrand: string;
-  /** Text placed on a live-coloured surface. */
   readonly textOnLive: string;
 
   readonly border: string;
   readonly borderStrong: string;
-  /** The focus ring. Distinct from brand so it reads even on a brand button. */
   readonly focusRing: string;
 
   readonly brand: string;
   readonly brandHover: string;
   readonly brandActive: string;
-  /** A wash of brand for selected backgrounds and highlighted rows. */
   readonly brandSubtle: string;
 
   readonly success: string;
@@ -51,13 +42,10 @@ export interface ColorTheme {
   readonly dangerSubtle: string;
   readonly warning: string;
   readonly warningSubtle: string;
-  /** The live indicator. Reserved for in-play state and nothing else. */
   readonly live: string;
   readonly liveSubtle: string;
 
-  /** Scrim behind a modal or sheet. */
   readonly overlay: string;
-  /** The skeleton shimmer base. */
   readonly skeleton: string;
 }
 
@@ -138,10 +126,4 @@ export const themes: Readonly<Record<ThemeName, ColorTheme>> = Object.freeze({
   dark: darkTheme,
 });
 
-/**
- * The colour a match state is drawn in, by role rather than by value.
- *
- * Shared by all three clients so a "live" badge means the same thing on a
- * phone, a desktop and a television.
- */
 export type StateTone = "live" | "brand" | "neutral" | "muted" | "success" | "warning";

@@ -19,12 +19,6 @@ import { publishEventPayloadSchema } from "../dtos/index.js";
 import type { PublishResult } from "../services/event/commands/index.js";
 import { PublishEventCommand } from "../services/event/commands/index.js";
 
-/**
- * Builds the RPC server holding the event procedures.
- *
- * @param commandBus - The bus the publish handler is registered on.
- * @returns The server to mount at `POST /rpc`.
- */
 export function createEventRpcServer(commandBus: CommandBus): RPCServer {
   const server = new RPCServer();
 

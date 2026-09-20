@@ -1,7 +1,3 @@
-/**
- * The frame every web page sits in.
- */
-
 export interface AppLayoutProps {
   readonly children: React.ReactNode;
 }

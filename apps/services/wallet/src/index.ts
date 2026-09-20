@@ -1,6 +1,4 @@
 /**
- * @betng/wallet-service
- *
  * Simulated balances, simulated deposits and withdrawals, and the
  * append-only transaction ledger.
  *

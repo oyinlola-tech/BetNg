@@ -25,20 +25,12 @@ import { loadContainer, loadEvents, loadServices } from "./loaders/index.js";
 import { createInMemoryWalletRepository } from "./repositories/index.js";
 import { registerWalletRoutes } from "./routes/index.js";
 
-/** The assembled wallet service. */
 export interface WalletApp {
   readonly server: ServiceServer;
   readonly logger: Logger;
-  /** Released on shutdown, in order, after the listener closes. */
   readonly onShutdown: readonly (() => Promise<void>)[];
 }
 
-/**
- * Builds the wallet service from its configuration.
- *
- * @param config - The configuration read from the environment.
- * @returns The HTTP server, its logger and the shutdown steps.
- */
 export function createApp(config: ServiceConfig): WalletApp {
   const logger = createServiceLogger(config);
   const wallets = createInMemoryWalletRepository();

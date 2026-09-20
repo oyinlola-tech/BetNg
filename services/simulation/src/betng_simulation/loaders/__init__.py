@@ -1,5 +1,3 @@
-"""Bootstrap wiring: what gets registered, and with what."""
-
 from .container_loader import load_container
 from .services_loader import load_services
 

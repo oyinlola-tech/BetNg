@@ -10,12 +10,8 @@ from typing import Final
 
 
 class SimulationCommand:
-    """Command types the simulation service handles."""
-
     RUN_SIMULATION: Final = "simulation.runSimulation"
 
 
 class SimulationQuery:
-    """Query types the simulation service handles."""
-
     GET_PROBABILITIES: Final = "simulation.getProbabilities"

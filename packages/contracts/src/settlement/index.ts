@@ -1,9 +1,3 @@
-/**
- * @betng/contracts/settlement
- *
- * The record of a bet being resolved against a completed match result.
- */
-
 export {
   settledSelectionSchema,
   settlementOutcomeSchema,

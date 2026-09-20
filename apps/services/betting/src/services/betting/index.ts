@@ -1,10 +1,3 @@
-/**
- * The betting application service.
- *
- * Resolves its dependencies from the ZudoJS container, so the composition
- * of the betting domain is declared once, at registration.
- */
-
 import type { Container } from "@zudojs/container";
 import type { CommandBus, QueryBus } from "@zudojs/cqrs";
 import {
@@ -17,21 +10,12 @@ import {
 import { PlaceBetHandler } from "./commands/index.js";
 import { GetBetHandler, ListBetsHandler } from "./queries/index.js";
 
-/** What the betting service registration needs. */
 export interface BettingServiceConfig {
-  /** The container the handlers' dependencies are resolved from. */
   readonly container: Container;
-  /** The command bus to register write handlers on. */
   readonly commandBus: CommandBus;
-  /** The query bus to register read handlers on. */
   readonly queryBus: QueryBus;
 }
 
-/**
- * Registers the betting handlers with their buses.
- *
- * @param config - The container and the buses to register on.
- */
 export function registerBettingService(config: BettingServiceConfig): void {
   const { container, commandBus, queryBus } = config;
 

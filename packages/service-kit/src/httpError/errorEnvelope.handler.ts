@@ -28,20 +28,11 @@ import {
   unwrapStatusError,
 } from "./errorEnvelope.resolver.js";
 
-/** Renders any thrown value as a BetNG error response. */
 export type ServiceErrorHandler = (
   error: unknown,
   request: HttpRequestContext,
 ) => HttpResponseContext;
 
-/**
- * Creates the handler installed as the HTTP server's `errorHandler`.
- *
- * It is the single place a failure becomes a response body.
- *
- * @param logger - The logger failures are reported through.
- * @returns The error handler.
- */
 export function createErrorHandler(logger: Logger): ServiceErrorHandler {
   return (error, request) => {
     const requestId = getRequestId(request);

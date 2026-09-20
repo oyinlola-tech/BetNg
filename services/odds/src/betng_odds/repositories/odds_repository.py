@@ -18,31 +18,14 @@ from ..interfaces import OddsPricer
 
 
 class UnbuiltOddsPricer(OddsPricer):
-    """A pricer that refuses, pending the real model."""
-
     async def price(
         self, match_id: str, probabilities: OutcomeProbabilities
     ) -> MatchOdds:
-        """Refuse to price a match.
-
-        Raises:
-            OddsPricingNotBuiltError: Always.
-        """
         raise OddsPricingNotBuiltError("priced markets")
 
     async def current(self, match_id: str) -> MatchOdds:
-        """Refuse to return a match's current markets.
-
-        Raises:
-            OddsPricingNotBuiltError: Always.
-        """
         raise OddsPricingNotBuiltError("a match's current markets")
 
 
 def create_odds_pricer() -> OddsPricer:
-    """Create the pricer this phase ships.
-
-    Returns:
-        The pricer registered in the container.
-    """
     return UnbuiltOddsPricer()

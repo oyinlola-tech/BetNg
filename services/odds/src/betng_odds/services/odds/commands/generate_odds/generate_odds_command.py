@@ -1,5 +1,3 @@
-"""The command that prices a match's markets."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -12,8 +10,6 @@ from .....dtos import CalculateOddsRequest
 
 @dataclass(frozen=True)
 class GenerateOddsCommand(Command):
-    """Asks for a match's markets to be priced from its probabilities."""
-
     request: CalculateOddsRequest
 
     type: str = OddsCommand.GENERATE_ODDS

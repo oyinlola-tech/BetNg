@@ -14,14 +14,6 @@ API_PREFIX = "/api/v1"
 
 
 def create_risk_router(controller: RiskController) -> APIRouter:
-    """Bind the risk endpoints to a router.
-
-    Args:
-        controller: The handlers to bind.
-
-    Returns:
-        A router to include on the application.
-    """
     router = APIRouter(prefix=API_PREFIX, tags=["risk"])
 
     @router.post(

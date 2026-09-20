@@ -34,10 +34,8 @@ from pydantic import BaseModel, Field, ValidationError
 
 from .errors import ServiceError
 
-#: Where every BetNG service mounts its RPC endpoint.
 RPC_PATH = "/rpc"
 
-#: Wire codes, mirroring the ones ``RPCServer`` emits in ``@zudojs/rpc``.
 RPC_PROCEDURE_NOT_FOUND = "RPC_PROCEDURE_NOT_FOUND"
 RPC_VALIDATION_ERROR = "RPC_VALIDATION_ERROR"
 RPC_INVALID_REQUEST = "RPC_INVALID_REQUEST"
@@ -52,8 +50,6 @@ INTERNAL_RPC_MESSAGE = "An internal error occurred."
 
 
 class RpcRequestFrame(BaseModel):
-    """An incoming RPC request."""
-
     id: str
     procedure: str
     payload: Any = None
@@ -62,16 +58,12 @@ class RpcRequestFrame(BaseModel):
 
 
 class RpcErrorPayload(BaseModel):
-    """The error half of an RPC response."""
-
     code: str
     message: str
     details: Any = None
 
 
 class RpcResponseFrame(BaseModel):
-    """An outgoing RPC response."""
-
     id: str
     success: bool
     result: Any = None
@@ -80,12 +72,9 @@ class RpcResponseFrame(BaseModel):
 
 
 class RpcError(Exception):
-    """A failure a procedure can describe to its caller."""
-
     def __init__(
         self, code: str, message: str, details: Any = None
     ) -> None:
-        """Record the wire code, message and detail the caller will receive."""
         super().__init__(message)
         self.code = code
         self.message = message
@@ -101,38 +90,28 @@ class RpcNotImplementedError(RpcError):
     """
 
     def __init__(self, capability: str) -> None:
-        """Name what cannot be produced yet."""
         super().__init__(
             RPC_NOT_IMPLEMENTED,
             f"{capability} is not implemented yet. See docs/api/rpc.md.",
         )
 
 
-#: What a procedure does: take a payload, return a result.
 RpcHandler = Callable[[Any], Awaitable[Any]]
 
 
 @dataclass(frozen=True)
 class RpcProcedure:
-    """One named, callable procedure."""
-
     name: str
     handler: RpcHandler
-    #: The model the payload is validated against before the handler runs.
     payload_model: type[BaseModel] | None = None
 
 
 @dataclass
 class RpcServer:
-    """Holds a service's procedures and dispatches to them."""
-
     procedures: dict[str, RpcProcedure] = field(default_factory=dict)
 
     def register(self, procedure: RpcProcedure) -> None:
         """Register a procedure.
-
-        Args:
-            procedure: The procedure to register.
 
         Raises:
             ValueError: When the name is already registered, which is a wiring
@@ -146,7 +125,6 @@ class RpcServer:
         self.procedures[procedure.name] = procedure
 
     def size(self) -> int:
-        """Return the number of registered procedures."""
         return len(self.procedures)
 
     async def handle(self, frame: RpcRequestFrame) -> RpcResponseFrame:
@@ -154,12 +132,6 @@ class RpcServer:
 
         Every failure is mapped to a typed wire code. An unexpected exception
         is answered with a fixed message, never its text.
-
-        Args:
-            frame: The decoded request.
-
-        Returns:
-            The response to send back.
         """
         procedure = self.procedures.get(frame.procedure)
 
@@ -237,12 +209,6 @@ def create_rpc_router(server: RpcServer) -> APIRouter:
     A failed *procedure* still answers 200 with the RPC envelope: the
     transport succeeded, the call did not. The only non-200 is a body that is
     not an RPC frame at all.
-
-    Args:
-        server: The procedures this service exposes.
-
-    Returns:
-        A router to include on the application.
     """
     router = APIRouter(tags=["rpc"])
 
@@ -256,16 +222,7 @@ def create_rpc_router(server: RpcServer) -> APIRouter:
 
 
 class RpcClient:
-    """Calls a peer service's procedures over HTTP."""
-
     def __init__(self, base_url: str, peer: str, timeout_ms: int) -> None:
-        """Point the client at one peer.
-
-        Args:
-            base_url: The peer's base URL, from configuration.
-            peer: The peer's name, used in error messages.
-            timeout_ms: How long to wait before giving up.
-        """
         self._url = base_url.rstrip("/") + RPC_PATH
         self._peer = peer
         self._timeout = timeout_ms / 1000
@@ -273,19 +230,6 @@ class RpcClient:
     async def call(
         self, procedure: str, payload: Any, *, request_id: str | None = None
     ) -> Any:
-        """Call a procedure on the peer.
-
-        Args:
-            procedure: The procedure name, e.g. ``"risk.calculateExposure"``.
-            payload: The procedure's input.
-            request_id: The correlation identifier to carry across the hop.
-
-        Returns:
-            The procedure's result.
-
-        Raises:
-            RpcError: When the peer refused, failed or could not be reached.
-        """
         frame = {
             "id": str(uuid.uuid4()),
             "procedure": procedure,

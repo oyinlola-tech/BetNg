@@ -1,7 +1,3 @@
-/**
- * Match lifecycle contracts, owned by the match service.
- */
-
 import { z } from "@zudojs/validation";
 import {
   brandedIdSchema,
@@ -28,7 +24,6 @@ export const matchStatusSchema = z.enum([
 
 export type MatchStatus = z.infer<typeof matchStatusSchema>;
 
-/** The final score of a completed match. */
 export interface MatchScore {
   readonly home: number;
   readonly away: number;
@@ -43,9 +38,7 @@ export interface Match {
   readonly id: MatchId;
   readonly fixtureId: FixtureId;
   readonly status: MatchStatus;
-  /** Present only once `status` is `COMPLETED`. */
   readonly score?: MatchScore;
-  /** When the simulation produced the result. */
   readonly completedAt?: string;
   readonly createdAt: string;
   readonly updatedAt: string;

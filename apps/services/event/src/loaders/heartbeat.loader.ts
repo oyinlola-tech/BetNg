@@ -18,16 +18,8 @@ import {
 } from "../constants/index.js";
 import type { ChannelRegistry } from "../interfaces/index.js";
 
-/** Stops the heartbeat. */
 export type StopHeartbeat = () => void;
 
-/**
- * Starts pinging open connections.
- *
- * @param channels - The registry of open connections.
- * @param logger - Where closed-stale connections are reported.
- * @returns A function that stops the heartbeat.
- */
 export function loadHeartbeat(
   channels: ChannelRegistry,
   logger: Logger,

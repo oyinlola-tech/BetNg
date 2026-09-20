@@ -11,7 +11,6 @@
 import { asId } from "@betng/contracts";
 import type { Fixture, League, Match, Team } from "@betng/contracts";
 
-/** Stable identifiers, quoted in `docs/api.md`. */
 export const DEMO_IDS = Object.freeze({
   leagueId: "11111111-1111-4111-8111-111111111111",
   homeTeamId: "22222222-2222-4222-8222-222222222221",
@@ -20,13 +19,10 @@ export const DEMO_IDS = Object.freeze({
   matchId: "44444444-4444-4444-8444-444444444444",
 });
 
-/** How long before kick-off the betting window closes. */
 const BETTING_WINDOW_MS = 60 * 60 * 1000;
 
-/** How far ahead of now the demonstration fixture kicks off. */
 const KICKOFF_LEAD_MS = 2 * 60 * 60 * 1000;
 
-/** Builds the demonstration league. */
 export function createDemoLeagues(createdAt: string): readonly League[] {
   return Object.freeze([
     {
@@ -39,7 +35,6 @@ export function createDemoLeagues(createdAt: string): readonly League[] {
   ]);
 }
 
-/** Builds the demonstration teams. */
 export function createDemoTeams(createdAt: string): readonly Team[] {
   const leagueId = asId<"LeagueId">(DEMO_IDS.leagueId);
 
@@ -90,7 +85,6 @@ export function createDemoFixtures(
   ]);
 }
 
-/** Builds the demonstration match, open for betting. */
 export function createDemoMatches(createdAt: string): readonly Match[] {
   return Object.freeze([
     {

@@ -1,7 +1,3 @@
-/**
- * Builds the ZudoJS dependency-injection container.
- */
-
 import { createContainer } from "@zudojs/container";
 import type { Container } from "@zudojs/container";
 import type { EventBus } from "@zudojs/events";
@@ -14,7 +10,6 @@ import {
 } from "../constants/index.js";
 import type { BetRepository, RiskGate } from "../interfaces/index.js";
 
-/** What the container is built from. */
 export interface ContainerLoaderConfig {
   readonly bets: BetRepository;
   readonly events: EventBus;
@@ -22,12 +17,6 @@ export interface ContainerLoaderConfig {
   readonly logger: Logger;
 }
 
-/**
- * Registers the betting service's singletons.
- *
- * @param config - The instances to register.
- * @returns The started container.
- */
 export function loadContainer(config: ContainerLoaderConfig): Container {
   const container = createContainer();
 

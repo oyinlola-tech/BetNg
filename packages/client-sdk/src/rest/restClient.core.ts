@@ -29,18 +29,15 @@ import type {
 import { DEFAULT_TIMEOUT_MS, type BetNgClientConfig } from "../config/index.js";
 import { BetNgApiError, isErrorResponse } from "./restError.js";
 
-/** A list endpoint's response. */
 interface ListResponse<T> {
   readonly items: readonly T[];
 }
 
-/** What a deposit or withdrawal answers with. */
 export interface LedgerEntry {
   readonly wallet: Wallet;
   readonly transaction: Transaction;
 }
 
-/** The calls a BetNG client can make. */
 export interface BetNgRestClient {
   listLeagues(): Promise<readonly League[]>;
   listTeams(leagueId?: string): Promise<readonly Team[]>;
@@ -82,12 +79,6 @@ function buildQuery(query: Readonly<Record<string, string | undefined>>): string
   return search === "" ? "" : `?${search}`;
 }
 
-/**
- * Creates the REST client.
- *
- * @param config - Where the gateway is, and how long to wait.
- * @returns A client for every public endpoint.
- */
 export function createRestClient(config: BetNgClientConfig): BetNgRestClient {
   const timeoutMs = config.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 

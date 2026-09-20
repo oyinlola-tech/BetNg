@@ -1,6 +1,4 @@
 /**
- * @betng/betting-service/clients
- *
  * The RPC clients betting uses to reach its internal peers.
  *
  * Both are RPC because both calls sit on the bet-placement path and both

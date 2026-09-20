@@ -7,10 +7,8 @@
  * just reached it.
  */
 
-/** A named check that answers "can I reach this right now?". */
 export interface DependencyProbe {
   readonly name: string;
-  /** Resolves when the dependency answered; rejects when it did not. */
   readonly check: (signal: AbortSignal) => Promise<void>;
   /**
    * Whether the service can serve without this dependency.
@@ -21,5 +19,4 @@ export interface DependencyProbe {
   readonly optional?: boolean;
 }
 
-/** How long a single probe may run before it is abandoned. */
 export const PROBE_TIMEOUT_MS = 2000;

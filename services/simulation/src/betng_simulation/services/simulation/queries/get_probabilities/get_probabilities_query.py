@@ -1,5 +1,3 @@
-"""The query that prices nothing and predicts everything."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass

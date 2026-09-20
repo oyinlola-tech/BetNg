@@ -1,5 +1,3 @@
-"""Environment-backed configuration for the odds service."""
-
 from .service_config import (
     DEFAULT_PORT,
     SERVICE_NAME,

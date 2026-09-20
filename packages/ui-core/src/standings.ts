@@ -29,12 +29,6 @@ function blank(): Tally {
   return { played: 0, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, form: [] };
 }
 
-/**
- * Builds a league table.
- *
- * @param teams - Every team in the league, so a team with no results still appears.
- * @param results - Completed matches, in kick-off order.
- */
 export function computeStandings(
   leagueId: LeagueId,
   season: number,

@@ -1,11 +1,6 @@
-/**
- * Betting domain errors.
- */
-
 import { DomainError } from "@zudojs/errors";
 import { ErrorCodes } from "@betng/contracts";
 
-/** Raised when a bet identifier matches nothing. */
 export class BetNotFoundError extends DomainError {
   public readonly betId: string;
 

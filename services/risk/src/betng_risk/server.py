@@ -1,5 +1,3 @@
-"""Risk service entrypoint."""
-
 from __future__ import annotations
 
 import uvicorn
@@ -9,7 +7,6 @@ from .configs import load_risk_settings
 
 
 def main() -> None:
-    """Start the risk service."""
     settings = load_risk_settings()
 
     uvicorn.run(

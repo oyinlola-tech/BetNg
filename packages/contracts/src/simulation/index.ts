@@ -1,10 +1,3 @@
-/**
- * @betng/contracts/simulation
- *
- * The wire format of the Python simulation service: match simulation and
- * the outcome probabilities the odds service prices from.
- */
-
 export {
   simulatedEventSchema,
   simulationRequestSchema,

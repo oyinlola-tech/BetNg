@@ -1,7 +1,3 @@
-/**
- * Settlement service entrypoint.
- */
-
 import { runService } from "@betng/service-kit";
 import { createApp } from "./app.js";
 import { loadSettlementConfig } from "./configs/index.js";

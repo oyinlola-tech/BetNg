@@ -1,9 +1,3 @@
-/**
- * @betng/betting-service/configs
- *
- * Environment-backed configuration for the betting service.
- */
-
 export {
   DEFAULT_PORT,
   loadBettingConfig,

@@ -12,16 +12,13 @@
 
 import type { Transaction, TransactionType, Wallet } from "@betng/contracts";
 
-/** One entry to append to the ledger. */
 export interface LedgerEntry {
   readonly userId: string;
   readonly type: TransactionType;
-  /** Signed: positive credits the wallet, negative debits it. */
   readonly amount: number;
   readonly reference?: string;
 }
 
-/** What appending one entry produced. */
 export interface LedgerResult {
   readonly wallet: Wallet;
   readonly transaction: Transaction;
@@ -29,7 +26,6 @@ export interface LedgerResult {
 
 export interface WalletRepository {
   findByUser(userId: string): Promise<Wallet | undefined>;
-  /** Returns the wallet, creating an empty one on first use. */
   ensureForUser(userId: string): Promise<Wallet>;
   listTransactions(userId: string): Promise<readonly Transaction[]>;
   /**

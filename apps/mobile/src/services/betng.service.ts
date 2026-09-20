@@ -14,15 +14,8 @@ import type { LiveClient, LiveHandlers } from "@betng/client-sdk";
 
 import { appConfig } from "../configs";
 
-/** REST, through the gateway. One instance for the app's lifetime. */
 export const api = createRestClient(appConfig);
 
-/**
- * Opens a live match stream.
- *
- * @param handlers - What to do with events, gaps and connection changes.
- * @returns A connected live client.
- */
 export function openLiveStream(handlers: LiveHandlers): LiveClient {
   return createLiveClient({ config: appConfig, handlers });
 }

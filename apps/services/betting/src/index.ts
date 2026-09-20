@@ -1,9 +1,3 @@
-/**
- * @betng/betting-service
- *
- * Bet placement, validation, status and the betting lifecycle.
- */
-
 export { createApp } from "./app.js";
 export type { BettingApp } from "./app.js";
 export {

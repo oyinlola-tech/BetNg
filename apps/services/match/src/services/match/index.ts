@@ -22,19 +22,11 @@ import {
   ListTeamsHandler,
 } from "./queries/index.js";
 
-/** What the match service registration needs. */
 export interface MatchServiceConfig {
-  /** The container the handlers' dependencies are resolved from. */
   readonly container: Container;
-  /** The query bus to register read handlers on. */
   readonly queryBus: QueryBus;
 }
 
-/**
- * Registers the match read handlers with the query bus.
- *
- * @param config - The container and the bus to register on.
- */
 export function registerMatchService(config: MatchServiceConfig): void {
   const { container, queryBus } = config;
 

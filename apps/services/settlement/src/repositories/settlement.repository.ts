@@ -13,11 +13,6 @@
 import type { Settlement } from "@betng/contracts";
 import type { SettlementRepository } from "../interfaces/index.js";
 
-/**
- * Creates the in-memory settlement repository.
- *
- * @returns A repository backed by process memory.
- */
 export function createInMemorySettlementRepository(): SettlementRepository {
   const settlements = new Map<string, Settlement>();
 

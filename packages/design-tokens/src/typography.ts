@@ -30,7 +30,6 @@ export const fontSize = Object.freeze({
   "4xl": 38,
   "5xl": 48,
   "6xl": 64,
-  /** Scoreboard digits. */
   score: 56,
   scoreLg: 96,
 });
@@ -54,7 +53,6 @@ export const letterSpacing = Object.freeze({
   tight: "-0.02em",
   normal: "0",
   wide: "0.04em",
-  /** Small uppercase labels: LIVE, MATCHDAY 04, FT. */
   caps: "0.08em",
 });
 

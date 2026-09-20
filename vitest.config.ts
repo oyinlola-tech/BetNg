@@ -8,7 +8,6 @@ export default defineConfig({
       "apps/services/*/tests/**/*.test.ts",
     ],
     environment: "node",
-    // Each suite binds real TCP ports, so suites must not overlap.
     fileParallelism: false,
   },
 });

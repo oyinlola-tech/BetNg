@@ -12,19 +12,16 @@
 import { defineEvent } from "@zudojs/events";
 import type { Currency, TransactionType } from "@betng/contracts";
 
-/** What a ledger event carries. */
 export interface LedgerEntryAppendedPayload {
   readonly walletId: string;
   readonly userId: string;
   readonly transactionId: string;
   readonly type: TransactionType;
-  /** Signed amount in minor units. */
   readonly amount: number;
   readonly balanceAfter: number;
   readonly currency: Currency;
 }
 
-/** Published whenever an entry is appended to a wallet's ledger. */
 export const LedgerEntryAppendedEvent = defineEvent<
   "wallet.ledgerEntryAppended",
   LedgerEntryAppendedPayload

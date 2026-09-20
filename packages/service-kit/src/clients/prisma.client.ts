@@ -26,27 +26,12 @@ import {
 } from "@zudojs/database";
 import type { DependencyProbe } from "../healthProbe/index.js";
 
-/** A service's connection to its own database. */
 export interface ServiceDatabase {
-  /** The ZudoJS client: transactions, raw queries, lifecycle. */
   readonly client: DatabaseClient;
-  /** Opens the connection. Safe to call more than once. */
   readonly connect: () => Promise<void>;
-  /** Closes the connection and releases the pool. */
   readonly close: () => Promise<void>;
 }
 
-/**
- * Wraps a service's Prisma client in the ZudoJS database client.
- *
- * The Prisma client is constructed by the service, because it is generated
- * from that service's own schema and its type is specific to it. Everything
- * after construction is shared.
- *
- * @param prisma - The service's generated Prisma client, already built with
- *   its driver adapter.
- * @returns The connection, with connect and close.
- */
 export function createServiceDatabase(
   prisma: PrismaClientLike,
 ): ServiceDatabase {
@@ -69,9 +54,6 @@ export function createServiceDatabase(
  * `checkDatabaseHealth` issues a real query rather than inspecting a flag,
  * so a connection that has silently gone away is reported as unavailable
  * instead of healthy.
- *
- * @param database - The connection to watch.
- * @returns The probe.
  */
 export function databaseProbe(database: ServiceDatabase): DependencyProbe {
   return {

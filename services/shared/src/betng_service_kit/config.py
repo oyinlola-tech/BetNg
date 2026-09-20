@@ -19,7 +19,6 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 Environment = Literal["development", "test", "production"]
 
-#: The port each service listens on by default, matching ``.env.example``.
 DEFAULT_PORTS: dict[str, int] = {
     "gateway": 3000,
     "match": 3001,
@@ -33,8 +32,6 @@ DEFAULT_PORTS: dict[str, int] = {
 
 
 class ServiceSettings(BaseSettings):
-    """The configuration shared by every BetNG Python service."""
-
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
@@ -62,10 +59,8 @@ class ServiceSettings(BaseSettings):
         default="http://localhost:3001", alias="MATCH_SERVICE_URL"
     )
 
-    #: How long to wait on another service before giving up, in milliseconds.
     service_timeout_ms: int = Field(default=5000, alias="SERVICE_TIMEOUT_MS")
 
-    #: Set only when this service is given an explicit port.
     port_override: int | None = Field(default=None, alias="PORT")
 
     @cached_property
@@ -102,13 +97,6 @@ def _validate_port(raw: str) -> int:
 
 def load_settings(service_name: str, version: str = "0.1.0") -> ServiceSettings:
     """Read a service's configuration.
-
-    Args:
-        service_name: Which service is loading, e.g. ``"simulation"``.
-        version: The service version reported by ``/health``.
-
-    Returns:
-        The frozen settings.
 
     Raises:
         ValueError: When a configured value cannot be used. Raised at startup

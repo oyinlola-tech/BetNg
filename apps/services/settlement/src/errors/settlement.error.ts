@@ -1,11 +1,6 @@
-/**
- * Settlement domain errors.
- */
-
 import { DomainError } from "@zudojs/errors";
 import { ErrorCodes } from "@betng/contracts";
 
-/** Raised when a bet has not been settled. */
 export class SettlementNotFoundError extends DomainError {
   public readonly betId: string;
 

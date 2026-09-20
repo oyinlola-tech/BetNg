@@ -27,8 +27,6 @@ from ..services.simulation.queries import GetProbabilitiesQuery
 
 
 class SimulationProcedure:
-    """Procedure names this service answers."""
-
     GENERATE_MATCH = "simulation.generateMatch"
     CALCULATE_PROBABILITIES = "simulation.calculateProbabilities"
 
@@ -36,15 +34,6 @@ class SimulationProcedure:
 def create_simulation_rpc_server(
     command_bus: CommandBus, query_bus: QueryBus
 ) -> RpcServer:
-    """Build the RPC server holding the simulation procedures.
-
-    Args:
-        command_bus: The bus the write handlers are registered on.
-        query_bus: The bus the read handlers are registered on.
-
-    Returns:
-        The server to mount at ``POST /rpc``.
-    """
     server = RpcServer()
 
     async def generate_match(payload: SimulationRequest) -> SimulationResult:

@@ -17,18 +17,11 @@ import {
   ListSettlementsQuery,
 } from "../services/settlement/queries/index.js";
 
-/** The handlers the settlement routes bind to. */
 export interface SettlementController {
   getSettlement(context: HttpRouterContext): Promise<Settlement>;
   listSettlements(): Promise<SettlementListDto>;
 }
 
-/**
- * Creates the settlement controller.
- *
- * @param queryBus - The bus the read handlers are registered on.
- * @returns Handlers ready to bind to routes.
- */
 export function createSettlementController(
   queryBus: QueryBus,
 ): SettlementController {

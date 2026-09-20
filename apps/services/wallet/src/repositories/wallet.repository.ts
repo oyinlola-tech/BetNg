@@ -18,9 +18,8 @@ import type {
 /**
  * Creates the in-memory wallet repository.
  *
- * @param now - Supplies the current time. Injected so tests are
- *   deterministic rather than dependent on the wall clock.
- * @returns A repository backed by process memory.
+ * `now` is injected so tests are deterministic rather than dependent on the
+ * wall clock.
  */
 export function createInMemoryWalletRepository(
   now: () => Date = () => new Date(),

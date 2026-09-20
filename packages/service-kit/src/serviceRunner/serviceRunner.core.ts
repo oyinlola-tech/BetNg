@@ -10,15 +10,12 @@
 import type { Logger } from "@zudojs/logger";
 import type { ServiceServer } from "../httpServer/index.js";
 
-/** What `runService` needs to run and later release a service. */
 export interface RunnableService {
   readonly server: ServiceServer;
   readonly logger: Logger;
-  /** Released after the listener has closed, in the order given. */
   readonly onShutdown?: readonly (() => Promise<void>)[];
 }
 
-/** How long a stuck shutdown may run before the process exits anyway. */
 const SHUTDOWN_TIMEOUT_MS = 10_000;
 
 function installShutdown(service: RunnableService): void {
@@ -70,8 +67,8 @@ function installShutdown(service: RunnableService): void {
 /**
  * Starts a service and keeps it running until the process is signalled.
  *
- * @param bootstrap - Builds the service. Throwing here exits with code 1
- *   before anything is bound, which is what makes a bad `.env` obvious.
+ * A `bootstrap` that throws exits with code 1 before anything is bound,
+ * which is what makes a bad `.env` obvious.
  */
 export async function runService(
   bootstrap: () => Promise<RunnableService>,

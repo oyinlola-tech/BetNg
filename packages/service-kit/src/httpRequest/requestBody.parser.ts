@@ -17,13 +17,6 @@ import { toErrorDetails } from "../httpError/index.js";
 
 const decoder = new TextDecoder("utf-8", { fatal: true });
 
-/**
- * Decodes and JSON-parses a request body.
- *
- * @param request - The request context.
- * @returns The parsed value, or `undefined` for an empty body.
- * @throws A 400 when the body is not valid UTF-8 or not valid JSON.
- */
 export function readJsonBody(request: HttpRequestContext): unknown {
   const body = request.body;
 
@@ -60,14 +53,6 @@ export function readJsonBody(request: HttpRequestContext): unknown {
   }
 }
 
-/**
- * Validates a request body against a contract schema.
- *
- * @param request - The request context.
- * @param schema - The contract schema the body must satisfy.
- * @returns The validated body.
- * @throws A 422 listing every field that failed.
- */
 export function parseBody<T>(
   request: HttpRequestContext,
   schema: ValidationSchema<T>,

@@ -12,7 +12,6 @@ import { CURRENCY } from "../runtime.js";
 
 declare const brand: unique symbol;
 
-/** Attaches a compile-time-only tag to a string identifier. */
 export type Branded<Name extends string> = string & { readonly [brand]: Name };
 
 export type LeagueId = Branded<"LeagueId">;
@@ -28,35 +27,20 @@ export type WalletId = Branded<"WalletId">;
 export type TransactionId = Branded<"TransactionId">;
 export type SettlementId = Branded<"SettlementId">;
 
-/** A UUID on the wire. */
 export const uuidSchema = z.uuid();
 
-/**
- * Builds a schema for a branded identifier.
- *
- * @returns A schema whose runtime check is "is this a UUID" and whose static
- *   type is the branded identifier.
- */
 export function brandedIdSchema<Name extends string>(): z.ZodType<
   Branded<Name>
 > {
   return uuidSchema as unknown as z.ZodType<Branded<Name>>;
 }
 
-/**
- * Tags a validated UUID string as a branded identifier.
- *
- * @param value - A UUID string that has already been validated.
- * @returns The same string, typed as the branded identifier.
- */
 export function asId<Name extends string>(value: string): Branded<Name> {
   return value as Branded<Name>;
 }
 
-/** An ISO-8601 instant in UTC, such as `2026-09-20T15:04:05.000Z`. */
 export const isoTimestampSchema = z.iso.datetime();
 
-/** An ISO-8601 instant in UTC. */
 export type IsoTimestamp = string;
 
 /**
@@ -67,10 +51,8 @@ export type IsoTimestamp = string;
  */
 export const minorUnitsSchema = z.int();
 
-/** A monetary amount in minor units. */
 export type MinorUnits = number;
 
-/** Re-exported from the framework-free entry: one definition, two entries. */
 export { CURRENCY } from "../runtime.js";
 export type { Currency } from "../runtime.js";
 
@@ -83,5 +65,4 @@ export const currencySchema = z.literal(CURRENCY);
  */
 export const decimalOddsSchema = z.number().gt(1).max(1000);
 
-/** Decimal odds. */
 export type DecimalOdds = number;

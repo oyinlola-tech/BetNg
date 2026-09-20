@@ -4,7 +4,6 @@ import { WALLET_QUERY } from "../../../../constants/index.js";
 import type { WalletRepository } from "../../../../interfaces/index.js";
 import type { ListTransactionsQuery } from "./listTransactions.query.js";
 
-/** Reads one user's append-only ledger. */
 export class ListTransactionsHandler extends QueryHandler<
   ListTransactionsQuery,
   readonly Transaction[]

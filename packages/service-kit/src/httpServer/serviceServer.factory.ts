@@ -39,9 +39,7 @@ import { createRouterFallbacks } from "./routerFallback.handler.js";
 export interface ServiceServerOptions {
   readonly config: ServiceConfig;
   readonly logger: Logger;
-  /** Registers this service's domain routes. Health routes are added here. */
   readonly routes: (router: HttpRouter) => void;
-  /** The dependencies `/ready` probes. Empty when the service has none. */
   readonly probes?: readonly DependencyProbe[];
   /**
    * The service's RPC procedures. When present they are mounted at
@@ -63,24 +61,13 @@ export interface ServiceServerOptions {
 export interface ServiceServer {
   readonly router: HttpRouter;
   readonly server: HttpServer;
-  /** The port actually bound. Differs from the configured one only for 0. */
   readonly port: number;
   readonly start: () => Promise<void>;
   readonly stop: () => Promise<void>;
 }
 
-/**
- * A request body larger than this is refused before it is buffered. Far
- * more than any BetNG payload needs.
- */
 const MAX_BODY_BYTES = 256 * 1024;
 
-/**
- * Builds a service's HTTP server.
- *
- * @param options - The service's configuration, logger, routes and probes.
- * @returns The server, with start and stop.
- */
 export function createServiceServer(
   options: ServiceServerOptions,
 ): ServiceServer {

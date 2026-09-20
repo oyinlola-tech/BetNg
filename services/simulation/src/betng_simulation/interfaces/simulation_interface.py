@@ -18,14 +18,10 @@ from ..dtos import OutcomeProbabilities, SimulationRequest, SimulationResult
 
 
 class SimulationEngine(Protocol):
-    """Produces a match result and the probabilities behind it."""
-
     async def simulate(self, request: SimulationRequest) -> SimulationResult:
-        """Play one virtual match and return its result and timeline."""
         ...
 
     async def probabilities(
         self, home_strength: float, away_strength: float
     ) -> OutcomeProbabilities:
-        """Return the home/draw/away probabilities for a pairing."""
         ...

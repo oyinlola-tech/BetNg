@@ -1,9 +1,3 @@
-/**
- * @betng/contracts/wallet
- *
- * Simulated balances and the append-only transaction ledger.
- */
-
 export {
   depositRequestSchema,
   walletSchema,

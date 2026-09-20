@@ -1,9 +1,3 @@
-/**
- * @betng/gateway/loaders
- *
- * Bootstrap wiring: what gets registered, and with what.
- */
-
 export { loadClients } from "./clients.loader.js";
 export { loadContainer } from "./container.loader.js";
 export type { ContainerLoaderConfig } from "./container.loader.js";

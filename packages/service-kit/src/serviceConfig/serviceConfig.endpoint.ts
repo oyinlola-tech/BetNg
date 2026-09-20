@@ -1,10 +1,3 @@
-/**
- * Resolution of peer-service addresses.
- *
- * Every service learns where every other service lives from the
- * environment. Nothing in application logic may hard-code a host or a port.
- */
-
 import type { ConfigManager } from "@zudojs/config";
 import { ConfigurationError } from "@zudojs/errors";
 import type { ServiceEndpoint, ServiceName } from "./serviceConfig.type.js";
@@ -17,10 +10,6 @@ import { configKey } from "./serviceConfig.reader.js";
  * A malformed URL is rejected here, so it surfaces as a startup failure
  * rather than as a confusing fetch error on the first request that needs
  * the peer.
- *
- * @param manager - The loaded configuration manager.
- * @param timeoutMs - The call timeout applied to every peer.
- * @returns Every peer endpoint, keyed by service name.
  */
 export function readEndpoints(
   manager: ConfigManager,

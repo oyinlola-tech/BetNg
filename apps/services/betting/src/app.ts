@@ -1,12 +1,3 @@
-/**
- * Assembles the betting service.
- *
- * `@betng/service-kit` supplies everything that must not differ between
- * BetNG services — the logger, the request pipeline, the error envelope and
- * the health endpoints — so this file contains only what is specific to the
- * betting service.
- */
-
 import {
   createServiceClient,
   createServiceLogger,
@@ -30,20 +21,12 @@ import { loadContainer, loadEvents, loadServices } from "./loaders/index.js";
 import { createInMemoryBetRepository } from "./repositories/index.js";
 import { registerBettingRoutes } from "./routes/index.js";
 
-/** The assembled betting service. */
 export interface BettingApp {
   readonly server: ServiceServer;
   readonly logger: Logger;
-  /** Released on shutdown, in order, after the listener closes. */
   readonly onShutdown: readonly (() => Promise<void>)[];
 }
 
-/**
- * Builds the betting service from its configuration.
- *
- * @param config - The configuration read from the environment.
- * @returns The HTTP server, its logger and the shutdown steps.
- */
 export function createApp(config: ServiceConfig): BettingApp {
   const logger = createServiceLogger(config);
   const bets = createInMemoryBetRepository();

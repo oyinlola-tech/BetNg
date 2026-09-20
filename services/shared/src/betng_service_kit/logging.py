@@ -1,11 +1,3 @@
-"""Structured logging.
-
-Every log line is one JSON object carrying the timestamp, level, service name
-and message, so a collector parses the Python services exactly as it parses
-the TypeScript ones. A request-scoped line additionally carries ``requestId``,
-which is how one request is followed across the platform.
-"""
-
 from __future__ import annotations
 
 import json
@@ -44,12 +36,6 @@ def parse_log_level(name: str) -> int:
     over with a default: silently logging at ``info`` when someone asked for
     ``debug`` wastes a debugging session.
 
-    Args:
-        name: The configured level name.
-
-    Returns:
-        The matching :mod:`logging` level.
-
     Raises:
         ValueError: When the name is not a level.
     """
@@ -65,10 +51,7 @@ def parse_log_level(name: str) -> int:
 
 
 class JsonFormatter(logging.Formatter):
-    """Renders a log record as one JSON object."""
-
     def __init__(self, service: str, version: str, environment: str) -> None:
-        """Stamp every line with the service identity."""
         super().__init__()
         self._base = {
             "service": service,
@@ -77,7 +60,6 @@ class JsonFormatter(logging.Formatter):
         }
 
     def format(self, record: logging.LogRecord) -> str:
-        """Render one record as a JSON object."""
         metadata: dict[str, Any] = dict(self._base)
         metadata.update(
             {
@@ -110,15 +92,6 @@ def configure_logging(
     Replaces any handler already on the root logger, because uvicorn installs
     its own and two formatters on one stream produce interleaved output in two
     different shapes.
-
-    Args:
-        service: The service name stamped on every line.
-        version: The service version.
-        environment: The environment name.
-        level: The configured ``LOG_LEVEL``.
-
-    Returns:
-        The logger the service should use.
     """
     handler = logging.StreamHandler(sys.stdout)
     handler.setFormatter(JsonFormatter(service, version, environment))

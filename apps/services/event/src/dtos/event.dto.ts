@@ -1,7 +1,3 @@
-/**
- * The payload the match service publishes an event with.
- */
-
 import { liveEventTypeSchema, matchScoreSchema, matchSideSchema } from "@betng/contracts";
 import { z } from "@zudojs/validation";
 

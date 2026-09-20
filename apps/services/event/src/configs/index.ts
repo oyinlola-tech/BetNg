@@ -1,9 +1,3 @@
-/**
- * @betng/event-service/configs
- *
- * Environment-backed configuration for the event service.
- */
-
 export {
   DEFAULT_PORT,
   LIVE_PATH,

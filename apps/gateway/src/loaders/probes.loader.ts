@@ -18,20 +18,12 @@ import type {
 } from "@betng/service-kit";
 import type { UpstreamClients } from "../interfaces/index.js";
 
-/** What the probe loader needs. */
 export interface ProbeLoaderConfig {
   readonly config: ServiceConfig;
   readonly clients: UpstreamClients;
-  /** Present only when `REDIS_URL` is configured. */
   readonly redis?: RedisConnection;
 }
 
-/**
- * Creates the probes behind `GET /ready`.
- *
- * @param options - The configuration, the upstream clients and Redis.
- * @returns The probes to run.
- */
 export function loadProbes(
   options: ProbeLoaderConfig,
 ): readonly DependencyProbe[] {

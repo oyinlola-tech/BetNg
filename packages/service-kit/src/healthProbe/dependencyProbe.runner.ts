@@ -1,12 +1,7 @@
-/**
- * Running dependency probes and folding their results into one status.
- */
-
 import type { DependencyCheck, HealthStatus } from "@betng/contracts";
 import type { DependencyProbe } from "./dependencyProbe.type.js";
 import { PROBE_TIMEOUT_MS } from "./dependencyProbe.type.js";
 
-/** The outcome of probing every declared dependency. */
 export interface ReadinessOutcome {
   readonly status: HealthStatus;
   readonly dependencies: readonly DependencyCheck[];
@@ -54,12 +49,6 @@ function foldStatus(
   return "ok";
 }
 
-/**
- * Runs every probe concurrently.
- *
- * @param probes - The dependencies this service declared.
- * @returns The overall status and the per-dependency results.
- */
 export async function runProbes(
   probes: readonly DependencyProbe[],
 ): Promise<ReadinessOutcome> {

@@ -12,26 +12,18 @@
 
 import type { LiveEvent, WebSocketSession } from "./event.types.js";
 
-/** What a channel looks like to a caller. */
 export interface ChannelState {
   readonly channel: string;
-  /** The last sequence published here; 0 when nothing has been. */
   readonly lastSequence: number;
   readonly subscribers: number;
 }
 
 export interface ChannelRegistry {
-  /** Records a connection so it can be addressed and cleaned up. */
   open(session: WebSocketSession): void;
-  /** Forgets a connection and every subscription it held. */
   close(session: WebSocketSession): void;
-  /** Subscribes a connection to a channel. Idempotent. */
   subscribe(session: WebSocketSession, channel: string): ChannelState;
-  /** Unsubscribes a connection from a channel. Idempotent. */
   unsubscribe(session: WebSocketSession, channel: string): void;
-  /** Every session currently subscribed to a channel. */
   subscribers(channel: string): readonly WebSocketSession[];
-  /** Reads a channel without subscribing to it. */
   state(channel: string): ChannelState;
   /**
    * Assigns the next sequence on a channel.
@@ -41,11 +33,8 @@ export interface ChannelRegistry {
    * meaningful.
    */
   nextSequence(channel: string): number;
-  /** Records that a connection answered its heartbeat. */
   markAlive(session: WebSocketSession): void;
-  /** Sessions that have not answered a heartbeat within the timeout. */
   stale(timeoutMs: number): readonly WebSocketSession[];
-  /** Every open connection. */
   connections(): readonly WebSocketSession[];
 }
 

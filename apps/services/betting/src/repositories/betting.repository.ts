@@ -9,11 +9,6 @@
 import type { Bet } from "@betng/contracts";
 import type { BetFilter, BetRepository } from "../interfaces/index.js";
 
-/**
- * Creates the in-memory bet repository.
- *
- * @returns A repository backed by process memory.
- */
 export function createInMemoryBetRepository(): BetRepository {
   const bets = new Map<string, Bet>();
 

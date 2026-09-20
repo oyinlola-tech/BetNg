@@ -15,9 +15,4 @@ DEFAULT_PORT = 3006
 
 
 def load_odds_settings() -> ServiceSettings:
-    """Read the odds service configuration from the environment.
-
-    Returns:
-        The frozen settings.
-    """
     return load_settings(SERVICE_NAME, SERVICE_VERSION)

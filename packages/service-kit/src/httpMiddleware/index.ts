@@ -1,9 +1,3 @@
-/**
- * @betng/service-kit/httpMiddleware
- *
- * The middleware every BetNG service's request pipeline is built from.
- */
-
 export {
   createRequestIdMiddleware,
   getRequestId,

@@ -1,7 +1,3 @@
-/**
- * The simulated wallet.
- */
-
 import type { TransactionId, TransactionType, WalletId } from "@betng/contracts";
 
 export interface WalletView {
@@ -20,7 +16,6 @@ export interface TransactionView {
   readonly amount: number;
   readonly balanceAfter: number;
   readonly reference?: string;
-  /** "Stake · Lagos FC v Kano United", for the ledger row. */
   readonly description: string;
   readonly createdAt: string;
 }

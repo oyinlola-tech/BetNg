@@ -1,7 +1,3 @@
-/**
- * Loads a BetNG service's configuration from the environment.
- */
-
 import {
   createConfiguration,
   createEnvironmentConfigSource,
@@ -19,13 +15,6 @@ import {
 } from "./serviceConfig.reader.js";
 import { readEndpoints } from "./serviceConfig.endpoint.js";
 
-/**
- * Reads this service's configuration from the environment.
- *
- * @param options - Which service is loading, and what it requires.
- * @returns The frozen configuration.
- * @throws {ConfigurationError} On a value the service cannot use.
- */
 export async function loadServiceConfig(
   options: LoadServiceConfigOptions,
 ): Promise<ServiceConfig> {

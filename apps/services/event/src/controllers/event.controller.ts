@@ -14,17 +14,10 @@ import { matchChannel } from "@betng/contracts";
 import type { ChannelState } from "../interfaces/index.js";
 import { GetChannelStateQuery } from "../services/event/queries/index.js";
 
-/** The handlers the event routes bind to. */
 export interface EventController {
   getMatchChannel(context: HttpRouterContext): Promise<ChannelState>;
 }
 
-/**
- * Creates the event REST controller.
- *
- * @param queryBus - The bus the read handlers are registered on.
- * @returns Handlers ready to bind to routes.
- */
 export function createEventController(queryBus: QueryBus): EventController {
   return {
     getMatchChannel: async (context) =>

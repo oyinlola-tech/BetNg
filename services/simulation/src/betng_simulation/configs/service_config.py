@@ -15,9 +15,4 @@ DEFAULT_PORT = 3005
 
 
 def load_simulation_settings() -> ServiceSettings:
-    """Read the simulation service configuration from the environment.
-
-    Returns:
-        The frozen settings.
-    """
     return load_settings(SERVICE_NAME, SERVICE_VERSION)

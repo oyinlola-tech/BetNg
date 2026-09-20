@@ -1,10 +1,3 @@
-"""Assembles the risk service.
-
-``betng_service_kit`` supplies everything that must not differ between BetNG
-services — logging, correlation, the error envelope and the health endpoints —
-so this file contains only what is specific to the risk service.
-"""
-
 from __future__ import annotations
 
 import logging
@@ -28,15 +21,6 @@ DESCRIPTION = (
 
 
 def create_app(settings: ServiceSettings | None = None) -> FastAPI:
-    """Build the risk service.
-
-    Args:
-        settings: The configuration. Read from the environment when omitted;
-            the tests pass their own.
-
-    Returns:
-        The configured application.
-    """
     resolved = settings or load_risk_settings()
 
     analyser = create_risk_analyser()

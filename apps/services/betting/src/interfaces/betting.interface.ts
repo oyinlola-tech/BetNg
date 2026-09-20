@@ -8,7 +8,6 @@
 
 import type { Bet, BetStatus } from "@betng/contracts";
 
-/** The filters `list` accepts. */
 export interface BetFilter {
   readonly userId?: string;
   readonly status?: BetStatus;

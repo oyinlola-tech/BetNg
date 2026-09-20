@@ -24,16 +24,12 @@ from fastapi import APIRouter, Response
 
 from .config import ServiceSettings
 
-#: How long a single probe may run before it is abandoned.
 PROBE_TIMEOUT_SECONDS = 2.0
 
 
 @dataclass(frozen=True)
 class DependencyProbe:
-    """A named check that answers "can I reach this right now?"."""
-
     name: str
-    #: Returns normally when the dependency answered; raises when it did not.
     check: Callable[[], Awaitable[None]]
     #: An optional dependency degrades the service; a required one stops it.
     optional: bool = False
@@ -62,15 +58,6 @@ async def _run_probe(probe: DependencyProbe) -> dict[str, object]:
 def create_health_router(
     settings: ServiceSettings, probes: list[DependencyProbe]
 ) -> APIRouter:
-    """Build the liveness and readiness routes.
-
-    Args:
-        settings: The service's configuration.
-        probes: The dependencies to probe. Empty when there are none.
-
-    Returns:
-        A router to include on the application.
-    """
     router = APIRouter(tags=["health"])
     started_at = time.monotonic()
 
