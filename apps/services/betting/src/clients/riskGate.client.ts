@@ -18,7 +18,7 @@
 import type { BetSelection } from "@betng/contracts";
 import type { Logger } from "@betng/service-kit";
 import { isRPCError } from "@zudojs/rpc";
-import type { RiskDecision, RiskGate } from "../interfaces/index.js";
+import type { RiskGate } from "../interfaces/index.js";
 import type { ExposureRequest, RiskClient } from "./risk.client.js";
 
 /** The wire code the risk service answers with while its model is unbuilt. */
@@ -90,7 +90,7 @@ export function createRpcRiskGate(risk: RiskClient, logger: Logger): RiskGate {
           assessed: true,
         };
       } catch (error) {
-        const code = isRPCError(error) ? error.code : "RPC_ERROR";
+        const code = isRPCError(error) ? String(error.code) : "RPC_ERROR";
 
         if (code === NOT_IMPLEMENTED) {
           logger.debug("Risk model is not built; slip accepted unassessed", {

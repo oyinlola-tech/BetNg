@@ -8,6 +8,7 @@
  */
 
 import {
+  createServiceClient,
   createServiceLogger,
   createServiceServer,
   serviceProbe,
@@ -64,12 +65,14 @@ export function createApp(config: ServiceConfig): BettingApp {
 
   // Risk and odds are advisory on this service's critical path: betting
   // accepts a slip unassessed rather than refusing every bet when they are
-  // unreachable, so they degrade this service rather than stopping it.
+  // unreachable, so an outage degrades this service rather than stopping it.
+  //
+  // The probe asks each peer's `/health`, because readiness is "is the peer
+  // up". Whether RPC itself works is proved by the calls the placement path
+  // actually makes, not by a synthetic procedure invented for a probe.
   const probes: DependencyProbe[] = [
-    serviceProbe(
-      { endpoint: config.services.risk, request: risk.raw.call.bind(risk.raw) } as never,
-      { optional: true },
-    ),
+    serviceProbe(createServiceClient(config.services.risk), { optional: true }),
+    serviceProbe(createServiceClient(config.services.odds), { optional: true }),
   ];
 
   const onShutdown: (() => Promise<void>)[] = [
