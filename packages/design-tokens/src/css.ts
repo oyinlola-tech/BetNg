@@ -1,6 +1,9 @@
 /**
  * Renders the tokens as CSS custom properties.
  *
+ * Every property is prefixed `--bn-` so a Tailwind `@theme` block can map
+ * `--color-surface: var(--bn-surface)` without the two names colliding.
+ *
  * Light is the `:root` default. Dark applies when the document is marked
  * `data-theme="dark"`, or when the OS prefers dark and the document has not
  * been marked light — which is how "System" works with no JavaScript.
@@ -17,23 +20,23 @@ function kebab(name: string): string {
 
 function colorBlock(theme: ColorTheme): string {
   return Object.entries(theme)
-    .map(([name, value]) => `  --color-${kebab(name)}: ${value};`)
+    .map(([name, value]) => `  --bn-${kebab(name)}: ${value};`)
     .join("\n");
 }
 
 export function renderCss(): string {
   const scalar = [
-    ...Object.entries(fontFamily).map(([k, v]) => `  --font-${k}: ${v};`),
-    ...Object.entries(fontSize).map(([k, v]) => `  --text-${kebab(k)}: ${String(v)}px;`),
-    ...Object.entries(letterSpacing).map(([k, v]) => `  --tracking-${k}: ${v};`),
+    ...Object.entries(fontFamily).map(([k, v]) => `  --bn-font-${k}: ${v};`),
+    ...Object.entries(fontSize).map(([k, v]) => `  --bn-text-${kebab(k)}: ${String(v)}px;`),
+    ...Object.entries(letterSpacing).map(([k, v]) => `  --bn-tracking-${k}: ${v};`),
     ...Object.entries(spacing).map(
-      ([k, v]) => `  --space-${k.replace(".", "_")}: ${String(v)}px;`,
+      ([k, v]) => `  --bn-space-${k.replace(".", "_")}: ${String(v)}px;`,
     ),
-    ...Object.entries(radius).map(([k, v]) => `  --radius-${k}: ${String(v)}px;`),
-    ...Object.entries(shadow).map(([k, v]) => `  --shadow-${k}: ${v};`),
-    ...Object.entries(duration).map(([k, v]) => `  --duration-${kebab(k)}: ${String(v)}ms;`),
-    ...Object.entries(easing).map(([k, v]) => `  --ease-${k}: ${v};`),
-    ...Object.entries(zIndex).map(([k, v]) => `  --z-${k}: ${String(v)};`),
+    ...Object.entries(radius).map(([k, v]) => `  --bn-radius-${k}: ${String(v)}px;`),
+    ...Object.entries(shadow).map(([k, v]) => `  --bn-shadow-${k}: ${v};`),
+    ...Object.entries(duration).map(([k, v]) => `  --bn-duration-${kebab(k)}: ${String(v)}ms;`),
+    ...Object.entries(easing).map(([k, v]) => `  --bn-ease-${k}: ${v};`),
+    ...Object.entries(zIndex).map(([k, v]) => `  --bn-z-${k}: ${String(v)};`),
   ].join("\n");
 
   return [
@@ -59,7 +62,7 @@ export function renderCss(): string {
     "",
     "@media (prefers-reduced-motion: reduce) {",
     "  :root {",
-    ...Object.keys(duration).map((k) => `    --duration-${kebab(k)}: 0ms;`),
+    ...Object.keys(duration).map((k) => `    --bn-duration-${kebab(k)}: 0ms;`),
     "  }",
     "}",
     "",
