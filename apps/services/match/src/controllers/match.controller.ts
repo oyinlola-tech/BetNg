@@ -17,7 +17,7 @@ import {
   ListLeaguesQuery,
   ListMatchesQuery,
   ListTeamsQuery,
-} from "../queries/index.js";
+} from "../services/match/queries/index.js";
 import {
   listMatchesQueryValidator,
   listTeamsQueryValidator,

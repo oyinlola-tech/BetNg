@@ -1,23 +1,16 @@
 /**
  * Assembles the match service.
  *
- * Two things are built here and handed back together:
+ * The pieces are wired in dependency order: the repository the handlers
+ * read through, the query bus they register on, the controller that
+ * dispatches to it, and the HTTP server that binds the routes.
  *
- *   - the ZudoJS **runtime**, which owns the module lifecycle, the
- *     dependency-injection container and the event bus, and
- *   - the **HTTP server**, built by `@betng/service-kit` from this service's
- *     routes and dependency probes.
- *
- * They are separate on purpose. The runtime is where things with an
- * application-long lifetime live; HTTP is one way of reaching them. A worker
- * process would start the same runtime with no server at all.
+ * `@betng/service-kit` supplies everything that must not differ between
+ * BetNG services — the logger, the request pipeline, the error envelope and
+ * the health endpoints — so this file contains only what is specific to the
+ * match service.
  */
 
-import { resolveEnvironment } from "@zudojs/constants";
-import { createContainer } from "@zudojs/container";
-import { createEventBus } from "@zudojs/events";
-import { createRuntime } from "@zudojs/runtime";
-import type { Runtime } from "@zudojs/runtime";
 import { createServiceLogger, createServiceServer } from "@betng/service-kit";
 import type {
   DependencyProbe,
@@ -25,16 +18,14 @@ import type {
   ServiceConfig,
   ServiceServer,
 } from "@betng/service-kit";
-import { SERVICE_VERSION } from "./configs/index.js";
 import { createMatchController } from "./controllers/index.js";
 import { createMatchDatabase } from "./databases/index.js";
-import { loadCqrs, loadModules } from "./loaders/index.js";
+import { loadServices } from "./loaders/index.js";
 import { createInMemoryMatchRepository } from "./repositories/index.js";
 import { registerMatchRoutes } from "./routes/index.js";
 
 /** The assembled match service. */
 export interface MatchApp {
-  readonly runtime: Runtime;
   readonly server: ServiceServer;
   readonly logger: Logger;
   /** Released on shutdown, in order, after the listener closes. */
@@ -45,40 +36,22 @@ export interface MatchApp {
  * Builds the match service from its configuration.
  *
  * @param config - The configuration read from the environment.
- * @returns The runtime, the HTTP server and the shutdown steps.
+ * @returns The HTTP server, its logger and the shutdown steps.
  */
-export async function createApp(config: ServiceConfig): Promise<MatchApp> {
+export function createApp(config: ServiceConfig): MatchApp {
   const logger = createServiceLogger(config);
-  const repository = createInMemoryMatchRepository();
-
-  const runtime = createRuntime(
-    {
-      modules: loadModules(repository),
-      logger,
-      container: createContainer(),
-      eventBus: createEventBus(),
-    },
-    {
-      applicationName: `betng-${config.serviceName}`,
-      applicationVersion: SERVICE_VERSION,
-      environment: resolveEnvironment(),
-      handleSignals: false,
-    },
-  );
-
-  await runtime.start();
+  const matches = createInMemoryMatchRepository();
 
   const probes: DependencyProbe[] = [];
-  const onShutdown: (() => Promise<void>)[] = [async () => runtime.stop()];
+  const onShutdown: (() => Promise<void>)[] = [];
 
   if (config.databaseUrl !== undefined) {
     const database = createMatchDatabase(config.databaseUrl);
     probes.push(database.probe);
-    onShutdown.unshift(async () => database.pool.close());
+    onShutdown.push(async () => database.pool.close());
   }
 
-  const queryBus = loadCqrs({ repository, logger });
-  const controller = createMatchController(queryBus);
+  const controller = createMatchController(loadServices({ matches, logger }));
 
   const server = createServiceServer({
     config,
@@ -89,5 +62,5 @@ export async function createApp(config: ServiceConfig): Promise<MatchApp> {
     },
   });
 
-  return { runtime, server, logger, onShutdown };
+  return { server, logger, onShutdown };
 }

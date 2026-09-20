@@ -3,15 +3,15 @@
  */
 
 export const BETTING_COMMAND = Object.freeze({
-  PLACE_BET: "betting.place-bet",
+  PLACE_BET: "betting.placeBet",
 });
 
 export type BettingCommandType =
   (typeof BETTING_COMMAND)[keyof typeof BETTING_COMMAND];
 
 export const BETTING_QUERY = Object.freeze({
-  GET_BET: "betting.get-bet",
-  LIST_BETS: "betting.list-bets",
+  GET_BET: "betting.getBet",
+  LIST_BETS: "betting.listBets",
 });
 
 export type BettingQueryType =

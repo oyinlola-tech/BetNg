@@ -4,6 +4,5 @@
  * Bootstrap wiring: what gets registered, and with what.
  */
 
-export { loadCqrs } from "./cqrs.loader.js";
-export type { CqrsLoaderOptions } from "./cqrs.loader.js";
-export { loadModules } from "./modules.loader.js";
+export { loadServices } from "./services.loader.js";
+export type { ServiceLoaderConfig } from "./services.loader.js";

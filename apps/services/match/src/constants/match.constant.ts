@@ -7,11 +7,11 @@
  */
 
 export const MATCH_QUERY = Object.freeze({
-  LIST_LEAGUES: "match.list-leagues",
-  LIST_TEAMS: "match.list-teams",
-  LIST_FIXTURES: "match.list-fixtures",
-  LIST_MATCHES: "match.list-matches",
-  GET_MATCH: "match.get-match",
+  LIST_LEAGUES: "match.listLeagues",
+  LIST_TEAMS: "match.listTeams",
+  LIST_FIXTURES: "match.listFixtures",
+  LIST_MATCHES: "match.listMatches",
+  GET_MATCH: "match.getMatch",
 });
 
 export type MatchQueryType = (typeof MATCH_QUERY)[keyof typeof MATCH_QUERY];
