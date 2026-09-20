@@ -1,6 +1,7 @@
 import { lazy, Suspense } from "react";
 import { createBrowserRouter } from "react-router";
 import { Spinner } from "@betng/ui-web";
+import { RequireAuth, type RequireAuthProps } from "../features/auth/RequireAuth";
 import { AppShell } from "../layouts/AppShell";
 import { HomePage } from "../pages/HomePage";
 
@@ -23,6 +24,15 @@ const page = (
     );
   };
 };
+
+const gated = (Page: React.ComponentType, gate: Omit<RequireAuthProps, "children">): React.ComponentType =>
+  function Gated() {
+    return (
+      <RequireAuth {...gate}>
+        <Page />
+      </RequireAuth>
+    );
+  };
 
 const LobbyPage = page(() =>
   import("../pages/LobbyPage").then((m) => ({ default: m.LobbyPage })),
@@ -62,6 +72,18 @@ const NotificationsPage = page(() =>
 const SettingsPage = page(() =>
   import("../pages/SettingsPage").then((m) => ({ default: m.SettingsPage })),
 );
+const AccountPage = page(() =>
+  import("../pages/AccountPage").then((m) => ({ default: m.AccountPage })),
+);
+const LoginPage = page(() =>
+  import("../pages/AuthPage").then((m) => ({ default: m.LoginPage })),
+);
+const RegisterPage = page(() =>
+  import("../pages/AuthPage").then((m) => ({ default: m.RegisterPage })),
+);
+const ForgotPasswordPage = page(() =>
+  import("../pages/AuthPage").then((m) => ({ default: m.ForgotPasswordPage })),
+);
 const NotFoundPage = page(() =>
   import("../pages/NotFoundPage").then((m) => ({ default: m.NotFoundPage })),
 );
@@ -81,9 +103,41 @@ export const router = createBrowserRouter([
       { path: "leagues/:leagueId", Component: LeaguePage },
       { path: "standings", Component: StandingsPage },
       { path: "teams/:teamId", Component: TeamPage },
-      { path: "history", Component: HistoryPage },
-      { path: "wallet", Component: WalletPage },
-      { path: "notifications", Component: NotificationsPage },
+      {
+        path: "history",
+        Component: gated(HistoryPage, {
+          title: "Log in to see your bets",
+          description: "Open bets, settled bets and transactions belong to your account.",
+          reason: "Log in to see your bets",
+        }),
+      },
+      {
+        path: "wallet",
+        Component: gated(WalletPage, {
+          title: "Log in to open your wallet",
+          description: "Your simulated balance, deposits and withdrawals belong to your account.",
+          reason: "Log in to open your wallet",
+        }),
+      },
+      {
+        path: "notifications",
+        Component: gated(NotificationsPage, {
+          title: "Log in to see notifications",
+          description: "Match and settlement alerts are sent to your account.",
+          reason: "Log in to see your notifications",
+        }),
+      },
+      {
+        path: "account",
+        Component: gated(AccountPage, {
+          title: "Log in to manage your account",
+          description: "Your profile and security settings are only visible to you.",
+          reason: "Log in to manage your account",
+        }),
+      },
+      { path: "login", Component: LoginPage },
+      { path: "register", Component: RegisterPage },
+      { path: "forgot-password", Component: ForgotPasswordPage },
       { path: "settings", Component: SettingsPage },
       { path: "*", Component: NotFoundPage },
     ],

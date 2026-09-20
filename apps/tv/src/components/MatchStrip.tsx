@@ -17,7 +17,7 @@ export function MatchStrip({
   return (
     <nav
       aria-label="Live matches"
-      className={cn("flex gap-[0.6rem] overflow-x-auto py-[0.4rem]", className)}
+      className={cn("-mx-[0.5rem] flex gap-[0.6rem] overflow-x-auto px-[0.5rem] py-[0.5rem]", className)}
     >
       {matches.map((m, i) => {
         const current = m.id === currentId;

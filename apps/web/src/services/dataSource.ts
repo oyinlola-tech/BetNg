@@ -1,13 +1,17 @@
 import { createLiveClient, createRestClient } from "@betng/client-sdk";
-import { createMockDataSource, type MockDataSource } from "@betng/mock-data";
+import type { CustomerSession } from "@betng/contracts";
+import { createMockAuthSource, createMockDataSource, type MockDataSource } from "@betng/mock-data";
 import {
+  createPlatformAuthSource,
   createPlatformDataSource,
+  createSessionStore,
+  type AuthDataSource,
   type BetNgDataSource,
-  type KeyValueStorage,
+  type SessionStorage,
 } from "@betng/ui-core";
 import { appConfig } from "../configs/app.config";
 
-const storage: KeyValueStorage = {
+const storage: Required<SessionStorage> = {
   get: (key) => {
     try {
       return localStorage.getItem(key);
@@ -22,17 +26,40 @@ const storage: KeyValueStorage = {
       /* Private mode or quota: the app still runs, just without persistence. */
     }
   },
+  remove: (key) => {
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      /* ignore */
+    }
+  },
 };
 
-function create(): BetNgDataSource {
+interface Sources {
+  readonly dataSource: BetNgDataSource;
+  readonly authSource: AuthDataSource;
+}
+
+function create(): Sources {
   if (appConfig.dataSource === "platform") {
-    return createPlatformDataSource({
-      rest: createRestClient(appConfig.client),
-      openLive: (handlers) =>
-        createLiveClient({ config: appConfig.client, handlers }),
-      userId: appConfig.userId,
-      storage,
+    const session = createSessionStore<CustomerSession>("betng.session.customer", storage);
+    const rest = createRestClient({
+      ...appConfig.client,
+      getToken: () => session.token(),
+      onUnauthorized: () => {
+        session.expire();
+      },
     });
+
+    return {
+      dataSource: createPlatformDataSource({
+        rest,
+        openLive: (handlers) => createLiveClient({ config: appConfig.client, handlers }),
+        userId: () => session.snapshot().session?.user.id,
+        storage,
+      }),
+      authSource: createPlatformAuthSource(rest, session),
+    };
   }
 
   const mock = createMockDataSource({ storage });
@@ -44,10 +71,10 @@ function create(): BetNgDataSource {
     mock.platform.setOnline(true);
   });
 
-  return mock;
+  return { dataSource: mock, authSource: createMockAuthSource({ storage, isOnline: () => navigator.onLine }) };
 }
 
-export const dataSource: BetNgDataSource = create();
+export const { dataSource, authSource } = create();
 
 export function asMock(source: BetNgDataSource): MockDataSource | undefined {
   return "platform" in source ? (source as MockDataSource) : undefined;

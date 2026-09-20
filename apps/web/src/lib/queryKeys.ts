@@ -21,3 +21,11 @@ export const queryKeys = {
   preferences: ["preferences"] as const,
   viewed: ["viewed"] as const,
 };
+
+/** Everything that belongs to the signed-in customer; dropped on logout. */
+export const ACCOUNT_QUERY_KEYS = [
+  queryKeys.wallet,
+  queryKeys.transactions,
+  queryKeys.bets,
+  queryKeys.notifications,
+] as const;

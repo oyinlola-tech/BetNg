@@ -13,6 +13,9 @@ interface BetSlipState {
   readonly open: boolean;
   toggle: (selection: SlipSelection) => void;
   remove: (selectionId: string) => void;
+  removeMany: (selectionIds: readonly string[]) => void;
+  /** Takes the platform's current prices onto the slip once the user accepts them. */
+  acceptOdds: (changes: readonly { readonly selectionId: string; readonly odds: number }[]) => void;
   clear: () => void;
   setStake: (stake: number) => void;
   setOpen: (open: boolean) => void;
@@ -32,6 +35,20 @@ export const useBetSlip = create<BetSlipState>()(
       remove: (selectionId) => {
         set((state) => ({
           selections: removeSelection(state.selections, selectionId),
+        }));
+      },
+      removeMany: (selectionIds) => {
+        set((state) => ({
+          selections: state.selections.filter((s) => !selectionIds.includes(s.selectionId)),
+        }));
+      },
+      acceptOdds: (changes) => {
+        set((state) => ({
+          selections: state.selections.map((s) => {
+            const change = changes.find((c) => c.selectionId === s.selectionId);
+
+            return change === undefined ? s : { ...s, odds: change.odds };
+          }),
         }));
       },
       clear: () => {

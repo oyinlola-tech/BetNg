@@ -1,3 +1,4 @@
+import { LogoMark } from "../components/BrandMarks";
 import { NavLink, Outlet } from "react-router";
 import { Moon, Radio, Sun } from "lucide-react";
 import { ConnectionPill } from "../components";
@@ -29,9 +30,7 @@ export function Shell(): React.JSX.Element {
     <div className="flex h-dvh flex-col px-[3rem] py-[1.6rem]">
       <header className="flex items-center gap-[2rem]">
         <div className="flex items-center gap-[0.7rem]">
-          <span className="flex size-[2.2rem] items-center justify-center rounded-sm bg-brand font-display text-[1.1rem] font-black text-white">
-            B
-          </span>
+          <LogoMark className="size-[2.2rem]" />
           <span className="font-display text-[1.5rem] font-black tracking-tight">
             BetNG <span className="text-live">LIVE</span>
           </span>

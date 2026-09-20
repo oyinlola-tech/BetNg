@@ -7,6 +7,7 @@ import type {
   PlaceBetInput,
 } from "@betng/ui-core";
 import { queryKeys } from "../lib/queryKeys";
+import { useIsAuthenticated } from "../features/auth/useAuth";
 import { dataSource } from "../services/dataSource";
 
 const LIST_REFRESH_MS = 4000;
@@ -111,31 +112,43 @@ export function useCompletedMatchdays(
 }
 
 export function useWallet() {
+  const enabled = useIsAuthenticated();
+
   return useQuery({
     queryKey: queryKeys.wallet,
     queryFn: () => dataSource.getWallet(),
+    enabled,
   });
 }
 
 export function useTransactions() {
+  const enabled = useIsAuthenticated();
+
   return useQuery({
     queryKey: queryKeys.transactions,
     queryFn: () => dataSource.listTransactions(),
+    enabled,
   });
 }
 
 export function useBets() {
+  const enabled = useIsAuthenticated();
+
   return useQuery({
     queryKey: queryKeys.bets,
     queryFn: () => dataSource.listBets(),
+    enabled,
     refetchInterval: 10_000,
   });
 }
 
 export function useNotifications() {
+  const enabled = useIsAuthenticated();
+
   return useQuery({
     queryKey: queryKeys.notifications,
     queryFn: () => dataSource.listNotifications(),
+    enabled,
     refetchInterval: 10_000,
   });
 }

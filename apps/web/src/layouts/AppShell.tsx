@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { Link, NavLink, Outlet, useLocation } from "react-router";
-import { Bell, Menu, Receipt, Settings, Wallet, X } from "lucide-react";
+import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router";
+import { ArrowLeftRight, Bell, ChevronDown, LogOut, Menu, Receipt, Settings, UserRound, Wallet, X } from "lucide-react";
 import { formatMoney } from "@betng/ui-core";
-import { cn, IconButton, Sheet, ThemeSwitcher, useIsDesktop } from "@betng/ui-web";
+import { Avatar, BrandLogo, Button, cn, Dropdown, IconButton, Sheet, ThemeSwitcher, useIsDesktop } from "@betng/ui-web";
 import { BetSlip, ConnectionBanner } from "../components/domain";
+import { AuthDialog, useAuth, useLogoutFlow } from "../features/auth";
 import { useAccountSync, useNotifications, useWallet } from "../hooks/queries";
 import { useBetSlip } from "../stores/betslip.store";
 
@@ -14,22 +15,20 @@ const NAV = [
   { to: "/results", label: "Results" },
   { to: "/leagues", label: "Leagues" },
   { to: "/standings", label: "Standings" },
-  { to: "/history", label: "History" },
+] as const;
+
+const ACCOUNT_NAV = [
+  { to: "/history", label: "My Bets", icon: Receipt },
+  { to: "/wallet", label: "Wallet", icon: Wallet },
+  { to: "/history?tab=transactions", label: "Transactions", icon: ArrowLeftRight },
+  { to: "/notifications", label: "Notifications", icon: Bell },
+  { to: "/account", label: "Account", icon: UserRound },
 ] as const;
 
 function Logo(): React.JSX.Element {
   return (
-    <Link
-      to="/"
-      className="flex items-center gap-2 rounded-xs focus-ring"
-      aria-label="BetNG home"
-    >
-      <span className="flex size-7 items-center justify-center rounded-sm bg-brand font-display text-sm font-black text-text-on-brand">
-        B
-      </span>
-      <span className="font-display text-lg font-bold tracking-tight">
-        Bet<span className="text-brand">NG</span>
-      </span>
+    <Link to="/" className="flex items-center rounded-xs focus-ring" aria-label="BetNG home">
+      <BrandLogo />
     </Link>
   );
 }
@@ -39,6 +38,9 @@ export function AppShell(): React.JSX.Element {
 
   const desktop = useIsDesktop();
   const location = useLocation();
+  const navigate = useNavigate();
+  const { isAuthenticated, user, openAuth } = useAuth();
+  const logout = useLogoutFlow();
   const [menuOpen, setMenuOpen] = useState(false);
   const slipOpen = useBetSlip((s) => s.open);
   const setSlipOpen = useBetSlip((s) => s.setOpen);
@@ -95,30 +97,28 @@ export function AppShell(): React.JSX.Element {
             ))}
           </nav>
           <div className="ml-auto flex items-center gap-1">
-            <Link
-              to="/wallet"
-              className="hidden h-9 items-center gap-2 rounded-sm border border-border bg-surface px-3 text-sm font-semibold tabular hover:bg-surface-hover focus-ring sm:inline-flex"
-            >
-              <Wallet className="size-4 text-text-muted" aria-hidden />
-              {wallet.data === undefined
-                ? "—"
-                : formatMoney(wallet.data.available)}
-              <span className="hidden text-[10px] font-semibold uppercase tracking-caps text-text-muted md:inline">
-                Simulated
-              </span>
-            </Link>
-            <Link
-              to="/notifications"
-              className="relative inline-flex size-10 items-center justify-center rounded-sm text-text-secondary hover:bg-surface-hover hover:text-text-primary focus-ring"
-              aria-label={`Notifications${unread > 0 ? `, ${String(unread)} unread` : ""}`}
-            >
-              <Bell className="size-5" />
-              {unread > 0 && (
-                <span className="absolute right-2 top-2 flex size-4 items-center justify-center rounded-full bg-live text-[9px] font-bold text-white">
-                  {unread > 9 ? "9+" : unread}
-                </span>
-              )}
-            </Link>
+            {isAuthenticated && (
+              <>
+                <Link
+                  to="/wallet"
+                  className="hidden h-9 items-center gap-2 rounded-sm border border-border bg-surface px-3 text-sm font-semibold tabular hover:bg-surface-hover focus-ring sm:inline-flex"
+                >
+                  <Wallet className="size-4 text-text-muted" aria-hidden />
+                  {wallet.data === undefined ? "—" : formatMoney(wallet.data.available)}
+                  <span className="hidden text-[10px] font-semibold uppercase tracking-caps text-text-muted md:inline">Simulated</span>
+                </Link>
+                <Link
+                  to="/notifications"
+                  className="relative inline-flex size-10 items-center justify-center rounded-sm text-text-secondary hover:bg-surface-hover hover:text-text-primary focus-ring"
+                  aria-label={`Notifications${unread > 0 ? `, ${String(unread)} unread` : ""}`}
+                >
+                  <Bell className="size-5" />
+                  {unread > 0 && (
+                    <span className="absolute right-2 top-2 flex size-4 items-center justify-center rounded-full bg-live text-[9px] font-bold text-white">{unread > 9 ? "9+" : unread}</span>
+                  )}
+                </Link>
+              </>
+            )}
             <Link
               to="/settings"
               className="inline-flex size-10 items-center justify-center rounded-sm text-text-secondary hover:bg-surface-hover hover:text-text-primary focus-ring"
@@ -127,6 +127,50 @@ export function AppShell(): React.JSX.Element {
               <Settings className="size-5" />
             </Link>
             <ThemeSwitcher className="hidden md:inline-flex" />
+            {isAuthenticated && user !== undefined ? (
+              <Dropdown
+                label="Account menu"
+                className="ml-1"
+                trigger={
+                  <span className="flex h-9 items-center gap-1.5 rounded-sm pl-0.5 pr-1.5 hover:bg-surface-hover">
+                    <Avatar name={user.displayName} />
+                    <span className="hidden max-w-28 truncate text-sm font-semibold lg:inline">{user.displayName.split(" ")[0]}</span>
+                    <ChevronDown className="size-3.5 text-text-muted" aria-hidden />
+                  </span>
+                }
+                items={[
+                  ...ACCOUNT_NAV.map((item) => ({
+                    key: item.to,
+                    label: item.label,
+                    icon: <item.icon />,
+                    onSelect: () => {
+                      void navigate(item.to);
+                    },
+                  })),
+                  { key: "logout", label: "Log out", icon: <LogOut />, tone: "danger" as const, onSelect: logout.request },
+                ]}
+              />
+            ) : (
+              <div className="ml-1 hidden items-center gap-1.5 sm:flex">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    openAuth("login");
+                  }}
+                >
+                  Log in
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    openAuth("register");
+                  }}
+                >
+                  Register
+                </Button>
+              </div>
+            )}
             {!desktop && (
               <button
                 type="button"
@@ -168,13 +212,46 @@ export function AppShell(): React.JSX.Element {
                 {item.label}
               </NavLink>
             ))}
-            <div className="flex items-center justify-between px-3 py-3 md:hidden">
-              <Link to="/wallet" className="text-sm font-semibold tabular">
-                {wallet.data === undefined
-                  ? "Wallet"
-                  : formatMoney(wallet.data.available)}
-              </Link>
-              <ThemeSwitcher />
+            <div className="mt-2 border-t border-border pt-2">
+              {isAuthenticated ? (
+                <>
+                  {ACCOUNT_NAV.map((item) => (
+                    <Link key={item.to} to={item.to} className="flex items-center gap-3 rounded-sm px-3 py-2.5 text-md font-medium text-text-secondary focus-ring">
+                      <item.icon className="size-4 text-text-muted" aria-hidden />
+                      {item.label}
+                      {item.to === "/wallet" && wallet.data !== undefined && <span className="ml-auto text-sm font-semibold tabular text-text-primary">{formatMoney(wallet.data.available)}</span>}
+                    </Link>
+                  ))}
+                  <button type="button" onClick={logout.request} className="flex w-full items-center gap-3 rounded-sm px-3 py-2.5 text-md font-medium text-danger focus-ring">
+                    <LogOut className="size-4" aria-hidden />
+                    Log out
+                  </button>
+                </>
+              ) : (
+                <div className="grid grid-cols-2 gap-2 px-3 py-2">
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      openAuth("login");
+                    }}
+                  >
+                    Log in
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setMenuOpen(false);
+                      openAuth("register");
+                    }}
+                  >
+                    Register
+                  </Button>
+                </div>
+              )}
+              <div className="flex items-center justify-between px-3 py-3 md:hidden">
+                <span className="text-sm text-text-muted">Theme</span>
+                <ThemeSwitcher />
+              </div>
             </div>
           </nav>
         )}
@@ -210,6 +287,9 @@ export function AppShell(): React.JSX.Element {
           />
         </Sheet>
       )}
+
+      <AuthDialog />
+      {logout.dialog}
 
       <footer className="border-t border-border px-4 py-4 text-center text-xs text-text-muted">
         BetNG is a portfolio simulation. Balances, stakes and returns are

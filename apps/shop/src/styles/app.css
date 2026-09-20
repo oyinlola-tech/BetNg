@@ -1,0 +1,30 @@
+@import "tailwindcss";
+@import "@betng/ui-web/theme.css";
+@source "../../../../packages/ui-web/src";
+
+@media print {
+  body {
+    background: #ffffff !important;
+  }
+  body * {
+    visibility: hidden !important;
+  }
+  [data-print="ticket"],
+  [data-print="ticket"] * {
+    visibility: visible !important;
+  }
+  [data-print="ticket"] {
+    position: absolute !important;
+    inset: 0 auto auto 0 !important;
+    width: 80mm !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    color: #000000 !important;
+    background: #ffffff !important;
+  }
+  [data-print="ticket"] * {
+    color: #000000 !important;
+    background: transparent !important;
+    border-color: #000000 !important;
+  }
+}

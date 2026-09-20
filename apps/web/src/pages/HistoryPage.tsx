@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { Receipt } from "lucide-react";
 import {
   formatDateTime,
@@ -118,14 +117,19 @@ export function BetCard({ bet }: { readonly bet: BetView }): React.JSX.Element {
 }
 
 export function HistoryPage(): React.JSX.Element {
-  const [section, setSection] = useState<Section>("BETS");
+  const [params, setParams] = useSearchParams();
+  const tab = params.get("tab")?.toUpperCase();
+  const section: Section = tab === "VIEWED" || tab === "TRANSACTIONS" ? tab : "BETS";
+  const setSection = (next: Section): void => {
+    setParams(next === "BETS" ? {} : { tab: next.toLowerCase() }, { replace: true });
+  };
   const bets = useBets();
   const viewed = useViewedMatches();
   const transactions = useTransactions();
 
   return (
     <div className="space-y-5">
-      <SectionHeader as="h1" eyebrow="Your activity" title="History" />
+      <SectionHeader as="h1" eyebrow="Your activity" title="My bets" />
       <Tabs
         label="History section"
         value={section}

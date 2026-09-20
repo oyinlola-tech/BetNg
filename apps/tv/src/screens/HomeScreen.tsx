@@ -1,3 +1,4 @@
+import { LeagueMark } from "../components/BrandMarks";
 import { Link } from "react-router";
 import {
   formatBroadcastClock,
@@ -211,22 +212,19 @@ export function HomeScreen(): React.JSX.Element {
           </Rail>
         )}
         <Rail title="Competitions" to="/standings">
-          <div className="grid grid-cols-2 gap-[0.8rem]">
+          <div className="grid grid-cols-4 gap-[0.8rem]">
             {(leagues.data ?? []).map((l) => (
               <Focusable
                 key={l.id}
                 to={`/standings?league=${l.id}`}
-                className="flex w-full items-center gap-[1rem] border border-border bg-surface px-[1.1rem] py-[0.9rem] text-left"
+                className="flex w-full items-center gap-[0.8rem] border border-border bg-surface px-[0.9rem] py-[0.7rem] text-left"
               >
-                <span className="flex size-[3rem] items-center justify-center rounded-sm bg-surface-sunken font-display text-[0.9rem] font-black text-text-secondary">
-                  {l.code}
-                </span>
+                <LeagueMark slug={l.slug} code={l.code} className="size-[2.3rem] shrink-0" />
                 <span className="min-w-0">
-                  <span className="block truncate text-[1.1rem] font-bold">
+                  <span className="block text-[0.92rem] leading-tight font-bold">
                     {l.name}
                   </span>
-                  <span className="block text-[0.9rem] text-text-muted">
-                    Season {l.currentSeason} ·{" "}
+                  <span className="block truncate text-[0.8rem] text-text-muted">
                     {formatMatchday(l.currentMatchday)}
                   </span>
                 </span>
