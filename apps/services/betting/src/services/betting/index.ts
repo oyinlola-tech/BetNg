@@ -12,6 +12,7 @@ import {
   BETTING_COMMAND,
   BETTING_QUERY,
   EVENT_BUS_TOKEN,
+  RISK_GATE_TOKEN,
 } from "../../constants/index.js";
 import { PlaceBetHandler } from "./commands/index.js";
 import { GetBetHandler, ListBetsHandler } from "./queries/index.js";
@@ -36,10 +37,11 @@ export function registerBettingService(config: BettingServiceConfig): void {
 
   const bets = container.resolve(BET_REPOSITORY_TOKEN);
   const events = container.resolve(EVENT_BUS_TOKEN);
+  const risk = container.resolve(RISK_GATE_TOKEN);
 
   commandBus.register(
     BETTING_COMMAND.PLACE_BET,
-    new PlaceBetHandler(bets, events),
+    new PlaceBetHandler(bets, events, risk),
   );
 
   queryBus.register(BETTING_QUERY.GET_BET, new GetBetHandler(bets));

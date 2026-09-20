@@ -14,10 +14,10 @@
 
 import type { IncomingMessage, Server } from "node:http";
 import type { Duplex } from "node:stream";
-import {
+import type {
+  WebSocketAdapter,
   WebSocketReadyState,
-  type WebSocketAdapter,
-  type WebSocketSession,
+  WebSocketSession,
 } from "@zudojs/adapters";
 import type { Logger } from "@zudojs/logger";
 import { WebSocket, WebSocketServer } from "ws";
@@ -57,16 +57,33 @@ export interface BetNgWebSocketAdapter extends WebSocketAdapter {
  */
 const MAX_FRAME_BYTES = 4 * 1024;
 
+/**
+ * The ready-state values `@zudojs/adapters` documents.
+ *
+ * The package defines `WebSocketReadyState` as an enum and its runtime values
+ * do ship, but the package barrel re-exports the name with `export type` and
+ * the package declares no subpath exports, so the enum cannot be reached as a
+ * value. The numbers are part of the published contract — and identical to
+ * the WHATWG `WebSocket` ready states — so they are restated here and the
+ * result is still typed as `WebSocketReadyState`.
+ */
+const READY_STATE = {
+  CONNECTING: 0,
+  OPEN: 1,
+  CLOSING: 2,
+  CLOSED: 3,
+} as const satisfies Record<string, WebSocketReadyState>;
+
 function readyStateOf(socket: WebSocket): WebSocketReadyState {
   switch (socket.readyState) {
     case WebSocket.CONNECTING:
-      return WebSocketReadyState.CONNECTING;
+      return READY_STATE.CONNECTING;
     case WebSocket.OPEN:
-      return WebSocketReadyState.OPEN;
+      return READY_STATE.OPEN;
     case WebSocket.CLOSING:
-      return WebSocketReadyState.CLOSING;
+      return READY_STATE.CLOSING;
     default:
-      return WebSocketReadyState.CLOSED;
+      return READY_STATE.CLOSED;
   }
 }
 
@@ -159,9 +176,16 @@ export function createWebSocketAdapter(
   return {
     name: "betng-websocket",
 
-    capabilities: { websockets: true },
+    version: "0.1.0",
 
-    metadata: { path },
+    capabilities: { websocket: true, gracefulShutdown: true },
+
+    metadata: {
+      name: "betng-websocket",
+      version: "0.1.0",
+      description: `BetNG live match stream, served at ${path}.`,
+      runtime: "node >=24",
+    },
 
     accept: async (connection: unknown): Promise<WebSocketSession> => {
       // Connections arrive through the server's upgrade event, which is the

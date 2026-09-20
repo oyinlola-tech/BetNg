@@ -6,7 +6,12 @@
  * here.
  */
 
-import { parseBody, parseQuery, requireParam } from "@betng/service-kit";
+import {
+  getRequestId,
+  parseBody,
+  parseQuery,
+  requireParam,
+} from "@betng/service-kit";
 import type { HttpRouterContext } from "@betng/service-kit";
 import type { Bet } from "@betng/contracts";
 import type { CommandBus, QueryBus } from "@zudojs/cqrs";
@@ -52,6 +57,7 @@ export function createBettingController(
           selections: request.selections,
           stake: request.stake,
           currency: request.currency,
+          requestId: getRequestId(context.request),
         }),
       );
     },

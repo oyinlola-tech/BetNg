@@ -10,13 +10,15 @@ import {
   BET_REPOSITORY_TOKEN,
   EVENT_BUS_TOKEN,
   LOGGER_TOKEN,
+  RISK_GATE_TOKEN,
 } from "../constants/index.js";
-import type { BetRepository } from "../interfaces/index.js";
+import type { BetRepository, RiskGate } from "../interfaces/index.js";
 
 /** What the container is built from. */
 export interface ContainerLoaderConfig {
   readonly bets: BetRepository;
   readonly events: EventBus;
+  readonly risk: RiskGate;
   readonly logger: Logger;
 }
 
@@ -31,6 +33,7 @@ export function loadContainer(config: ContainerLoaderConfig): Container {
 
   container.registerValue(BET_REPOSITORY_TOKEN, config.bets);
   container.registerValue(EVENT_BUS_TOKEN, config.events);
+  container.registerValue(RISK_GATE_TOKEN, config.risk);
   container.registerValue(LOGGER_TOKEN, config.logger);
 
   return container.start();

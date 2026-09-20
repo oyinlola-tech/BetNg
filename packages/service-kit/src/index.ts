@@ -114,14 +114,12 @@ export type {
   RpcClientOptions,
 } from "./rpc/index.js";
 
-export {
-  createWebSocketAdapter,
-  WebSocketReadyState,
-} from "./websocket/index.js";
+export { createWebSocketAdapter } from "./websocket/index.js";
 export type {
   BetNgWebSocketAdapter,
   WebSocketAdapter,
   WebSocketAdapterOptions,
+  WebSocketReadyState,
   WebSocketSession,
 } from "./websocket/index.js";
 

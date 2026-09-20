@@ -15,5 +15,8 @@ export type {
   WebSocketAdapterOptions,
 } from "./websocketAdapter.ws.js";
 
-export { WebSocketReadyState } from "@zudojs/adapters";
-export type { WebSocketAdapter, WebSocketSession } from "@zudojs/adapters";
+export type {
+  WebSocketAdapter,
+  WebSocketReadyState,
+  WebSocketSession,
+} from "@zudojs/adapters";

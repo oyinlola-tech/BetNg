@@ -4,7 +4,11 @@ import { asId } from "@betng/contracts";
 import type { Bet } from "@betng/contracts";
 import { BETTING_COMMAND } from "../../../../constants/index.js";
 import { BetPlacedEvent } from "../../../../events/index.js";
-import type { BetRepository } from "../../../../interfaces/index.js";
+import type {
+  BetRepository,
+  RiskGate,
+} from "../../../../interfaces/index.js";
+import { MarketSuspendedError } from "../../../../errors/index.js";
 import {
   calculatePotentialPayout,
   calculateTotalOdds,
@@ -14,10 +18,15 @@ import type { PlaceBetCommand } from "./placeBet.command.js";
 /**
  * Accepts a bet slip.
  *
- * What this phase implements is acceptance: the payload is validated, the
- * slip is priced from the odds the client was shown, it is recorded as
- * `PENDING`, and a `betting.betPlaced` event is published for the risk
- * service to price exposure from.
+ * The order here is the platform's central integrity rule in code. Risk is
+ * consulted *before* the slip is accepted, because that is the only moment
+ * the platform may act on its exposure: it can decline the bet or suspend
+ * the market. Once betting closes the simulation runs, and nothing
+ * downstream of it may be influenced by what was staked.
+ *
+ * What this phase implements is acceptance: risk is consulted, the payload
+ * is validated, the slip is priced from the odds the client was shown, it is
+ * recorded as `PENDING`, and a `betting.betPlaced` event is published.
  *
  * What it deliberately does not do yet is debit the wallet. Reserving a
  * stake across two services is a distributed-transaction problem — what
@@ -35,20 +44,34 @@ export class PlaceBetHandler extends CommandHandler<PlaceBetCommand, Bet> {
 
   private readonly events: EventBus;
 
+  private readonly risk: RiskGate;
+
   private readonly now: () => Date;
 
   public constructor(
     bets: BetRepository,
     events: EventBus,
+    risk: RiskGate,
     now: () => Date = () => new Date(),
   ) {
     super();
     this.bets = bets;
     this.events = events;
+    this.risk = risk;
     this.now = now;
   }
 
   public async execute(command: PlaceBetCommand): Promise<Bet> {
+    const decision = await this.risk.evaluate(
+      command.selections,
+      command.stake,
+      command.requestId,
+    );
+
+    if (!decision.accepted) {
+      throw new MarketSuspendedError(decision.reason);
+    }
+
     const totalOdds = calculateTotalOdds(command.selections);
 
     const bet: Bet = {

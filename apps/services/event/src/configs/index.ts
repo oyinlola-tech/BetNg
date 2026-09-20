@@ -1,0 +1,13 @@
+/**
+ * @betng/event-service/configs
+ *
+ * Environment-backed configuration for the event service.
+ */
+
+export {
+  DEFAULT_PORT,
+  LIVE_PATH,
+  loadEventConfig,
+  SERVICE_NAME,
+  SERVICE_VERSION,
+} from "./service.config.js";

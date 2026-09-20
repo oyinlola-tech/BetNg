@@ -22,6 +22,9 @@
     },
     {
       "path": "./apps/services/settlement"
+    },
+    {
+      "path": "./apps/services/event"
     }
   ]
 }

@@ -17,6 +17,8 @@ export const SERVICE_NAMES = Object.freeze([
   "simulation",
   "odds",
   "risk",
+  "event",
+  "analytics",
 ] as const);
 
 export type ServiceName = (typeof SERVICE_NAMES)[number];
@@ -74,6 +76,8 @@ export const DEFAULT_PORTS: Readonly<Record<ServiceName, number>> =
     simulation: 3005,
     odds: 3006,
     risk: 3007,
+    event: 3008,
+    analytics: 3009,
   });
 
 /** How long a service waits on a peer when `SERVICE_TIMEOUT_MS` is unset. */

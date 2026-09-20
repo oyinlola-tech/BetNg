@@ -7,13 +7,22 @@
  * betting service.
  */
 
-import { createServiceLogger, createServiceServer } from "@betng/service-kit";
+import {
+  createServiceLogger,
+  createServiceServer,
+  serviceProbe,
+} from "@betng/service-kit";
 import type {
   DependencyProbe,
   Logger,
   ServiceConfig,
   ServiceServer,
 } from "@betng/service-kit";
+import {
+  createOddsClient,
+  createRiskClient,
+  createRpcRiskGate,
+} from "./clients/index.js";
 import { createBettingController } from "./controllers/index.js";
 import { createBettingDatabase } from "./databases/index.js";
 import { loadContainer, loadEvents, loadServices } from "./loaders/index.js";
@@ -39,11 +48,34 @@ export function createApp(config: ServiceConfig): BettingApp {
   const bets = createInMemoryBetRepository();
 
   const events = loadEvents(logger);
-  const container = loadContainer({ bets, events, logger });
 
-  const probes: DependencyProbe[] = [];
+  // Betting reaches two internal peers, both over RPC: risk on the
+  // placement path, and odds for pricing. Their addresses come from
+  // configuration, never from a literal.
+  const risk = createRiskClient(config.services.risk);
+  const odds = createOddsClient(config.services.odds);
+
+  const container = loadContainer({
+    bets,
+    events,
+    risk: createRpcRiskGate(risk, logger),
+    logger,
+  });
+
+  // Risk and odds are advisory on this service's critical path: betting
+  // accepts a slip unassessed rather than refusing every bet when they are
+  // unreachable, so they degrade this service rather than stopping it.
+  const probes: DependencyProbe[] = [
+    serviceProbe(
+      { endpoint: config.services.risk, request: risk.raw.call.bind(risk.raw) } as never,
+      { optional: true },
+    ),
+  ];
+
   const onShutdown: (() => Promise<void>)[] = [
     async () => {
+      await risk.raw.close();
+      await odds.raw.close();
       events.dispose();
       await container.dispose();
     },
