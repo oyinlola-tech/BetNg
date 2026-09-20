@@ -15,9 +15,14 @@ import type {
   Fixture,
   League,
   Match,
+  MatchEvent,
   MatchOdds,
+  MatchStats,
+  Notification,
   PlaceBetRequest,
+  Standings,
   Team,
+  TopScorer,
   Transaction,
   Wallet,
 } from "@betng/contracts";
@@ -45,7 +50,14 @@ export interface BetNgRestClient {
     readonly status?: string;
   }): Promise<readonly Match[]>;
   getMatch(matchId: string): Promise<Match>;
+  /** The timeline so far, oldest first. */
+  listMatchEvents(matchId: string): Promise<readonly MatchEvent[]>;
+  getMatchStats(matchId: string): Promise<MatchStats>;
   getMatchOdds(matchId: string): Promise<MatchOdds>;
+  getStandings(leagueId: string, season?: number): Promise<Standings>;
+  listTopScorers(leagueId: string, season?: number): Promise<readonly TopScorer[]>;
+  listNotifications(userId: string): Promise<readonly Notification[]>;
+  markNotificationsRead(userId: string, ids?: readonly string[]): Promise<void>;
   placeBet(request: PlaceBetRequest): Promise<Bet>;
   listBets(query?: {
     readonly userId?: string;
@@ -169,8 +181,53 @@ export function createRestClient(config: BetNgClientConfig): BetNgRestClient {
     getMatch: async (matchId) =>
       request<Match>("GET", `${API_PREFIX}/matches/${matchId}`),
 
+    listMatchEvents: async (matchId) =>
+      (
+        await request<ListResponse<MatchEvent>>(
+          "GET",
+          `${API_PREFIX}/matches/${matchId}/events`,
+        )
+      ).items,
+
+    getMatchStats: async (matchId) =>
+      request<MatchStats>("GET", `${API_PREFIX}/matches/${matchId}/stats`),
+
     getMatchOdds: async (matchId) =>
       request<MatchOdds>("GET", `${API_PREFIX}/matches/${matchId}/odds`),
+
+    getStandings: async (leagueId, season) =>
+      request<Standings>(
+        "GET",
+        `${API_PREFIX}/leagues/${leagueId}/standings${buildQuery({
+          season: season === undefined ? undefined : String(season),
+        })}`,
+      ),
+
+    listTopScorers: async (leagueId, season) =>
+      (
+        await request<ListResponse<TopScorer>>(
+          "GET",
+          `${API_PREFIX}/leagues/${leagueId}/scorers${buildQuery({
+            season: season === undefined ? undefined : String(season),
+          })}`,
+        )
+      ).items,
+
+    listNotifications: async (userId) =>
+      (
+        await request<ListResponse<Notification>>(
+          "GET",
+          `${API_PREFIX}/users/${userId}/notifications`,
+        )
+      ).items,
+
+    markNotificationsRead: async (userId, ids) => {
+      await request<unknown>(
+        "POST",
+        `${API_PREFIX}/users/${userId}/notifications/read`,
+        ids === undefined ? {} : { ids },
+      );
+    },
 
     placeBet: async (betRequest) =>
       request<Bet>("POST", `${API_PREFIX}/bets`, betRequest),

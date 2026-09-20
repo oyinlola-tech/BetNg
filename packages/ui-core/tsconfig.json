@@ -5,7 +5,11 @@
     "outDir": "dist",
     "types": [],
     "composite": true,
-    "tsBuildInfoFile": "./dist/.tsbuildinfo"
+    "tsBuildInfoFile": "./dist/.tsbuildinfo",
+    "lib": [
+      "ES2024",
+      "DOM"
+    ]
   },
   "include": [
     "src/**/*.ts"
@@ -13,6 +17,12 @@
   "references": [
     {
       "path": "../contracts"
+    },
+    {
+      "path": "../client-sdk"
+    },
+    {
+      "path": "../design-tokens"
     }
   ]
 }

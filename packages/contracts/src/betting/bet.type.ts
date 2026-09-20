@@ -39,6 +39,8 @@ export interface Bet {
   readonly placedAt: string;
   /** Set when the settlement service resolved this bet. */
   readonly settledAt?: string;
+  /** The amount actually paid, in minor units, once settled. Zero for a loss. */
+  readonly payout?: number | undefined;
 }
 
 export const betSchema = z.object({
@@ -52,6 +54,7 @@ export const betSchema = z.object({
   status: betStatusSchema,
   placedAt: isoTimestampSchema,
   settledAt: isoTimestampSchema.optional(),
+  payout: minorUnitsSchema.min(0).optional(),
 });
 
 /** The body of `POST /api/v1/bets`. */

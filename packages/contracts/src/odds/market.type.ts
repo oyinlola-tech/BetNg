@@ -20,8 +20,11 @@ import { selectionSchema, type Selection } from "./selection.type.js";
 /** The market types the foundation recognises. */
 export const marketTypeSchema = z.enum([
   "MATCH_RESULT",
+  "DOUBLE_CHANCE",
   "OVER_UNDER",
   "BOTH_TEAMS_TO_SCORE",
+  "CORRECT_SCORE",
+  "GOAL_SPREAD",
 ]);
 
 export type MarketType = z.infer<typeof marketTypeSchema>;
@@ -35,6 +38,8 @@ export interface Market {
   readonly matchId: MatchId;
   readonly type: MarketType;
   readonly status: MarketStatus;
+  /** The line for a totals or spread market: 2.5, -1.5. */
+  readonly line?: number | undefined;
   readonly selections: readonly Selection[];
   readonly updatedAt: string;
 }
@@ -44,6 +49,7 @@ export const marketSchema = z.object({
   matchId: brandedIdSchema<"MatchId">(),
   type: marketTypeSchema,
   status: marketStatusSchema,
+  line: z.number().optional(),
   selections: z.array(selectionSchema).min(2),
   updatedAt: isoTimestampSchema,
 });

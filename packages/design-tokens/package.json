@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "BetNG's shared design language: semantic colour themes, type scale, spacing, radius, elevation, motion and z-index — as TypeScript for React Native and as CSS custom properties for the web and TV clients.",
+  "description": "BetNG's shared design language: semantic colour themes, type scale, spacing, radius, elevation, motion and z-index \u2014 as TypeScript for React Native and as CSS custom properties for the web and TV clients.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -13,9 +13,12 @@
     },
     "./css": "./css/tokens.css"
   },
-  "files": ["dist", "css"],
+  "files": [
+    "dist",
+    "css"
+  ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && node ./dist/generateCss.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "clean": "rm -rf dist *.tsbuildinfo"
   },

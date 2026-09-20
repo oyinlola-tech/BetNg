@@ -4,8 +4,24 @@
  * Competition structure and the lifecycle of a single virtual match.
  */
 
-export { leagueSchema, teamSchema } from "./league.type.js";
-export type { League, Team } from "./league.type.js";
+export { leagueSchema, teamColorsSchema, teamSchema } from "./league.type.js";
+export type { League, Team, TeamColors } from "./league.type.js";
+
+export { matchStatsSchema, sideStatsSchema } from "./matchStats.type.js";
+export type { MatchStats, SideStats } from "./matchStats.type.js";
+
+export {
+  formResultSchema,
+  standingRowSchema,
+  standingsSchema,
+  topScorerSchema,
+} from "./standings.type.js";
+export type {
+  FormResult,
+  StandingRow,
+  Standings,
+  TopScorer,
+} from "./standings.type.js";
 
 export { fixtureSchema } from "./fixture.type.js";
 export type { Fixture } from "./fixture.type.js";

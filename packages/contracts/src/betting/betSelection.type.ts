@@ -23,6 +23,13 @@ export interface BetSelection {
    * settlement time, so a later re-price cannot change what was agreed.
    */
   readonly odds: number;
+  /** Denormalised labels, written by the betting service at acceptance so a
+   *  bet reads correctly even after the match's markets are gone. */
+  readonly marketType?: string | undefined;
+  readonly marketLabel?: string | undefined;
+  readonly selectionLabel?: string | undefined;
+  /** Set by settlement. */
+  readonly outcome?: "PENDING" | "WON" | "LOST" | "VOID" | undefined;
 }
 
 export const betSelectionSchema = z.object({
@@ -30,4 +37,8 @@ export const betSelectionSchema = z.object({
   marketId: brandedIdSchema<"MarketId">(),
   selectionId: brandedIdSchema<"SelectionId">(),
   odds: decimalOddsSchema,
+  marketType: z.string().max(32).optional(),
+  marketLabel: z.string().max(64).optional(),
+  selectionLabel: z.string().max(64).optional(),
+  outcome: z.enum(["PENDING", "WON", "LOST", "VOID"]).optional(),
 });

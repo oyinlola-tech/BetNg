@@ -1,0 +1,77 @@
+/**
+ * @betng/ui-core
+ *
+ * What a screen needs that is not a pixel: the view models it renders, the
+ * boundary it reads them through, and the arithmetic — clock, phase, odds,
+ * money, standings, slip — that must agree across web, mobile and TV.
+ */
+
+export type * from "./types/index.js";
+
+export { DataSourceError } from "./dataSource.type.js";
+export type {
+  BetNgDataSource,
+  LiveMatchHandlers,
+  LiveSubscription,
+  MatchFilter,
+} from "./dataSource.type.js";
+
+export {
+  FIRST_HALF_SECONDS,
+  FULL_TIME_SECONDS,
+  SECOND_HALF_START_SECONDS,
+  VIRTUAL_TIMING,
+  instantAtMinute,
+  matchClock,
+} from "./timing.js";
+export type { ClockPeriod, MatchClock } from "./timing.js";
+
+export {
+  canBet,
+  derivePhase,
+  isFinished,
+  isInPlay,
+  isUpcoming,
+  phaseDescription,
+  phaseLabel,
+  phaseTone,
+} from "./phase.js";
+
+export {
+  formatBroadcastClock,
+  formatCountdown,
+  formatDateTime,
+  formatKickoffTime,
+  formatMatchday,
+  formatMinute,
+  formatMoney,
+  formatMoneyCompact,
+  formatOdds,
+  formatRelative,
+  formatScore,
+  formatShortDate,
+  formatSignedMoney,
+  toLocalDateKey,
+} from "./format.js";
+
+export {
+  MAX_SELECTIONS,
+  QUICK_STAKES,
+  STAKE_LIMITS,
+  combinedOdds,
+  isSelected,
+  parseStakeInput,
+  removeSelection,
+  slipTotals,
+  toggleSelection,
+  validateSlip,
+} from "./betslip.js";
+export type { StakeProblem } from "./betslip.js";
+
+export { computeStandings } from "./standings.js";
+
+export { watchMatch } from "./live/watchMatch.js";
+export type { LiveMatchController, LiveMatchSnapshot } from "./live/watchMatch.js";
+
+export { createPlatformDataSource } from "./adapters/platformDataSource.js";
+export type { PlatformDataSourceOptions } from "./adapters/platformDataSource.js";

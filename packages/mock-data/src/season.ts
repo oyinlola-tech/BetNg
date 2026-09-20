@@ -1,0 +1,144 @@
+/**
+ * The calendar of the virtual season.
+ *
+ * Every league runs a matchday every `CYCLE_SECONDS`, all of its matches
+ * kicking off together, forever. Which matchday is on is a function of the
+ * clock; the fixture list for any matchday of any season is a function of
+ * the league and the season number. Nothing is stored, so there is nothing
+ * to get out of step.
+ */
+
+import type { FixtureId, MatchId } from "@betng/contracts";
+import { FULL_TIME_SECONDS, VIRTUAL_TIMING } from "@betng/ui-core";
+import type { Club, Competition } from "./clubs.js";
+import { rng, uuidFrom } from "./prng.js";
+
+/** Seconds from one matchday's kick-off to the next, per league. */
+export const CYCLE_SECONDS = 240;
+
+/** When season 1, matchday 1 of the offset-zero league kicked off. */
+export const SEASON_EPOCH_MS = Date.UTC(2026, 8, 1, 0, 0, 0);
+
+export interface FixtureRef {
+  readonly matchId: MatchId;
+  readonly fixtureId: FixtureId;
+  readonly competition: Competition;
+  /** Zero-based, since the epoch. */
+  readonly round: number;
+  readonly season: number;
+  readonly matchday: number;
+  readonly home: Club;
+  readonly away: Club;
+  readonly kickoffMs: number;
+}
+
+/** The round-robin pairings for one season, home and away. */
+function pairings(competition: Competition, season: number): readonly (readonly [Club, Club])[][] {
+  const order = rng(`season:${competition.seed.key}:${String(season)}`).shuffle(competition.clubs);
+  const n = order.length;
+  const rounds: (readonly [Club, Club])[][] = [];
+  const rotating = order.slice(1);
+
+  for (let r = 0; r < n - 1; r += 1) {
+    const round: (readonly [Club, Club])[] = [];
+    const ring = [order[0] as Club, ...rotating];
+
+    for (let i = 0; i < n / 2; i += 1) {
+      const a = ring[i] as Club;
+      const b = ring[n - 1 - i] as Club;
+
+      // Alternate who is at home so no club plays six home games in a row.
+      round.push(r % 2 === i % 2 ? [a, b] : [b, a]);
+    }
+
+    rounds.push(round);
+    rotating.unshift(rotating.pop() as Club);
+  }
+
+  const reversed = rounds.map((round) => round.map(([h, a]): readonly [Club, Club] => [a, h]));
+
+  return [...rounds, ...reversed];
+}
+
+const pairingCache = new Map<string, readonly (readonly [Club, Club])[][]>();
+
+function seasonPairings(competition: Competition, season: number): readonly (readonly [Club, Club])[][] {
+  const key = `${competition.seed.key}:${String(season)}`;
+  let cached = pairingCache.get(key);
+
+  if (cached === undefined) {
+    cached = pairings(competition, season);
+    pairingCache.set(key, cached);
+  }
+
+  return cached;
+}
+
+export function kickoffMs(competition: Competition, round: number): number {
+  return SEASON_EPOCH_MS + (competition.seed.offsetSeconds + round * CYCLE_SECONDS) * 1000;
+}
+
+/** The fixtures of one round (a global matchday index). */
+export function fixturesForRound(competition: Competition, round: number): readonly FixtureRef[] {
+  if (round < 0) return [];
+
+  const season = Math.floor(round / competition.matchdays) + 1;
+  const matchday = (round % competition.matchdays) + 1;
+  const pairs = seasonPairings(competition, season)[matchday - 1] ?? [];
+  const kickoff = kickoffMs(competition, round);
+
+  return pairs.map(([home, away]): FixtureRef => {
+    const key = `${competition.seed.key}:${String(round)}:${home.code}:${away.code}`;
+
+    return {
+      matchId: uuidFrom(`match:${key}`) as MatchId,
+      fixtureId: uuidFrom(`fixture:${key}`) as FixtureId,
+      competition,
+      round,
+      season,
+      matchday,
+      home,
+      away,
+      kickoffMs: kickoff,
+    };
+  });
+}
+
+export function roundFor(competition: Competition, season: number, matchday: number): number {
+  return (season - 1) * competition.matchdays + (matchday - 1);
+}
+
+/** The round whose kick-off is the most recent at `now` (may be in play). */
+export function currentRound(competition: Competition, now: number): number {
+  return Math.floor((now - kickoffMs(competition, 0)) / (CYCLE_SECONDS * 1000));
+}
+
+/** Contract status of a fixture at `now`. */
+export function statusAt(
+  fixture: FixtureRef,
+  now: number,
+): "SCHEDULED" | "BETTING_OPEN" | "BETTING_CLOSED" | "IN_PLAY" | "COMPLETED" {
+  const seconds = (now - fixture.kickoffMs) / 1000;
+
+  if (seconds < -CYCLE_SECONDS) return "SCHEDULED";
+  if (seconds < -VIRTUAL_TIMING.bettingCloseLeadSeconds) return "BETTING_OPEN";
+  if (seconds < 0) return "BETTING_CLOSED";
+  if (seconds < FULL_TIME_SECONDS) return "IN_PLAY";
+  return "COMPLETED";
+}
+
+/** Finds a fixture by match id by searching a window of rounds around now. */
+export function findFixture(matchId: string, now: number, competitions: readonly Competition[]): FixtureRef | undefined {
+  for (const competition of competitions) {
+    const centre = currentRound(competition, now);
+
+    // Two seasons back covers every result a client can browse to.
+    for (let round = centre + 2; round >= Math.max(0, centre - competition.matchdays * 2); round -= 1) {
+      const found = fixturesForRound(competition, round).find((f) => f.matchId === matchId);
+
+      if (found !== undefined) return found;
+    }
+  }
+
+  return undefined;
+}

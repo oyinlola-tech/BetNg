@@ -17,6 +17,8 @@ import {
 export interface Fixture {
   readonly id: FixtureId;
   readonly leagueId: LeagueId;
+  /** One-based season number. Optional until the match service tracks seasons. */
+  readonly season?: number | undefined;
   /** One-based matchday within the league's season. */
   readonly matchday: number;
   readonly homeTeamId: TeamId;
@@ -30,6 +32,7 @@ export interface Fixture {
 export const fixtureSchema = z.object({
   id: brandedIdSchema<"FixtureId">(),
   leagueId: brandedIdSchema<"LeagueId">(),
+  season: z.int().min(1).optional(),
   matchday: z.int().min(1),
   homeTeamId: brandedIdSchema<"TeamId">(),
   awayTeamId: brandedIdSchema<"TeamId">(),

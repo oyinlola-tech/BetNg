@@ -12,14 +12,18 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "@betng/contracts": "workspace:*"
+    "@betng/client-sdk": "workspace:*",
+    "@betng/contracts": "workspace:*",
+    "@betng/design-tokens": "workspace:*"
   },
   "devDependencies": {
     "typescript": "7.0.2"

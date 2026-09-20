@@ -65,6 +65,7 @@ export type {
 
 export {
   fixtureSchema,
+  formResultSchema,
   leagueSchema,
   listMatchesQuerySchema,
   listTeamsQuerySchema,
@@ -73,11 +74,18 @@ export {
   matchSchema,
   matchScoreSchema,
   matchSideSchema,
+  matchStatsSchema,
   matchStatusSchema,
+  sideStatsSchema,
+  standingRowSchema,
+  standingsSchema,
+  teamColorsSchema,
   teamSchema,
+  topScorerSchema,
 } from "./match/index.js";
 export type {
   Fixture,
+  FormResult,
   League,
   ListMatchesQuery,
   ListTeamsQuery,
@@ -86,9 +94,26 @@ export type {
   MatchEventType,
   MatchScore,
   MatchSide,
+  MatchStats,
   MatchStatus,
+  SideStats,
+  StandingRow,
+  Standings,
   Team,
+  TeamColors,
+  TopScorer,
 } from "./match/index.js";
+
+export {
+  markNotificationsReadRequestSchema,
+  notificationKindSchema,
+  notificationSchema,
+} from "./notification/index.js";
+export type {
+  MarkNotificationsReadRequest,
+  Notification,
+  NotificationKind,
+} from "./notification/index.js";
 
 export {
   marketSchema,
