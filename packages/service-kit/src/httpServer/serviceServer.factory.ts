@@ -22,9 +22,11 @@ import {
   HttpMiddlewarePipeline,
 } from "@zudojs/http";
 import type { HttpRequestContext, HttpRouter, HttpServer } from "@zudojs/http";
+import type { RPCServer } from "@zudojs/rpc";
 import type { Logger } from "@zudojs/logger";
 import type { ServiceConfig } from "../serviceConfig/index.js";
 import type { DependencyProbe } from "../healthProbe/index.js";
+import { registerRpcRoute } from "../rpc/index.js";
 import { createErrorHandler } from "../httpError/index.js";
 import {
   createAccessLogMiddleware,
@@ -40,6 +42,11 @@ export interface ServiceServerOptions {
   readonly routes: (router: HttpRouter) => void;
   /** The dependencies `/ready` probes. Empty when the service has none. */
   readonly probes?: readonly DependencyProbe[];
+  /**
+   * The service's RPC procedures. When present they are mounted at
+   * `POST /rpc` on this same listener, so RPC needs no second port.
+   */
+  readonly rpcServer?: RPCServer;
 }
 
 export interface ServiceServer {
@@ -70,6 +77,11 @@ export function createServiceServer(
 
   const router = createRouter(createRouterFallbacks());
   registerHealthRoutes(router, config, options.probes ?? []);
+
+  if (options.rpcServer !== undefined) {
+    registerRpcRoute(router, options.rpcServer, logger);
+  }
+
   options.routes(router);
 
   const pipeline = new HttpMiddlewarePipeline();

@@ -103,6 +103,17 @@ export type {
   ServiceResponse,
 } from "./clients/index.js";
 
+export {
+  createHttpRpcTransport,
+  createRpcClient,
+  registerRpcRoute,
+  RPC_PATH,
+} from "./rpc/index.js";
+export type {
+  HttpRpcTransportOptions,
+  RpcClientOptions,
+} from "./rpc/index.js";
+
 export { runService } from "./serviceRunner/index.js";
 export type { RunnableService } from "./serviceRunner/index.js";
 
