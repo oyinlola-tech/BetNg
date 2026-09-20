@@ -132,4 +132,10 @@ def configure_logging(
         uvicorn_logger.handlers = []
         uvicorn_logger.propagate = True
 
+    # httpx narrates every outbound call at info. That is the HTTP client's
+    # business, not the service's, and it doubles the log volume of an RPC
+    # hop that the access log already records at both ends.
+    for name in ("httpx", "httpcore"):
+        logging.getLogger(name).setLevel(logging.WARNING)
+
     return logging.getLogger(service)

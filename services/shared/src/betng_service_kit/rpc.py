@@ -32,6 +32,8 @@ import httpx
 from fastapi import APIRouter, Request
 from pydantic import BaseModel, Field, ValidationError
 
+from .errors import ServiceError
+
 #: Where every BetNG service mounts its RPC endpoint.
 RPC_PATH = "/rpc"
 
@@ -190,6 +192,12 @@ class RpcServer:
         try:
             result = await procedure.handler(payload)
         except RpcError as error:
+            return _failure(frame, error.code, error.message, error.details)
+        except ServiceError as error:
+            # A domain refusal is a describable outcome, not a fault. Its code
+            # and message are the caller's answer and must survive the wire;
+            # flattening it into an internal error would tell the caller only
+            # that something went wrong.
             return _failure(frame, error.code, error.message, error.details)
         except Exception:  # noqa: BLE001 - the caller is an untrusted peer
             import logging
