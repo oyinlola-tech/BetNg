@@ -37,6 +37,9 @@
     },
     {
       "path": "./packages/client-sdk"
+    },
+    {
+      "path": "./packages/brand"
     }
   ]
 }

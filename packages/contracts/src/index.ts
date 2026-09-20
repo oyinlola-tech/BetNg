@@ -52,6 +52,7 @@ export {
   fixtureSchema,
   formResultSchema,
   leagueSchema,
+  leagueStatusSchema,
   listMatchesQuerySchema,
   listTeamsQuerySchema,
   matchEventSchema,
@@ -72,6 +73,7 @@ export type {
   Fixture,
   FormResult,
   League,
+  LeagueStatus,
   ListMatchesQuery,
   ListTeamsQuery,
   Match,
@@ -205,3 +207,7 @@ export type {
   RiskAction,
   SelectionExposure,
 } from "./risk/index.js";
+
+export * from "./auth/index.js";
+export * from "./shop/index.js";
+export * from "./admin/index.js";

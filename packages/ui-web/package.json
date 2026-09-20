@@ -1,0 +1,36 @@
+{
+  "name": "@betng/ui-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "BetNG's shared React + Tailwind components for the browser clients (web, shop, admin): primitives, brand marks, match and odds components.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "peerDependencies": {
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-router": "^8.4.0"
+  },
+  "dependencies": {
+    "@betng/brand": "workspace:*",
+    "@betng/contracts": "workspace:*",
+    "@betng/design-tokens": "workspace:*",
+    "@betng/ui-core": "workspace:*",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.47.0",
+    "tailwind-merge": "^3.7.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-router": "^8.4.0",
+    "typescript": "7.0.2"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "@betng/brand",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "BetNG's generated marks: the BetNG logo, original league marks and club crests, as SVG strings and path data for every client.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" }
+  },
+  "files": ["dist", "svg"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node ./dist/exportSvg.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "devDependencies": { "typescript": "7.0.2" }
+}

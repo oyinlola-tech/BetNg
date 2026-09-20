@@ -1,5 +1,15 @@
-export { leagueSchema, teamColorsSchema, teamSchema } from "./league.type.js";
-export type { League, Team, TeamColors } from "./league.type.js";
+export {
+  leagueSchema,
+  leagueStatusSchema,
+  teamColorsSchema,
+  teamSchema,
+} from "./league.type.js";
+export type {
+  League,
+  LeagueStatus,
+  Team,
+  TeamColors,
+} from "./league.type.js";
 
 export { matchStatsSchema, sideStatsSchema } from "./matchStats.type.js";
 export type { MatchStats, SideStats } from "./matchStats.type.js";

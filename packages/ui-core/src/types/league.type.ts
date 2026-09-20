@@ -4,6 +4,10 @@ export interface LeagueView {
   readonly id: LeagueId;
   readonly name: string;
   readonly code: string;
+  /** URL-safe identifier, e.g. `premier-league`. */
+  readonly slug: string;
+  readonly sport: string;
+  readonly status: "ACTIVE" | "SUSPENDED" | "ARCHIVED";
   readonly country: string;
   readonly teamCount: number;
   readonly matchdays: number;

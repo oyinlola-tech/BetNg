@@ -3,6 +3,8 @@ packages:
   - "apps/web"
   - "apps/tv"
   - "apps/mobile"
+  - "apps/shop"
+  - "apps/admin"
   - "apps/services/*"
   - "packages/*"
 

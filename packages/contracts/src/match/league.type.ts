@@ -6,10 +6,18 @@ import {
   type TeamId,
 } from "../common/index.js";
 
+export const leagueStatusSchema = z.enum(["ACTIVE", "SUSPENDED", "ARCHIVED"]);
+
+export type LeagueStatus = z.infer<typeof leagueStatusSchema>;
+
 export interface League {
   readonly id: LeagueId;
   readonly name: string;
   readonly code: string;
+  /** URL-safe identifier such as `premier-league`. Admin-configured; clients never hard-code it. */
+  readonly slug?: string | undefined;
+  readonly sport?: string | undefined;
+  readonly status?: LeagueStatus | undefined;
   readonly country: string;
   readonly createdAt: string;
 }
@@ -18,6 +26,13 @@ export const leagueSchema = z.object({
   id: brandedIdSchema<"LeagueId">(),
   name: z.string().min(1).max(120),
   code: z.string().min(2).max(8),
+  slug: z
+    .string()
+    .regex(/^[a-z0-9-]+$/)
+    .max(40)
+    .optional(),
+  sport: z.string().max(32).optional(),
+  status: leagueStatusSchema.optional(),
   country: z.string().min(2).max(60),
   createdAt: isoTimestampSchema,
 });

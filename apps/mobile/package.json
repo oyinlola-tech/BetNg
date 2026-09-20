@@ -13,6 +13,7 @@
     "clean": "rm -rf .expo *.tsbuildinfo"
   },
   "dependencies": {
+    "@betng/brand": "workspace:*",
     "@betng/client-sdk": "workspace:*",
     "@betng/contracts": "workspace:*",
     "@betng/design-tokens": "workspace:*",
