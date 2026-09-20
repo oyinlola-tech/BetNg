@@ -32,4 +32,4 @@ minimumReleaseAgeExclude:
   - '@zudojs/cqrs@1.1.1'
   - '@zudojs/rpc@1.3.0'
   - '@zudojs/schema@1.1.1'
-  - '@zudojs/adapters@1.1.0'
+  - '@zudojs/adapters@1.1.0 || 1.2.0'
