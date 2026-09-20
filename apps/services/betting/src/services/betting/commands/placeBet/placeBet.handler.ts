@@ -1,7 +1,9 @@
 import { CommandHandler } from "@zudojs/cqrs";
+import type { EventBus } from "@zudojs/events";
 import { asId } from "@betng/contracts";
 import type { Bet } from "@betng/contracts";
 import { BETTING_COMMAND } from "../../../../constants/index.js";
+import { BetPlacedEvent } from "../../../../events/index.js";
 import type { BetRepository } from "../../../../interfaces/index.js";
 import {
   calculatePotentialPayout,
@@ -13,8 +15,9 @@ import type { PlaceBetCommand } from "./placeBet.command.js";
  * Accepts a bet slip.
  *
  * What this phase implements is acceptance: the payload is validated, the
- * slip is priced from the odds the client was shown, and it is recorded as
- * `PENDING`.
+ * slip is priced from the odds the client was shown, it is recorded as
+ * `PENDING`, and a `betting.betPlaced` event is published for the risk
+ * service to price exposure from.
  *
  * What it deliberately does not do yet is debit the wallet. Reserving a
  * stake across two services is a distributed-transaction problem — what
@@ -30,11 +33,18 @@ export class PlaceBetHandler extends CommandHandler<PlaceBetCommand, Bet> {
 
   private readonly bets: BetRepository;
 
+  private readonly events: EventBus;
+
   private readonly now: () => Date;
 
-  public constructor(bets: BetRepository, now: () => Date = () => new Date()) {
+  public constructor(
+    bets: BetRepository,
+    events: EventBus,
+    now: () => Date = () => new Date(),
+  ) {
     super();
     this.bets = bets;
+    this.events = events;
     this.now = now;
   }
 
@@ -53,6 +63,20 @@ export class PlaceBetHandler extends CommandHandler<PlaceBetCommand, Bet> {
       placedAt: this.now().toISOString(),
     };
 
-    return this.bets.create(bet);
+    const created = await this.bets.create(bet);
+
+    await this.events.publish(
+      BetPlacedEvent.create({
+        betId: created.id,
+        userId: created.userId,
+        selections: created.selections,
+        stake: created.stake,
+        totalOdds: created.totalOdds,
+        potentialPayout: created.potentialPayout,
+        currency: created.currency,
+      }),
+    );
+
+    return created;
   }
 }

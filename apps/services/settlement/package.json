@@ -19,16 +19,9 @@
   "dependencies": {
     "@betng/contracts": "workspace:*",
     "@betng/service-kit": "workspace:*",
-    "@zudojs/constants": "1.1.1",
     "@zudojs/container": "1.1.2",
-    "@zudojs/core": "1.2.1",
     "@zudojs/cqrs": "1.1.1",
-    "@zudojs/errors": "1.2.0",
-    "@zudojs/events": "1.2.0",
-    "@zudojs/http": "1.3.0",
-    "@zudojs/logger": "1.3.0",
-    "@zudojs/runtime": "1.2.1",
-    "@zudojs/validation": "1.0.3"
+    "@zudojs/errors": "1.2.0"
   },
   "devDependencies": {
     "@types/node": "^26.6.2",

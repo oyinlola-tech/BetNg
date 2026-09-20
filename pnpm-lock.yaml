@@ -35,38 +35,17 @@ importers:
 
   apps/gateway:
     dependencies:
-      '@zudojs/config':
-        specifier: ^1.2.0
-        version: 1.2.0
-      '@zudojs/constants':
-        specifier: ^1.1.1
-        version: 1.1.1
+      '@betng/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
+      '@betng/service-kit':
+        specifier: workspace:*
+        version: link:../../packages/service-kit
       '@zudojs/container':
-        specifier: ^1.1.2
+        specifier: 1.1.2
         version: 1.1.2
-      '@zudojs/core':
-        specifier: ^1.2.1
-        version: 1.2.1
-      '@zudojs/database':
-        specifier: ^1.2.1
-        version: 1.2.1(@prisma/client@7.10.0(typescript@7.0.2))
-      '@zudojs/events':
-        specifier: ^1.2.0
-        version: 1.2.0
-      '@zudojs/http':
-        specifier: ^1.3.0
-        version: 1.3.0
-      '@zudojs/logger':
-        specifier: ^1.3.0
-        version: 1.3.0
-      '@zudojs/observability':
-        specifier: ^1.1.1
-        version: 1.1.1
-      '@zudojs/runtime':
-        specifier: ^1.2.1
-        version: 1.2.1
-      '@zudojs/security':
-        specifier: ^1.2.0
+      '@zudojs/errors':
+        specifier: 1.2.0
         version: 1.2.0
     devDependencies:
       '@types/node':
@@ -76,7 +55,7 @@ importers:
         specifier: ^4.23.15
         version: 4.23.15
       typescript:
-        specifier: ^7.0.2
+        specifier: 7.0.2
         version: 7.0.2
 
   apps/services/betting:
@@ -87,10 +66,16 @@ importers:
       '@betng/service-kit':
         specifier: workspace:*
         version: link:../../../packages/service-kit
+      '@zudojs/container':
+        specifier: 1.1.2
+        version: 1.1.2
       '@zudojs/cqrs':
         specifier: 1.1.1
         version: 1.1.1
       '@zudojs/errors':
+        specifier: 1.2.0
+        version: 1.2.0
+      '@zudojs/events':
         specifier: 1.2.0
         version: 1.2.0
       '@zudojs/validation':
@@ -115,6 +100,9 @@ importers:
       '@betng/service-kit':
         specifier: workspace:*
         version: link:../../../packages/service-kit
+      '@zudojs/container':
+        specifier: 1.1.2
+        version: 1.1.2
       '@zudojs/cqrs':
         specifier: 1.1.1
         version: 1.1.1
@@ -143,36 +131,15 @@ importers:
       '@betng/service-kit':
         specifier: workspace:*
         version: link:../../../packages/service-kit
-      '@zudojs/constants':
-        specifier: 1.1.1
-        version: 1.1.1
       '@zudojs/container':
         specifier: 1.1.2
         version: 1.1.2
-      '@zudojs/core':
-        specifier: 1.2.1
-        version: 1.2.1
       '@zudojs/cqrs':
         specifier: 1.1.1
         version: 1.1.1
       '@zudojs/errors':
         specifier: 1.2.0
         version: 1.2.0
-      '@zudojs/events':
-        specifier: 1.2.0
-        version: 1.2.0
-      '@zudojs/http':
-        specifier: 1.3.0
-        version: 1.3.0
-      '@zudojs/logger':
-        specifier: 1.3.0
-        version: 1.3.0
-      '@zudojs/runtime':
-        specifier: 1.2.1
-        version: 1.2.1
-      '@zudojs/validation':
-        specifier: 1.0.3
-        version: 1.0.3
     devDependencies:
       '@types/node':
         specifier: ^26.6.2
@@ -192,15 +159,9 @@ importers:
       '@betng/service-kit':
         specifier: workspace:*
         version: link:../../../packages/service-kit
-      '@zudojs/constants':
-        specifier: 1.1.1
-        version: 1.1.1
       '@zudojs/container':
         specifier: 1.1.2
         version: 1.1.2
-      '@zudojs/core':
-        specifier: 1.2.1
-        version: 1.2.1
       '@zudojs/cqrs':
         specifier: 1.1.1
         version: 1.1.1
@@ -210,15 +171,6 @@ importers:
       '@zudojs/events':
         specifier: 1.2.0
         version: 1.2.0
-      '@zudojs/http':
-        specifier: 1.3.0
-        version: 1.3.0
-      '@zudojs/logger':
-        specifier: 1.3.0
-        version: 1.3.0
-      '@zudojs/runtime':
-        specifier: 1.2.1
-        version: 1.2.1
       '@zudojs/validation':
         specifier: 1.0.3
         version: 1.0.3
@@ -524,21 +476,6 @@ packages:
 
   '@oxc-project/types@0.150.0':
     resolution: {integrity: sha512-rDS5/31E9HfPl/CIzGrn0DOlvBbXFseQ5URJ9sYMfstbKLD/c6Gm9vmRzRGDdAXyOIL4zmO37lc9RIwYqVruZw==}
-
-  '@prisma/client-runtime-utils@7.10.0':
-    resolution: {integrity: sha512-cnCy7lUV8/CctgKVEmqAbSLAmwqJdE/qAlqTBk/0NDk59zEb2cZ0M0M0E4vVPnqbSEYudRroQDvOWfUZH6RIfw==}
-
-  '@prisma/client@7.10.0':
-    resolution: {integrity: sha512-Ubw/QS9JGIBSBUsyxAUQuK/Jcu0Tsva7le7QbLd91Kix9yJvYDdj5QkwgEbbZniH80dd+sziQcALPc+HnvQC8Q==}
-    engines: {node: ^20.19 || ^22.12 || >=24.0}
-    peerDependencies:
-      prisma: '*'
-      typescript: '>=5.4.0'
-    peerDependenciesMeta:
-      prisma:
-        optional: true
-      typescript:
-        optional: true
 
   '@redis/bloom@6.2.1':
     resolution: {integrity: sha512-huQgNLaCIZfQ9SeLn4q9124uOUd8HbZDYHwwUzNcRgHqCHiHKl2dDxMqJCeWh8cMqZAoWuHR8XnWbDMIf+o7ag==}
@@ -901,10 +838,6 @@ packages:
     resolution: {integrity: sha512-gkkYsqx+X0PLEFPurXLkH0/FCZtxJAUAHJJDfDmDqbguOMJ6fIe0/LeU7fEttrRcyff7+DAg3stdAe7qZm1UHA==}
     engines: {node: '>=24.0.0'}
 
-  '@zudojs/core@1.2.1':
-    resolution: {integrity: sha512-6b3N8/Cq1wAZfhqH3PXDEGTneCFa79offwyHwSPBSl8lNJcDgi6wdQ3eQ/AaUE1OVddVBnOUEgqTpOfbV47ALQ==}
-    engines: {node: '>=24.0.0'}
-
   '@zudojs/cqrs@1.1.1':
     resolution: {integrity: sha512-VhPebIL76oa2lCP6fSkTfXtu6sDqbrCGY4BQhLVD+0y1Hzgc36UnItPbpPqEcS58cYBf3SNop0pl1D64c2nBEA==}
     engines: {node: '>=24.0.0'}
@@ -912,12 +845,6 @@ packages:
   '@zudojs/crypto@1.3.0':
     resolution: {integrity: sha512-tfjQJwgxpOHXrOqMlzfeQyh6/yJZk/Oq3bqIZ+gf9ATikIf8v0jNVw+bQ4xD2bDxBcOb25Kuiiivki1Bkyo5pw==}
     engines: {node: '>=24.0.0'}
-
-  '@zudojs/database@1.2.1':
-    resolution: {integrity: sha512-A3DWYxp1hPs8CfASA3uT2lg5agT+Qcc2R8Rx4Gogrb8YkhKdCFpUQbrj9GK+8JHWta6Hqzjn9Vx7Fk6kOscG8w==}
-    engines: {node: '>=24.0.0'}
-    peerDependencies:
-      '@prisma/client': '>=7.0.0 <8'
 
   '@zudojs/errors@1.2.0':
     resolution: {integrity: sha512-Z88lDWsX3JBdJic00kHaRCRRsTL5wE1oTZ+FMOPu9c4W6YZju/ogb3tChGnqzJiWAMW78mKvNnSEhJU7W/hnIg==}
@@ -939,20 +866,8 @@ packages:
     resolution: {integrity: sha512-/7IbheVjTygAGxKxLfKk++NlBLwHD35STtkgZf1h0CtIMm6+JrpwaWoWGj3cFU+8+3ul5Q3C5RcPM4YtmuffVA==}
     engines: {node: '>=24.0.0'}
 
-  '@zudojs/observability@1.1.1':
-    resolution: {integrity: sha512-hGkMSL5KITmJceC/s+iFShGpAvkuAnbXp15btUrdYeb00XW16EiPluvQg1GX/R/Vh17LW1L55MS6b8aZXYDr8g==}
-    engines: {node: '>=24.0.0'}
-
-  '@zudojs/runtime@1.2.1':
-    resolution: {integrity: sha512-Szs+WRBy5fGTGVI7I3bwP2LrgR5ROKXLx4xNeyOfuhE2vzLszQKkQjKI9mHr0y5KNMcdOO9FjFX9yI6CBv9E1Q==}
-    engines: {node: '>=24.0.0'}
-
   '@zudojs/security@1.2.0':
     resolution: {integrity: sha512-MTkdfSFUpnHLuCAG3D33FG52+dQQtf1p14blLv4MHV4qYrEW6DG400ExcQGnvQ01b/jfEHl6hWHI5VDaipMFNA==}
-    engines: {node: '>=24.0.0'}
-
-  '@zudojs/types@1.1.1':
-    resolution: {integrity: sha512-cgBXNDDFhYY3UiYvCAA3PDRpZ09kDCNsOAfxUj8OZWhzIPbXmYlLSEkf+TZNk51QZD6ZcbR7zJvzQyMTme2ZjA==}
     engines: {node: '>=24.0.0'}
 
   '@zudojs/validation@1.0.3':
@@ -1714,14 +1629,6 @@ snapshots:
 
   '@oxc-project/types@0.150.0': {}
 
-  '@prisma/client-runtime-utils@7.10.0': {}
-
-  '@prisma/client@7.10.0(typescript@7.0.2)':
-    dependencies:
-      '@prisma/client-runtime-utils': 7.10.0
-    optionalDependencies:
-      typescript: 7.0.2
-
   '@redis/bloom@6.2.1(@redis/client@6.2.1)':
     dependencies:
       '@redis/client': 6.2.1
@@ -1987,11 +1894,6 @@ snapshots:
     dependencies:
       '@zudojs/errors': 1.2.0
 
-  '@zudojs/core@1.2.1':
-    dependencies:
-      '@zudojs/constants': 1.1.1
-      '@zudojs/errors': 1.2.0
-
   '@zudojs/cqrs@1.1.1':
     dependencies:
       '@zudojs/errors': 1.2.0
@@ -2002,13 +1904,6 @@ snapshots:
     dependencies:
       '@zudojs/constants': 1.1.1
       '@zudojs/errors': 1.2.0
-
-  '@zudojs/database@1.2.1(@prisma/client@7.10.0(typescript@7.0.2))':
-    dependencies:
-      '@prisma/client': 7.10.0(typescript@7.0.2)
-      '@zudojs/errors': 1.2.0
-      '@zudojs/logger': 1.3.0
-      '@zudojs/types': 1.1.1
 
   '@zudojs/errors@1.2.0': {}
 
@@ -2033,25 +1928,10 @@ snapshots:
     dependencies:
       '@zudojs/errors': 1.2.0
 
-  '@zudojs/observability@1.1.1':
-    dependencies:
-      '@zudojs/errors': 1.2.0
-
-  '@zudojs/runtime@1.2.1':
-    dependencies:
-      '@zudojs/constants': 1.1.1
-      '@zudojs/container': 1.1.2
-      '@zudojs/core': 1.2.1
-      '@zudojs/errors': 1.2.0
-      '@zudojs/events': 1.2.0
-      '@zudojs/logger': 1.3.0
-
   '@zudojs/security@1.2.0':
     dependencies:
       '@zudojs/constants': 1.1.1
       '@zudojs/errors': 1.2.0
-
-  '@zudojs/types@1.1.1': {}
 
   '@zudojs/validation@1.0.3':
     dependencies:

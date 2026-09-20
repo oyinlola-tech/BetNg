@@ -16,7 +16,7 @@ import type {
 } from "@betng/service-kit";
 import { createBettingController } from "./controllers/index.js";
 import { createBettingDatabase } from "./databases/index.js";
-import { loadServices } from "./loaders/index.js";
+import { loadContainer, loadEvents, loadServices } from "./loaders/index.js";
 import { createInMemoryBetRepository } from "./repositories/index.js";
 import { registerBettingRoutes } from "./routes/index.js";
 
@@ -38,16 +38,24 @@ export function createApp(config: ServiceConfig): BettingApp {
   const logger = createServiceLogger(config);
   const bets = createInMemoryBetRepository();
 
+  const events = loadEvents(logger);
+  const container = loadContainer({ bets, events, logger });
+
   const probes: DependencyProbe[] = [];
-  const onShutdown: (() => Promise<void>)[] = [];
+  const onShutdown: (() => Promise<void>)[] = [
+    async () => {
+      events.dispose();
+      await container.dispose();
+    },
+  ];
 
   if (config.databaseUrl !== undefined) {
     const database = createBettingDatabase(config.databaseUrl);
     probes.push(database.probe);
-    onShutdown.push(async () => database.pool.close());
+    onShutdown.unshift(async () => database.pool.close());
   }
 
-  const controller = createBettingController(loadServices({ bets, logger }));
+  const controller = createBettingController(loadServices(container));
 
   const server = createServiceServer({
     config,

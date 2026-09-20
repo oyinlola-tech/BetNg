@@ -87,10 +87,14 @@ export function createServiceClient(endpoint: ServiceEndpoint): ServiceClient {
         throw error;
       }
 
+      /* `expose` defaults to false for a 5xx, which would replace this
+       * message with a generic one. Naming which peer is down leaks nothing
+       * an operator does not already know from the API surface, and is the
+       * difference between a usable error and a shrug. */
       throw serviceUnavailable(
         `The ${endpoint.name} service ` +
           `${describeFailure(error, endpoint.timeoutMs)}.`,
-        { code: ErrorCodes.UPSTREAM_UNAVAILABLE, cause: error },
+        { code: ErrorCodes.UPSTREAM_UNAVAILABLE, cause: error, expose: true },
       );
     } finally {
       clearTimeout(timer);

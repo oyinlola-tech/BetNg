@@ -1,8 +1,8 @@
 /**
  * @betng/betting-service/events
  *
- * Domain events the betting service publishes. `BetPlaced` and
- * `BetSettled` arrive with the consumers that will react to them.
+ * The domain events the betting service publishes.
  */
 
-export {};
+export { BetPlacedEvent } from "./betting.event.js";
+export type { BetPlacedPayload } from "./betting.event.js";

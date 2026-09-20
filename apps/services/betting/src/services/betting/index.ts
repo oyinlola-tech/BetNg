@@ -1,20 +1,25 @@
 /**
  * The betting application service.
  *
- * Registers every betting command and query handler on the buses, so the
- * composition of the betting domain is visible in one place.
+ * Resolves its dependencies from the ZudoJS container, so the composition
+ * of the betting domain is declared once, at registration.
  */
 
+import type { Container } from "@zudojs/container";
 import type { CommandBus, QueryBus } from "@zudojs/cqrs";
-import { BETTING_COMMAND, BETTING_QUERY } from "../../constants/index.js";
-import type { BetRepository } from "../../interfaces/index.js";
+import {
+  BET_REPOSITORY_TOKEN,
+  BETTING_COMMAND,
+  BETTING_QUERY,
+  EVENT_BUS_TOKEN,
+} from "../../constants/index.js";
 import { PlaceBetHandler } from "./commands/index.js";
 import { GetBetHandler, ListBetsHandler } from "./queries/index.js";
 
 /** What the betting service registration needs. */
 export interface BettingServiceConfig {
-  /** The repository every handler works through. */
-  readonly bets: BetRepository;
+  /** The container the handlers' dependencies are resolved from. */
+  readonly container: Container;
   /** The command bus to register write handlers on. */
   readonly commandBus: CommandBus;
   /** The query bus to register read handlers on. */
@@ -24,15 +29,19 @@ export interface BettingServiceConfig {
 /**
  * Registers the betting handlers with their buses.
  *
- * @param config - The repository and the buses to register on.
+ * @param config - The container and the buses to register on.
  */
 export function registerBettingService(config: BettingServiceConfig): void {
-  const { bets, commandBus, queryBus } = config;
+  const { container, commandBus, queryBus } = config;
 
-  commandBus.register(BETTING_COMMAND.PLACE_BET, new PlaceBetHandler(bets));
+  const bets = container.resolve(BET_REPOSITORY_TOKEN);
+  const events = container.resolve(EVENT_BUS_TOKEN);
 
-  queryBus.registerMany([
-    { queryType: BETTING_QUERY.GET_BET, handler: new GetBetHandler(bets) },
-    { queryType: BETTING_QUERY.LIST_BETS, handler: new ListBetsHandler(bets) },
-  ]);
+  commandBus.register(
+    BETTING_COMMAND.PLACE_BET,
+    new PlaceBetHandler(bets, events),
+  );
+
+  queryBus.register(BETTING_QUERY.GET_BET, new GetBetHandler(bets));
+  queryBus.register(BETTING_QUERY.LIST_BETS, new ListBetsHandler(bets));
 }
