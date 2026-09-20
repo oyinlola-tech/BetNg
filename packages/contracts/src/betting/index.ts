@@ -1,101 +1,21 @@
 /**
- * Betting domain contracts — owned by the betting service.
+ * @betng/contracts/betting
  *
- * Every stake and payout in BetNG is simulated. Nothing in this module
- * models real money, a payment instrument or a real-world obligation.
+ * Bets, their legs and the payloads that create and query them.
  */
 
-import { z } from "@zudojs/validation";
-import {
-  brandedIdSchema,
-  currencySchema,
-  decimalOddsSchema,
-  isoTimestampSchema,
-  minorUnitsSchema,
-  type BetId,
-  type Currency,
-  type MarketId,
-  type MatchId,
-  type SelectionId,
-  type UserId,
-} from "../common/primitives.js";
+export { betSelectionSchema } from "./betSelection.type.js";
+export type { BetSelection } from "./betSelection.type.js";
 
-/** What a bet is currently worth to its holder. */
-export const betStatusSchema = z.enum([
-  /** Accepted and awaiting the match result. */
-  "PENDING",
-  /** Every selection won. */
-  "WON",
-  /** At least one selection lost. */
-  "LOST",
-  /** The match was cancelled; the simulated stake is returned. */
-  "VOID",
-]);
-export type BetStatus = z.infer<typeof betStatusSchema>;
-
-/** One leg of a bet: the outcome the bettor backed, at the price offered. */
-export interface BetSelection {
-  readonly matchId: MatchId;
-  readonly marketId: MarketId;
-  readonly selectionId: SelectionId;
-  /**
-   * The price at the moment the bet was accepted.
-   *
-   * Captured on the bet rather than read back from the odds service at
-   * settlement time, so a later re-price cannot change what was agreed.
-   */
-  readonly odds: number;
-}
-
-export const betSelectionSchema = z.object({
-  matchId: brandedIdSchema<"MatchId">(),
-  marketId: brandedIdSchema<"MarketId">(),
-  selectionId: brandedIdSchema<"SelectionId">(),
-  odds: decimalOddsSchema,
-});
-
-export interface Bet {
-  readonly id: BetId;
-  readonly userId: UserId;
-  /** One selection is a single; more than one is an accumulator. */
-  readonly selections: readonly BetSelection[];
-  /** Simulated stake in minor units. */
-  readonly stake: number;
-  readonly currency: Currency;
-  /** Product of every selection's odds, rounded to 2 decimal places. */
-  readonly totalOdds: number;
-  /** `stake * totalOdds`, in minor units. Simulated. */
-  readonly potentialPayout: number;
-  readonly status: BetStatus;
-  readonly placedAt: string;
-  /** Set when the settlement service resolved this bet. */
-  readonly settledAt?: string;
-}
-
-export const betSchema = z.object({
-  id: brandedIdSchema<"BetId">(),
-  userId: brandedIdSchema<"UserId">(),
-  selections: z.array(betSelectionSchema).min(1).max(20),
-  stake: minorUnitsSchema.min(1),
-  currency: currencySchema,
-  totalOdds: decimalOddsSchema,
-  potentialPayout: minorUnitsSchema.min(1),
-  status: betStatusSchema,
-  placedAt: isoTimestampSchema,
-  settledAt: isoTimestampSchema.optional(),
-});
-
-/** The body of `POST /api/v1/bets`. */
-export const placeBetRequestSchema = z.object({
-  userId: brandedIdSchema<"UserId">(),
-  selections: z.array(betSelectionSchema).min(1).max(20),
-  stake: minorUnitsSchema.min(1),
-  currency: currencySchema.default("NGN"),
-});
-export type PlaceBetRequest = z.infer<typeof placeBetRequestSchema>;
-
-export const listBetsQuerySchema = z.object({
-  userId: brandedIdSchema<"UserId">().optional(),
-  status: betStatusSchema.optional(),
-});
-export type ListBetsQuery = z.infer<typeof listBetsQuerySchema>;
+export {
+  betSchema,
+  betStatusSchema,
+  listBetsQuerySchema,
+  placeBetRequestSchema,
+} from "./bet.type.js";
+export type {
+  Bet,
+  BetStatus,
+  ListBetsQuery,
+  PlaceBetRequest,
+} from "./bet.type.js";
