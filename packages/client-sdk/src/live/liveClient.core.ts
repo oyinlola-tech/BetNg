@@ -24,7 +24,7 @@
  *     replay buffer and the server keeps no history.
  */
 
-import { matchChannel } from "@betng/contracts";
+import { matchChannel } from "@betng/contracts/runtime";
 import type { ClientFrame, LiveEvent, ServerFrame } from "@betng/contracts";
 import type { BetNgClientConfig } from "../config/index.js";
 

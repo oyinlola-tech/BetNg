@@ -8,6 +8,7 @@
  */
 
 import { z } from "@zudojs/validation";
+import { CURRENCY } from "../runtime.js";
 
 declare const brand: unique symbol;
 
@@ -69,12 +70,11 @@ export const minorUnitsSchema = z.int();
 /** A monetary amount in minor units. */
 export type MinorUnits = number;
 
-/** The single currency this simulation uses. */
-export const CURRENCY = "NGN" as const;
+/** Re-exported from the framework-free entry: one definition, two entries. */
+export { CURRENCY } from "../runtime.js";
+export type { Currency } from "../runtime.js";
 
 export const currencySchema = z.literal(CURRENCY);
-
-export type Currency = typeof CURRENCY;
 
 /**
  * Decimal odds: `2.5` means a one-unit stake returns 2.5 units in total.

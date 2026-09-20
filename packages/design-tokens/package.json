@@ -1,9 +1,9 @@
 {
-  "name": "@betng/contracts",
+  "name": "@betng/design-tokens",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Language-independent BetNG domain contracts, expressed as TypeScript types and validation schemas.",
+  "description": "BetNG's shared design language: semantic colour themes, type scale, spacing, radius, elevation, motion and z-index — as TypeScript for React Native and as CSS custom properties for the web and TV clients.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -11,21 +11,13 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
-    "./runtime": {
-      "types": "./dist/runtime.d.ts",
-      "import": "./dist/runtime.js"
-    }
+    "./css": "./css/tokens.css"
   },
-  "files": [
-    "dist"
-  ],
+  "files": ["dist", "css"],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "clean": "rm -rf dist *.tsbuildinfo"
-  },
-  "dependencies": {
-    "@zudojs/validation": "^1.0.3"
   },
   "devDependencies": {
     "typescript": "7.0.2"

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "main": "index.ts",
-  "description": "BetNG mobile client — a dedicated virtual football app: lobby, live matches, markets, bet slip, wallet, match TV and history.",
+  "description": "BetNG mobile client \u2014 a dedicated virtual football app: lobby, live matches, markets, bet slip, wallet, match TV and history.",
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
@@ -15,11 +15,23 @@
   "dependencies": {
     "@betng/client-sdk": "workspace:*",
     "@betng/contracts": "workspace:*",
+    "@betng/design-tokens": "workspace:*",
+    "@betng/mock-data": "workspace:*",
+    "@betng/ui-core": "workspace:*",
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-navigation/bottom-tabs": "^7.19.2",
+    "@react-navigation/native": "^7.4.1",
+    "@react-navigation/native-stack": "^7.19.2",
     "expo": "~54.0.0",
     "expo-constants": "~18.0.0",
     "expo-status-bar": "~3.0.0",
+    "lucide-react-native": "^1.47.0",
     "react": "19.1.0",
-    "react-native": "0.81.4"
+    "react-native": "0.81.4",
+    "react-native-safe-area-context": "~5.6.0",
+    "react-native-screens": "~4.16.0",
+    "react-native-svg": "15.12.1",
+    "zustand": "^5.0.15"
   },
   "devDependencies": {
     "@types/react": "~19.1.0",

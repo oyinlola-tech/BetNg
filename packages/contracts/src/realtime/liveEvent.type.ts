@@ -74,10 +74,5 @@ export const liveEventSchema = z.object({
   occurredAt: isoTimestampSchema,
 });
 
-/** The channel a client subscribes to for one match. */
-export function matchChannel(matchId: string): string {
-  return `match:${matchId}`;
-}
-
-/** Matches a channel name and captures the match identifier. */
-export const MATCH_CHANNEL_PATTERN = /^match:([0-9a-fA-F-]{36})$/;
+/** Re-exported from the framework-free entry: one definition, two entries. */
+export { MATCH_CHANNEL_PATTERN, matchChannel } from "../runtime.js";

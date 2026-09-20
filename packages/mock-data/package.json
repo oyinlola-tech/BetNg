@@ -1,31 +1,27 @@
 {
-  "name": "@betng/contracts",
+  "name": "@betng/mock-data",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Language-independent BetNG domain contracts, expressed as TypeScript types and validation schemas.",
+  "description": "A deterministic virtual football season that runs on the wall clock, plus REST and live clients that implement the SDK interfaces against it — so every BetNG client can be built and demonstrated before the platform is wired up.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    },
-    "./runtime": {
-      "types": "./dist/runtime.d.ts",
-      "import": "./dist/runtime.js"
     }
   },
-  "files": [
-    "dist"
-  ],
+  "files": ["dist"],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "@zudojs/validation": "^1.0.3"
+    "@betng/client-sdk": "workspace:*",
+    "@betng/contracts": "workspace:*",
+    "@betng/ui-core": "workspace:*"
   },
   "devDependencies": {
     "typescript": "7.0.2"

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "BetNG TV client — a virtual sports broadcast: live match, score, clock, events and statistics.",
+  "description": "BetNG TV client \u2014 a virtual sports broadcast: live match, score, clock, events and statistics.",
   "scripts": {
     "dev": "vite",
     "build": "tsc -p tsconfig.json --noEmit && vite build",
@@ -14,13 +14,24 @@
   "dependencies": {
     "@betng/client-sdk": "workspace:*",
     "@betng/contracts": "workspace:*",
+    "@betng/design-tokens": "workspace:*",
+    "@betng/mock-data": "workspace:*",
+    "@betng/ui-core": "workspace:*",
+    "@fontsource-variable/archivo": "^5.3.0",
+    "@fontsource-variable/inter": "^5.3.0",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.47.0",
     "react": "^19.3.0",
-    "react-dom": "^19.3.0"
+    "react-dom": "^19.3.0",
+    "react-router": "^8.4.0",
+    "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.1",
+    "tailwindcss": "^4.3.3",
     "typescript": "7.0.2",
     "vite": "^8.3.0"
   }

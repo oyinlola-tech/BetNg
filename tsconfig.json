@@ -25,6 +25,18 @@
     },
     {
       "path": "./apps/services/event"
+    },
+    {
+      "path": "./packages/design-tokens"
+    },
+    {
+      "path": "./packages/ui-core"
+    },
+    {
+      "path": "./packages/mock-data"
+    },
+    {
+      "path": "./packages/client-sdk"
     }
   ]
 }

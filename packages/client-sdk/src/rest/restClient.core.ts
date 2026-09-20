@@ -9,7 +9,7 @@
  * same module runs unchanged in all three.
  */
 
-import { API_PREFIX, REQUEST_ID_HEADER } from "@betng/contracts";
+import { API_PREFIX, REQUEST_ID_HEADER } from "@betng/contracts/runtime";
 import type {
   Bet,
   Fixture,

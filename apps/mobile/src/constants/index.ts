@@ -1,8 +1,13 @@
 /**
  * @betng/mobile/constants
  *
- * The domain's constants come from `@betng/contracts`, so the client and
- * the services cannot disagree about them.
+ * The domain's constants come from `@betng/contracts/runtime` — the
+ * framework-free entry — so the client and the services share one
+ * definition without the bundle pulling in zod.
  */
 
-export { API_PREFIX, ErrorCodes, REQUEST_ID_HEADER } from "@betng/contracts";
+export {
+  API_PREFIX,
+  ErrorCodes,
+  REQUEST_ID_HEADER,
+} from "@betng/contracts/runtime";
