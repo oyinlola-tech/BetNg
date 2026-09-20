@@ -73,3 +73,13 @@ export type {
   KeyValueStorage,
   PlatformDataSourceOptions,
 } from "./adapters/platformDataSource.js";
+
+export { createSessionStore, hasPermission } from "./session.js";
+export type { SessionLike, SessionSnapshot, SessionStatus, SessionStorage, SessionStore } from "./session.js";
+
+export type { AuthDataSource } from "./authDataSource.type.js";
+export type { PlaceTicketInput, ShopDataSource, TicketFilter } from "./shopDataSource.type.js";
+export type { AdminDataSource } from "./adminDataSource.type.js";
+
+export { createPlatformAdminSource, createPlatformAuthSource, createPlatformShopSource } from "./adapters/platformAccountSources.js";
+export { translateApiError } from "./adapters/errors.js";

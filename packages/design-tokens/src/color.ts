@@ -35,6 +35,11 @@ export interface ColorTheme {
 
   readonly overlay: string;
   readonly skeleton: string;
+
+  /** Chart series, assigned in this order and never cycled. Validated for colour-vision separation on each theme's surface. */
+  readonly series1: string;
+  readonly series2: string;
+  readonly series3: string;
 }
 
 export const lightTheme: ColorTheme = Object.freeze({
@@ -70,6 +75,10 @@ export const lightTheme: ColorTheme = Object.freeze({
 
   overlay: "rgba(14, 18, 24, 0.48)",
   skeleton: "#E8EAEE",
+
+  series1: "#2457F5",
+  series2: "#EB6834",
+  series3: "#1BAF7A",
 });
 
 export const darkTheme: ColorTheme = Object.freeze({
@@ -105,6 +114,10 @@ export const darkTheme: ColorTheme = Object.freeze({
 
   overlay: "rgba(0, 0, 0, 0.62)",
   skeleton: "#1E232C",
+
+  series1: "#4C7DFF",
+  series2: "#D95926",
+  series3: "#199E70",
 });
 
 export type ThemeName = "light" | "dark";
@@ -115,4 +128,4 @@ export const themes: Readonly<Record<ThemeName, ColorTheme>> = Object.freeze({
 });
 
 export type StateTone =
-  "live" | "brand" | "neutral" | "muted" | "success" | "warning";
+  "live" | "brand" | "neutral" | "muted" | "success" | "warning" | "danger";

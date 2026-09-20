@@ -16,6 +16,7 @@ const SUBTLE: Record<StateTone, string> = {
   muted: "bg-surface-sunken text-text-muted",
   success: "bg-success-subtle text-success",
   warning: "bg-warning-subtle text-warning",
+  danger: "bg-danger-subtle text-danger",
 };
 
 const SOLID: Record<StateTone, string> = {
@@ -25,6 +26,7 @@ const SOLID: Record<StateTone, string> = {
   muted: "bg-text-muted text-background",
   success: "bg-success text-white",
   warning: "bg-warning text-white",
+  danger: "bg-danger text-white",
 };
 
 export function Badge({

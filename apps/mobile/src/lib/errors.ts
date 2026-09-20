@@ -37,6 +37,18 @@ export function presentError(error: unknown): {
           message: error.message,
           retryable: false,
         };
+      case "INVALID_CREDENTIALS":
+        return { title: "Sign-in failed", message: "Those details do not match an account. Check them and try again.", retryable: false };
+      case "UNAUTHENTICATED":
+        return { title: "Sign in required", message: "Sign in to continue.", retryable: false };
+      case "SESSION_EXPIRED":
+        return { title: "Session ended", message: "Sign in again to pick up where you left off.", retryable: false };
+      case "FORBIDDEN":
+        return { title: "Permission denied", message: "Your role does not allow this action.", retryable: false };
+      case "CONFLICT":
+        return { title: "Already changed", message: error.message, retryable: false };
+      case "RATE_LIMITED":
+        return { title: "Too many attempts", message: "Wait a moment before trying again.", retryable: true };
       case "SERVER":
         return {
           title: "Something went wrong",

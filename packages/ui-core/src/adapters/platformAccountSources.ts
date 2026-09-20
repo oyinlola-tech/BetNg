@@ -1,0 +1,132 @@
+/** Auth, shop and admin against the gateway. Thin by design: the platform owns every rule, these only carry sessions and translate errors. */
+
+import type { BetNgRestClient } from "@betng/client-sdk";
+import type { AdminSession, CustomerSession, ShopSession } from "@betng/contracts";
+import type { AdminDataSource } from "../adminDataSource.type.js";
+import type { AuthDataSource } from "../authDataSource.type.js";
+import type { ShopDataSource } from "../shopDataSource.type.js";
+import type { SessionLike, SessionStore } from "../session.js";
+import { translateApiError } from "./errors.js";
+
+function guarded<S extends SessionLike>(session: SessionStore<S>) {
+  return async function run<T>(call: () => Promise<T>): Promise<T> {
+    const hadSession = session.token() !== undefined;
+
+    try {
+      return await call();
+    } catch (cause) {
+      const error = translateApiError(cause, hadSession);
+
+      if (error.code === "SESSION_EXPIRED") session.expire();
+
+      throw error;
+    }
+  };
+}
+
+/** Signing out always succeeds locally; the platform call is best effort. */
+async function signOut<S extends SessionLike>(session: SessionStore<S>, call: () => Promise<void>): Promise<void> {
+  try {
+    await call();
+  } catch {
+    /* the token is dropped either way */
+  }
+
+  session.clear();
+}
+
+export function createPlatformAuthSource(rest: BetNgRestClient, session: SessionStore<CustomerSession>): AuthDataSource {
+  const run = guarded(session);
+
+  return {
+    session,
+    register: (request) => run(() => rest.auth.register(request)),
+    verify: async (request) => {
+      const next = await run(() => rest.auth.verify(request));
+
+      session.set(next);
+
+      return next;
+    },
+    resendVerification: (email) => run(() => rest.auth.resendVerification(email)),
+    login: async (request) => {
+      const next = await run(() => rest.auth.login(request));
+
+      session.set(next);
+
+      return next;
+    },
+    logout: () => signOut(session, () => rest.auth.logout()),
+    requestPasswordReset: (email) => run(() => rest.auth.requestPasswordReset(email)),
+  };
+}
+
+export function createPlatformShopSource(rest: BetNgRestClient, session: SessionStore<ShopSession>): ShopDataSource {
+  const run = guarded(session);
+  const listeners = new Set<() => void>();
+  const changed = <T>(value: T): T => {
+    for (const listener of listeners) listener();
+
+    return value;
+  };
+
+  return {
+    session,
+    login: async (request) => {
+      const next = await run(() => rest.shop.login(request));
+
+      session.set(next);
+
+      return next;
+    },
+    logout: () => signOut(session, () => rest.shop.logout()),
+    placeTicket: async (input) =>
+      changed(
+        await run(() =>
+          rest.shop.placeTicket({
+            selections: input.selections.map((s) => ({ matchId: s.matchId, marketId: s.marketId, selectionId: s.selectionId, odds: s.odds })),
+            stake: input.stake,
+            ...(input.customerName === undefined ? {} : { customerName: input.customerName }),
+            ...(input.customerPhone === undefined ? {} : { customerPhone: input.customerPhone }),
+          }),
+        ),
+      ),
+    listTickets: (filter = {}) => run(() => rest.shop.listTickets(filter)),
+    getTicket: (code) => run(() => rest.shop.getTicket(code)),
+    payoutTicket: async (code, pin) => changed(await run(() => rest.shop.payoutTicket(code, { pin }))),
+    cancelTicket: async (code, reason) => changed(await run(() => rest.shop.cancelTicket(code, { reason }))),
+    listTransactions: (date) => run(() => rest.shop.listTransactions(date)),
+    getDailyReport: (date) => run(() => rest.shop.getDailyReport(date)),
+    listDailyReports: (from, to) => run(() => rest.shop.listDailyReports(from, to)),
+    listCashiers: () => run(() => rest.shop.listCashiers()),
+    subscribe: (listener) => {
+      listeners.add(listener);
+
+      return () => {
+        listeners.delete(listener);
+      };
+    },
+  };
+}
+
+export function createPlatformAdminSource(rest: BetNgRestClient, session: SessionStore<AdminSession>): AdminDataSource {
+  const run = guarded(session);
+  const { login, logout, session: _readSession, ...operations } = rest.admin;
+  const wrapped = Object.fromEntries(
+    Object.entries(operations).map(([name, method]) => [name, (...args: unknown[]) => run(() => (method as (...a: unknown[]) => Promise<unknown>)(...args))]),
+  ) as unknown as Omit<AdminDataSource, "session" | "login" | "logout" | "subscribe">;
+
+  return {
+    ...wrapped,
+    session,
+    login: async (request) => {
+      const next = await run(() => login(request));
+
+      session.set(next);
+
+      return next;
+    },
+    logout: () => signOut(session, () => logout()),
+    subscribe: () => () => undefined,
+  };
+}

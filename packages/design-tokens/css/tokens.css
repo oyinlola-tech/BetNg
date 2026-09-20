@@ -92,6 +92,9 @@
   --bn-live-subtle: #FDE9EC;
   --bn-overlay: rgba(14, 18, 24, 0.48);
   --bn-skeleton: #E8EAEE;
+  --bn-series1: #2457F5;
+  --bn-series2: #EB6834;
+  --bn-series3: #1BAF7A;
 }
 
 :root[data-theme="dark"] {
@@ -123,6 +126,9 @@
   --bn-live-subtle: #3A1219;
   --bn-overlay: rgba(0, 0, 0, 0.62);
   --bn-skeleton: #1E232C;
+  --bn-series1: #4C7DFF;
+  --bn-series2: #D95926;
+  --bn-series3: #199E70;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -155,6 +161,9 @@
     --bn-live-subtle: #3A1219;
     --bn-overlay: rgba(0, 0, 0, 0.62);
     --bn-skeleton: #1E232C;
+    --bn-series1: #4C7DFF;
+    --bn-series2: #D95926;
+    --bn-series3: #199E70;
   }
 }
 

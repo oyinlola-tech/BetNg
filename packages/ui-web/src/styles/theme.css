@@ -33,6 +33,9 @@
   --color-live-subtle: var(--bn-live-subtle);
   --color-overlay: var(--bn-overlay);
   --color-skeleton: var(--bn-skeleton);
+  --color-series-1: var(--bn-series1);
+  --color-series-2: var(--bn-series2);
+  --color-series-3: var(--bn-series3);
 
   --font-sans: var(--bn-font-sans);
   --font-display: var(--bn-font-display);
