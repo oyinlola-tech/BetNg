@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Bell, Wallet } from "lucide-react-native";
 import { formatMoney, formatOdds } from "@betng/ui-core";
 import {
+  BrandLogo,
   Button,
   Card,
   EmptyState,
@@ -92,26 +93,7 @@ export function HomeScreen(): React.JSX.Element {
           marginBottom: 6,
         }}
       >
-        <View
-          style={{
-            width: 28,
-            height: 28,
-            borderRadius: 6,
-            backgroundColor: t.colors.brand,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Text tone="onBrand" style={{ fontWeight: "800" }}>
-            B
-          </Text>
-        </View>
-        <Text variant="title" style={{ marginLeft: 8 }}>
-          Bet
-          <Text variant="title" tone="brand">
-            NG
-          </Text>
-        </Text>
+        <BrandLogo size={28} />
         <View style={{ flex: 1 }} />
         {isAuthenticated ? (
           <>

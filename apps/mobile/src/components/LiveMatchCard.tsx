@@ -2,7 +2,8 @@ import { View } from "react-native";
 import { Play } from "lucide-react-native";
 import {
   formatBroadcastClock,
-  matchClock,
+  clockProgress,
+  displayClock,
   type MatchSummary,
 } from "@betng/ui-core";
 import { useNow } from "../hooks/useNow";
@@ -24,8 +25,8 @@ export function LiveMatchCard({
 }): React.JSX.Element {
   const t = useTheme();
   const now = useNow(500);
-  const clock = matchClock(match.kickoffAt, now);
-  const progress = Math.min(100, (clock.minute / 90) * 100);
+  const clock = displayClock(match.clock, now);
+  const progress = clockProgress(clock) * 100;
 
   return (
     <Card style={{ width }}>
@@ -56,7 +57,9 @@ export function LiveMatchCard({
           >
             {match.phase === "HALFTIME"
               ? "HT"
-              : formatBroadcastClock(clock.minute, clock.second)}
+              : clock === undefined
+                ? "LIVE"
+                : formatBroadcastClock(clock.minute, clock.second)}
           </Text>
         </View>
         <View style={{ marginTop: 12, gap: 10 }}>

@@ -4,7 +4,7 @@ import {
   formatKickoffTime,
   isFinished,
   isInPlay,
-  matchClock,
+  displayClock,
   type MatchSummary,
 } from "@betng/ui-core";
 import { useNow } from "../hooks/useNow";
@@ -28,7 +28,7 @@ export function MatchRow({
   const now = useNow(1000);
   const live = isInPlay(match.phase);
   const done = isFinished(match.phase);
-  const minute = matchClock(match.kickoffAt, now).minute;
+  const minute = displayClock(match.clock, now)?.minute;
   const winner = done
     ? match.score.home > match.score.away
       ? "HOME"

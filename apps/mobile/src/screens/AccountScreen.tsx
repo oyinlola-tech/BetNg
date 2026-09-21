@@ -219,7 +219,7 @@ export function AccountScreen(): React.JSX.Element {
             Help
           </Text>
           <Text variant="caption" tone="muted">
-            Matches run every 4 minutes
+            Every match is simulated
           </Text>
         </View>
         <Divider />

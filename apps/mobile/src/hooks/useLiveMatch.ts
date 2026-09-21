@@ -9,6 +9,7 @@ const IDLE: LiveMatchSnapshot = {
   resyncing: false,
   error: undefined,
   lastEvent: undefined,
+  syncedAt: undefined,
 };
 
 export function useLiveMatch(matchId: string | undefined): LiveMatchSnapshot {
@@ -24,14 +25,9 @@ export function useLiveMatch(matchId: string | undefined): LiveMatchSnapshot {
     const unsubscribe = controller.subscribe(() => {
       setSnapshot(controller.getSnapshot());
     });
-    const ticker = setInterval(() => {
-      controller.tick();
-    }, 1000);
-
     setSnapshot(controller.getSnapshot());
 
     return () => {
-      clearInterval(ticker);
       unsubscribe();
       controller.stop();
     };

@@ -5,12 +5,15 @@ import { StatusBar } from "expo-status-bar";
 import {
   BetSlipSheet,
   ConnectionBanner,
+  Text,
   ToastProvider,
   useToast,
 } from "./components";
 import { openAuth, useAuth } from "./hooks/useAuth";
 import { RootNavigator } from "./navigation/RootNavigator";
 import { useBetSlip } from "./stores/betslip.store";
+import { initRuntime } from "./services/dataSource";
+import { logger } from "./services/logger";
 import { hydrateStorage } from "./services/storage";
 import { useTheme, useThemeStore } from "./theme";
 
@@ -40,13 +43,23 @@ function Body(): React.JSX.Element {
 
 export function App(): React.JSX.Element {
   const [ready, setReady] = useState(false);
+  const [failed, setFailed] = useState(false);
   const t = useTheme();
 
   useEffect(() => {
-    void hydrateStorage().then(() => {
-      useThemeStore.setState((s) => ({ ...s }));
-      setReady(true);
-    });
+    hydrateStorage()
+      .then(() => {
+        useThemeStore.setState((s) => ({ ...s }));
+
+        return initRuntime();
+      })
+      .then(() => {
+        setReady(true);
+      })
+      .catch((cause: unknown) => {
+        logger.error("flow", "The app could not start", { cause: cause instanceof Error ? cause.message : "unknown" });
+        setFailed(true);
+      });
   }, []);
 
   return (
@@ -65,7 +78,13 @@ export function App(): React.JSX.Element {
             backgroundColor: t.colors.background,
           }}
         >
-          <ActivityIndicator color={t.colors.textMuted} />
+          {failed ? (
+            <Text variant="body" tone="secondary" align="center" style={{ paddingHorizontal: 32 }}>
+              BETNG could not start. Close the app and open it again.
+            </Text>
+          ) : (
+            <ActivityIndicator color={t.colors.textMuted} accessibilityLabel="Starting" />
+          )}
         </View>
       )}
     </SafeAreaProvider>

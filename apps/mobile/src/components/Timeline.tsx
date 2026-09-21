@@ -1,11 +1,11 @@
 import { View } from "react-native";
-import { ArrowLeftRight, Flag, Goal, Square } from "lucide-react-native";
 import type {
   MatchEventKind,
   MatchEventView,
   MatchSummary,
 } from "@betng/ui-core";
 import { useTheme } from "../theme";
+import { FootballIcon, iconForEvent } from "./FootballIcon";
 import { EmptyState } from "./States";
 import { Text } from "./Text";
 
@@ -45,35 +45,9 @@ export function Timeline({
       />
     );
 
-  const icon = (kind: MatchEventKind): React.ReactNode => {
-    switch (kind) {
-      case "GOAL":
-        return <Goal size={16} color={t.colors.textPrimary} />;
-      case "YELLOW_CARD":
-        return (
-          <Square size={13} color={t.colors.warning} fill={t.colors.warning} />
-        );
-      case "RED_CARD":
-        return (
-          <Square size={13} color={t.colors.danger} fill={t.colors.danger} />
-        );
-      case "SUBSTITUTION":
-        return <ArrowLeftRight size={15} color={t.colors.textMuted} />;
-      case "CORNER":
-        return <Flag size={13} color={t.colors.textMuted} />;
-      default:
-        return (
-          <View
-            style={{
-              width: 6,
-              height: 6,
-              borderRadius: 3,
-              backgroundColor: t.colors.textMuted,
-            }}
-          />
-        );
-    }
-  };
+  const icon = (kind: MatchEventKind): React.ReactNode => (
+    <FootballIcon name={iconForEvent(kind)} size={18} color={kind === "GOAL" ? t.colors.textPrimary : t.colors.textMuted} />
+  );
 
   return (
     <View>

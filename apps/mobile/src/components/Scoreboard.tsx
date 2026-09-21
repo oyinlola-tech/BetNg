@@ -3,7 +3,7 @@ import {
   formatBroadcastClock,
   isFinished,
   isInPlay,
-  matchClock,
+  displayClock,
   phaseDescription,
   type MatchSummary,
 } from "@betng/ui-core";
@@ -21,7 +21,7 @@ export function Scoreboard({
 }): React.JSX.Element {
   const t = useTheme();
   const now = useNow(500);
-  const clock = matchClock(match.kickoffAt, now);
+  const clock = displayClock(match.clock, now);
   const live = isInPlay(match.phase);
   const done = isFinished(match.phase);
 
@@ -68,7 +68,9 @@ export function Scoreboard({
             {live
               ? match.phase === "HALFTIME"
                 ? "Half time"
-                : formatBroadcastClock(clock.minute, clock.second)
+                : clock === undefined
+                  ? "Live"
+                  : formatBroadcastClock(clock.minute, clock.second)
               : done
                 ? phaseDescription(match.phase)
                 : "Kick-off"}

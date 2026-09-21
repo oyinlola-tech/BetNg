@@ -1,14 +1,12 @@
 import { View } from "react-native";
-import type { MatchStats, MatchSummary, SideStats } from "@betng/ui-core";
+import type { MatchStats, MatchSummary } from "@betng/ui-core";
 import { useTheme } from "../theme";
 import { EmptyState } from "./States";
 import { Text } from "./Text";
 
-const ROWS: readonly {
-  readonly key: keyof SideStats;
-  readonly label: string;
-  readonly percent?: boolean;
-}[] = [
+type CountKey = "possession" | "shots" | "shotsOnTarget" | "corners" | "fouls" | "offsides" | "yellowCards" | "redCards";
+
+const COUNTS: readonly { readonly key: CountKey; readonly label: string; readonly percent?: boolean }[] = [
   { key: "possession", label: "Possession", percent: true },
   { key: "shots", label: "Shots" },
   { key: "shotsOnTarget", label: "On target" },
@@ -18,6 +16,31 @@ const ROWS: readonly {
   { key: "yellowCards", label: "Yellow cards" },
   { key: "redCards", label: "Red cards" },
 ];
+
+interface StatRow {
+  readonly key: string;
+  readonly label: string;
+  readonly home: number;
+  readonly away: number;
+  readonly percent: boolean;
+}
+
+/* Only what the platform reported: optional metrics appear when both sides carry them. */
+function rowsFor(stats: MatchStats): readonly StatRow[] {
+  const rows: StatRow[] = COUNTS.map((c) => ({ key: c.key, label: c.label, home: stats.home[c.key], away: stats.away[c.key], percent: c.percent === true }));
+
+  if (stats.home.expectedGoals !== undefined && stats.away.expectedGoals !== undefined) {
+    rows.push({ key: "expectedGoals", label: "Expected goals", home: stats.home.expectedGoals, away: stats.away.expectedGoals, percent: false });
+  }
+
+  for (const extra of stats.home.extra ?? []) {
+    const other = stats.away.extra?.find((e) => e.key === extra.key);
+
+    if (other !== undefined) rows.push({ key: `extra:${extra.key}`, label: extra.label, home: extra.value, away: other.value, percent: extra.unit === "PERCENT" });
+  }
+
+  return rows;
+}
 
 export function Stats({
   match,
@@ -42,9 +65,9 @@ export function Stats({
         <Text variant="bodyStrong">{match.home.shortName}</Text>
         <Text variant="bodyStrong">{match.away.shortName}</Text>
       </View>
-      {ROWS.map((row) => {
-        const h = stats.home[row.key];
-        const a = stats.away[row.key];
+      {rowsFor(stats).map((row) => {
+        const h = row.home;
+        const a = row.away;
         const total = h + a;
         const share = total === 0 ? 50 : (h / total) * 100;
 

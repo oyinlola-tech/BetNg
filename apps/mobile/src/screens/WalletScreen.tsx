@@ -6,6 +6,7 @@ import {
   formatMoney,
   formatSignedMoney,
   parseStakeInput,
+  currentCurrency,
 } from "@betng/ui-core";
 import {
   Button,
@@ -221,7 +222,7 @@ export function WalletScreen(): React.JSX.Element {
               }}
             >
               <Text variant="title" tone="muted">
-                ₦
+                {currentCurrency().symbol}
               </Text>
               <TextInput
                 value={text}

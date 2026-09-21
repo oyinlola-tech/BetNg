@@ -13,12 +13,16 @@ import { Receipt, Trash2, X } from "lucide-react-native";
 import {
   QUICK_STAKES,
   STAKE_LIMITS,
+  createClientReference,
   formatMoney,
   formatMoneyCompact,
   formatOdds,
   parseStakeInput,
   slipTotals,
   validateSlip,
+  type BetPlacementView,
+  type BetRejectionReason,
+  currentCurrency,
 } from "@betng/ui-core";
 import { useAccountVersion } from "../hooks/useAccount";
 import { useAsync } from "../hooks/useAsync";
@@ -31,6 +35,23 @@ import { Button } from "./Button";
 import { Pressable } from "./Pressable";
 import { EmptyState } from "./States";
 import { Text } from "./Text";
+
+interface SlipFeedback {
+  readonly tone: "danger" | "warning";
+  readonly text: string;
+  readonly maxStake?: number;
+  readonly rejected?: readonly string[];
+}
+
+const REJECTION_TEXT: Readonly<Record<BetRejectionReason, string>> = {
+  MARKET_CLOSED: "Betting has closed on one of these matches.",
+  MARKET_SUSPENDED: "A market on this slip is suspended. Try again shortly.",
+  ODDS_CHANGED: "Prices changed while you were submitting. Review the slip and try again.",
+  STAKE_LIMITED: "This stake is above the limit for this slip.",
+  RISK_REJECTED: "This bet was not accepted.",
+  INSUFFICIENT_FUNDS: "Your balance does not cover this stake.",
+  INVALID_BET: "This bet could not be accepted as it is.",
+};
 
 export function BetSlipSheet({
   onPlaced,
@@ -49,9 +70,8 @@ export function BetSlipSheet({
   );
   const [stakeText, setStakeText] = useState(() => (stake / 100).toString());
   const [placing, setPlacing] = useState(false);
-  const [feedback, setFeedback] = useState<
-    { readonly tone: "danger" | "success"; readonly text: string } | undefined
-  >(undefined);
+  const [feedback, setFeedback] = useState<SlipFeedback | undefined>(undefined);
+  const reference = useRef<string | undefined>(undefined);
   const slide = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -74,18 +94,62 @@ export function BetSlipSheet({
     setStake(parseStakeInput(text));
   };
 
+  /* A changed slip is a new submission; an unchanged retry reuses the reference so the platform can deduplicate. */
+  useEffect(() => {
+    reference.current = undefined;
+    setFeedback(undefined);
+  }, [selections, stake]);
+
+  const settle = (result: BetPlacementView): void => {
+    const payout = result.bet?.potentialPayout;
+
+    switch (result.outcome) {
+      case "ACCEPTED":
+      case "PARTIALLY_ACCEPTED": {
+        const dropped = result.rejectedSelectionIds?.length ?? 0;
+
+        clear();
+        setOpen(false);
+        onPlaced?.(
+          `${dropped > 0 ? `Bet placed without ${String(dropped)} unavailable selection${dropped === 1 ? "" : "s"}` : "Bet placed"}${
+            payout === undefined ? "" : ` · potential payout ${formatMoney(payout)}`
+          }`,
+        );
+        return;
+      }
+      case "LIMITED":
+        reference.current = undefined;
+        setFeedback({
+          tone: "warning",
+          text:
+            result.maxStake === undefined
+              ? (result.message ?? "This stake is above the limit for this slip.")
+              : `The most you can stake on this slip is ${formatMoney(result.maxStake)}.`,
+          ...(result.maxStake === undefined ? {} : { maxStake: result.maxStake }),
+        });
+        return;
+      case "EXPIRED":
+        reference.current = undefined;
+        setFeedback({ tone: "warning", text: "This slip expired before it was accepted. Check the prices and submit again." });
+        return;
+      case "REJECTED":
+        reference.current = undefined;
+        setFeedback({
+          tone: "danger",
+          text: result.message ?? REJECTION_TEXT[result.reason ?? "INVALID_BET"],
+          ...(result.rejectedSelectionIds === undefined ? {} : { rejected: result.rejectedSelectionIds }),
+        });
+        return;
+    }
+  };
+
   const submit = async (): Promise<void> => {
     setPlacing(true);
     setFeedback(undefined);
+    reference.current ??= createClientReference();
 
     try {
-      const bet = await getDataSource().placeBet({ selections, stake });
-
-      clear();
-      setOpen(false);
-      onPlaced?.(
-        `Simulated bet placed · returns ${formatMoney(bet.potentialPayout)}`,
-      );
+      settle(await getDataSource().placeBet({ selections, stake, clientReference: reference.current }));
     } catch (error) {
       setFeedback({ tone: "danger", text: presentError(error).message });
     } finally {
@@ -285,7 +349,7 @@ export function BetSlipSheet({
                 </View>
                 <View>
                   <Text variant="caps" tone="muted">
-                    Stake (simulated ₦)
+                    Stake (simulated)
                   </Text>
                   <View
                     style={{
@@ -304,7 +368,7 @@ export function BetSlipSheet({
                     }}
                   >
                     <Text variant="title" tone="muted">
-                      ₦
+                      {currentCurrency().symbol}
                     </Text>
                     <TextInput
                       value={stakeText}
@@ -372,9 +436,31 @@ export function BetSlipSheet({
                   </Text>
                 )}
                 {feedback !== undefined && (
-                  <Text variant="caption" tone={feedback.tone}>
-                    {feedback.text}
-                  </Text>
+                  <View accessibilityLiveRegion="polite" style={{ gap: 8 }}>
+                    <Text variant="caption" tone={feedback.tone}>
+                      {feedback.text}
+                    </Text>
+                    {feedback.maxStake !== undefined && (
+                      <Button
+                        label={`Use ${formatMoney(feedback.maxStake)}`}
+                        size="sm"
+                        variant="secondary"
+                        onPress={() => {
+                          updateStake(((feedback.maxStake ?? 0) / 100).toString());
+                        }}
+                      />
+                    )}
+                    {feedback.rejected !== undefined && feedback.rejected.length > 0 && (
+                      <Button
+                        label="Remove unavailable selections"
+                        size="sm"
+                        variant="secondary"
+                        onPress={() => {
+                          for (const id of feedback.rejected ?? []) remove(id);
+                        }}
+                      />
+                    )}
+                  </View>
                 )}
                 <View style={{ gap: 4 }}>
                   <View
@@ -384,7 +470,7 @@ export function BetSlipSheet({
                     }}
                   >
                     <Text variant="caption" tone="secondary">
-                      Potential profit
+                      Estimated profit
                     </Text>
                     <Text variant="caption" tabular>
                       {formatMoney(Math.max(0, totals.potentialProfit))}
@@ -396,7 +482,7 @@ export function BetSlipSheet({
                       justifyContent: "space-between",
                     }}
                   >
-                    <Text variant="bodyStrong">Potential return</Text>
+                    <Text variant="bodyStrong">Estimated return</Text>
                     <Text variant="bodyStrong" tabular>
                       {formatMoney(totals.potentialReturn)}
                     </Text>

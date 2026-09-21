@@ -3,20 +3,16 @@ import { Switch, View } from "react-native";
 import { Monitor, Moon, Sun } from "lucide-react-native";
 import type { NotificationPreferences } from "@betng/ui-core";
 import {
-  Button,
   Card,
   Divider,
   Pressable,
   Screen,
   Text,
-  useToast,
 } from "../components";
 import { useAsync } from "../hooks/useAsync";
-import { useAuth } from "../hooks/useAuth";
-import { asMock, getAuthSource, getDataSource } from "../services/dataSource";
-import { removeStored } from "../services/storage";
+import { getDataSource, getRuntimeInfo } from "../services/dataSource";
 import { useTheme, useThemeStore, type ThemePreference } from "../theme";
-import { appConfig } from "../configs/app.config";
+import { env } from "../configs/env";
 
 const THEMES: readonly {
   readonly value: ThemePreference;
@@ -30,7 +26,6 @@ const THEMES: readonly {
 
 export function SettingsScreen(): React.JSX.Element {
   const t = useTheme();
-  const { toast } = useToast();
   const preference = useThemeStore((s) => s.preference);
   const setPreference = useThemeStore((s) => s.setPreference);
   const prefs = useAsync(
@@ -41,8 +36,6 @@ export function SettingsScreen(): React.JSX.Element {
     undefined,
   );
   const current = local ?? prefs.data;
-  const mock = asMock(getDataSource());
-  const { isAuthenticated } = useAuth();
 
   const update = (key: keyof NotificationPreferences, value: boolean): void => {
     if (current === undefined) return;
@@ -181,48 +174,14 @@ export function SettingsScreen(): React.JSX.Element {
         <Text variant="caption" tone="secondary">
           Data source ·{" "}
           <Text variant="caption" style={{ fontWeight: "600" }}>
-            {appConfig.dataSource === "mock"
+            {getRuntimeInfo().mode === "mock"
               ? "in-app virtual season (mock)"
               : "BetNG platform"}
           </Text>
         </Text>
         <Text variant="caption" tone="secondary">
-          Gateway · {appConfig.client.gatewayUrl}
+          Gateway · {env.apiUrl}
         </Text>
-        {mock !== undefined && (
-          <View style={{ flexDirection: "row", gap: 8, marginTop: 10 }}>
-            <Button
-              label="Simulate outage"
-              size="sm"
-              variant="secondary"
-              onPress={() => {
-                mock.platform.simulateOutage(6000);
-                toast("Connection dropped for 6 seconds");
-              }}
-              style={{ flex: 1 }}
-            />
-            <Button
-              label="Expire session"
-              size="sm"
-              variant="secondary"
-              disabled={!isAuthenticated}
-              onPress={() => {
-                getAuthSource().session.expire();
-              }}
-              style={{ flex: 1 }}
-            />
-            <Button
-              label="Reset account"
-              size="sm"
-              variant="secondary"
-              onPress={() => {
-                removeStored("betng.mock.account.v1");
-                toast("Restart the app to reset the simulated account");
-              }}
-              style={{ flex: 1 }}
-            />
-          </View>
-        )}
       </Card>
       <Text variant="caption" tone="muted" style={{ marginTop: 16 }}>
         BetNG is a portfolio simulation. Balances, stakes and returns are

@@ -5,11 +5,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Check, CircleCheck, MailCheck, TriangleAlert, WifiOff } from "lucide-react-native";
 import { DataSourceError } from "@betng/ui-core";
 import { Button, CodeField, Pressable, Text, TextField } from "../components";
-import { appConfig } from "../configs/app.config";
 import { presentError } from "../lib/errors";
 import { codeError, displayNameError, emailError, passwordError, phoneError } from "../lib/validation";
 import type { AuthView, RootStackParamList } from "../navigation/types";
-import { getAuthSource } from "../services/dataSource";
+import { getAuthSource, getRuntimeInfo } from "../services/dataSource";
 import { useAuthFlow } from "../stores/auth.store";
 import { useTheme } from "../theme";
 
@@ -75,7 +74,7 @@ function LinkText({ label, onPress }: { readonly label: string; readonly onPress
 function DemoHint({ text, action }: { readonly text: string; readonly action?: { readonly label: string; readonly onPress: () => void } }): React.JSX.Element | null {
   const t = useTheme();
 
-  if (appConfig.dataSource !== "mock") return null;
+  if (getRuntimeInfo().mode !== "mock") return null;
 
   return (
     <View
