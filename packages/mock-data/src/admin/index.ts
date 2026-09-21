@@ -255,10 +255,21 @@ export function createMockAdminSource(options: MockAdminOptions): AdminDataSourc
     return fixture;
   };
 
+  const uniformBelow = (bound: number): number => {
+    const limit = 2 ** 32 - (2 ** 32 % bound);
+    const sample = new Uint32Array(1);
+
+    do {
+      crypto.getRandomValues(sample);
+    } while ((sample[0] ?? limit) >= limit);
+
+    return (sample[0] ?? 0) % bound;
+  };
+
   const credentials = (username: string): CashierCredentials => ({
     username,
     temporaryPassword: `Bn-${crypto.randomUUID().slice(0, 8)}`,
-    temporaryPin: String(1000 + ((crypto.getRandomValues(new Uint32Array(1))[0] ?? 0) % 9000)),
+    temporaryPin: String(1000 + uniformBelow(9000)),
     expiresAt: new Date(now() + 24 * 3_600_000).toISOString(),
   });
 

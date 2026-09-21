@@ -24,7 +24,7 @@ const FIXED: Readonly<Record<string, { readonly kind: MarketKind; readonly selec
 };
 
 const TOTALS = /^(O|OV|OVER|U|UN|UNDER)(\d)\.?5$/;
-const ENTRY = /^(\d{1,2})\s*[-/:]?\s*([A-Z0-9.]+)$/;
+const ENTRY = /^(\d{1,2})\s*(?:[-/:]\s*)?([A-Z0-9.]+)$/;
 
 export const FASTBET_CODES: readonly string[] = ["1", "X", "2", "1X", "12", "X2", "GG", "NG", "O2.5", "U2.5"];
 

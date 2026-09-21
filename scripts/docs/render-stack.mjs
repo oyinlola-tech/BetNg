@@ -90,11 +90,10 @@ function contrast(a, b) {
 
 const pathOf = (slug) => /<path d="([^"]+)"/.exec(readFileSync(`${DIR}/${slug}.svg`, "utf8"))[1];
 // The official ZudoJS mark, embedded unaltered: the standard file on light, the reversed file on dark (zudojs.oyinlola.site/brand).
-const zudoMark = (dark) =>
-  readFileSync(`${DIR}/zudo-mark${dark ? "-dark" : ""}.svg`, "utf8")
-    .replace(/<!--[\s\S]*?-->/g, "")
-    .replace(/^[\s\S]*?<svg[^>]*>/, "")
-    .replace(/<\/svg>\s*$/, "");
+function zudoMark(dark) {
+  const file = readFileSync(`${DIR}/zudo-mark${dark ? "-dark" : ""}.svg`, "utf8");
+  return file.slice(file.indexOf(">", file.indexOf("<svg")) + 1, file.lastIndexOf("</svg>"));
+}
 
 const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
 
