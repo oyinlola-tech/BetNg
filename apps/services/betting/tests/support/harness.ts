@@ -19,6 +19,9 @@ if (existsSync(envFile)) {
   process.loadEnvFile(envFile);
 }
 
+// Actor headers and /rpc are honoured only with the internal token, so the suite always runs with one.
+process.env["INTERNAL_SERVICE_TOKEN"] ??= `test-${crypto.randomUUID()}`;
+
 function inTestDatabase(url: string): string {
   const parsed = new URL(url);
 
