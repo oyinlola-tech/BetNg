@@ -7,56 +7,73 @@ import {
   useRef,
   useState,
 } from "react";
-import { CheckCircle2, Info, TriangleAlert, X } from "lucide-react";
-import { cn } from "../lib/cn";
+import { Toast } from "../feedback/Toast";
+import type { ToastAction, ToastKind } from "../feedback/Toast";
 
-export type ToastTone = "info" | "success" | "danger";
+/** `danger` is the earlier name for `error` and is still accepted. */
+export type ToastTone =
+  | "success"
+  | "info"
+  | "warning"
+  | "error"
+  | "system"
+  | "danger";
 
-interface Toast {
-  readonly id: number;
+export interface ToastInput {
   readonly title: string;
   readonly message?: string;
-  readonly tone: ToastTone;
+  readonly tone?: ToastTone;
+  readonly kind?: ToastKind;
+  readonly action?: ToastAction;
+  readonly duration?: number;
 }
 
-interface ToastContextValue {
-  readonly toast: (input: Omit<Toast, "id">) => void;
+export interface ToastContextValue {
+  readonly toast: (input: ToastInput) => number;
+  readonly dismiss: (id: number) => void;
+  readonly dismissAll: () => void;
 }
+
+interface ToastEntry extends ToastInput {
+  readonly id: number;
+}
+
+const MAX_VISIBLE = 4;
 
 const ToastContext = createContext<ToastContextValue | undefined>(undefined);
-
-const ICONS: Record<ToastTone, React.ComponentType<{ className?: string }>> = {
-  info: Info,
-  success: CheckCircle2,
-  danger: TriangleAlert,
-};
 
 export function ToastProvider({
   children,
 }: {
   readonly children: React.ReactNode;
 }): React.JSX.Element {
-  const [toasts, setToasts] = useState<readonly Toast[]>([]);
+  const [toasts, setToasts] = useState<readonly ToastEntry[]>([]);
   const counter = useRef(0);
+  const region = useRef<HTMLDivElement>(null);
 
   const dismiss = useCallback((id: number) => {
     setToasts((current) => current.filter((t) => t.id !== id));
   }, []);
 
-  const toast = useCallback(
-    (input: Omit<Toast, "id">) => {
-      const id = ++counter.current;
+  const dismissAll = useCallback(() => {
+    setToasts([]);
+  }, []);
 
-      setToasts((current) => [...current.slice(-3), { ...input, id }]);
-      setTimeout(() => {
-        dismiss(id);
-      }, 4200);
-    },
-    [dismiss],
+  const toast = useCallback((input: ToastInput) => {
+    const id = ++counter.current;
+
+    setToasts((current) => [
+      ...current.slice(-(MAX_VISIBLE - 1)),
+      { ...input, id },
+    ]);
+
+    return id;
+  }, []);
+
+  const value = useMemo(
+    () => ({ toast, dismiss, dismissAll }),
+    [toast, dismiss, dismissAll],
   );
-
-  const value = useMemo(() => ({ toast }), [toast]);
-  const region = useRef<HTMLDivElement>(null);
 
   // A modal dialog sits in the browser's top layer, above any z-index. Re-showing the region as a popover on each toast puts it back on top of whatever opened since.
   useEffect(() => {
@@ -74,54 +91,20 @@ export function ToastProvider({
       <div
         ref={region}
         popover="manual"
-        aria-live="polite"
+        role="region"
+        aria-label="Notifications"
         className="pointer-events-none fixed inset-x-0 top-auto bottom-4 z-toast m-0 flex h-auto w-auto flex-col items-center gap-2 overflow-visible border-0 bg-transparent p-0 px-4 sm:items-end sm:px-6"
       >
-        {toasts.map((t) => {
-          const Icon = ICONS[t.tone];
-
-          return (
-            <div
-              key={t.id}
-              role="status"
-              className={cn(
-                "pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-md border bg-surface-elevated p-3 shadow-lg animate-toast-in",
-                t.tone === "success" && "border-success/40",
-                t.tone === "danger" && "border-danger/40",
-                t.tone === "info" && "border-border",
-              )}
-            >
-              <Icon
-                className={cn(
-                  "mt-0.5 size-4 shrink-0",
-                  t.tone === "success" && "text-success",
-                  t.tone === "danger" && "text-danger",
-                  t.tone === "info" && "text-brand",
-                )}
-              />
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-text-primary">
-                  {t.title}
-                </p>
-                {t.message !== undefined && (
-                  <p className="mt-0.5 text-sm text-text-secondary">
-                    {t.message}
-                  </p>
-                )}
-              </div>
-              <button
-                type="button"
-                aria-label="Dismiss"
-                onClick={() => {
-                  dismiss(t.id);
-                }}
-                className="rounded-sm p-1 text-text-muted hover:text-text-primary focus-ring"
-              >
-                <X className="size-4" />
-              </button>
-            </div>
-          );
-        })}
+        {toasts.map(({ id, tone, ...rest }) => (
+          <Toast
+            key={id}
+            {...rest}
+            tone={tone === "danger" ? "error" : (tone ?? "info")}
+            onDismiss={() => {
+              dismiss(id);
+            }}
+          />
+        ))}
       </div>
     </ToastContext.Provider>
   );

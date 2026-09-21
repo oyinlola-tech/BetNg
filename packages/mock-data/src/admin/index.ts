@@ -10,7 +10,9 @@ import type {
   AuditSeverity,
   CashierCredentials,
   CashierId,
+  CommissionConfig,
   PlatformSettings,
+  RiskLimits,
   ShopId,
   TeamRatings,
 } from "@betng/contracts";
@@ -20,6 +22,7 @@ import type { KeyValueStorage, MockPlatform } from "../engine.js";
 import { hash, rng, uuidFrom } from "../prng.js";
 import { statusAt } from "../season.js";
 import { fixtureWindow, ledgerEntries, marketOddsFor, reportDays, riskOverview, serviceHealth, settlementsFor, toAdminFixture, toSimulationRun, tradingMarkets, type MatchOverride, type Overrides } from "./derive.js";
+import { accountAnalysis, analyticsBreakdown, analyticsOverview, analyticsSessions, commissionFor, exposureBoard, operatorPeriods, operatorSummary, type Directory } from "./insight.js";
 import { ADMINS, ADMIN_PASSWORD, ADMIN_TOTP, DEFAULT_SETTINGS, ratingsFor, seedCashiers, seedCustomers, seedShops } from "./seed.js";
 
 export interface MockAdminOptions {
@@ -49,14 +52,22 @@ interface AdminState {
   settlements: Record<string, number>;
   settings: PlatformSettings;
   audit: AuditLogEntry[];
+  riskLimits?: RiskLimits;
+  operatorCloses: string[];
+  commissionDefault?: CommissionConfig;
+  commissionShops: CommissionConfig[];
 }
+
+const SEEDED_AT = new Date(Date.UTC(2026, 7, 1)).toISOString();
+const DEFAULT_SHOP_SHARE_PERCENT = 20;
+const RISK_LIMIT_FIELDS = ["minStake", "maxStakePerBet", "maxPayoutPerBet", "maxLiabilityPerSelection", "maxLiabilityPerMarket", "maxLiabilityPerMatch"] as const;
 
 const STATE_KEY = "betng.mock.admin.v1";
 const SESSION_KEY = "betng.admin.session";
 const SESSION_MS = 4 * 3_600_000;
 const SECRET = /password|pin|token|secret/i;
 
-const emptyState = (): AdminState => ({ shops: {}, createdShops: [], cashiers: {}, createdCashiers: [], customers: {}, teams: {}, matches: {}, markets: {}, settlements: {}, settings: DEFAULT_SETTINGS, audit: [] });
+const emptyState = (): AdminState => ({ shops: {}, createdShops: [], cashiers: {}, createdCashiers: [], customers: {}, teams: {}, matches: {}, markets: {}, settlements: {}, settings: DEFAULT_SETTINGS, audit: [], operatorCloses: [], commissionShops: [] });
 
 function redact(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(redact);
@@ -139,9 +150,10 @@ export function createMockAdminSource(options: MockAdminOptions): AdminDataSourc
   };
 
   let ticker: ReturnType<typeof setInterval> | undefined;
+  const jitter = rng("admin:latency");
 
   const delay = async (): Promise<void> => {
-    await new Promise((resolve) => setTimeout(resolve, latencyMs * (0.6 + Math.random() * 0.8)));
+    await new Promise((resolve) => setTimeout(resolve, latencyMs * (0.6 + jitter.next() * 0.8)));
 
     if (platform.getConnection() === "OFFLINE") throw new DataSourceError("NETWORK", "You appear to be offline.");
   };
@@ -246,9 +258,37 @@ export function createMockAdminSource(options: MockAdminOptions): AdminDataSourc
   const credentials = (username: string): CashierCredentials => ({
     username,
     temporaryPassword: `Bn-${crypto.randomUUID().slice(0, 8)}`,
-    temporaryPin: String(1000 + Math.floor(Math.random() * 9000)),
+    temporaryPin: String(1000 + ((crypto.getRandomValues(new Uint32Array(1))[0] ?? 0) % 9000)),
     expiresAt: new Date(now() + 24 * 3_600_000).toISOString(),
   });
+
+  const directory = (): Directory => {
+    const all = shops();
+
+    return { shops: all, cashiers: all.flatMap(cashiersOf), customers: customers() };
+  };
+
+  const riskLimits = (): RiskLimits =>
+    state.riskLimits ?? {
+      version: 1,
+      minStake: state.settings.minStake,
+      maxStakePerBet: state.settings.maxStake,
+      maxPayoutPerBet: state.settings.maxPayout,
+      maxLiabilityPerSelection: Math.round(state.settings.exposureLimit / 60),
+      maxLiabilityPerMarket: Math.round(state.settings.exposureLimit / 30),
+      maxLiabilityPerMatch: Math.round(state.settings.exposureLimit / 12),
+      updatedAt: SEEDED_AT,
+    };
+
+  const commissionDefault = (): CommissionConfig => state.commissionDefault ?? { shopSharePercent: DEFAULT_SHOP_SHARE_PERCENT, effectiveFrom: SEEDED_AT };
+
+  const requireReason = (reason: string): string => {
+    const trimmed = reason.trim();
+
+    if (trimmed.length < 4 || trimmed.length > 240) throw new DataSourceError("VALIDATION", "Give a reason of 4 to 240 characters.");
+
+    return trimmed;
+  };
 
   return {
     session,
@@ -601,6 +641,159 @@ export function createMockAdminSource(options: MockAdminOptions): AdminDataSourc
       await guard("risk:read");
 
       return riskOverview(now(), overrides(), state.settings.exposureLimit);
+    },
+
+    /** @endpoint GET /api/v1/admin/risk/exposure → { items: MatchExposure[] } */
+    listExposure: async () => {
+      await guard("risk:read");
+
+      return exposureBoard(now(), overrides(), riskLimits());
+    },
+
+    /** @endpoint GET /api/v1/admin/risk/limits → RiskLimits */
+    getRiskLimits: async () => {
+      await guard("risk:read");
+
+      return riskLimits();
+    },
+
+    /** @endpoint PUT /api/v1/admin/risk/limits → RiskLimits */
+    updateRiskLimits: async (request) => {
+      const admin = await guard("risk:write");
+      const reason = requireReason(request.reason);
+      const before = riskLimits();
+      const next: RiskLimits = { ...before };
+
+      for (const field of RISK_LIMIT_FIELDS) {
+        const value = request[field];
+
+        if (value === undefined) continue;
+        if (!Number.isSafeInteger(value) || value < 1) throw new DataSourceError("VALIDATION", "Every limit is a whole amount of at least 1.", { fields: { [field]: "Enter a whole amount of at least 1." } });
+
+        next[field] = value;
+      }
+
+      if (next.minStake >= next.maxStakePerBet) throw new DataSourceError("VALIDATION", "Minimum stake must be below the maximum stake per bet.");
+      if (next.maxLiabilityPerSelection > next.maxLiabilityPerMarket || next.maxLiabilityPerMarket > next.maxLiabilityPerMatch) {
+        throw new DataSourceError("VALIDATION", "Liability limits must widen from selection to market to match.");
+      }
+
+      state.riskLimits = { ...next, version: before.version + 1, updatedAt: new Date(now()).toISOString(), updatedBy: admin.displayName };
+      record(admin, "risk.update_limits", "risk", "limits", "CRITICAL", Object.fromEntries(RISK_LIMIT_FIELDS.filter((f) => request[f] !== undefined).map((f) => [f, before[f]])), { ...request, reason });
+
+      return state.riskLimits;
+    },
+
+    /** @endpoint GET /api/v1/admin/analytics/overview?from=&to= → AnalyticsOverview */
+    getAnalyticsOverview: async (window = {}) => {
+      await guard("reports:read");
+
+      return analyticsOverview(window, directory(), now());
+    },
+
+    /** @endpoint GET /api/v1/admin/analytics/breakdown?by=&from=&to=&leagueId=&matchId=&shopId=&limit= → AnalyticsBreakdown */
+    getAnalyticsBreakdown: async (query) => {
+      await guard("reports:read");
+
+      return analyticsBreakdown(query, directory(), now());
+    },
+
+    /** @endpoint GET /api/v1/admin/analytics/sessions?kind=&from=&to=&leagueId= → { items: SessionAnalysis[] } */
+    listAnalyticsSessions: async (query) => {
+      await guard("reports:read");
+
+      return analyticsSessions(query, directory(), now());
+    },
+
+    /** @endpoint GET /api/v1/admin/analytics/:kind/:id?from=&to= → AccountAnalysis (kind is accounts, shops or cashiers) */
+    getAccountAnalysis: async (kind, id) => {
+      await guard("reports:read");
+
+      const share = (state.commissionShops.find((c) => c.shopId === id) ?? commissionDefault()).shopSharePercent;
+      const analysis = accountAnalysis(kind, id, directory(), share);
+
+      if (analysis === undefined) throw new DataSourceError("NOT_FOUND", "That account does not exist.");
+
+      return analysis;
+    },
+
+    /** @endpoint GET /api/v1/admin/operator → { current: OperatorSummary, closed: OperatorSummary[] } */
+    getOperatorLedger: async () => {
+      await guard("settlement:read");
+
+      const t = now();
+      const [current, ...closed] = operatorPeriods(state.operatorCloses, t).map((p) => operatorSummary(p, t));
+
+      if (current === undefined) throw new DataSourceError("SERVER", "No reporting period is open.");
+
+      return { current, closed };
+    },
+
+    /** @endpoint GET /api/v1/admin/operator/periods → { items: OperatorPeriod[] } */
+    listOperatorPeriods: async () => {
+      await guard("settlement:read");
+
+      return operatorPeriods(state.operatorCloses, now());
+    },
+
+    /** @endpoint POST /api/v1/admin/operator/periods/close { reason } → OperatorSummary */
+    closeOperatorPeriod: async (reason) => {
+      const admin = await guard("settlement:operate");
+      const why = requireReason(reason);
+      const t = now();
+      const open = operatorPeriods(state.operatorCloses, t)[0];
+
+      if (open === undefined) throw new DataSourceError("SERVER", "No reporting period is open.");
+      if (t - Date.parse(open.startsAt) < 1000) throw new DataSourceError("CONFLICT", "That period has only just opened.");
+
+      state.operatorCloses = [...state.operatorCloses, new Date(t).toISOString()].slice(-200);
+
+      const closed = operatorSummary({ ...open, kind: "CUSTOM", status: "CLOSED", endsAt: new Date(t).toISOString() }, t);
+
+      record(admin, "operator.close_period", "operator_period", open.id, "CRITICAL", { status: "OPEN" }, { status: "CLOSED", operatorResult: closed.operatorResult, reason: why });
+
+      return closed;
+    },
+
+    /** @endpoint GET /api/v1/admin/commission?periodId= → { items: CommissionSummary[] } */
+    listCommission: async (periodId) => {
+      await guard("settlement:read");
+
+      const t = now();
+
+      return operatorPeriods(state.operatorCloses, t)
+        .filter((p) => periodId === undefined || p.id === periodId)
+        .flatMap((p) => commissionFor(p, shops(), state.commissionShops, commissionDefault(), t));
+    },
+
+    /** @endpoint GET /api/v1/admin/commission/config → { default: CommissionConfig, shops: CommissionConfig[] } */
+    getCommissionConfig: async () => {
+      await guard("settlement:read");
+
+      return { default: commissionDefault(), shops: state.commissionShops };
+    },
+
+    /** @endpoint PUT /api/v1/admin/commission/config → CommissionConfig */
+    updateCommissionConfig: async (request) => {
+      const admin = await guard("settlement:operate");
+      const reason = requireReason(request.reason);
+
+      if (!Number.isFinite(request.shopSharePercent) || request.shopSharePercent < 0 || request.shopSharePercent > 100) throw new DataSourceError("VALIDATION", "The shop share is a percentage from 0 to 100.");
+
+      const before = request.shopId === undefined ? commissionDefault() : state.commissionShops.find((c) => c.shopId === request.shopId);
+      const next: CommissionConfig = {
+        ...(request.shopId === undefined ? {} : { shopId: requireShop(request.shopId).id }),
+        shopSharePercent: request.shopSharePercent,
+        effectiveFrom: new Date(now()).toISOString(),
+        updatedBy: admin.displayName,
+      };
+
+      if (request.shopId === undefined) state.commissionDefault = next;
+      else state.commissionShops = [...state.commissionShops.filter((c) => c.shopId !== request.shopId), next];
+
+      record(admin, "commission.update_config", "commission", request.shopId ?? "default", "CRITICAL", before === undefined ? undefined : { shopSharePercent: before.shopSharePercent }, { shopSharePercent: next.shopSharePercent, reason });
+
+      return next;
     },
 
     /** @endpoint GET /api/v1/admin/simulations?status= → { items: AdminSimulationRun[] } */

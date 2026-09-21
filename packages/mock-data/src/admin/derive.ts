@@ -160,7 +160,7 @@ export function marketOddsFor(f: FixtureRef, now: number, overrides: Overrides):
   });
 }
 
-const tradable = (f: FixtureRef, now: number): boolean => {
+export const tradable = (f: FixtureRef, now: number): boolean => {
   const status = statusAt(f, now);
 
   return status === "BETTING_OPEN" || status === "BETTING_CLOSED" || status === "IN_PLAY";

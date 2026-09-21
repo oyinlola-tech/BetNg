@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 
 export const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
-const DATABASE = "betng_e2e";
+const DATABASE = process.env.E2E_DATABASE ?? "betng_e2e";
 const PG = { host: "localhost", port: process.env.POSTGRES_PORT ?? "55432" };
 const BASE_PORT = Number(process.env.E2E_BASE_PORT ?? 4600);
 
@@ -90,7 +90,14 @@ export function psql(sql, database = DATABASE) {
 }
 
 export function resetDatabase() {
+  if (DATABASE === "betng") throw new Error("Refusing to drop the development database.");
+
   psql(`DROP DATABASE IF EXISTS ${DATABASE} WITH (FORCE)`, "postgres");
+  migrateDatabase();
+  run("redis-cli", ["-u", stackEnv().REDIS_URL, "FLUSHDB"]);
+}
+
+export function migrateDatabase() {
   run("bash", [resolve(ROOT, "scripts/db-bootstrap.sh"), DATABASE]);
 
   const env = { ...process.env, ...stackEnv() };
@@ -100,8 +107,6 @@ export function resetDatabase() {
 
     run(resolve(cwd, "node_modules/.bin/prisma"), ["migrate", "deploy"], { cwd, env });
   }
-
-  run("redis-cli", ["-u", stackEnv().REDIS_URL, "FLUSHDB"]);
 }
 
 async function waitReady(name, deadlineMs) {

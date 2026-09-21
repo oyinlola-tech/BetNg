@@ -30,6 +30,7 @@ const ALL_PERMISSIONS = [
   "odds:read",
   "odds:write",
   "risk:read",
+  "risk:write",
   "simulation:read",
   "simulation:operate",
   "settlement:read",

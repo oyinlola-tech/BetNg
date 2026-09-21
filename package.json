@@ -48,6 +48,9 @@
     "py:install": "bash scripts/python-install.sh",
     "py:test": "bash scripts/python-test.sh",
     "test": "vitest run",
+    "test:dom": "vitest run --project dom",
+    "test:e2e": "playwright test",
+    "test:unit": "vitest run --project unit",
     "test:watch": "vitest",
     "typecheck": "pnpm -r run typecheck",
     "verify": "bash scripts/verify.sh"
