@@ -19,11 +19,11 @@ describe("createRequester", () => {
   it("sends the bearer token read at request time", async () => {
     respond(200, { ok: true });
 
-    let token: string | undefined;
-    const request = createRequester({ ...config, getToken: () => token });
+    const session: { token?: string } = {};
+    const request = createRequester({ ...config, getToken: () => session.token });
 
     await request("GET", "/a");
-    token = "abc";
+    session.token = "abc";
     await request("GET", "/b");
 
     const calls = vi.mocked(fetch).mock.calls.map(([, init]) => (init?.headers as Record<string, string>)["authorization"]);

@@ -27,5 +27,11 @@ export function GuardedButton({ permission, blockedReason, disabled, children, .
     </Button>
   );
 
-  return reason === undefined ? button : <Tooltip content={reason}>{button}</Tooltip>;
+  return reason === undefined ? (
+    button
+  ) : (
+    <Tooltip content={reason} {...(rest.full === true ? { className: "flex w-full" } : {})}>
+      {button}
+    </Tooltip>
+  );
 }

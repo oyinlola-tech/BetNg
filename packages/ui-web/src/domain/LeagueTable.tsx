@@ -107,7 +107,7 @@ function Row({
         highlighted && "bg-brand-subtle/50",
       )}
     >
-      <td className="py-2 pl-3">
+      <td className="py-2 pl-3 pr-2">
         <span
           className={cn(
             "inline-flex h-5 w-5 items-center justify-center rounded-xs text-xs font-bold tabular",

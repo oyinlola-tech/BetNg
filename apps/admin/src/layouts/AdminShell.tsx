@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { ChevronsLeft, ChevronsRight, LogOut, Menu, Search, X } from "lucide-react";
@@ -15,11 +15,19 @@ import { CommandPalette } from "./CommandPalette";
 const COLLAPSE_KEY = "betng.admin.sidebar";
 
 function Sidebar({ groups, collapsed, onNavigate }: { readonly groups: readonly NavGroup[]; readonly collapsed: boolean; readonly onNavigate?: () => void }): React.JSX.Element {
+  const nav = useRef<HTMLElement>(null);
+  const { pathname } = useLocation();
+
+  // On short screens the list scrolls, so the current screen is kept in view.
+  useEffect(() => {
+    nav.current?.querySelector('[aria-current="page"]')?.scrollIntoView({ block: "nearest" });
+  }, [pathname]);
+
   return (
-    <nav aria-label="Primary" className="flex-1 overflow-y-auto px-2 py-3 scrollbar-thin">
+    <nav ref={nav} aria-label="Primary" className="flex-1 overflow-y-auto px-2 py-2 scrollbar-thin">
       {groups.map((group) => (
-        <div key={group.label} className="mb-3">
-          {collapsed ? <div className="mx-2 mb-2 border-t border-border" aria-hidden /> : <p className="caps-label mb-1 px-2.5 text-[10px]">{group.label}</p>}
+        <div key={group.label} className="mb-2">
+          {collapsed ? <div className="mx-2 mb-2 border-t border-border" aria-hidden /> : <p className="caps-label mb-0.5 px-2.5 text-[10px]">{group.label}</p>}
           <ul className="space-y-px">
             {group.items.map((item) => {
               const link = (
@@ -31,7 +39,7 @@ function Sidebar({ groups, collapsed, onNavigate }: { readonly groups: readonly 
                   title={collapsed ? item.label : undefined}
                   className={({ isActive }) =>
                     cn(
-                      "group relative flex h-8 items-center gap-2.5 rounded-sm px-2.5 text-base font-medium transition-colors focus-ring",
+                      "group relative flex h-7 items-center gap-2.5 rounded-sm px-2.5 text-base font-medium transition-colors focus-ring",
                       collapsed && "justify-center px-0",
                       isActive ? "bg-brand-subtle text-text-primary before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:rounded-full before:bg-brand" : "text-text-secondary hover:bg-surface-hover hover:text-text-primary",
                     )
@@ -224,7 +232,7 @@ export function AdminShell(): React.JSX.Element {
           </div>
         </header>
         <ConnectionStrip state={connection} />
-        <main id="main" tabIndex={-1} className="min-h-0 flex-1 overflow-y-auto outline-none scrollbar-thin">
+        <main id="main" tabIndex={-1} className="relative min-h-0 flex-1 overflow-y-auto outline-none [scrollbar-gutter:stable] scrollbar-thin">
           <div className="mx-auto w-full max-w-[1600px] px-3 py-4 sm:px-5 sm:py-5">
             <Outlet />
           </div>

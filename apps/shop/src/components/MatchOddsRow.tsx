@@ -1,16 +1,21 @@
 import { memo } from "react";
 import { ChevronDown, Lock, Timer } from "lucide-react";
-import { canBet, formatKickoffTime, isInPlay, matchClock, type MarketView, type MatchMarketsView, type MatchSummary, type SelectionView } from "@betng/ui-core";
+import { canBet, formatKickoffTime, isInPlay, matchClock, type MarketKind, type MarketView, type MatchMarketsView, type MatchSummary, type SelectionView } from "@betng/ui-core";
 import { Countdown, MarketCard, OddsButton, PhaseBadge, Skeleton, TeamBadge, cn, useNow } from "@betng/ui-web";
 
 export interface MatchOddsRowProps {
   readonly match: MatchSummary;
   readonly markets: MatchMarketsView | undefined;
   readonly expanded: boolean;
+  /** Names the competition on the row, for lists that are not grouped by league. */
+  readonly showLeague?: boolean;
   readonly onExpand: (matchId: string) => void;
   readonly isSelected: (selectionId: string) => boolean;
   readonly onToggle: (match: MatchSummary, market: MarketView, selection: SelectionView) => void;
 }
+
+/* Markets whose selection labels carry team names need the full row to stay readable. */
+const WIDE: ReadonlySet<MarketKind> = new Set(["DOUBLE_CHANCE", "GOAL_SPREAD", "CORRECT_SCORE"]);
 
 function LiveMinute({ kickoffAt }: { readonly kickoffAt: string }): React.JSX.Element {
   const now = useNow(1000);
@@ -18,7 +23,7 @@ function LiveMinute({ kickoffAt }: { readonly kickoffAt: string }): React.JSX.El
   return <span className="tabular">{matchClock(kickoffAt, now).minute}'</span>;
 }
 
-export const MatchOddsRow = memo(function MatchOddsRow({ match, markets, expanded, onExpand, isSelected, onToggle }: MatchOddsRowProps): React.JSX.Element {
+export const MatchOddsRow = memo(function MatchOddsRow({ match, markets, expanded, showLeague = false, onExpand, isSelected, onToggle }: MatchOddsRowProps): React.JSX.Element {
   const bettable = canBet(match.phase);
   const live = isInPlay(match.phase);
   const result = markets?.markets.find((m) => m.kind === "MATCH_RESULT");
@@ -39,7 +44,7 @@ export const MatchOddsRow = memo(function MatchOddsRow({ match, markets, expande
           )}
           {bettable ? (
             <p className="flex items-center gap-1 text-xs text-text-muted" title="Betting closes in">
-              <Timer className="size-3" aria-hidden />
+              {showLeague ? <span className="font-semibold text-text-secondary">{match.leagueCode}</span> : <Timer className="size-3" aria-hidden />}
               <span className="sr-only">Betting closes in</span>
               <Countdown to={match.bettingClosesAt} />
             </p>
@@ -108,7 +113,7 @@ export const MatchOddsRow = memo(function MatchOddsRow({ match, markets, expande
               onToggle={(m, s) => {
                 onToggle(match, m, s);
               }}
-              className={market.kind === "CORRECT_SCORE" ? "md:col-span-2" : undefined}
+              className={WIDE.has(market.kind) ? "md:col-span-2" : undefined}
             />
           ))}
         </div>

@@ -64,8 +64,20 @@ export function createPlatformAuthSource(rest: BetNgRestClient, session: Session
 export function createPlatformShopSource(rest: BetNgRestClient, session: SessionStore<ShopSession>): ShopDataSource {
   const run = guarded(session);
   const listeners = new Set<() => void>();
-  const changed = <T>(value: T): T => {
+  const notify = (): void => {
     for (const listener of listeners) listener();
+  };
+
+  // The float lives on the session's shop, so a sale, payout or cancellation re-reads it; a failure here never fails the action that succeeded.
+  const changed = <T>(value: T): T => {
+    notify();
+    void rest.shop
+      .session()
+      .then((next) => {
+        if (session.token() !== undefined) session.set({ ...next, token: next.token || (session.token() as string) });
+        notify();
+      })
+      .catch(() => undefined);
 
     return value;
   };
@@ -111,22 +123,24 @@ export function createPlatformShopSource(rest: BetNgRestClient, session: Session
 
 export function createPlatformAdminSource(rest: BetNgRestClient, session: SessionStore<AdminSession>): AdminDataSource {
   const run = guarded(session);
-  const { login, logout, session: _readSession, ...operations } = rest.admin;
+  const own = new Set(["login", "logout", "session"]);
   const wrapped = Object.fromEntries(
-    Object.entries(operations).map(([name, method]) => [name, (...args: unknown[]) => run(() => (method as (...a: unknown[]) => Promise<unknown>)(...args))]),
+    Object.entries(rest.admin)
+      .filter(([name]) => !own.has(name))
+      .map(([name, method]) => [name, (...args: unknown[]) => run(() => (method as (...a: unknown[]) => Promise<unknown>)(...args))]),
   ) as unknown as Omit<AdminDataSource, "session" | "login" | "logout" | "subscribe">;
 
   return {
     ...wrapped,
     session,
     login: async (request) => {
-      const next = await run(() => login(request));
+      const next = await run(() => rest.admin.login(request));
 
       session.set(next);
 
       return next;
     },
-    logout: () => signOut(session, () => logout()),
+    logout: () => signOut(session, () => rest.admin.logout()),
     subscribe: () => () => undefined,
   };
 }

@@ -2,6 +2,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -55,13 +56,26 @@ export function ToastProvider({
   );
 
   const value = useMemo(() => ({ toast }), [toast]);
+  const region = useRef<HTMLDivElement>(null);
+
+  // A modal dialog sits in the browser's top layer, above any z-index. Re-showing the region as a popover on each toast puts it back on top of whatever opened since.
+  useEffect(() => {
+    const node = region.current;
+
+    if (node === null || typeof node.showPopover !== "function") return;
+
+    if (node.matches(":popover-open")) node.hidePopover();
+    if (toasts.length > 0) node.showPopover();
+  }, [toasts]);
 
   return (
     <ToastContext.Provider value={value}>
       {children}
       <div
+        ref={region}
+        popover="manual"
         aria-live="polite"
-        className="pointer-events-none fixed inset-x-0 bottom-4 z-toast flex flex-col items-center gap-2 px-4 sm:items-end sm:px-6"
+        className="pointer-events-none fixed inset-x-0 top-auto bottom-4 z-toast m-0 flex h-auto w-auto flex-col items-center gap-2 overflow-visible border-0 bg-transparent p-0 px-4 sm:items-end sm:px-6"
       >
         {toasts.map((t) => {
           const Icon = ICONS[t.tone];

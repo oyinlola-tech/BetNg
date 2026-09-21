@@ -1,7 +1,7 @@
 import { Link, useNavigate } from "react-router";
 import { CalendarCheck, FilePlus2, HandCoins, Radio, ScanLine } from "lucide-react";
 import type { Ticket } from "@betng/contracts";
-import { formatMoney, formatRelative, formatSignedMoney, matchClock } from "@betng/ui-core";
+import { formatMoney, formatRelative, formatSignedMoney, matchClock, toLocalDateKey } from "@betng/ui-core";
 import { DataTable, EmptyState, ErrorState, KpiCard, Panel, Skeleton, TeamBadge, cn, useNow, type Column } from "@betng/ui-web";
 import { Kbd } from "../components/Kbd";
 import { PageHeader } from "../components/PageHeader";
@@ -67,6 +67,8 @@ export function DashboardPage(): React.JSX.Element {
   const tickets = useTickets({}, can("tickets:check"));
   const open = tickets.data?.filter((t) => t.status === "OPEN").length;
   const toCollect = tickets.data?.filter((t) => t.status === "WON");
+  const today = localDateKey();
+  const mine = tickets.data?.filter((t) => t.cashierId === session?.cashier.id && t.status !== "CANCELLED" && toLocalDateKey(new Date(t.placedAt)) === today);
   const delta = (today: number | undefined, before: number | undefined): number | undefined => (today === undefined || before === undefined || before === 0 ? undefined : (today - before) / before);
 
   return (
@@ -101,9 +103,13 @@ export function DashboardPage(): React.JSX.Element {
             <KpiCard label="Net position" value={report.data === undefined ? undefined : formatSignedMoney(report.data.net)} hint="Sales less payouts" emphasis />
           </>
         ) : (
-          <div className="col-span-2 flex items-center rounded-md border border-dashed border-border-strong px-4 py-3 text-sm text-text-muted lg:col-span-3">Sales, payouts and net position are visible to managers and owners.</div>
+          <>
+            <KpiCard label="My tickets today" value={mine === undefined ? undefined : String(mine.length)} hint="Sold under your sign-in" />
+            <KpiCard label="My sales today" value={mine === undefined ? undefined : formatMoney(mine.reduce((a, t) => a + t.stake, 0))} hint="Shop totals are for managers" />
+            <KpiCard label="Awaiting collection" value={toCollect === undefined ? undefined : formatMoney(toCollect.reduce((a, t) => a + (t.payout ?? t.potentialPayout), 0))} hint={toCollect === undefined ? "" : `${String(toCollect.length)} winning tickets`} emphasis />
+          </>
         )}
-        <KpiCard label="Open tickets" value={open === undefined ? undefined : String(open)} hint={toCollect === undefined ? "" : `${String(toCollect.length)} won, awaiting collection`} />
+        <KpiCard label="Open tickets" value={open === undefined ? undefined : String(open)} hint={!canReport ? "Not yet settled" : toCollect === undefined ? "" : `${String(toCollect.length)} won, awaiting collection`} />
       </section>
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">

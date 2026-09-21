@@ -46,7 +46,7 @@ function FixtureBrowser({ title, description, defaultStatus }: { readonly title:
               setLeagueId(next);
               setMatchday("ALL");
             }}
-            options={[{ value: "ALL", label: "All competitions" }, ...(leagues.data ?? []).map((l) => ({ value: l.id as string, label: l.name }))]}
+            options={[{ value: "ALL", label: "All competitions" }, ...(leagues.data ?? []).map((l) => ({ value: l.id, label: l.name }))]}
           />
           <Select label="Matchday" size="sm" value={matchday} onChange={setMatchday} options={[{ value: "ALL", label: "All matchdays" }, ...matchdays.map((md) => ({ value: String(md), label: `Matchday ${String(md)}` }))]} />
           <Select
@@ -54,7 +54,7 @@ function FixtureBrowser({ title, description, defaultStatus }: { readonly title:
             size="sm"
             value={status}
             onChange={setStatus}
-            options={[{ value: "ALL", label: "All statuses" }, { value: "ACTIVE", label: "Open or live" }, ...MATCH_STATUSES.map((s) => ({ value: s as string, label: STATUS_LABELS[s] ?? s }))]}
+            options={[{ value: "ALL", label: "All statuses" }, { value: "ACTIVE", label: "Open or live" }, ...MATCH_STATUSES.map((s) => ({ value: s, label: STATUS_LABELS[s] ?? s }))]}
           />
           <span className="ml-auto text-sm tabular text-text-muted">{rows === undefined ? "" : `${String(rows.length)} fixtures`}</span>
         </FilterBar>

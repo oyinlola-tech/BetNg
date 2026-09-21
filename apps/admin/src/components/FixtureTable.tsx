@@ -20,8 +20,8 @@ export function FixtureTable({ rows, loading, error, onRetry, showLeague = true,
     { key: "away", header: "Away", sortValue: (f) => f.awayName, cell: (f) => <span className="whitespace-nowrap font-medium">{f.awayName}</span> },
     { key: "kickoff", header: "Scheduled", numeric: true, align: "left", sortValue: (f) => f.kickoffAt, cell: (f) => formatKickoffTime(f.kickoffAt) },
     { key: "betting", header: "Betting", sortValue: (f) => f.bettingStatus, cell: (f) => <Status value={f.bettingStatus} /> },
-    { key: "match", header: "Match", sortValue: (f) => f.matchStatus, cell: (f) => <Status value={f.matchStatus} /> },
-    { key: "simulation", header: "Simulation", sortValue: (f) => f.simulationStatus, cell: (f) => <Status value={f.simulationStatus} />, hideBelow: "lg" },
+    { key: "match", header: "Match", sortValue: (f) => f.matchStatus, cell: (f) => <Status value={f.matchStatus} quiet /> },
+    { key: "simulation", header: "Simulation", sortValue: (f) => f.simulationStatus, cell: (f) => <Status value={f.simulationStatus} quiet />, hideBelow: "lg" },
     { key: "settlement", header: "Settlement", sortValue: (f) => f.settlementStatus, cell: (f) => <Status value={f.settlementStatus} />, hideBelow: "lg" },
   ];
 
@@ -36,6 +36,7 @@ export function FixtureTable({ rows, loading, error, onRetry, showLeague = true,
       onRetry={onRetry}
       onRowClick={(f) => void navigate(`/matches/${f.matchId}`)}
       pageSize={pageSize}
+      initialSort={{ key: "kickoff", direction: "desc" }}
       empty={{ title: "No fixtures match", description: "Change the competition, matchday or status filter." }}
     />
   );

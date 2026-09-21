@@ -130,7 +130,7 @@ function Axes({ width, scale, labels, xAt, formatTick }: { readonly width: numbe
       ))}
       {labels.map((label, index) =>
         index % step === 0 ? (
-          <text key={label} x={xAt(index)} y={PAD.top + scale.innerH + 14} textAnchor="middle">
+          <text key={label} x={xAt(index)} y={PAD.top + scale.innerH + 14} textAnchor={xAt(index) + 24 > width ? "end" : "middle"}>
             {label}
           </text>
         ) : null,
@@ -270,7 +270,7 @@ export function RankedBars({ title, items, formatValue, limit, className }: { re
             <span className="font-medium tabular text-text-primary">{formatValue(item.value)}</span>
           </div>
           <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-surface-sunken">
-            <div className="h-full rounded-full bg-series-1" style={{ width: `${String(Math.max(1, (item.value / max) * 100))}%` }} />
+            <div className="h-full rounded-full bg-series-1" style={{ width: item.value <= 0 ? 0 : `${String(Math.max(1, (item.value / max) * 100))}%` }} />
           </div>
         </li>
       ))}

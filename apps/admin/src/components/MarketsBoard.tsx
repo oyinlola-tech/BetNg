@@ -4,7 +4,8 @@ import { ArrowDown, ArrowUp, Minus, Pause, Play } from "lucide-react";
 import type { AdminMarketOdds, AdminSelectionOdds } from "@betng/contracts";
 import { formatMoney, formatOdds } from "@betng/ui-core";
 import { Button, EmptyState, ErrorState, Panel, SkeletonRows, cn } from "@betng/ui-web";
-import { useAdminAction } from "../hooks/queries";
+import { useAdminAction, useFixtures } from "../hooks/queries";
+import { useAdmin } from "../hooks/useAdmin";
 import { formatPercent } from "../lib/format";
 import { adminSource } from "../services/sources";
 import { Status, useFlashKey } from "./Bits";
@@ -42,7 +43,7 @@ function OddsCell({ value }: { readonly value: number }): React.JSX.Element {
   );
 }
 
-const MarketBlock = memo(function MarketBlock({ market, mode, ask }: { readonly market: AdminMarketOdds; readonly mode: "markets" | "odds"; readonly ask: (action: PendingAction) => void }): React.JSX.Element {
+const MarketBlock = memo(function MarketBlock({ market, mode, ask, resumable }: { readonly market: AdminMarketOdds; readonly mode: "markets" | "odds"; readonly ask: (action: PendingAction) => void; readonly resumable: boolean }): React.JSX.Element {
   const action = useAdminAction({
     run: (input: { readonly action: "SUSPEND" | "RESUME"; readonly reason: string }) => adminSource.marketAction(market.marketId, input),
     success: (m) => `${m.marketLabel} ${m.status === "OPEN" ? "resumed" : "suspended"}`,
@@ -54,26 +55,30 @@ const MarketBlock = memo(function MarketBlock({ market, mode, ask }: { readonly 
     <div className="border-b border-border last:border-b-0">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2">
         <p className="min-w-40 flex-1 text-base font-medium text-text-primary">{market.marketLabel}</p>
-        <Status value={market.status} />
-        <dl className="flex gap-4 text-sm">
-          <div className="flex gap-1.5">
+        <span className="w-24">
+          <Status value={market.status} />
+        </span>
+        <dl className="flex gap-4 text-sm [&>div]:justify-between">
+          <div className="flex w-24 gap-1.5">
             <dt className="text-text-muted">Margin</dt>
             <dd className="tabular text-text-primary">{formatPercent(market.margin)}</dd>
           </div>
-          <div className="hidden gap-1.5 sm:flex">
+          <div className="hidden w-36 gap-1.5 sm:flex">
             <dt className="text-text-muted">Stake</dt>
             <dd className="tabular text-text-primary">{formatMoney(stake)}</dd>
           </div>
-          <div className="flex gap-1.5">
+          <div className="flex w-40 gap-1.5">
             <dt className="text-text-muted">Exposure</dt>
             <dd className="tabular font-medium text-text-primary">{formatMoney(market.exposure)}</dd>
           </div>
         </dl>
-        {market.status !== "SETTLED" && (
+        {!open && !resumable && <span className="w-28 whitespace-nowrap text-right text-sm text-text-muted">{market.status === "SETTLED" ? "Settled" : "Closed by schedule"}</span>}
+        {(open || resumable) && (
           <GuardedButton
             permission="odds:write"
             size="sm"
-            variant={open ? "secondary" : "primary"}
+            variant="secondary"
+            className="w-28"
             icon={open ? <Pause className="size-3.5" /> : <Play className="size-3.5" />}
             onClick={() =>
               ask({
@@ -91,7 +96,11 @@ const MarketBlock = memo(function MarketBlock({ market, mode, ask }: { readonly 
       </div>
       {mode === "odds" && (
         <div className="overflow-x-auto px-4 pb-3 scrollbar-thin">
-          <table className="w-full min-w-[560px] text-left text-sm">
+          <table className="w-full min-w-[640px] table-fixed text-left text-sm">
+            <colgroup>
+              <col className="w-[28%]" />
+              <col span={6} className="w-[12%]" />
+            </colgroup>
             <thead>
               <tr className="caps-label text-[10px]">
                 <th scope="col" className="py-1 font-semibold">Selection</th>
@@ -123,8 +132,12 @@ const MarketBlock = memo(function MarketBlock({ market, mode, ask }: { readonly 
   );
 });
 
-export function MarketsBoard({ markets, loading, error, onRetry, mode, linkMatches = true }: { readonly markets: readonly AdminMarketOdds[] | undefined; readonly loading: boolean; readonly error: unknown; readonly onRetry: () => void; readonly mode: "markets" | "odds"; readonly linkMatches?: boolean }): React.JSX.Element {
+export function MarketsBoard({ markets, loading, error, onRetry, mode, linkMatches = true, showMatchHeader = true }: { readonly markets: readonly AdminMarketOdds[] | undefined; readonly loading: boolean; readonly error: unknown; readonly onRetry: () => void; readonly mode: "markets" | "odds"; readonly linkMatches?: boolean; readonly showMatchHeader?: boolean }): React.JSX.Element {
   const { ask, dialog } = useReasonAction();
+  const { can } = useAdmin();
+  const fixtures = useFixtures({}, can("fixtures:read"));
+  // A market suspended by an operator can be resumed only while its match is still taking bets; the schedule closes the rest.
+  const taking = useMemo(() => new Set((fixtures.data ?? []).filter((f) => f.bettingStatus === "OPEN").map((f) => f.matchId as string)), [fixtures.data]);
   const [limit, setLimit] = useState(6);
   const byMatch = useMemo(() => {
     const groups = new Map<string, AdminMarketOdds[]>();
@@ -148,10 +161,9 @@ export function MarketsBoard({ markets, loading, error, onRetry, mode, linkMatch
           <Panel
             key={first.matchId}
             flush
-            title={first.matchLabel}
-            description={`${first.leagueName} · ${String(group.length)} markets · exposure ${formatMoney(group.reduce((acc, m) => acc + m.exposure, 0))}`}
+            {...(showMatchHeader ? { title: first.matchLabel, description: `${first.leagueName} · ${String(group.length)} markets · exposure ${formatMoney(group.reduce((acc, m) => acc + m.exposure, 0))}` } : {})}
             actions={
-              linkMatches ? (
+              linkMatches && showMatchHeader ? (
                 <Link to={`/matches/${first.matchId}`} className="text-sm font-medium text-brand hover:underline focus-ring">
                   Match control
                 </Link>
@@ -159,7 +171,7 @@ export function MarketsBoard({ markets, loading, error, onRetry, mode, linkMatch
             }
           >
             {group.map((market) => (
-              <MarketBlock key={market.marketId} market={market} mode={mode} ask={ask} />
+              <MarketBlock key={market.marketId} market={market} mode={mode} ask={ask} resumable={market.status === "SUSPENDED" && (fixtures.data === undefined || taking.has(market.matchId))} />
             ))}
           </Panel>
         );

@@ -56,8 +56,8 @@ export function LoginForm({ fixed, submitLabel = "Sign in", onSuccess }: LoginFo
   return (
     <form onSubmit={(event) => void submit(event)} noValidate className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2">
-        <Input label="Shop code" placeholder="BNG-LAG-001" autoCapitalize="characters" autoComplete="organization" spellCheck={false} readOnly={fixed !== undefined} autoFocus={fixed === undefined} error={errors.shopCode?.message} {...register("shopCode")} />
-        <Input label="Username" autoComplete="username" spellCheck={false} readOnly={fixed !== undefined} error={errors.username?.message} {...register("username")} />
+        <Input label="Shop code" placeholder="BNG-LAG-001" autoCapitalize="characters" autoComplete="organization" spellCheck={false} readOnly={fixed !== undefined} tabIndex={fixed === undefined ? undefined : -1} autoFocus={fixed === undefined} error={errors.shopCode?.message} className={fixed === undefined ? undefined : "opacity-60"} {...register("shopCode")} />
+        <Input label="Username" autoComplete="username" spellCheck={false} readOnly={fixed !== undefined} tabIndex={fixed === undefined ? undefined : -1} error={errors.username?.message} className={fixed === undefined ? undefined : "opacity-60"} {...register("username")} />
       </div>
       <PasswordInput label="Password" autoComplete="current-password" autoFocus={fixed !== undefined} error={errors.password?.message} {...register("password")} />
       <Controller control={control} name="pin" render={({ field }) => <CodeInput label="Cashier PIN" length={4} masked value={field.value} onChange={field.onChange} error={errors.pin?.message} disabled={isSubmitting} />} />
@@ -66,7 +66,7 @@ export function LoginForm({ fixed, submitLabel = "Sign in", onSuccess }: LoginFo
         <div role="alert" className="flex items-start gap-2.5 rounded-sm border border-danger/30 bg-danger-subtle px-3 py-2.5 text-sm">
           {offline && <WifiOff className="mt-0.5 size-4 shrink-0 text-danger" aria-hidden />}
           <p className="text-text-primary">
-            <span className="font-semibold text-danger">{presented.title}.</span> {failure instanceof DataSourceError && failure.code === "FORBIDDEN" ? failure.message : presented.message}
+            <span className="font-semibold text-danger">{presented.title}.</span> {failure instanceof DataSourceError && (failure.code === "FORBIDDEN" || failure.code === "INVALID_CREDENTIALS") ? failure.message : presented.message}
           </p>
         </div>
       )}

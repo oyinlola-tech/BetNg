@@ -224,7 +224,7 @@ function Terminal({ mode }: { readonly mode: TerminalMode }): React.JSX.Element 
                 </h2>
                 <ul className="bg-surface">
                   {group.matches.map((match) => (
-                    <MatchOddsRow key={match.id} match={match} markets={marketsById.get(match.id)} expanded={expandedId === match.id} onExpand={onExpand} isSelected={isSelected} onToggle={onToggle} />
+                    <MatchOddsRow key={match.id} match={match} markets={marketsById.get(match.id)} expanded={expandedId === match.id} showLeague={mode === "virtual"} onExpand={onExpand} isSelected={isSelected} onToggle={onToggle} />
                   ))}
                 </ul>
               </section>

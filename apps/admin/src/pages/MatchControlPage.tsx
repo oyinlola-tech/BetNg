@@ -132,7 +132,7 @@ export function MatchControlPage(): React.JSX.Element {
             <h2 id="markets-heading" className="caps-label mb-2">
               Markets
             </h2>
-            {can("odds:read") ? <MarketsBoard markets={odds.data} loading={odds.isLoading} error={odds.error} onRetry={() => void odds.refetch()} mode="odds" linkMatches={false} /> : <Panel><EmptyState compact title="Markets hidden" description="Your role does not include “odds:read”." /></Panel>}
+            {can("odds:read") ? <MarketsBoard markets={odds.data} loading={odds.isLoading} error={odds.error} onRetry={() => void odds.refetch()} mode="odds" linkMatches={false} showMatchHeader={false} /> : <Panel><EmptyState compact title="Markets hidden" description="Your role does not include “odds:read”." /></Panel>}
           </section>
 
           <Panel title="Settlement" flush>

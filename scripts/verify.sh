@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Frontend verification: build the shared packages, typecheck every client, run the unit tests, build the browser apps.
+# Frontend verification: build the shared packages, typecheck and lint every client, run the unit tests, build the browser apps.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -15,6 +15,9 @@ for name in "${PACKAGES[@]}"; do pnpm --filter "@betng/${name}" build; done
 step "Typecheck"
 pnpm --filter @betng/ui-web typecheck
 for name in "${APPS[@]}" mobile; do pnpm --filter "@betng/${name}" typecheck; done
+
+step "Lint (frontend and shared packages)"
+pnpm lint:frontend
 
 step "Unit tests"
 pnpm exec vitest run

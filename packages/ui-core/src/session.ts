@@ -18,15 +18,16 @@ export interface SessionSnapshot<S> {
   readonly session: S | undefined;
 }
 
+/** Function-typed properties, not methods: every member is a closure, so it is safe to pass one around on its own (e.g. to `useSyncExternalStore`). */
 export interface SessionStore<S extends SessionLike> {
-  snapshot(): SessionSnapshot<S>;
-  token(): string | undefined;
-  set(session: S): void;
+  readonly snapshot: () => SessionSnapshot<S>;
+  readonly token: () => string | undefined;
+  readonly set: (session: S) => void;
   /** The user signed out. */
-  clear(): void;
+  readonly clear: () => void;
   /** The platform rejected the token or it ran out; the UI asks the user to sign in again and keeps their place. */
-  expire(): void;
-  subscribe(listener: () => void): () => void;
+  readonly expire: () => void;
+  readonly subscribe: (listener: () => void) => () => void;
 }
 
 export function createSessionStore<S extends SessionLike>(key: string, storage?: SessionStorage, now: () => number = Date.now): SessionStore<S> {

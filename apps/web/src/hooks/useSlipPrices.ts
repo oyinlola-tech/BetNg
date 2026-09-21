@@ -1,6 +1,5 @@
 import { useMemo } from "react";
 import { useQueries } from "@tanstack/react-query";
-import type { MatchId } from "@betng/contracts";
 import type { SlipSelection } from "@betng/ui-core";
 import { queryKeys } from "../lib/queryKeys";
 import { dataSource } from "../services/dataSource";
@@ -28,7 +27,7 @@ export function useSlipPrices(selections: readonly SlipSelection[]): SlipPrices 
   const results = useQueries({
     queries: matchIds.map((matchId) => ({
       queryKey: queryKeys.markets(matchId),
-      queryFn: () => dataSource.getMatchMarkets(matchId as MatchId),
+      queryFn: () => dataSource.getMatchMarkets(matchId),
       refetchInterval: 8000,
     })),
   });

@@ -30,19 +30,22 @@ function startOfLocalDay(dateKey: string): number {
 
 const STAKES = [10_000, 20_000, 20_000, 50_000, 50_000, 100_000, 100_000, 200_000, 500_000, 1_000_000];
 
-const PAST_MARKETS: readonly { readonly kind: MarketKind; readonly label: string; readonly picks: readonly (readonly [string, string])[] }[] = [
-  { kind: "MATCH_RESULT", label: "Match Result", picks: [["HOME", "Home"], ["DRAW", "Draw"], ["AWAY", "Away"]] },
-  { kind: "DOUBLE_CHANCE", label: "Double Chance", picks: [["HOME_DRAW", "Home or Draw"], ["HOME_AWAY", "Home or Away"], ["DRAW_AWAY", "Draw or Away"]] },
-  { kind: "OVER_UNDER", label: "Total Goals 2.5", picks: [["OVER_2_5", "Over 2.5"], ["UNDER_2_5", "Under 2.5"]] },
-  { kind: "BOTH_TEAMS_TO_SCORE", label: "Both Teams To Score", picks: [["YES", "Yes"], ["NO", "No"]] },
+/* Each pick carries its rough chance under the score model below, so generated prices hold a bookmaker's margin. */
+const PAST_MARKETS: readonly { readonly kind: MarketKind; readonly label: string; readonly picks: readonly (readonly [code: string, label: string, chance: number])[] }[] = [
+  { kind: "MATCH_RESULT", label: "Match Result", picks: [["HOME", "Home", 0.43], ["DRAW", "Draw", 0.26], ["AWAY", "Away", 0.31]] },
+  { kind: "DOUBLE_CHANCE", label: "Double Chance", picks: [["HOME_DRAW", "Home or Draw", 0.69], ["HOME_AWAY", "Home or Away", 0.74], ["DRAW_AWAY", "Draw or Away", 0.57]] },
+  { kind: "OVER_UNDER", label: "Total Goals 2.5", picks: [["OVER_2_5", "Over 2.5", 0.48], ["UNDER_2_5", "Under 2.5", 0.52]] },
+  { kind: "BOTH_TEAMS_TO_SCORE", label: "Both Teams To Score", picks: [["YES", "Yes", 0.52], ["NO", "No", 0.48]] },
 ];
+
+const PAST_MARGIN = 0.9;
 
 /** A settled leg for a day before the virtual season's epoch, where no fixture exists to read. */
 function pastLeg(random: Rng, key: string, kickoffMs: number): TicketSelection {
   const competition = random.pick(COMPETITIONS);
   const [home, away] = random.shuffle(competition.clubs) as [(typeof competition.clubs)[number], (typeof competition.clubs)[number]];
   const market = random.pick(PAST_MARKETS);
-  const [code, pick] = random.pick(market.picks);
+  const [code, pick, chance] = random.pick(market.picks);
   const score = { home: random.poisson(1.45), away: random.poisson(1.15) };
   const matchId = uuidFrom(`shop:past:match:${key}`) as MatchId;
   const marketId = uuidFrom(`shop:past:market:${key}`) as MarketId;
@@ -51,7 +54,7 @@ function pastLeg(random: Rng, key: string, kickoffMs: number): TicketSelection {
     matchId,
     marketId,
     selectionId: uuidFrom(`shop:past:selection:${key}`) as SelectionId,
-    odds: Math.round((1.35 + random.next() * 2.6) * 100) / 100,
+    odds: Math.max(1.05, Math.round((PAST_MARGIN / chance) * (0.94 + random.next() * 0.12) * 100) / 100),
     marketType: market.kind,
     marketLabel: market.label,
     selectionLabel: pick === "Home" ? home.name : pick === "Away" ? away.name : pick,

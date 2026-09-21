@@ -1,5 +1,6 @@
 import { Link } from "react-router";
 import { Activity, Banknote, CircleDollarSign, Radio, Store, Ticket, TrendingUp, Users } from "lucide-react";
+import type { AuditLogEntry } from "@betng/contracts";
 import { formatRelative } from "@betng/ui-core";
 import { ActivityFeed, EmptyState, ErrorState, KpiCard, Panel, SkeletonRows, StatusBadge, TimeSeriesChart, cn, useNow, type ActivityItem, type StatusTone } from "@betng/ui-web";
 import { PageHeader } from "../components/PageHeader";
@@ -8,6 +9,20 @@ import { useAdmin } from "../hooks/useAdmin";
 import { HEALTH, daysAgoKey, formatMoneyShort, liveClock, shortDay } from "../lib/format";
 
 const SEVERITY_TONE: Readonly<Record<string, StatusTone>> = { INFO: "neutral", NOTICE: "brand", WARNING: "warning", CRITICAL: "danger" };
+
+/** Consecutive sign-ins by the same actor become one row with a count, so they do not push real operations out of the feed. */
+function collapseLogins(entries: readonly AuditLogEntry[]): readonly { readonly entry: AuditLogEntry; readonly count: number }[] {
+  const out: { entry: AuditLogEntry; count: number }[] = [];
+
+  for (const entry of entries) {
+    const last = out.at(-1);
+
+    if (last !== undefined && entry.action === "admin.login" && last.entry.action === "admin.login" && last.entry.actor === entry.actor) last.count += 1;
+    else out.push({ entry, count: 1 });
+  }
+
+  return out;
+}
 
 function HealthGrid(): React.JSX.Element {
   const health = useServiceHealth();
@@ -31,6 +46,7 @@ function HealthGrid(): React.JSX.Element {
           </li>
         );
       })}
+      <li aria-hidden className="bg-surface" />
     </ul>
   );
 }
@@ -44,7 +60,7 @@ function LiveList(): React.JSX.Element {
 
   return (
     <ul className="divide-y divide-border">
-      {live.data.slice(0, 8).map((match) => (
+      {live.data.slice(0, 5).map((match) => (
         <li key={match.id}>
           <Link to={`/matches/${match.id}`} className="flex items-center gap-3 px-4 py-2 text-base hover:bg-surface-hover focus-ring">
             <span className="mono-id w-12 shrink-0 tabular text-live">{liveClock(match.kickoffAt, now)}</span>
@@ -58,6 +74,14 @@ function LiveList(): React.JSX.Element {
           </Link>
         </li>
       ))}
+      {live.data.length > 5 && (
+        <li className="px-4 py-2 text-sm text-text-muted">
+          and {live.data.length - 5} more in{" "}
+          <Link to="/live" className="font-medium text-brand hover:underline focus-ring">
+            Live control
+          </Link>
+        </li>
+      )}
     </ul>
   );
 }
@@ -66,19 +90,20 @@ export function DashboardPage(): React.JSX.Element {
   const { can, admin } = useAdmin();
   const overview = useOverview();
   const reports = useReportDays(daysAgoKey(13), daysAgoKey(0), can("reports:read"));
-  const audit = useAuditLog({ page: 1, pageSize: 8 }, can("audit:read"));
+  const audit = useAuditLog({ page: 1, pageSize: 40 }, can("audit:read"));
   const o = overview.data;
   const days = reports.data ?? [];
   const yesterday = days.at(-2);
 
-  const activity: readonly ActivityItem[] = (audit.data?.items ?? []).map((entry) => ({
+  const activity: readonly ActivityItem[] = collapseLogins(audit.data?.items ?? []).slice(0, 8).map(({ entry, count }) => ({
     id: entry.id,
     title: (
       <>
         <span className="font-medium">{entry.actorName}</span> <span className="mono-id">{entry.action}</span>
+        {count > 1 && <span className="ml-1.5 rounded-xs bg-surface-sunken px-1 py-0.5 text-xs font-semibold tabular text-text-secondary">×{count}</span>}
       </>
     ),
-    detail: `${entry.resource}${entry.resourceId === undefined ? "" : ` · ${entry.resourceId.slice(0, 8)}`}`,
+    detail: count > 1 ? `${String(count)} sign-ins in a row` : `${entry.resource}${entry.resourceId === undefined ? "" : ` · ${entry.resourceId.slice(0, 8)}`}`,
     time: formatRelative(entry.timestamp),
     tone: SEVERITY_TONE[entry.severity ?? "INFO"] ?? "neutral",
     icon: <Activity />,

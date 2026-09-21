@@ -3,8 +3,10 @@ import { Check, Copy } from "lucide-react";
 import { StatusBadge, cn } from "@betng/ui-web";
 import { statusView } from "../lib/format";
 
-export function Status({ value, pulse }: { readonly value: string; readonly pulse?: boolean }): React.JSX.Element {
-  const view = statusView(value);
+/** `quiet` renders a routine "completed" without colour, so a finished schedule is not a wall of green. */
+export function Status({ value, pulse, quiet = false }: { readonly value: string; readonly pulse?: boolean; readonly quiet?: boolean }): React.JSX.Element {
+  const base = statusView(value);
+  const view = quiet && value === "COMPLETED" ? { ...base, tone: "neutral" as const } : base;
 
   return (
     <StatusBadge tone={view.tone} pulse={pulse ?? (value === "IN_PLAY" || value === "RUNNING")}>
@@ -14,7 +16,7 @@ export function Status({ value, pulse }: { readonly value: string; readonly puls
 }
 
 export function Mono({ children, className }: { readonly children: React.ReactNode; readonly className?: string }): React.JSX.Element {
-  return <span className={cn("mono-id text-text-secondary", className)}>{children}</span>;
+  return <span className={cn("mono-id whitespace-nowrap text-text-secondary", className)}>{children}</span>;
 }
 
 export function CopyButton({ value, label }: { readonly value: string; readonly label: string }): React.JSX.Element {

@@ -1,6 +1,7 @@
 import type {
   AdminCashierSummary,
   AdminCustomer,
+  AdminRole,
   AdminSession,
   AdminShopSummary,
   AdminTeam,
@@ -67,32 +68,35 @@ function redact(value: unknown): unknown {
 }
 
 function seededAudit(now: number): readonly AuditLogEntry[] {
-  const actions: readonly (readonly [string, string, AuditSeverity])[] = [
-    ["admin.login", "session", "INFO"],
-    ["shop.update", "shop", "NOTICE"],
-    ["cashier.reset_credentials", "cashier", "WARNING"],
-    ["market.suspend", "market", "WARNING"],
-    ["market.resume", "market", "NOTICE"],
-    ["team.update_ratings", "team", "NOTICE"],
-    ["settlement.retry", "settlement", "WARNING"],
-    ["user.suspend", "user", "WARNING"],
-    ["simulation.retry", "simulation", "NOTICE"],
-    ["settings.update", "settings", "CRITICAL"],
-    ["ticket.payout", "ticket", "INFO"],
-    ["scheduler.open_betting", "match", "INFO"],
+  const actions: readonly (readonly [string, string, AuditSeverity, readonly AdminRole[]])[] = [
+    ["admin.login", "session", "INFO", ["SUPER_ADMIN", "OPERATIONS", "RISK_ANALYST", "SUPPORT"]],
+    ["shop.update", "shop", "NOTICE", ["SUPER_ADMIN"]],
+    ["cashier.reset_credentials", "cashier", "WARNING", ["SUPER_ADMIN"]],
+    ["market.suspend", "market", "WARNING", ["SUPER_ADMIN", "RISK_ANALYST"]],
+    ["market.resume", "market", "NOTICE", ["SUPER_ADMIN", "RISK_ANALYST"]],
+    ["team.update_ratings", "team", "NOTICE", ["SUPER_ADMIN"]],
+    ["settlement.retry", "settlement", "WARNING", ["SUPER_ADMIN", "OPERATIONS"]],
+    ["user.suspend", "user", "WARNING", ["SUPER_ADMIN"]],
+    ["simulation.retry", "simulation", "NOTICE", ["SUPER_ADMIN", "OPERATIONS"]],
+    ["settings.update", "settings", "CRITICAL", ["SUPER_ADMIN"]],
+    ["ticket.payout", "ticket", "INFO", []],
+    ["scheduler.open_betting", "match", "INFO", []],
   ];
+  let at = now;
 
   return Array.from({ length: 140 }, (_, index): AuditLogEntry => {
     const r = rng(`audit:${String(index)}`);
-    const [action, resource, severity] = r.pick(actions);
+    const [action, resource, severity, roles] = r.pick(actions);
     const system = action.startsWith("scheduler");
     const shop = action.startsWith("ticket");
-    const admin = r.pick(ADMINS);
+    const admin = r.pick(ADMINS.filter((a) => roles.length === 0 || roles.includes(a.role)));
+
+    at -= r.int(240, 900) * 1000;
     const resourceId = hash(`audit-resource:${String(index)}`).toString(16).padStart(8, "0");
 
     return {
       id: uuidFrom(`audit:${String(index)}`),
-      timestamp: new Date(now - (index + 1) * r.int(240, 900) * 1000).toISOString(),
+      timestamp: new Date(at).toISOString(),
       actor: system ? "system" : shop ? `shop:${resourceId}` : `admin:${admin.id}`,
       actorName: system ? "Scheduler" : shop ? "Cashier, BNG-LAG-001" : admin.displayName,
       role: system ? "SYSTEM" : shop ? "CASHIER" : admin.role,
@@ -699,6 +703,8 @@ export function createMockAdminSource(options: MockAdminOptions): AdminDataSourc
           (query.from === undefined || entry.timestamp >= query.from) &&
           (query.to === undefined || entry.timestamp <= query.to),
       );
+
+      matched.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
 
       return { items: matched.slice((page - 1) * pageSize, page * pageSize), total: matched.length, page, pageSize };
     },

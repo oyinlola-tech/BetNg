@@ -12,7 +12,10 @@ export function SessionExpiredOverlay({ session }: { readonly session: ShopSessi
   useEffect(() => {
     const dialog = ref.current;
 
-    if (dialog !== null && !dialog.open) dialog.showModal();
+    if (dialog === null || dialog.open) return;
+
+    dialog.showModal();
+    dialog.querySelector<HTMLInputElement>('input[autocomplete="current-password"]')?.focus();
   }, []);
 
   return (

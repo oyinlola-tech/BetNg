@@ -1,6 +1,6 @@
 // @ts-check
-import js from "@eslint/js";
-import tseslint from "typescript-eslint";
+// ESLint and typescript-eslint come from tools/lint, the one package that resolves `typescript` to the TS 6 API typescript-eslint needs. Everything else compiles with TypeScript 7.
+import { js, reactHooks, tseslint } from "./tools/lint/index.js";
 
 export default tseslint.config(
   {
@@ -8,8 +8,10 @@ export default tseslint.config(
       "**/dist/**",
       "**/node_modules/**",
       "**/.venv/**",
-      "apps/web/**",
-      "apps/tv/**",
+      "**/generated/**",
+      "**/.expo/**",
+      ".kilo/**",
+      "docs/**",
     ],
   },
   js.configs.recommended,
@@ -17,7 +19,11 @@ export default tseslint.config(
   {
     languageOptions: {
       parserOptions: {
-        projectService: true,
+        projectService: {
+          // Test files sit outside each package's build tsconfig.
+          allowDefaultProject: ["packages/*/tests/*.ts", "apps/*/tests/*.ts", "apps/services/*/tests/*.ts", "apps/services/*/prisma.config.ts", "vitest.config.ts"],
+          maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING: 64,
+        },
         tsconfigRootDir: import.meta.dirname,
       },
     },
@@ -30,8 +36,26 @@ export default tseslint.config(
     },
   },
   {
+    files: ["apps/{web,tv,shop,admin,mobile}/src/**/*.{ts,tsx}", "packages/ui-web/src/**/*.{ts,tsx}"],
+    plugins: { "react-hooks": reactHooks },
+    rules: {
+      "react-hooks/rules-of-hooks": "error",
+      "react-hooks/exhaustive-deps": "error",
+    },
+  },
+  {
+    // Test doubles are async to match the interfaces they stand in for, and are passed around unbound.
+    files: ["**/tests/**/*.ts"],
+    rules: {
+      "@typescript-eslint/require-await": "off",
+      "@typescript-eslint/unbound-method": "off",
+    },
+  },
+  {
     // Plain-JS tooling scripts are not part of a TypeScript program.
-    files: ["**/*.mjs", "eslint.config.js"],
+    files: ["**/*.mjs", "**/*.js"],
     extends: [tseslint.configs.disableTypeChecked],
+    // Node and browser globals are not declared for untyped scripts.
+    rules: { "no-undef": "off" },
   },
 );

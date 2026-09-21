@@ -2,12 +2,15 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { PlatformSettings } from "@betng/contracts";
+import { formatMoney } from "@betng/ui-core";
 import { Button, ConfirmDialog, ErrorState, Input, Panel, SkeletonRows, Switch, ThemeSwitcher } from "@betng/ui-web";
 import { PageHeader } from "../components/PageHeader";
 import { useAdminAction, useSettings } from "../hooks/queries";
 import { useAdmin } from "../hooks/useAdmin";
 import { settingsSchema, type SettingsValues } from "../lib/schemas";
 import { adminSource } from "../services/sources";
+
+const hint = (text: string | undefined): { readonly hint?: string } => (text === undefined ? {} : { hint: text });
 
 const MONEY = ["minStake", "maxStake", "maxPayout", "exposureLimit"] as const;
 
@@ -16,7 +19,7 @@ function toForm(s: PlatformSettings): SettingsValues {
 }
 
 function toPlatform(v: SettingsValues): PlatformSettings {
-  return { ...v, ...Object.fromEntries(MONEY.map((key) => [key, Math.round(v[key] * 100)])) } as PlatformSettings;
+  return { ...v, ...Object.fromEntries(MONEY.map((key) => [key, Math.round(v[key] * 100)])) };
 }
 
 export function SettingsPage(): React.JSX.Element {
@@ -41,11 +44,13 @@ export function SettingsPage(): React.JSX.Element {
   }, [settings.data]);
 
   const number = { valueAsNumber: true } as const;
+  const watched = form.watch();
+  const asMoney = (value: number | undefined): string | undefined => (value === undefined || !Number.isFinite(value) ? undefined : formatMoney(Math.round(value * 100)));
 
   return (
     <>
       <PageHeader title="Settings" description="Platform-wide limits and this console's appearance." />
-      <div className="grid gap-4 xl:grid-cols-3">
+      <div className="grid items-start gap-4 xl:grid-cols-3">
         <Panel title="Platform limits" description={editable ? "Changes apply to new bets at once and are audited as critical." : "Read-only for your role."} className="xl:col-span-2">
           {settings.data === undefined ? (
             settings.error !== null ? (
@@ -61,10 +66,10 @@ export function SettingsPage(): React.JSX.Element {
               }}
             >
               <fieldset disabled={!editable} className="grid gap-4 sm:grid-cols-2">
-                <Input label="Minimum stake" prefix="₦" type="number" inputMode="decimal" error={errors.minStake?.message} {...form.register("minStake", number)} />
-                <Input label="Maximum stake" prefix="₦" type="number" inputMode="decimal" error={errors.maxStake?.message} {...form.register("maxStake", number)} />
-                <Input label="Maximum payout per bet" prefix="₦" type="number" inputMode="decimal" error={errors.maxPayout?.message} {...form.register("maxPayout", number)} />
-                <Input label="Platform exposure limit" prefix="₦" type="number" inputMode="decimal" hint="Risk turns elevated at 55% and critical at 85%." error={errors.exposureLimit?.message} {...form.register("exposureLimit", number)} />
+                <Input label="Minimum stake" prefix="₦" type="number" inputMode="decimal" {...hint(asMoney(watched.minStake))} error={errors.minStake?.message} {...form.register("minStake", number)} />
+                <Input label="Maximum stake" prefix="₦" type="number" inputMode="decimal" {...hint(asMoney(watched.maxStake))} error={errors.maxStake?.message} {...form.register("maxStake", number)} />
+                <Input label="Maximum payout per bet" prefix="₦" type="number" inputMode="decimal" {...hint(asMoney(watched.maxPayout))} error={errors.maxPayout?.message} {...form.register("maxPayout", number)} />
+                <Input label="Platform exposure limit" prefix="₦" type="number" inputMode="decimal" hint={`${asMoney(watched.exposureLimit) ?? ""} · elevated at 55%, critical at 85%`} error={errors.exposureLimit?.message} {...form.register("exposureLimit", number)} />
                 <Input label="Maximum selections per bet" type="number" inputMode="numeric" error={errors.maxSelections?.message} {...form.register("maxSelections", number)} />
                 <Input label="Betting closes before kick-off" type="number" inputMode="numeric" hint="Seconds" error={errors.bettingCloseSeconds?.message} {...form.register("bettingCloseSeconds", number)} />
                 <Input label="Shop ticket expiry" type="number" inputMode="numeric" hint="Days a winning ticket can be claimed" error={errors.ticketExpiryDays?.message} {...form.register("ticketExpiryDays", number)} />

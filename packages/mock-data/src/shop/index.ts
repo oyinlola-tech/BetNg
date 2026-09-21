@@ -49,7 +49,7 @@ export function createMockShopSource(options: MockShopOptions): ShopDataSource {
   const session = createSessionStore<ShopSession>(SESSION_KEY, options.sessionStorage ?? storage, now);
   const listeners = new Set<() => void>();
 
-  let state = load();
+  const state = load();
 
   function load(): ShopState {
     try {

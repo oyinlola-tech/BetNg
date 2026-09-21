@@ -8,22 +8,33 @@ import { GuardedButton } from "../components/Guard";
 import { PageHeader } from "../components/PageHeader";
 import { useReasonAction } from "../components/ReasonAction";
 import { useAdminAction, useReportDays, useSettlements, useWalletOverview } from "../hooks/queries";
-import { daysAgoKey, downloadCsv, formatMoneyShort, formatPercent, shortDay } from "../lib/format";
+import { daysAgoKey, downloadCsv, formatMoneyShort, formatPercent, formatStamp, shortDay } from "../lib/format";
 import { adminSource } from "../services/sources";
 
 type SettlementTab = "PENDING" | "COMPLETED" | "FAILED" | "VOIDED";
 
 export function SettlementPage(): React.JSX.Element {
   const settlements = useSettlements();
-  const [tab, setTab] = useState<SettlementTab>("PENDING");
+  const [chosen, setChosen] = useState<SettlementTab | undefined>();
   const { ask, dialog } = useReasonAction();
   const retry = useAdminAction({ run: (input: { readonly id: string; readonly reason: string }) => adminSource.retrySettlement(input.id, input.reason), success: (s) => `${s.id} settled` });
   const count = (status: SettlementTab): number => settlements.data?.filter((s) => s.status === status).length ?? 0;
+  // Until the operator picks a tab, open on whichever needs attention: work in flight, then failures.
+  const tab: SettlementTab = chosen ?? (count("PENDING") > 0 ? "PENDING" : count("FAILED") > 0 ? "FAILED" : settlements.data === undefined ? "PENDING" : "COMPLETED");
+  const setTab = setChosen;
   const rows = useMemo(() => settlements.data?.filter((s) => s.status === tab), [settlements.data, tab]);
 
   const columns: readonly Column<AdminSettlement>[] = [
-    { key: "bet", header: "Bet", cell: (s) => <Mono className="text-text-primary">{s.betId}</Mono> },
-    { key: "ticket", header: "Ticket", cell: (s) => (s.ticketCode === undefined ? <span className="text-text-muted">—</span> : <Mono>{s.ticketCode}</Mono>), hideBelow: "md" },
+    {
+      key: "bet",
+      header: "Bet / ticket",
+      cell: (s) => (
+        <span className="block leading-tight">
+          <Mono className="block text-text-primary">{s.betId}</Mono>
+          <Mono className="block text-text-muted">{s.ticketCode ?? "no ticket"}</Mono>
+        </span>
+      ),
+    },
     {
       key: "owner",
       header: "User / shop",
@@ -35,21 +46,25 @@ export function SettlementPage(): React.JSX.Element {
         </span>
       ),
     },
-    { key: "match", header: "Match", sortValue: (s) => s.matchLabel, cell: (s) => <span className="whitespace-nowrap">{s.matchLabel}</span> },
+    { key: "match", header: "Match", sortValue: (s) => s.matchLabel, cell: (s) => <span className="block min-w-36">{s.matchLabel}</span> },
     { key: "result", header: "Result", align: "center", cell: (s) => <span className="font-display font-semibold tabular">{s.result}</span> },
-    { key: "stake", header: "Stake", numeric: true, sortValue: (s) => s.stake, cell: (s) => formatMoney(s.stake), hideBelow: "lg" },
+    ...(tab === "FAILED" ? [] : [{ key: "stake", header: "Stake", numeric: true, sortValue: (s: AdminSettlement) => s.stake, cell: (s: AdminSettlement) => formatMoney(s.stake), hideBelow: "lg" as const }]),
     { key: "payout", header: "Payout", numeric: true, sortValue: (s) => s.payout, cell: (s) => <span className="font-medium">{formatMoney(s.payout)}</span> },
     {
       key: "status",
       header: "Settlement status",
       cell: (s) => (
         <span>
-          <Status value={s.status} />
-          {s.error !== undefined && <span className="mt-0.5 block max-w-56 text-sm text-danger">{s.error}</span>}
+          <Status value={s.status} quiet />
+          {s.error !== undefined && (
+            <span title={s.error} className="mt-0.5 block max-w-44 truncate text-sm text-danger">
+              {s.error}
+            </span>
+          )}
         </span>
       ),
     },
-    { key: "time", header: "Timestamp", numeric: true, align: "left", sortValue: (s) => s.timestamp, cell: (s) => formatDateTime(s.timestamp), hideBelow: "lg" },
+    { key: "time", header: "Timestamp", numeric: true, align: "left", sortValue: (s) => s.timestamp, cell: (s) => <time dateTime={s.timestamp} title={formatDateTime(s.timestamp)}>{formatStamp(s.timestamp)}</time>, hideBelow: "lg" },
     ...(tab === "FAILED"
       ? [
           {
@@ -110,11 +125,11 @@ export function WalletPage(): React.JSX.Element {
       <PageHeader title="Wallet" description="Simulated money held across the platform and the most recent ledger movements. Read-only: balances change only through bets, settlements and cashier operations." />
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-          <KpiCard label="Customer balances" value={w === undefined ? undefined : formatMoneyShort(w.customerBalances)} />
-          <KpiCard label="Shop floats" value={w === undefined ? undefined : formatMoneyShort(w.shopFloats)} />
+          <KpiCard label="Customer balances" value={w === undefined ? undefined : formatMoneyShort(w.customerBalances)} hint="web and mobile wallets" />
+          <KpiCard label="Shop floats" value={w === undefined ? undefined : formatMoneyShort(w.shopFloats)} hint="held for payouts" />
           <KpiCard label="Reserved" value={w === undefined ? undefined : formatMoneyShort(w.reserved)} hint="against open bets" />
-          <KpiCard label="Deposits today" value={w === undefined ? undefined : formatMoneyShort(w.todayDeposits)} />
-          <KpiCard label="Withdrawals today" value={w === undefined ? undefined : formatMoneyShort(w.todayWithdrawals)} positiveIsGood={false} />
+          <KpiCard label="Deposits today" value={w === undefined ? undefined : formatMoneyShort(w.todayDeposits)} hint="online channel" />
+          <KpiCard label="Withdrawals today" value={w === undefined ? undefined : formatMoneyShort(w.todayWithdrawals)} hint="online channel" positiveIsGood={false} />
         </div>
         <Panel title="Ledger" flush>
           <FilterBar>

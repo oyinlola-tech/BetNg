@@ -55,7 +55,7 @@ export function SimulationPage(): React.JSX.Element {
       sortValue: (r) => r.status,
       cell: (r) => (
         <span>
-          <Status value={r.status} />
+          <Status value={r.status} quiet />
           {r.error !== undefined && <span className="mt-0.5 block max-w-64 text-sm text-danger">{r.error}</span>}
         </span>
       ),

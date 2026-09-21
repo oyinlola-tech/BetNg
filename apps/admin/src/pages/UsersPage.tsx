@@ -7,6 +7,7 @@ import { GuardedButton } from "../components/Guard";
 import { PageHeader } from "../components/PageHeader";
 import { useReasonAction } from "../components/ReasonAction";
 import { useAdminAction, useCustomers } from "../hooks/queries";
+import { formatDate } from "../lib/format";
 import { adminSource } from "../services/sources";
 
 type StatusFilter = "ALL" | "ACTIVE" | "SUSPENDED";
@@ -118,7 +119,7 @@ export function UsersPage(): React.JSX.Element {
               <Mono>{selected.id.slice(0, 13)}</Mono>
             </Field>
             <Field label="Phone">{selected.phone ?? "—"}</Field>
-            <Field label="Joined">{formatDateTime(selected.createdAt)}</Field>
+            <Field label="Joined">{formatDate(selected.createdAt)}</Field>
             <Field label="Wallet balance">
               <span className="tabular">{formatMoney(selected.balance)}</span>
             </Field>

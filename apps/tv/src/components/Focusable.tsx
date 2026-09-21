@@ -32,7 +32,7 @@ export const Focusable = forwardRef<
         tabIndex={0}
         className={classes}
         {...marks}
-        {...(rest as LinkLike)}
+        {...(rest)}
       />
     );
   }
@@ -44,7 +44,7 @@ export const Focusable = forwardRef<
       tabIndex={0}
       className={classes}
       {...marks}
-      {...(rest as ButtonLike)}
+      {...(rest)}
     />
   );
 });

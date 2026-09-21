@@ -5,7 +5,6 @@ import {
   useRoute,
   type RouteProp,
 } from "@react-navigation/native";
-import type { LeagueId } from "@betng/contracts";
 import { formatMatchday, isInPlay } from "@betng/ui-core";
 import {
   Card,
@@ -47,7 +46,7 @@ export function MatchScreen(): React.JSX.Element {
     () =>
       match === undefined
         ? Promise.resolve(undefined)
-        : getDataSource().getStandings(match.leagueId as LeagueId),
+        : getDataSource().getStandings(match.leagueId),
     [match?.leagueId],
     20_000,
   );

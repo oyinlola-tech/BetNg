@@ -138,7 +138,7 @@ function squadFor(clubKey: string): readonly Player[] {
   const used = new Set<string>();
 
   return POSITIONS.map((position, index): Player => {
-    let name = "";
+    let name: string;
 
     do name = `${r.pick(FIRST_NAMES)} ${r.pick(LAST_NAMES)}`;
     while (used.has(name));

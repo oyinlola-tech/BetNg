@@ -1,6 +1,6 @@
 /** Prices a match. */
 
-import type { MarketId, MatchId, SelectionId } from "@betng/contracts";
+import type { MarketId, SelectionId } from "@betng/contracts";
 import type {
   MarketKind,
   MarketView,
@@ -296,7 +296,7 @@ export function marketsFor(fixture: FixtureRef, now: number): MatchMarketsView {
   });
 
   return {
-    matchId: fixture.matchId as MatchId,
+    matchId: fixture.matchId,
     markets,
     generatedAt: new Date(now).toISOString(),
   };

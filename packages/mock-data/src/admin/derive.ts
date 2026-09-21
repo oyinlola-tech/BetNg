@@ -151,7 +151,7 @@ export function marketOddsFor(f: FixtureRef, now: number, overrides: Overrides):
       matchLabel: label(f),
       leagueName: f.competition.seed.name,
       marketType: market.kind,
-      marketLabel: market.line === undefined ? market.name : `${market.name} ${String(market.line)}`,
+      marketLabel: market.name,
       status: status === "COMPLETED" ? "SETTLED" : status === "BETTING_OPEN" && !suspended ? "OPEN" : "SUSPENDED",
       margin: Math.round((market.selections.reduce((acc, s) => acc + 1 / s.odds, 0) - 1) * 1000) / 1000,
       exposure: Math.max(0, ...selections.map((s) => s.liability)),
@@ -190,7 +190,7 @@ export function riskOverview(now: number, overrides: Overrides, exposureLimit: n
 
     for (const market of markets) {
       const marketStake = market.selections.reduce((acc, s) => acc + s.stake, 0);
-      const group = byMarket.get(market.marketType) ?? { marketType: market.marketType, marketLabel: market.marketLabel.replace(/\s[\d.]+$/, ""), stake: 0, exposure: 0 };
+      const group = byMarket.get(market.marketType) ?? { marketType: market.marketType, marketLabel: market.marketLabel.replace(/\s-?[\d.]+$/, ""), stake: 0, exposure: 0 };
 
       group.stake += marketStake;
       group.exposure += market.exposure;

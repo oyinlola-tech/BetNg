@@ -1,11 +1,11 @@
 import { useMemo } from "react";
 import type { ShopDailyReport } from "@betng/contracts";
-import { formatMoney, formatMoneyCompact, formatSignedMoney } from "@betng/ui-core";
+import { formatMoney, formatSignedMoney } from "@betng/ui-core";
 import { BarChart, DataTable, ErrorState, KpiCard, Panel, Skeleton, TimeSeriesChart, type Column } from "@betng/ui-web";
 import { Guard } from "../components/Guard";
 import { PageHeader } from "../components/PageHeader";
 import { useReportRange } from "../hooks/queries";
-import { localDateKey } from "../lib/ticket";
+import { formatAxisMoney, localDateKey } from "../lib/ticket";
 
 const DAYS = 14;
 
@@ -50,7 +50,7 @@ function Trend({ measure }: { readonly measure: "sales" | "payouts" }): React.JS
             {days === undefined ? (
               <Skeleton className="h-56" />
             ) : sales ? (
-              <BarChart title="Sales per day" labels={labels} series={[{ key: "sales", label: "Sales", values: days.map((d) => d.sales) }]} formatValue={formatMoney} formatTick={formatMoneyCompact} height={240} />
+              <BarChart title="Sales per day" labels={labels} series={[{ key: "sales", label: "Sales", values: days.map((d) => d.sales) }]} formatValue={formatMoney} formatTick={formatAxisMoney} height={240} />
             ) : (
               <TimeSeriesChart
                 title="Payouts against sales per day"
@@ -60,7 +60,7 @@ function Trend({ measure }: { readonly measure: "sales" | "payouts" }): React.JS
                   { key: "payouts", label: "Payouts", values: days.map((d) => d.payouts) },
                 ]}
                 formatValue={formatMoney}
-                formatTick={formatMoneyCompact}
+                formatTick={formatAxisMoney}
                 height={240}
               />
             )}

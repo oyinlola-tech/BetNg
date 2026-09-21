@@ -17,6 +17,14 @@ const RATING_FIELDS: readonly { readonly key: Exclude<keyof TeamRatings, "form">
   { key: "finishing", label: "Finishing", help: "Raises the share of the team's own shots on target that become goals." },
 ];
 
+/** Black or white, whichever reads on the kit colour. */
+function inkOn(hex: string): string {
+  const n = Number.parseInt(hex.slice(1), 16);
+  const luminance = (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
+
+  return luminance > 0.62 ? "#111111" : "#FFFFFF";
+}
+
 export function overall(r: TeamRatings): number {
   return Math.round(r.attack * 0.22 + r.midfield * 0.2 + r.defence * 0.22 + r.goalkeeper * 0.12 + r.pace * 0.1 + r.finishing * 0.14 + r.form * 0.3);
 }
@@ -118,8 +126,8 @@ function TeamDrawer({ team, onClose }: { readonly team: AdminTeam | undefined; r
               <span
                 role="img"
                 aria-label={`${team.name} generated badge`}
-                className="flex size-10 items-center justify-center rounded-full font-display text-xs font-bold text-white"
-                style={{ background: team.colors.primary, boxShadow: `inset 0 0 0 2px ${team.colors.secondary}` }}
+                className="flex size-10 items-center justify-center rounded-full font-display text-xs font-bold"
+                style={{ background: team.colors.primary, color: inkOn(team.colors.primary), boxShadow: `inset 0 0 0 2px ${team.colors.secondary}` }}
               >
                 {team.code}
               </span>
@@ -176,7 +184,7 @@ export function TeamsTable({ leagueId, initialTeamId }: { readonly leagueId?: st
       sortValue: (t) => t.name,
       cell: (t) => (
         <span className="flex items-center gap-2.5">
-          <span aria-hidden className="flex size-6 shrink-0 items-center justify-center rounded-full text-[8px] font-bold text-white" style={{ background: t.colors.primary, boxShadow: `inset 0 0 0 1.5px ${t.colors.secondary}` }}>
+          <span aria-hidden className="flex size-6 shrink-0 items-center justify-center rounded-full text-[8px] font-bold" style={{ background: t.colors.primary, color: inkOn(t.colors.primary), boxShadow: `inset 0 0 0 1.5px ${t.colors.secondary}` }}>
             {t.code}
           </span>
           <span className="whitespace-nowrap font-medium">{t.name}</span>

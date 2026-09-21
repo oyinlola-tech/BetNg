@@ -5,7 +5,7 @@ import {
   useRoute,
   type RouteProp,
 } from "@react-navigation/native";
-import type { LeagueId, TeamId } from "@betng/contracts";
+import type { TeamId } from "@betng/contracts";
 import {
   Card,
   EmptyState,
@@ -36,7 +36,7 @@ export function TeamScreen(): React.JSX.Element {
     () =>
       team.data === undefined
         ? Promise.resolve(undefined)
-        : getDataSource().getStandings(team.data.leagueId as LeagueId),
+        : getDataSource().getStandings(team.data.leagueId),
     [team.data?.leagueId],
     20_000,
   );

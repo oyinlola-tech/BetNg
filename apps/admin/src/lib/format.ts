@@ -79,6 +79,17 @@ export function formatMoneyShort(minorUnits: number): string {
   return `${minorUnits < 0 ? "-" : ""}₦${shortMoney.format(Math.abs(minorUnits) / 100)}`;
 }
 
+/** `20 Sep, 23:06:12` for operational tables, where the year is noise and the seconds matter. */
+export function formatStamp(iso: string): string {
+  const d = new Date(iso);
+
+  return `${d.toLocaleDateString("en-NG", { day: "numeric", month: "short" })}, ${d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })}`;
+}
+
+export function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" });
+}
+
 export function formatClockTime(iso: string): string {
   return new Date(iso).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
 }

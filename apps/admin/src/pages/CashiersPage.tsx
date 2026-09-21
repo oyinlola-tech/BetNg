@@ -46,7 +46,7 @@ export function CashiersPage(): React.JSX.Element {
       <Panel flush>
         <FilterBar>
           <SearchInput label="Search cashiers" placeholder="Search name, username, shop" value={q} onChange={setQ} className="w-full sm:w-72" />
-          <Select label="Shop" size="sm" value={shopId} onChange={setShopId} options={[{ value: "ALL", label: "All shops" }, ...(shops.data ?? []).map((s) => ({ value: s.id as string, label: `${s.code} · ${s.name.replace("BetNG ", "")}` }))]} />
+          <Select label="Shop" size="sm" value={shopId} onChange={setShopId} options={[{ value: "ALL", label: "All shops" }, ...(shops.data ?? []).map((s) => ({ value: s.id, label: `${s.code} · ${s.name.replace("BetNG ", "")}` }))]} />
           <span className="ml-auto text-sm tabular text-text-muted">{rows === undefined ? "" : `${String(rows.length)} cashiers`}</span>
         </FilterBar>
         <CashierTable rows={rows} loading={loading} error={rows === undefined ? error : undefined} onRetry={() => void shops.refetch()} showShop />

@@ -128,11 +128,11 @@ export function LobbyMatchRow({ match }: { readonly match: MatchSummary }): Reac
   const winner = finished ? (match.score.home > match.score.away ? "HOME" : match.score.away > match.score.home ? "AWAY" : undefined) : undefined;
 
   return (
-    <div className={cn("grid items-center gap-x-4 gap-y-2.5 px-3 py-3 sm:grid-cols-[8.5rem_minmax(0,1fr)_minmax(0,17rem)]", live && "bg-live-subtle/30")}>
+    <div className={cn("grid items-center gap-x-4 gap-y-2.5 px-3 py-3 sm:grid-cols-[8.5rem_minmax(0,1fr)_minmax(0,22rem)]", live && "shadow-[inset_2px_0_0_var(--bn-live)]")}>
       <div className="flex items-center gap-2 sm:flex-col sm:items-start sm:gap-1">
         <Status match={match} now={now} />
       </div>
-      <Link to={`/matches/${match.id}`} className="group flex min-w-0 items-center gap-2 rounded-sm focus-ring">
+      <Link to={`/matches/${match.id}`} className={cn("group flex min-w-0 items-center gap-2 rounded-sm focus-ring", !bettable && "sm:col-span-2")}>
         <span className="min-w-0 flex-1 space-y-1">
           <TeamLine team={match.home} score={match.score.home} showScore={live || finished} strong={winner === "HOME" || live} />
           <TeamLine team={match.away} score={match.score.away} showScore={live || finished} strong={winner === "AWAY" || live} />
@@ -148,9 +148,7 @@ export function LobbyMatchRow({ match }: { readonly match: MatchSummary }): Reac
             +{Math.max(0, match.openMarkets - 1)}
           </Link>
         </div>
-      ) : (
-        <span className="hidden sm:block" />
-      )}
+      ) : null}
     </div>
   );
 }

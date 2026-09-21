@@ -10,7 +10,7 @@ type StatusFilter = "ALL" | "OPEN" | "SUSPENDED";
 function TradingPage({ mode }: { readonly mode: "markets" | "odds" }): React.JSX.Element {
   const odds = useMarketOdds();
   const [league, setLeague] = useState("ALL");
-  const [status, setStatus] = useState<StatusFilter>("ALL");
+  const [status, setStatus] = useState<StatusFilter>("OPEN");
   const [q, setQ] = useState("");
   const leagues = useMemo(() => [...new Set((odds.data ?? []).map((m) => m.leagueName))], [odds.data]);
   const markets = useMemo(() => {

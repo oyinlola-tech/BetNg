@@ -8,7 +8,7 @@
  */
 
 import { z } from "@zudojs/validation";
-import { liveEventSchema } from "./liveEvent.type.js";
+import type { liveEventSchema } from "./liveEvent.type.js";
 
 export const clientFrameSchema = z.discriminatedUnion("type", [
   z.object({

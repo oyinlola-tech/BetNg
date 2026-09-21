@@ -1,15 +1,16 @@
 import { useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router";
 import { ChevronLeft, Pencil, Plus } from "lucide-react";
-import { formatDateTime, formatMoney, formatRelative } from "@betng/ui-core";
+import { formatMoney, formatRelative } from "@betng/ui-core";
 import { ErrorState, KpiCard, LoadingState, Panel, RankedBars, Tabs } from "@betng/ui-web";
-import { Field, Mono, Status } from "../components/Bits";
+import { Field, Meter, Mono, Status } from "../components/Bits";
 import { CashierTable, CreateCashierDrawer } from "../components/CashierTable";
 import { GuardedButton } from "../components/Guard";
 import { PageHeader } from "../components/PageHeader";
 import { useReasonAction } from "../components/ReasonAction";
 import { ShopFormDrawer } from "../components/ShopFormDrawer";
 import { useCashiers, useShop } from "../hooks/queries";
+import { formatDate } from "../lib/format";
 import { useShopStatusAction } from "./ShopsPage";
 
 type Tab = "overview" | "cashiers" | "reports";
@@ -89,7 +90,7 @@ export function ShopDetailPage(): React.JSX.Element {
               <Field label="Email">
                 <span className="break-all">{s.email}</span>
               </Field>
-              <Field label="Opened">{formatDateTime(s.createdAt)}</Field>
+              <Field label="Opened">{formatDate(s.createdAt)}</Field>
               <Field label="Last active">{s.lastActiveAt === undefined ? "Never" : formatRelative(s.lastActiveAt)}</Field>
             </dl>
           </Panel>
@@ -117,18 +118,35 @@ export function ShopDetailPage(): React.JSX.Element {
       {tab === "reports" && (
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <KpiCard label="Today's sales" value={formatMoney(s.todaySales)} />
-            <KpiCard label="Today's payouts" value={formatMoney(s.todayPayouts)} />
-            <KpiCard label="Net position" value={formatMoney(s.todaySales - s.todayPayouts)} emphasis />
-            <KpiCard label="Open tickets" value={s.openTickets.toLocaleString()} />
+            <KpiCard label="Today's sales" value={formatMoney(s.todaySales)} hint={`${String(s.cashierCount)} cashiers`} />
+            <KpiCard label="Today's payouts" value={formatMoney(s.todayPayouts)} hint={s.todaySales === 0 ? "no sales yet" : `${((s.todayPayouts / s.todaySales) * 100).toFixed(1)}% of sales`} />
+            <KpiCard label="Net position" value={formatMoney(s.todaySales - s.todayPayouts)} hint="sales minus payouts" emphasis />
+            <KpiCard label="Open tickets" value={s.openTickets.toLocaleString()} hint="awaiting results" />
           </div>
-          <Panel title="Sales by cashier" description="Today, simulated naira">
+          <div className="grid items-start gap-4 lg:grid-cols-3">
+          <Panel title="Sales by cashier" description="Today, simulated naira" className="lg:col-span-2">
             <RankedBars
               title="Sales by cashier today"
               formatValue={formatMoney}
               items={[...(cashiers.data ?? [])].sort((a, b) => b.todaySales - a.todaySales).map((c) => ({ key: c.id, label: c.displayName, detail: `${String(c.todayTransactions)} transactions`, value: c.todaySales }))}
             />
           </Panel>
+          <Panel title="Float cover" description="Can the float meet today's payouts?">
+            <div className="mb-2 flex items-baseline justify-between text-sm">
+              <span className="font-display text-lg font-semibold tabular text-text-primary">{formatMoney(s.todayPayouts)}</span>
+              <span className="tabular text-text-muted">float {formatMoney(s.balance)}</span>
+            </div>
+            <Meter value={s.todayPayouts} limit={s.balance} label="Today's payouts against the shop float" />
+            <dl className="mt-4 grid grid-cols-2 gap-3">
+              <Field label="Payout ratio">
+                <span className="tabular">{s.todaySales === 0 ? "—" : `${((s.todayPayouts / s.todaySales) * 100).toFixed(1)}%`}</span>
+              </Field>
+              <Field label="Sales per cashier">
+                <span className="tabular">{s.cashierCount === 0 ? "—" : formatMoney(Math.round(s.todaySales / s.cashierCount))}</span>
+              </Field>
+            </dl>
+          </Panel>
+          </div>
         </div>
       )}
 

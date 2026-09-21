@@ -49,7 +49,7 @@ const LiveCard = memo(function LiveCard({ summary }: { readonly summary: MatchSu
           </div>
         </div>
         <ul className="min-h-[58px] space-y-0.5 border-t border-border px-3 py-1.5 text-sm text-text-secondary">
-          {events.length === 0 && <li className="text-text-muted">Waiting for events…</li>}
+          {events.length === 0 && <li className="text-text-muted">{live.match === undefined ? "Reading match…" : "No events yet"}</li>}
           {events.map((event) => (
             <li key={event.id} className="flex gap-2 truncate">
               <span className="w-7 shrink-0 tabular text-text-muted">{event.minute}'</span>
