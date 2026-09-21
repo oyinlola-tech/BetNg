@@ -64,6 +64,7 @@ from .rpc import (
     RpcResponseFrame,
     RpcServer,
     create_rpc_router,
+    get_rpc_request_id,
 )
 from .middleware import REQUEST_ID_HEADER, get_request_id
 
@@ -125,6 +126,7 @@ __all__ = [
     "create_rpc_router",
     "create_service_app",
     "get_request_id",
+    "get_rpc_request_id",
     "load_settings",
     "parse_log_level",
 ]

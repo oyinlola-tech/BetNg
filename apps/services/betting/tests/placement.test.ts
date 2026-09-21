@@ -380,6 +380,13 @@ describe("POST /bets", () => {
       body,
     });
 
+    const forged = await harness.call<ErrorBody>("POST", "/bets", {
+      headers: harness.customer(fundedCustomer()),
+      body,
+      asGateway: false,
+    });
+
+    expect(forged.status).toBe(401);
     expect(admin.status).toBe(403);
     expect(cashier.status).toBe(403);
     expect(nobody.status).toBe(401);

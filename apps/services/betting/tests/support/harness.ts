@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import process from "node:process";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { internalHeaders } from "@betng/service-kit";
 import { createApp, loadBettingConfig } from "../../src/index.js";
 import type { BettingApp } from "../../src/index.js";
 import { PrismaClient } from "../../src/generated/prisma/client.js";
@@ -86,9 +87,9 @@ export interface Harness {
   call<T = unknown>(
     method: "GET" | "POST",
     path: string,
-    options?: { headers?: Record<string, string>; body?: unknown },
+    options?: { headers?: Record<string, string>; body?: unknown; asGateway?: boolean },
   ): Promise<Reply<T>>;
-  rpc<T = unknown>(procedure: string, payload: unknown): Promise<{
+  rpc<T = unknown>(procedure: string, payload: unknown, asPeer?: boolean): Promise<{
     success: boolean;
     result?: T;
     error?: { code: string; message: string };
@@ -289,12 +290,13 @@ export async function startHarness(): Promise<Harness> {
     call: async <T>(
       method: "GET" | "POST",
       path: string,
-      options: { headers?: Record<string, string>; body?: unknown } = {},
+      options: { headers?: Record<string, string>; body?: unknown; asGateway?: boolean } = {},
     ): Promise<Reply<T>> => {
       const response = await fetch(`${baseUrl}/api/v1${path}`, {
         method,
         headers: {
           ...(options.body === undefined ? {} : { "content-type": "application/json" }),
+          ...(options.asGateway === false ? {} : internalHeaders()),
           ...options.headers,
         },
         ...(options.body === undefined ? {} : { body: JSON.stringify(options.body) }),
@@ -303,10 +305,13 @@ export async function startHarness(): Promise<Harness> {
       return { status: response.status, body: (await response.json()) as T };
     },
 
-    rpc: async <T>(procedure: string, payload: unknown) => {
+    rpc: async <T>(procedure: string, payload: unknown, asPeer = true) => {
       const response = await fetch(`${baseUrl}/rpc`, {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: {
+          "content-type": "application/json",
+          ...(asPeer ? internalHeaders() : {}),
+        },
         body: JSON.stringify({
           id: crypto.randomUUID(),
           procedure,

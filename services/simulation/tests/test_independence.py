@@ -144,12 +144,6 @@ class TestNoInputForBets:
 
 class TestResultIndependence:
     def test_opposite_betting_distributions_yield_the_same_match(self) -> None:
-        """Scenario A piles onto HOME, scenario B onto AWAY.
-
-        Neither distribution can be handed to the engine: the only thing a
-        scenario can do is exist around the call. The result, the timeline and
-        the statistics are identical.
-        """
         outputs = []
 
         for scenario in (SCENARIO_A, SCENARIO_B):

@@ -8,7 +8,6 @@ import {
 
 describe("slip pricing", () => {
   it("prices a single exactly where a float would lose a kobo", () => {
-    expect(Math.floor(50_000 * 2.15)).toBe(107_499);
     expect(priceSlip(50_000, [215])).toEqual({
       totalOddsHundredths: 215,
       potentialPayout: 107_500,
@@ -16,6 +15,9 @@ describe("slip pricing", () => {
 
     expect(Math.floor(100 * 1.15)).toBe(114);
     expect(priceSlip(100, [115])?.potentialPayout).toBe(115);
+
+    expect(Math.floor(100 * 4.35)).toBe(434);
+    expect(priceSlip(100, [435])?.potentialPayout).toBe(435);
   });
 
   it("prices three legs from the integer product, flooring once", () => {

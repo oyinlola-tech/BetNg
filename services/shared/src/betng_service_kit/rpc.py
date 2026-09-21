@@ -25,6 +25,7 @@ from __future__ import annotations
 import time
 import uuid
 from collections.abc import Awaitable, Callable
+from contextvars import ContextVar
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -49,6 +50,14 @@ RPC_NOT_IMPLEMENTED = "RPC_NOT_IMPLEMENTED"
 #: Never returned over the wire: internal exception text can name hosts,
 #: paths, credentials or queries, and the caller is an untrusted peer.
 INTERNAL_RPC_MESSAGE = "An internal error occurred."
+
+
+_RPC_REQUEST_ID: ContextVar[str | None] = ContextVar("betng_rpc_request_id", default=None)
+
+
+def get_rpc_request_id() -> str | None:
+    """The caller's request id for the RPC call being handled."""
+    return _RPC_REQUEST_ID.get()
 
 
 class RpcRequestFrame(BaseModel):
@@ -164,7 +173,7 @@ class RpcServer:
                 )
 
         request_id = frame.metadata.get("requestId") if frame.metadata else None
-        token = _RPC_REQUEST_ID.set(request_id if isinstance(request_id, str) else None)
+        _RPC_REQUEST_ID.set(request_id if isinstance(request_id, str) else None)
 
         try:
             result = await procedure.handler(payload)
