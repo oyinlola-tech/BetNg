@@ -119,7 +119,7 @@ for (const theme of ["light", "dark"]) {
       await page.getByRole("heading", { level: 1 }).waitFor();
       await page.keyboard.press("Control+k");
       await page.getByPlaceholder("Search BETNG").fill("ars");
-      await page.getByRole("option").first().waitFor();
+      await page.getByRole("dialog").getByRole("option").first().waitFor();
       await shot(page, "web/search");
       await page.keyboard.press("Escape");
     }
@@ -151,6 +151,7 @@ for (const theme of ["light", "dark"]) {
         await page.waitForTimeout(1000);
       }
 
+      await page.evaluate(() => window.scrollTo(0, 0));
       await shot(page, "web/betslip-accepted");
       await page.goto(`${WEB}/tickets`);
       await page.getByRole("heading", { level: 1 }).waitFor();
@@ -225,13 +226,13 @@ for (const theme of ["light", "dark"]) {
       await shot(page, `tv/${name}`, { settle: 3500 });
     }
 
-    await page.goto(`${TV}/live`);
+    const API = process.env.API_URL ?? "http://127.0.0.1:3100";
+    const live = await fetch(`${API}/api/v1/matches?status=IN_PLAY&limit=1`).then((r) => r.json());
+    const matchId = live.items?.[0]?.id;
 
-    const match = page.locator('a[href^="/match/"], a[href^="/live/"]').first();
-
-    if ((await match.count()) > 0) {
-      await match.click();
-      await shot(page, "tv/match", { settle: 3500 });
+    if (matchId !== undefined) {
+      await page.goto(`${TV}/match/${matchId}`);
+      await shot(page, "tv/match", { settle: 4000 });
     }
   });
 

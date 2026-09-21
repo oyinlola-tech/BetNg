@@ -1008,6 +1008,8 @@ export function createPlatformDataSource(
     },
 
     subscribeConnection: (listener) => {
+      // A screen that shows connection status must see the real one, not a connection that was never opened.
+      ensureLive();
       connectionListeners.add(listener);
 
       return () => {

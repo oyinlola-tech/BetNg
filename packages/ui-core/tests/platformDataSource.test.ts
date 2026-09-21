@@ -238,4 +238,15 @@ describe("platform data source", () => {
 
     expect((await source.listTransactions())[0]?.description).toBe("Welcome grant");
   });
+
+  it("opens the realtime connection when a screen asks for its status, so it never reports a connection it did not try", () => {
+    const realtime = fakeRealtime();
+    const connect = vi.fn();
+    const source = createPlatformDataSource({ rest: fakeRest({}), realtime: { ...realtime.client, connect }, userId: wire.IDS.user });
+
+    source.subscribeConnection(() => undefined);
+    source.subscribeConnection(() => undefined);
+
+    expect(connect).toHaveBeenCalledOnce();
+  });
 });

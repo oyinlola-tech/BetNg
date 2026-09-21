@@ -275,7 +275,8 @@ export function MatchPage(): React.JSX.Element {
           stale={stale}
           staleIndicator={<StaleBadge updatedAt={syncedAt} />}
         />
-        <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 type-small">
+        <nav aria-label="Team pages" className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 type-small">
+          <span className="type-caption">Team pages</span>
           <Link to={paths.team(match.home.id)} className="rounded-xs text-text-secondary hover:text-brand focus-ring">
             {match.home.name}
           </Link>
@@ -285,7 +286,7 @@ export function MatchPage(): React.JSX.Element {
           <Link to={paths.team(match.away.id)} className="rounded-xs text-text-secondary hover:text-brand focus-ring">
             {match.away.name}
           </Link>
-        </div>
+        </nav>
         {resyncing && (
           <p role="status" className="mt-2 text-center type-small text-text-muted">
             Checking the latest state with the platform
