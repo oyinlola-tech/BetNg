@@ -1,5 +1,5 @@
 import type { HealthStatus } from "@betng/contracts";
-import { formatBroadcastClock, matchClock } from "@betng/ui-core";
+import { currentCurrency, formatDateTime } from "@betng/ui-core";
 import type { StatusTone } from "@betng/ui-web";
 
 export interface StatusView {
@@ -9,49 +9,37 @@ export interface StatusView {
 
 const view = (tone: StatusTone, label: string): StatusView => ({ tone, label });
 
-export const HEALTH: Readonly<Record<HealthStatus, StatusView>> = {
-  ok: view("success", "Healthy"),
-  degraded: view("warning", "Degraded"),
-  unavailable: view("danger", "Offline"),
+export const HEALTH: Readonly<Record<HealthStatus, StatusView & { readonly status: string }>> = {
+  ok: { ...view("success", "Healthy"), status: "HEALTHY" },
+  degraded: { ...view("warning", "Degraded"), status: "DEGRADED" },
+  unavailable: { ...view("danger", "Unavailable"), status: "ERROR" },
 };
 
-const STATUS: Readonly<Record<string, StatusView>> = {
-  ACTIVE: view("success", "Active"),
-  INACTIVE: view("neutral", "Inactive"),
-  SUSPENDED: view("danger", "Suspended"),
-  OFFLINE: view("neutral", "Offline"),
-  SCHEDULED: view("neutral", "Scheduled"),
-  BETTING_OPEN: view("brand", "Betting open"),
-  BETTING_CLOSED: view("warning", "Betting closed"),
-  IN_PLAY: view("live", "Live"),
-  COMPLETED: view("success", "Completed"),
-  CANCELLED: view("danger", "Void"),
-  NOT_OPEN: view("neutral", "Not open"),
-  OPEN: view("success", "Open"),
-  CLOSED: view("neutral", "Closed"),
-  SETTLED: view("neutral", "Settled"),
-  QUEUED: view("neutral", "Queued"),
-  READY: view("brand", "Ready"),
-  RUNNING: view("live", "Running"),
-  FAILED: view("danger", "Failed"),
-  NOT_DUE: view("neutral", "Not due"),
-  PENDING: view("warning", "Pending"),
-  VOIDED: view("neutral", "Voided"),
-  NORMAL: view("success", "Normal"),
-  ELEVATED: view("warning", "Elevated"),
-  CRITICAL: view("danger", "Critical"),
+/* Wording for platform states where the raw value would read badly. Tone and icon come from ui-web's status presets. */
+export const STATUS_LABELS: Readonly<Record<string, string>> = {
+  IN_PLAY: "Live",
+  CANCELLED: "Void",
+  NOT_OPEN: "Not open",
+  NOT_DUE: "Not due",
+  BETTING_OPEN: "Betting open",
+  BETTING_CLOSED: "Betting closed",
+  ACCEPT: "Accept",
+  LIMIT: "Limit",
+  REJECT: "Reject",
 };
 
-export function statusView(status: string): StatusView {
-  return STATUS[status] ?? view("neutral", status);
-}
+export const DASH = "—";
 
 export function formatPercent(value: number, digits = 1): string {
   return `${(value * 100).toFixed(digits)}%`;
 }
 
-export function daysAgoKey(days: number, now = Date.now()): string {
-  const d = new Date(now - days * 86_400_000);
+export function formatCount(value: number): string {
+  return value.toLocaleString("en-NG");
+}
+
+export function dayKey(offsetDays: number, now = Date.now()): string {
+  const d = new Date(now - offsetDays * 86_400_000);
 
   return `${String(d.getFullYear())}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
@@ -60,44 +48,21 @@ export function shortDay(dateKey: string): string {
   return new Date(`${dateKey}T12:00:00`).toLocaleDateString("en-NG", { day: "numeric", month: "short" });
 }
 
-export function downloadCsv(filename: string, header: readonly string[], rows: readonly (readonly (string | number)[])[]): void {
-  const escape = (cell: string | number): string => (typeof cell === "number" ? String(cell) : `"${cell.replace(/"/g, '""')}"`);
-  const csv = [header, ...rows].map((row) => row.map(escape).join(",")).join("\n");
-  const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
-  const link = document.createElement("a");
-
-  link.href = url;
-  link.download = filename;
-  link.click();
-  URL.revokeObjectURL(url);
+export function formatStamp(iso: string | undefined): string {
+  return iso === undefined ? DASH : formatDateTime(iso);
 }
 
-const shortMoney = new Intl.NumberFormat("en-NG", { notation: "compact", maximumFractionDigits: 1 });
+export function humanise(value: string): string {
+  const words = value.replace(/[_.-]+/g, " ").toLowerCase();
 
-export function formatMoneyShort(minorUnits: number): string {
-  return `${minorUnits < 0 ? "-" : ""}₦${shortMoney.format(Math.abs(minorUnits) / 100)}`;
+  return words.charAt(0).toUpperCase() + words.slice(1);
 }
 
-export function formatStamp(iso: string): string {
-  const d = new Date(iso);
+const compact = new Intl.NumberFormat("en-NG", { notation: "compact", maximumFractionDigits: 1 });
 
-  return `${d.toLocaleDateString("en-NG", { day: "numeric", month: "short" })}, ${d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })}`;
-}
+/** Chart axes and tooltips only, where a full amount does not fit. Tables and cards show full amounts. */
+export function formatMoneyAxis(minorUnits: number): string {
+  const currency = currentCurrency();
 
-export function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" });
-}
-
-export function formatClockTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
-}
-
-export function liveClock(kickoffAt: string, now: number): string {
-  const clock = matchClock(kickoffAt, now);
-
-  if (clock.period === "HALF_TIME") return "HT";
-  if (clock.period === "FULL_TIME") return "FT";
-  if (clock.period === "PRE") return "--:--";
-
-  return formatBroadcastClock(clock.minute, clock.second);
+  return `${minorUnits < 0 ? "-" : ""}${currency.symbol}${compact.format(Math.abs(minorUnits) / 10 ** currency.minorUnits)}`;
 }

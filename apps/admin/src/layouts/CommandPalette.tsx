@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { CornerDownLeft, Search } from "lucide-react";
 import { cn } from "@betng/ui-web";
-import type { NavItem } from "../lib/permissions";
+import type { NavItem } from "../lib/navigation";
 
 export function CommandPalette({ open, onClose, items }: { readonly open: boolean; readonly onClose: () => void; readonly items: readonly NavItem[] }): React.JSX.Element | null {
   const ref = useRef<HTMLDialogElement>(null);
@@ -50,7 +50,7 @@ export function CommandPalette({ open, onClose, items }: { readonly open: boolea
           aria-expanded
           aria-controls="palette-list"
           aria-label="Jump to a screen"
-          placeholder="Jump to…"
+          placeholder="Jump to a screen"
           onChange={(event) => {
             setQuery(event.target.value);
             setIndex(0);

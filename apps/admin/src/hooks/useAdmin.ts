@@ -2,7 +2,7 @@ import { useSyncExternalStore } from "react";
 import type { AdminPermission, AdminUser } from "@betng/contracts";
 import { hasPermission, type ConnectionState, type SessionStatus } from "@betng/ui-core";
 import { useSession } from "@betng/ui-web";
-import { adminSource, dataSource } from "../services/sources";
+import { dataSource, session } from "../services/runtime";
 
 export interface AdminContext {
   readonly status: SessionStatus;
@@ -12,8 +12,8 @@ export interface AdminContext {
 }
 
 export function useAdmin(): AdminContext {
-  const { status, session } = useSession(adminSource.session);
-  const admin = session?.admin;
+  const { status, session: current } = useSession(session);
+  const admin = current?.admin;
 
   return { status, admin, can: (permission) => hasPermission(admin?.permissions, permission) };
 }

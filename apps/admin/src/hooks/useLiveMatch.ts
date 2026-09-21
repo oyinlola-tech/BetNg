@@ -1,15 +1,9 @@
 import { useEffect, useState } from "react";
 import type { MatchId } from "@betng/contracts";
 import { watchMatch, type LiveMatchSnapshot } from "@betng/ui-core";
-import { dataSource } from "../services/sources";
+import { dataSource } from "../services/runtime";
 
-const IDLE: LiveMatchSnapshot = {
-  match: undefined,
-  connection: "CONNECTING",
-  resyncing: false,
-  error: undefined,
-  lastEvent: undefined,
-};
+const IDLE: LiveMatchSnapshot = { match: undefined, connection: "CONNECTING", resyncing: false, error: undefined, lastEvent: undefined, syncedAt: undefined };
 
 export function useLiveMatch(matchId: string | undefined): LiveMatchSnapshot {
   const [snapshot, setSnapshot] = useState<LiveMatchSnapshot>(IDLE);
@@ -17,6 +11,7 @@ export function useLiveMatch(matchId: string | undefined): LiveMatchSnapshot {
   useEffect(() => {
     if (matchId === undefined) {
       setSnapshot(IDLE);
+
       return;
     }
 
@@ -24,14 +19,10 @@ export function useLiveMatch(matchId: string | undefined): LiveMatchSnapshot {
     const unsubscribe = controller.subscribe(() => {
       setSnapshot(controller.getSnapshot());
     });
-    const ticker = setInterval(() => {
-      controller.tick();
-    }, 1000);
 
     setSnapshot(controller.getSnapshot());
 
     return () => {
-      clearInterval(ticker);
       unsubscribe();
       controller.stop();
     };
