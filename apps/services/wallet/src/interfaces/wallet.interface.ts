@@ -106,10 +106,38 @@ export interface TimeRange {
   readonly to: Date;
 }
 
+/** `ledger` types match whatever their sign; an ADJUSTMENT displays as a deposit or a withdrawal by its sign. */
+export interface EntryTypeFilter {
+  readonly ledger: readonly LedgerEntryType[];
+  readonly adjustmentCredits: boolean;
+  readonly adjustmentDebits: boolean;
+}
+
+export type EntrySortField = "createdAt" | "amount";
+
+export type SortDirection = "asc" | "desc";
+
+export interface EntryPageFilter {
+  readonly page: number;
+  readonly pageSize: number;
+  readonly types?: EntryTypeFilter;
+  readonly from?: Date;
+  readonly to?: Date;
+  readonly search?: string;
+  readonly sort: EntrySortField;
+  readonly direction: SortDirection;
+}
+
+export interface EntryPage {
+  readonly items: readonly EntryRecord[];
+  readonly total: number;
+}
+
 export interface WalletRepository {
   getOrOpenAccount(ownerType: OwnerType, ownerId: string): Promise<AccountRecord>;
   postEntry(input: PostEntryInput): Promise<PostEntryResult>;
   listEntries(accountId: string, limit: number): Promise<readonly EntryRecord[]>;
+  pageEntries(accountId: string, filter: EntryPageFilter): Promise<EntryPage>;
   listShopEntries(
     shopId: string,
     range: TimeRange,

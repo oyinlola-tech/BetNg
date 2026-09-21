@@ -12,6 +12,7 @@ export const WALLET_QUERY = Object.freeze({
   LIST_TRANSACTIONS: "wallet.listTransactions",
   LIST_SHOP_TRANSACTIONS: "wallet.listShopTransactions",
   GET_WALLET_OVERVIEW: "wallet.getWalletOverview",
+  QUERY_TRANSACTIONS: "wallet.queryTransactions",
 });
 
 export type WalletQueryType = (typeof WALLET_QUERY)[keyof typeof WALLET_QUERY];
@@ -52,6 +53,25 @@ export const SHOP_ENTRY_TYPES = Object.freeze([
   "CASH_OUT",
 ] as const);
 
+export const LEDGER_ENTRY_TYPES = Object.freeze([
+  "DEPOSIT",
+  "WITHDRAWAL",
+  "BET_STAKE",
+  "BET_PAYOUT",
+  "BET_REFUND",
+  "ADJUSTMENT",
+  "WELCOME_GRANT",
+  "OPENING_FLOAT",
+  "TICKET_SALE",
+  "TICKET_PAYOUT",
+  "TICKET_CANCEL",
+  "CASH_IN",
+  "CASH_OUT",
+] as const);
+
+/** The ledger is append-only and records only what happened, so every entry is COMPLETED. */
+export const ENTRY_STATUS = "COMPLETED";
+
 export const OPENING_IDEMPOTENCY_KEY = "opening";
 
 export const IDEMPOTENCY_KEY_HEADER = "idempotency-key";
@@ -59,6 +79,10 @@ export const IDEMPOTENCY_KEY_HEADER = "idempotency-key";
 export const DEFAULT_LIST_LIMIT = 50;
 
 export const MAX_LIST_LIMIT = 200;
+
+export const DEFAULT_PAGE_SIZE = 20;
+
+export const MAX_PAGE = 100_000;
 
 export const WALLET_PERMISSION = Object.freeze({
   ADMIN_READ: "wallet:read",

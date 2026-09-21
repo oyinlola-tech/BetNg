@@ -11,3 +11,7 @@ export {
   ListTransactionsHandler,
   ListTransactionsQuery,
 } from "./listTransactions/index.js";
+export {
+  QueryTransactionsHandler,
+  QueryTransactionsQuery,
+} from "./queryTransactions/index.js";

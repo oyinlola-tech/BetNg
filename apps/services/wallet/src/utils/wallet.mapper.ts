@@ -1,6 +1,8 @@
 import { asId } from "@betng/contracts";
-import type { Currency, ShopTransaction } from "@betng/contracts";
+import type { Currency, ShopTransaction, TransactionType } from "@betng/contracts";
+import { ENTRY_STATUS } from "../constants/index.js";
 import type {
+  PagedTransactionDto,
   PlatformLedgerEntryDto,
   TransactionDto,
   WalletDto,
@@ -9,6 +11,7 @@ import type {
 import type {
   AccountRecord,
   EntryRecord,
+  EntryTypeFilter,
   LedgerEntryType,
   OverviewRecord,
   PlatformEntryRecord,
@@ -55,6 +58,10 @@ export function toTransactionDto(entry: EntryRecord): TransactionDto {
   };
 }
 
+export function toPagedTransactionDto(entry: EntryRecord): PagedTransactionDto {
+  return { ...toTransactionDto(entry), status: ENTRY_STATUS };
+}
+
 export function toShopTransaction(entry: ShopEntryRecord): ShopTransaction {
   return {
     id: entry.id,
@@ -88,6 +95,45 @@ const DISPLAY_TYPE: Readonly<
   BET_REFUND: "REFUND",
   TICKET_CANCEL: "REFUND",
 });
+
+const CONTRACT_DISPLAY: Readonly<Record<TransactionType, PlatformDisplayType>> = Object.freeze({
+  DEPOSIT: "DEPOSIT",
+  WITHDRAWAL: "WITHDRAWAL",
+  BET_STAKE: "STAKE",
+  BET_PAYOUT: "PAYOUT",
+  BET_REFUND: "REFUND",
+});
+
+function isContractType(type: LedgerEntryType): type is TransactionType {
+  return type in CONTRACT_DISPLAY;
+}
+
+/** One of the contract's five types selects every ledger type projected onto it; any other type selects itself. */
+export function toEntryTypeFilter(requested: readonly LedgerEntryType[]): EntryTypeFilter {
+  const ledger = new Set<LedgerEntryType>();
+  let adjustmentCredits = false;
+  let adjustmentDebits = false;
+
+  for (const type of requested) {
+    if (!isContractType(type)) {
+      ledger.add(type);
+      continue;
+    }
+
+    const display = CONTRACT_DISPLAY[type];
+
+    for (const [ledgerType, projected] of Object.entries(DISPLAY_TYPE)) {
+      if (projected === display) {
+        ledger.add(ledgerType as LedgerEntryType);
+      }
+    }
+
+    adjustmentCredits ||= display === "DEPOSIT";
+    adjustmentDebits ||= display === "WITHDRAWAL";
+  }
+
+  return { ledger: [...ledger], adjustmentCredits, adjustmentDebits };
+}
 
 function toPlatformEntry(entry: PlatformEntryRecord): PlatformLedgerEntryDto {
   const displayType =

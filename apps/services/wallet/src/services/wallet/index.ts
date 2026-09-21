@@ -15,6 +15,7 @@ import {
   GetWalletOverviewHandler,
   ListShopTransactionsHandler,
   ListTransactionsHandler,
+  QueryTransactionsHandler,
 } from "./queries/index.js";
 
 export interface WalletServiceConfig {
@@ -42,6 +43,10 @@ export function registerWalletService(config: WalletServiceConfig): void {
   queryBus.register(
     WALLET_QUERY.LIST_TRANSACTIONS,
     new ListTransactionsHandler(wallets),
+  );
+  queryBus.register(
+    WALLET_QUERY.QUERY_TRANSACTIONS,
+    new QueryTransactionsHandler(wallets),
   );
   queryBus.register(
     WALLET_QUERY.LIST_SHOP_TRANSACTIONS,

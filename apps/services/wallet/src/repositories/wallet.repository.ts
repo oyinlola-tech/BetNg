@@ -12,10 +12,15 @@ import {
   WalletFrozenError,
   WalletOwnerNotFoundError,
 } from "../errors/index.js";
+import { join, sql } from "../databases/index.js";
+import type { Sql } from "../databases/index.js";
 import type { Prisma, PrismaClient } from "../generated/prisma/client.js";
 import type {
   AccountRecord,
+  EntryPage,
+  EntryPageFilter,
   EntryRecord,
+  EntrySortField,
   LedgerEntryType,
   OverviewRecord,
   OwnerType,
@@ -24,6 +29,7 @@ import type {
   PostEntryResult,
   ShopEntryRecord,
   ShopEntryType,
+  SortDirection,
   TimeRange,
   WalletRepository,
 } from "../interfaces/index.js";
@@ -50,6 +56,77 @@ interface ShopEntryRow {
   readonly reference: string | null;
   readonly note: string | null;
   readonly created_at: Date;
+}
+
+interface PagedEntryRow {
+  readonly id: string;
+  readonly account_id: string;
+  readonly type: LedgerEntryType;
+  readonly sequence: number;
+  readonly amount: bigint;
+  readonly currency: string;
+  readonly balance_after: bigint;
+  readonly idempotency_key: string;
+  readonly reference: string | null;
+  readonly note: string | null;
+  readonly actor_id: string | null;
+  readonly corrects_id: string | null;
+  readonly created_at: Date;
+}
+
+/** The only ORDER BY text a page query can carry: constants chosen by key, never built from input. */
+const PAGE_ORDER: Readonly<Record<EntrySortField, Readonly<Record<SortDirection, Sql>>>> =
+  Object.freeze({
+    createdAt: Object.freeze({
+      asc: sql`t."created_at" ASC, t."sequence" ASC`,
+      desc: sql`t."created_at" DESC, t."sequence" DESC`,
+    }),
+    amount: Object.freeze({
+      asc: sql`t."amount" ASC, t."sequence" DESC`,
+      desc: sql`t."amount" DESC, t."sequence" DESC`,
+    }),
+  });
+
+/** `%`, `_` and the escape character `!` match literally. */
+function likePattern(term: string): string {
+  return `%${term.replace(/[!%_]/gu, (character) => `!${character}`)}%`;
+}
+
+function pageConditions(accountId: string, filter: EntryPageFilter): Sql {
+  const conditions: Sql[] = [sql`t."account_id" = ${accountId}::uuid`];
+
+  if (filter.types !== undefined) {
+    const { ledger, adjustmentCredits, adjustmentDebits } = filter.types;
+    const anyOf: Sql[] = [sql`t."type"::text = ANY(${[...ledger]}::text[])`];
+
+    if (adjustmentCredits) {
+      anyOf.push(sql`(t."type" = 'ADJUSTMENT' AND t."amount" > 0)`);
+    }
+
+    if (adjustmentDebits) {
+      anyOf.push(sql`(t."type" = 'ADJUSTMENT' AND t."amount" < 0)`);
+    }
+
+    conditions.push(sql`(${join(anyOf, " OR ")})`);
+  }
+
+  if (filter.from !== undefined) {
+    conditions.push(sql`t."created_at" >= ${filter.from}::timestamptz`);
+  }
+
+  if (filter.to !== undefined) {
+    conditions.push(sql`t."created_at" <= ${filter.to}::timestamptz`);
+  }
+
+  if (filter.search !== undefined) {
+    const pattern = likePattern(filter.search);
+
+    conditions.push(
+      sql`(t."reference" ILIKE ${pattern} ESCAPE '!' OR t."note" ILIKE ${pattern} ESCAPE '!')`,
+    );
+  }
+
+  return join(conditions, " AND ");
 }
 
 interface TotalsRow {
@@ -333,6 +410,48 @@ export function createWalletRepository(
     return rows.map(toEntry);
   }
 
+  async function pageEntries(
+    accountId: string,
+    filter: EntryPageFilter,
+  ): Promise<EntryPage> {
+    const where = pageConditions(accountId, filter);
+    const offset = (filter.page - 1) * filter.pageSize;
+
+    const [rows, counted] = await Promise.all([
+      prisma.$queryRaw<PagedEntryRow[]>`
+        SELECT t."id", t."account_id", t."type"::text AS "type", t."sequence", t."amount",
+               t."currency", t."balance_after", t."idempotency_key", t."reference", t."note",
+               t."actor_id", t."corrects_id", t."created_at"
+        FROM "wallet"."wallet_transactions" t
+        WHERE ${where}
+        ORDER BY ${PAGE_ORDER[filter.sort][filter.direction]}
+        LIMIT ${filter.pageSize}::int OFFSET ${offset}::bigint`,
+      prisma.$queryRaw<{ total: number }[]>`
+        SELECT COUNT(*)::int AS "total"
+        FROM "wallet"."wallet_transactions" t
+        WHERE ${where}`,
+    ]);
+
+    return {
+      items: rows.map((row) => ({
+        id: row.id,
+        accountId: row.account_id,
+        type: row.type,
+        sequence: row.sequence,
+        amount: row.amount,
+        currency: row.currency,
+        balanceAfter: row.balance_after,
+        idempotencyKey: row.idempotency_key,
+        reference: row.reference,
+        note: row.note,
+        actorId: row.actor_id,
+        correctsId: row.corrects_id,
+        createdAt: row.created_at,
+      })),
+      total: counted[0]?.total ?? 0,
+    };
+  }
+
   async function listShopEntries(
     shopId: string,
     range: TimeRange,
@@ -436,6 +555,8 @@ export function createWalletRepository(
     postEntry: async (input) => guarded("postEntry", async () => postEntry(input)),
     listEntries: async (accountId, limit) =>
       guarded("listEntries", async () => listEntries(accountId, limit)),
+    pageEntries: async (accountId, filter) =>
+      guarded("pageEntries", async () => pageEntries(accountId, filter)),
     listShopEntries: async (shopId, range, limit) =>
       guarded("listShopEntries", async () =>
         listShopEntries(shopId, range, limit),

@@ -23,7 +23,9 @@ export function registerWalletRoutes(
   router.get(
     `${API_PREFIX}/wallets/:userId/transactions`,
     json(controller.listTransactions),
-    describe("A customer's ledger, newest first. Same access as the wallet."),
+    describe(
+      "A customer's ledger, newest first. With `page` it answers a filtered, sorted Page. Same access as the wallet.",
+    ),
   );
   router.post(
     `${API_PREFIX}/wallets/deposit`,

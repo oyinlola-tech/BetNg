@@ -1,6 +1,8 @@
 export { utcDayRange, utcToday } from "./day.util.js";
 export {
+  toEntryTypeFilter,
   toKobo,
+  toPagedTransactionDto,
   toShopTransaction,
   toTransactionDto,
   toWalletDto,

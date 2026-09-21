@@ -1,4 +1,5 @@
 import type {
+  Page,
   PlatformLedgerEntry,
   PlatformWalletOverview,
   ShopTransaction,
@@ -36,6 +37,12 @@ export interface BalanceDto {
 export interface TransactionListDto {
   readonly items: readonly TransactionDto[];
 }
+
+export interface PagedTransactionDto extends TransactionDto {
+  readonly status: "COMPLETED";
+}
+
+export type TransactionPageDto = Page<PagedTransactionDto>;
 
 export interface ShopTransactionListDto {
   readonly items: readonly ShopTransaction[];

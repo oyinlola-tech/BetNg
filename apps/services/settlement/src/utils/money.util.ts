@@ -6,3 +6,12 @@ export function toSafeNumber(amount: bigint): number {
 
   return Number(amount);
 }
+
+/** Integer arithmetic only: 128000n → "₦1,280.00". */
+export function formatNaira(kobo: bigint): string {
+  const absolute = kobo < 0n ? -kobo : kobo;
+  const naira = (absolute / 100n).toString().replace(/\B(?=(\d{3})+(?!\d))/gu, ",");
+  const fraction = (absolute % 100n).toString().padStart(2, "0");
+
+  return `${kobo < 0n ? "-" : ""}₦${naira}.${fraction}`;
+}

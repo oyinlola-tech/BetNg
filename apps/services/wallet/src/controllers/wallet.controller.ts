@@ -20,11 +20,13 @@ import type {
   LedgerEntryDto,
   ShopTransactionListDto,
   TransactionListDto,
+  TransactionPageDto,
   WalletDto,
   WalletOverviewDto,
 } from "../dtos/index.js";
 import type {
   AccountRecord,
+  EntryPage,
   EntryRecord,
   OverviewRecord,
   PostEntryResult,
@@ -39,8 +41,11 @@ import {
   GetWalletQuery,
   ListShopTransactionsQuery,
   ListTransactionsQuery,
+  QueryTransactionsQuery,
 } from "../services/wallet/queries/index.js";
 import {
+  toEntryTypeFilter,
+  toPagedTransactionDto,
   toShopTransaction,
   toTransactionDto,
   toWalletDto,
@@ -54,6 +59,7 @@ import {
   listQuerySchema,
   ownerIdSchema,
   shopTransactionsQuerySchema,
+  transactionPageQuerySchema,
 } from "../validators/index.js";
 import type { FundsRequest } from "../validators/index.js";
 
@@ -61,7 +67,7 @@ type Handler<T> = (context: HttpRouterContext) => Promise<T>;
 
 export interface WalletController {
   readonly getWallet: Handler<WalletDto>;
-  readonly listTransactions: Handler<TransactionListDto>;
+  readonly listTransactions: Handler<TransactionListDto | TransactionPageDto>;
   readonly deposit: Handler<LedgerEntryDto>;
   readonly withdraw: Handler<LedgerEntryDto>;
   readonly listShopTransactions: Handler<ShopTransactionListDto>;
@@ -174,6 +180,42 @@ export function createWalletController(
 
     listTransactions: async (context) => {
       const customerId = readableCustomerId(context);
+
+      if (context.query["page"] !== undefined) {
+        const request = parseQuery(context.query, transactionPageQuerySchema);
+        const { page, pageSize } = request;
+
+        if (!request.includesCompleted) {
+          return { items: [], page, pageSize, total: 0 };
+        }
+
+        const result = await queryBus.execute<QueryTransactionsQuery, EntryPage>(
+          new QueryTransactionsQuery({
+            ownerType: "CUSTOMER",
+            ownerId: customerId,
+            filter: {
+              page,
+              pageSize,
+              sort: request.sort,
+              direction: request.direction,
+              ...(request.types === undefined
+                ? {}
+                : { types: toEntryTypeFilter(request.types) }),
+              ...(request.from === undefined ? {} : { from: request.from }),
+              ...(request.to === undefined ? {} : { to: request.to }),
+              ...(request.search === undefined ? {} : { search: request.search }),
+            },
+          }),
+        );
+
+        return {
+          items: result.items.map(toPagedTransactionDto),
+          page,
+          pageSize,
+          total: result.total,
+        };
+      }
+
       const { limit } = parseQuery(context.query, listQuerySchema);
 
       const entries = await queryBus.execute<

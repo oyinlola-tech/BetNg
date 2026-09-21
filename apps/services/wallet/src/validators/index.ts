@@ -7,9 +7,11 @@ export {
   listQuerySchema,
   ownerIdSchema,
   shopTransactionsQuerySchema,
+  transactionPageQuerySchema,
 } from "./wallet.validator.js";
 export type {
   CreditPayload,
   DebitPayload,
   FundsRequest,
+  TransactionPageRequest,
 } from "./wallet.validator.js";
