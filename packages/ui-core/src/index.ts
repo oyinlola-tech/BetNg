@@ -109,6 +109,7 @@ export type { PlaceTicketInput, ShopDataSource, TicketFilter } from "./shopDataS
 export type { AdminDataSource } from "./adminDataSource.type.js";
 
 export { createPlatformAdminSource, createPlatformAuthSource, createPlatformShopSource } from "./adapters/platformAccountSources.js";
+export type { PlatformAdminOptions } from "./adapters/platformAccountSources.js";
 export { translateApiError } from "./adapters/errors.js";
 
 export { FASTBET_CODES, parseFastbet } from "./fastbet.js";
@@ -128,3 +129,5 @@ export type {
   PlatformClientOptions,
   PlatformClients,
 } from "./runtime/platformClients.js";
+export { pageRows } from "./pageRows.js";
+export type { PagedRows } from "./pageRows.js";

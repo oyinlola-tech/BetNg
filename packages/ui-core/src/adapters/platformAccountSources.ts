@@ -1,10 +1,10 @@
-import type { BetNgRestClient } from "@betng/client-sdk";
+import type { AdminListQuery, AdminListResource, BetNgRestClient } from "@betng/client-sdk";
 import type { AdminSession, CustomerSession, ShopSession } from "@betng/contracts";
 import type { AdminDataSource } from "../adminDataSource.type.js";
 import type { AuthDataSource } from "../authDataSource.type.js";
 import type { ShopDataSource } from "../shopDataSource.type.js";
 import type { SessionLike, SessionStore } from "../session.js";
-import { DataSourceError } from "../dataSource.type.js";
+import { pageRows } from "../pageRows.js";
 import { translateApiError } from "./errors.js";
 
 function guarded<S extends SessionLike>(session: SessionStore<S>) {
@@ -119,7 +119,16 @@ export function createPlatformShopSource(rest: BetNgRestClient, session: Session
   };
 }
 
-export function createPlatformAdminSource(rest: BetNgRestClient, session: SessionStore<AdminSession>): AdminDataSource {
+export interface PlatformAdminOptions {
+  /** True once the platform pages, sorts and searches admin lists itself. */
+  readonly serverPaging?: boolean;
+}
+
+export function createPlatformAdminSource(
+  rest: BetNgRestClient,
+  session: SessionStore<AdminSession>,
+  options: PlatformAdminOptions = {},
+): AdminDataSource {
   const run = guarded(session);
   const own = new Set(["login", "logout", "session"]);
   const wrapped = Object.fromEntries(
@@ -128,29 +137,42 @@ export function createPlatformAdminSource(rest: BetNgRestClient, session: Sessio
       .map(([name, method]) => [name, (...args: unknown[]) => run(() => (method as (...a: unknown[]) => Promise<unknown>)(...args))]),
   ) as unknown as Omit<AdminDataSource, "session" | "login" | "logout" | "subscribe">;
 
-  /** There is no cross-shop cashier route yet, so that one list is gathered per shop. */
-  const queryList: AdminDataSource["queryList"] = async (resource, query = {}) => {
-    if (resource !== "cashiers") return run(() => rest.admin.queryList(resource, query));
+  /*
+   * The platform's admin lists answer every row and refuse paging keys, so
+   * until it pages them (`serverPaging`), a list is read through its own
+   * route with the filters that route takes and paged here.
+   */
+  const unpaged = async (resource: AdminListResource, query: AdminListQuery): Promise<readonly object[]> => {
+    const filters = query.filters ?? {};
 
-    try {
-      return await run(() => rest.admin.queryList(resource, query));
-    } catch (cause) {
-      if (!(cause instanceof DataSourceError) || cause.code !== "NOT_FOUND") throw cause;
+    switch (resource) {
+      case "users":
+        return rest.admin.listCustomers(query.search);
+      case "shops":
+        return rest.admin.listShops();
+      case "cashiers": {
+        const shops = await rest.admin.listShops();
+
+        return (await Promise.all(shops.map((shop) => rest.admin.listCashiers(shop.id)))).flat();
+      }
+      case "teams":
+        return rest.admin.listTeams(filters["leagueId"]);
+      case "fixtures":
+        return rest.admin.listFixtures(filters["leagueId"] === undefined ? {} : { leagueId: filters["leagueId"] });
+      case "settlements":
+        return rest.admin.listSettlements(filters["status"]);
+      case "simulations":
+        return rest.admin.listSimulations(filters["status"]);
     }
+  };
 
-    const shops = await run(() => rest.admin.listShops());
-    const all = (await Promise.all(shops.map((shop) => run(() => rest.admin.listCashiers(shop.id))))).flat();
-    const needle = query.search?.trim().toLowerCase() ?? "";
-    const filters = Object.entries(query.filters ?? {}).filter(([, value]) => value !== undefined && value !== "");
-    const rows = all.filter(
-      (row) =>
-        (needle === "" || Object.values(row).join(" ").toLowerCase().includes(needle)) &&
-        filters.every(([key, value]) => !(key in row) || String((row as Record<string, unknown>)[key]) === value),
-    );
-    const page = query.page ?? 1;
-    const pageSize = query.pageSize ?? 25;
+  const queryList: AdminDataSource["queryList"] = async (resource, query = {}) => {
+    if (options.serverPaging === true) return run(() => rest.admin.queryList(resource, query));
 
-    return { items: rows.slice((page - 1) * pageSize, page * pageSize), page, pageSize, total: rows.length } as never;
+    const rows = await run(() => unpaged(resource, query));
+    const { search: _search, ...local } = query;
+
+    return pageRows(rows, resource === "users" ? local : query) as never;
   };
 
   return {

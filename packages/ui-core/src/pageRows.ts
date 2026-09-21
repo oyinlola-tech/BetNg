@@ -23,7 +23,7 @@ function compare(a: unknown, b: unknown): number {
   return text(a).localeCompare(text(b), undefined, { numeric: true });
 }
 
-/** What the platform does to a list before answering: search, filter, sort, then cut the page. */
+/** What a server does to a list before answering: search, filter, sort, then cut the page. */
 export function pageRows<T extends object>(rows: readonly T[], query: AdminListQuery): PagedRows<T> {
   const needle = query.search?.trim().toLowerCase() ?? "";
   const filters = Object.entries(query.filters ?? {}).filter(([, value]) => value !== undefined && value !== "");

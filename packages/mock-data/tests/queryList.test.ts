@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createMockAdminSource } from "../src/admin/index.js";
-import { pageRows } from "../src/admin/queryList.js";
+import { pageRows } from "@betng/ui-core";
 import { MockPlatform } from "../src/engine.js";
 
 const platform = new MockPlatform({ latencyMs: 0 });

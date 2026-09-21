@@ -16,14 +16,13 @@ import type {
   ShopId,
   TeamRatings,
 } from "@betng/contracts";
-import { DataSourceError, createSessionStore, toLocalDateKey, type AdminDataSource, type SessionStorage, type SessionStore } from "@betng/ui-core";
+import { DataSourceError, createSessionStore, pageRows, toLocalDateKey, type AdminDataSource, type SessionStorage, type SessionStore } from "@betng/ui-core";
 import { COMPETITIONS } from "../clubs.js";
 import type { KeyValueStorage, MockPlatform } from "../engine.js";
 import { hash, rng, uuidFrom } from "../prng.js";
 import { statusAt } from "../season.js";
 import { fixtureWindow, ledgerEntries, marketOddsFor, reportDays, riskOverview, serviceHealth, settlementsFor, toAdminFixture, toSimulationRun, tradingMarkets, type MatchOverride, type Overrides } from "./derive.js";
 import { accountAnalysis, analyticsBreakdown, analyticsOverview, analyticsSessions, commissionFor, exposureBoard, operatorPeriods, operatorSummary, type Directory } from "./insight.js";
-import { pageRows } from "./queryList.js";
 import { ADMINS, ADMIN_PASSWORD, ADMIN_TOTP, DEFAULT_SETTINGS, ratingsFor, seedCashiers, seedCustomers, seedShops } from "./seed.js";
 
 export interface MockAdminOptions {
