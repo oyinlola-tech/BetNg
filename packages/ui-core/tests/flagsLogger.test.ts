@@ -32,6 +32,17 @@ describe("logger", () => {
     });
   });
 
+  it("keeps an error code and a pinned flag readable while hiding a PIN and a one-time code", () => {
+    expect(redact({ code: "NOT_FOUND", pinned: true, pin: "1234", cashierPin: "9", otp: "1", verificationCode: "2" })).toEqual({
+      code: "NOT_FOUND",
+      pinned: true,
+      pin: "[redacted]",
+      cashierPin: "[redacted]",
+      otp: "[redacted]",
+      verificationCode: "[redacted]",
+    });
+  });
+
   it("reduces an error to its name and message", () => {
     expect(redact({ cause: new TypeError("boom") })).toEqual({ cause: { name: "TypeError", message: "boom" } });
   });

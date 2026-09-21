@@ -97,4 +97,15 @@ describe("watchMatch", () => {
     expect(controller.getSnapshot().match?.events).toHaveLength(1);
     controller.stop();
   });
+
+  it("prefers the clock the platform sends with an event", async () => {
+    const { source, handlers } = harness();
+    const controller = watchMatch(source, "m1" as never);
+
+    await settle();
+    handlers().onEvent({ ...event(3, "CORNER", 61), clock: { period: "SECOND_HALF", minute: 62, asOf: T, minuteLengthMs: 2000 } });
+
+    expect(controller.getSnapshot().match?.clock).toEqual({ period: "SECOND_HALF", minute: 62, asOf: T, minuteLengthMs: 2000 });
+    controller.stop();
+  });
 });

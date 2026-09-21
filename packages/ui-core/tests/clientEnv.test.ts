@@ -2,8 +2,9 @@ import { describe, expect, it } from "vitest";
 import { readClientEnv } from "../src/runtime/clientEnv.js";
 
 describe("client environment", () => {
-  it("defaults to the mock in development", () => {
-    expect(readClientEnv({})).toMatchObject({ appEnv: "development", dataSource: "mock", apiUrl: "http://localhost:3000", problems: [] });
+  it("defaults to the platform, and honours the mock only as an explicit development or test opt-in", () => {
+    expect(readClientEnv({})).toMatchObject({ appEnv: "development", dataSource: "platform", apiUrl: "http://localhost:3000", problems: [] });
+    expect(readClientEnv({ VITE_DATA_SOURCE: "mock" }).dataSource).toBe("mock");
   });
 
   it("pins a production build to the platform whatever was asked", () => {

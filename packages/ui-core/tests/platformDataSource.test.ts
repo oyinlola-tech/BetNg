@@ -3,7 +3,7 @@ import { BetNgApiError, type BetNgRestClient, type RealtimeClient, type Realtime
 import { createPlatformDataSource } from "../src/adapters/platformDataSource.js";
 import type { MatchSignal } from "../src/dataSource.type.js";
 import type { MatchEventView, SlipSelection } from "../src/types/index.js";
-import * as wire from "../../contracts/tests/fixtures/wire.js";
+import * as wire from "../../contracts/tests/wireFixtures.js";
 
 const T = "2026-09-21T12:00:00.000Z";
 
@@ -179,5 +179,63 @@ describe("platform data source", () => {
 
     expect(page).toMatchObject({ page: 2, pageSize: 10, total: 25 });
     expect(page.items.map((t) => t.id)).toEqual(items.slice(10, 20).map((t) => t.id));
+  });
+
+  it("re-reads account data on a timer until the platform serves an account channel", () => {
+    vi.useFakeTimers();
+
+    const timed = fakeRealtime();
+    const listener = vi.fn();
+    const stop = createPlatformDataSource({ rest: fakeRest({}), realtime: timed.client, userId: wire.IDS.user, accountRefreshMs: 1_000 }).subscribeAccount(listener);
+
+    vi.advanceTimersByTime(3_100);
+    stop();
+    vi.advanceTimersByTime(3_000);
+
+    expect(listener).toHaveBeenCalledTimes(3);
+    expect(timed.channels).toEqual([]);
+
+    const pushed = fakeRealtime();
+
+    createPlatformDataSource({ rest: fakeRest({}), realtime: pushed.client, userId: wire.IDS.user, accountChannel: true }).subscribeAccount(() => undefined);
+
+    expect(pushed.channels).toEqual([`user:${wire.IDS.user}`]);
+    vi.useRealTimers();
+  });
+
+  it("paces a clock from the platform's configured timing when the clock has no pace of its own", async () => {
+    const { minuteLengthMs: _omitted, ...bare } = wire.clockResponse;
+    const source = createPlatformDataSource({
+      rest: fakeRest({
+        getPublicConfig: async () => ({ ...wire.configResponse, timing: { secondsPerMinute: 2 } }) as never,
+        getMatch: async () => ({ ...wire.matchResponse, clock: bare }) as never,
+      }),
+      realtime: fakeRealtime().client,
+      userId: wire.IDS.user,
+    });
+
+    expect((await source.getMatch(wire.IDS.match as never)).clock?.minuteLengthMs).toBeUndefined();
+
+    await source.getPlatformConfig();
+
+    expect((await source.getMatch(wire.IDS.match as never)).clock?.minuteLengthMs).toBe(2000);
+  });
+
+  it("pushes list filters down and leaves out a row it cannot resolve instead of failing the list", async () => {
+    const orphan = { ...wire.matchResponse, id: "00000000-0000-4000-8000-000000000099", fixtureId: "00000000-0000-4000-8000-000000000098" };
+    const listMatches = vi.fn(async () => [{ ...wire.matchResponse, clock: { ...wire.clockResponse, period: "HALF_TIME" } }, orphan] as never);
+    const source = createPlatformDataSource({ rest: fakeRest({ listMatches }), realtime: fakeRealtime().client, userId: wire.IDS.user });
+    const rows = await source.listMatches({ phases: ["LIVE", "HALFTIME"], leagueId: wire.IDS.league as never, matchday: 4 });
+
+    expect(listMatches).toHaveBeenCalledTimes(1);
+    expect(listMatches).toHaveBeenCalledWith({ leagueId: wire.IDS.league, matchday: 4, limit: 500, status: "IN_PLAY" });
+    expect(rows.map((m) => [m.id, m.phase])).toEqual([[wire.IDS.match, "HALFTIME"]]);
+  });
+
+  it("describes a transaction type the contract does not list yet instead of leaving it blank", async () => {
+    const grant = { ...wire.transactionResponse, type: "WELCOME_GRANT", amount: 100_000 };
+    const source = createPlatformDataSource({ rest: fakeRest({ listTransactions: async () => [grant] as never }), realtime: fakeRealtime().client, userId: wire.IDS.user });
+
+    expect((await source.listTransactions())[0]?.description).toBe("Welcome grant");
   });
 });

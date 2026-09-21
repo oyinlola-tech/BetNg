@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { COMPETITIONS } from "../src/clubs.js";
 import { marketsFor } from "../src/markets.js";
 import { currentRound, fixturesForRound, findFixture, statusAt } from "../src/season.js";
-import { scriptFor } from "../src/simulate.js";
+import { scoringSide, scriptFor, statsAt } from "../src/simulate.js";
 
 const NOW = Date.UTC(2026, 8, 21, 10, 0, 0);
 
@@ -41,13 +41,43 @@ describe("virtual season", () => {
     for (const competition of COMPETITIONS) {
       for (const fixture of fixturesForRound(competition, 3)) {
         const script = scriptFor(fixture);
-        const goals = script.events.filter((e) => e.kind === "GOAL");
-        const home = goals.filter((e) => e.side === "HOME").length;
-        const away = goals.filter((e) => e.side === "AWAY").length;
+        const home = script.events.filter((e) => scoringSide(e) === "HOME").length;
+        const away = script.events.filter((e) => scoringSide(e) === "AWAY").length;
 
         expect({ home, away }).toEqual(script.finalScore);
+        expect(script.events.at(-1)?.score).toEqual(script.finalScore);
       }
     }
+  });
+
+  it("scripts penalties, own goals, offsides and fouls without disturbing the score or the order", () => {
+    const kinds = new Set<string>();
+
+    for (const competition of COMPETITIONS) {
+      for (let round = 0; round < 12; round += 1) {
+        for (const fixture of fixturesForRound(competition, round)) {
+          const script = scriptFor(fixture);
+          const releases = script.events.map((e) => e.releaseSeconds);
+          const stats = statsAt(script, script.events, 90, fixture.matchId);
+
+          for (const event of script.events) kinds.add(event.kind);
+
+          expect(releases).toEqual([...releases].sort((a, b) => a - b));
+          expect(script.events[0]?.kind).toBe("KICK_OFF");
+          expect(script.events.at(-1)?.kind).toBe("FULL_TIME");
+          expect(script.events.filter((e) => e.kind === "OFFSIDE" && e.side === "HOME")).toHaveLength(stats.home.offsides);
+          expect(script.events.filter((e) => e.kind === "FOUL" && e.side === "AWAY").length).toBeLessThanOrEqual(stats.away.fouls);
+
+          for (const own of script.events.filter((e) => e.kind === "OWN_GOAL")) {
+            const conceding = own.side === "HOME" ? fixture.home : fixture.away;
+
+            expect(conceding.squad.some((p) => p.name === own.player)).toBe(true);
+          }
+        }
+      }
+    }
+
+    for (const kind of ["PENALTY_GOAL", "OWN_GOAL", "PENALTY_MISSED", "VAR", "OFFSIDE", "FOUL"]) expect(kinds, kind).toContain(kind);
   });
 
   it("prices every open market with a bookmaker margin, never a give-away", () => {

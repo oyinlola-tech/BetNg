@@ -142,6 +142,69 @@ describe("mock admin", () => {
     expect(JSON.stringify(entry)).not.toMatch(/betng-admin|password"\s*:\s*"[^•*]/i);
   });
 
+  it("changes risk limits only with the right role, a reason and sane values, and audits it", async () => {
+    const admin = createMockAdminSource({ platform, latencyMs: 0 });
+
+    await admin.login({ email: "risk@betng.test", password: "betng-admin" });
+    await expect(admin.updateRiskLimits({ maxStakePerBet: 1_000_000, reason: "Tighten stakes" })).rejects.toMatchObject({ code: "FORBIDDEN" });
+
+    await admin.login({ email: "ops@betng.test", password: "betng-admin", code: "246810" });
+
+    const before = await admin.getRiskLimits();
+
+    await expect(admin.updateRiskLimits({ maxStakePerBet: 1_000_000, reason: "no" })).rejects.toMatchObject({ code: "VALIDATION" });
+    await expect(admin.updateRiskLimits({ maxStakePerBet: 1, reason: "Below the minimum" })).rejects.toMatchObject({ code: "VALIDATION" });
+
+    const after = await admin.updateRiskLimits({ maxStakePerBet: 1_000_000, reason: "Tighten stakes" });
+
+    expect(after).toMatchObject({ version: before.version + 1, maxStakePerBet: 1_000_000, minStake: before.minStake });
+    expect((await admin.listAuditLog({ action: "risk.update_limits" })).items[0]?.resource).toBe("risk");
+  });
+
+  it("derives exposure, analytics, operator periods and commission that agree with themselves", async () => {
+    const admin = createMockAdminSource({ platform, latencyMs: 0 });
+
+    await admin.login({ email: "ops@betng.test", password: "betng-admin", code: "246810" });
+
+    for (const match of await admin.listExposure()) {
+      expect(match.totalStake).toBe(match.markets.reduce((acc, m) => acc + m.totalStake, 0));
+      expect(match.worstCaseExposure).toBe(match.markets.reduce((acc, m) => acc + m.worstCaseExposure, 0));
+    }
+
+    const overview = await admin.getAnalyticsOverview();
+
+    expect(overview.settledBets + overview.pendingBets).toBe(overview.acceptedBets + overview.limitedBets);
+    expect(overview.operatorResult).toBe(overview.settledStake - overview.totalPayout);
+    expect((await admin.getAnalyticsBreakdown({ by: "league" })).items).toHaveLength(4);
+    expect((await admin.listAnalyticsSessions({ kind: "DAY" })).length).toBeGreaterThan(0);
+
+    const [shop] = await admin.listShops();
+
+    if (shop === undefined) throw new Error("the seed should include shops");
+
+    await expect(admin.getAccountAnalysis("shops", shop.id)).resolves.toMatchObject({ subjectKind: "SHOP", subjectId: shop.id });
+    await expect(admin.getAccountAnalysis("accounts", shop.id)).rejects.toMatchObject({ code: "NOT_FOUND" });
+
+    const periodsBefore = await admin.listOperatorPeriods();
+    const closed = await admin.closeOperatorPeriod("End of shift reconciliation");
+    const periodsAfter = await admin.listOperatorPeriods();
+
+    expect(periodsBefore[0]?.status).toBe("OPEN");
+    expect(closed.period).toMatchObject({ id: periodsBefore[0]?.id, status: "CLOSED" });
+    expect(closed.operatorResult).toBe(closed.grossStakes - closed.grossPayouts);
+    expect(periodsAfter).toHaveLength(periodsBefore.length + 1);
+    expect(periodsAfter.filter((p) => p.status === "OPEN")).toHaveLength(1);
+    expect(new Set(periodsAfter.map((p) => p.id)).size).toBe(periodsAfter.length);
+
+    const updated = await admin.updateCommissionConfig({ shopId: shop.id, shopSharePercent: 35, reason: "Flagship shop terms" });
+    const commission = await admin.listCommission(closed.period.id);
+
+    expect(updated.shopSharePercent).toBe(35);
+    expect((await admin.getCommissionConfig()).shops).toContainEqual(updated);
+    expect(commission.find((c) => c.shopId === shop.id)?.shopSharePercent).toBe(35);
+    for (const row of commission) expect(row.shopShareAmount + row.platformShareAmount).toBe(row.grossOperatorResult);
+  });
+
   it("exposes no operation that could decide a match", () => {
     const admin = createMockAdminSource({ platform, latencyMs: 0 });
 
