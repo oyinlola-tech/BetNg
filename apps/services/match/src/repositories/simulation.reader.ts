@@ -1,5 +1,4 @@
 import type { MatchEventType, MatchSide } from "@betng/contracts";
-import { Prisma } from "../generated/prisma/client.js";
 import type { PrismaClient } from "../generated/prisma/client.js";
 import type { SimulationEventRow, SimulationReader, SimulationResultRow } from "../interfaces/index.js";
 import { orWhenTableMissing } from "./crossSchema.reader.js";
@@ -34,27 +33,19 @@ function toEvent(row: EventColumns): SimulationEventRow {
   };
 }
 
-function uuidList(ids: readonly string[]): Prisma.Sql {
-  return Prisma.join(ids.map((id) => Prisma.sql`${id}::uuid`));
-}
-
 export function createSimulationReader(prisma: PrismaClient): SimulationReader {
   return {
     hasResult: async (matchId) =>
       orWhenTableMissing(async () => {
-        const rows = await prisma.$queryRaw<{ found: number }[]>(
-          Prisma.sql`SELECT 1 AS found FROM simulation.match_results WHERE match_id = ${matchId}::uuid LIMIT 1`,
-        );
+        const rows = await prisma.$queryRaw<{ found: number }[]>`SELECT 1 AS found FROM simulation.match_results WHERE match_id = ${matchId}::uuid LIMIT 1`;
 
         return rows.length > 0;
       }, false),
 
     findResult: async (matchId) =>
       orWhenTableMissing<SimulationResultRow | undefined>(async () => {
-        const rows = await prisma.$queryRaw<{ match_id: string; home_goals: number; away_goals: number; stats: unknown }[]>(
-          Prisma.sql`SELECT match_id::text AS match_id, home_goals::int AS home_goals, away_goals::int AS away_goals, stats
-                     FROM simulation.match_results WHERE match_id = ${matchId}::uuid LIMIT 1`,
-        );
+        const rows = await prisma.$queryRaw<{ match_id: string; home_goals: number; away_goals: number; stats: unknown }[]>`SELECT match_id::text AS match_id, home_goals::int AS home_goals, away_goals::int AS away_goals, stats
+                     FROM simulation.match_results WHERE match_id = ${matchId}::uuid LIMIT 1`;
         const row = rows[0];
 
         return row === undefined
@@ -65,25 +56,21 @@ export function createSimulationReader(prisma: PrismaClient): SimulationReader {
     listEvents: async (matchId, range) =>
       orWhenTableMissing(async () => {
         const upTo = range.upTo ?? 2_147_483_647;
-        const rows = await prisma.$queryRaw<EventColumns[]>(
-          Prisma.sql`SELECT id::text AS id, match_id::text AS match_id, sequence::int AS sequence, minute::int AS minute,
+        const rows = await prisma.$queryRaw<EventColumns[]>`SELECT id::text AS id, match_id::text AS match_id, sequence::int AS sequence, minute::int AS minute,
                             type::text AS type, side::text AS side, player, secondary_player,
                             score_home::int AS score_home, score_away::int AS score_away, description
                      FROM simulation.match_events
                      WHERE match_id = ${matchId}::uuid AND sequence > ${range.after} AND sequence <= ${upTo}
                      ORDER BY sequence ASC
-                     LIMIT ${range.limit}`,
-        );
+                     LIMIT ${range.limit}`;
 
         return rows.map(toEvent);
       }, []),
 
     countEventsAfter: async (matchId, sequence) =>
       orWhenTableMissing(async () => {
-        const rows = await prisma.$queryRaw<{ total: number }[]>(
-          Prisma.sql`SELECT count(*)::int AS total FROM simulation.match_events
-                     WHERE match_id = ${matchId}::uuid AND sequence > ${sequence}`,
-        );
+        const rows = await prisma.$queryRaw<{ total: number }[]>`SELECT count(*)::int AS total FROM simulation.match_events
+                     WHERE match_id = ${matchId}::uuid AND sequence > ${sequence}`;
 
         return rows[0]?.total ?? 0;
       }, 0),
@@ -91,8 +78,7 @@ export function createSimulationReader(prisma: PrismaClient): SimulationReader {
     listScorers: async (leagueId, season, limit) =>
       orWhenTableMissing(async () => {
         // `e.sequence <= m.revealed_sequence` is the secrecy rule: a goal counts once it has been shown.
-        const rows = await prisma.$queryRaw<{ player: string; team_id: string; goals: number; assists: number }[]>(
-          Prisma.sql`WITH revealed AS (
+        const rows = await prisma.$queryRaw<{ player: string; team_id: string; goals: number; assists: number }[]>`WITH revealed AS (
                        SELECT e.player, e.secondary_player,
                               CASE WHEN e.side::text = 'HOME' THEN f.home_team_id ELSE f.away_team_id END AS team_id
                        FROM simulation.match_events e
@@ -112,8 +98,7 @@ export function createSimulationReader(prisma: PrismaClient): SimulationReader {
                      GROUP BY player, team_id
                      HAVING sum(goals) > 0
                      ORDER BY goals DESC, assists DESC, player ASC
-                     LIMIT ${limit}`,
-        );
+                     LIMIT ${limit}`;
 
         return rows.map((row) => ({ player: row.player, teamId: row.team_id, goals: row.goals, assists: row.assists }));
       }, []),
@@ -122,9 +107,7 @@ export function createSimulationReader(prisma: PrismaClient): SimulationReader {
       if (matchIds.length === 0) return [];
 
       return orWhenTableMissing(async () => {
-        const rows = await prisma.$queryRaw<{ match_id: string }[]>(
-          Prisma.sql`SELECT match_id::text AS match_id FROM simulation.match_results WHERE match_id IN (${uuidList(matchIds)})`,
-        );
+        const rows = await prisma.$queryRaw<{ match_id: string }[]>`SELECT match_id::text AS match_id FROM simulation.match_results WHERE match_id = ANY(${[...matchIds]}::uuid[])`;
 
         return rows.map((row) => row.match_id);
       }, []);

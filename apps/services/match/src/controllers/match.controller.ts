@@ -35,16 +35,16 @@ import {
 } from "../validators/index.js";
 
 export interface MatchController {
-  listLeagues(): Promise<ItemsDto<League>>;
-  listTeams(context: HttpRouterContext): Promise<ItemsDto<TeamDto>>;
-  listFixtures(context: HttpRouterContext): Promise<ItemsDto<Fixture>>;
-  listMatches(context: HttpRouterContext): Promise<ItemsDto<Match>>;
-  getMatch(context: HttpRouterContext): Promise<Match>;
-  listMatchEvents(context: HttpRouterContext): Promise<ItemsDto<MatchEvent>>;
-  getMatchStats(context: HttpRouterContext): Promise<MatchStats>;
-  listResults(context: HttpRouterContext): Promise<ItemsDto<CompletedMatch>>;
-  getStandings(context: HttpRouterContext): Promise<Standings>;
-  listScorers(context: HttpRouterContext): Promise<ItemsDto<TopScorer>>;
+  readonly listLeagues: () => Promise<ItemsDto<League>>;
+  readonly listTeams: (context: HttpRouterContext) => Promise<ItemsDto<TeamDto>>;
+  readonly listFixtures: (context: HttpRouterContext) => Promise<ItemsDto<Fixture>>;
+  readonly listMatches: (context: HttpRouterContext) => Promise<ItemsDto<Match>>;
+  readonly getMatch: (context: HttpRouterContext) => Promise<Match>;
+  readonly listMatchEvents: (context: HttpRouterContext) => Promise<ItemsDto<MatchEvent>>;
+  readonly getMatchStats: (context: HttpRouterContext) => Promise<MatchStats>;
+  readonly listResults: (context: HttpRouterContext) => Promise<ItemsDto<CompletedMatch>>;
+  readonly getStandings: (context: HttpRouterContext) => Promise<Standings>;
+  readonly listScorers: (context: HttpRouterContext) => Promise<ItemsDto<TopScorer>>;
 }
 
 /** A path id that is not a UUID names nothing, so it is answered as an unknown resource. */

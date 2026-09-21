@@ -1,4 +1,3 @@
-import { Prisma } from "../generated/prisma/client.js";
 import type { PrismaClient } from "../generated/prisma/client.js";
 import type { BettingReader } from "../interfaces/index.js";
 import { orWhenTableMissing } from "./crossSchema.reader.js";
@@ -12,12 +11,10 @@ export function createBettingReader(prisma: PrismaClient): BettingReader {
     matchesWithBets: async (matchIds) => {
       if (matchIds.length === 0) return [];
 
-      const ids = Prisma.join(matchIds.map((id) => Prisma.sql`${id}::uuid`));
-
       return orWhenTableMissing(async () => {
-        const rows = await prisma.$queryRaw<{ match_id: string }[]>(
-          Prisma.sql`SELECT DISTINCT match_id::text AS match_id FROM betting.bet_selections WHERE match_id IN (${ids})`,
-        );
+        const rows = await prisma.$queryRaw<{ match_id: string }[]>`
+          SELECT DISTINCT match_id::text AS match_id FROM betting.bet_selections
+          WHERE match_id = ANY(${[...matchIds]}::uuid[])`;
 
         return rows.map((row) => row.match_id);
       }, []);

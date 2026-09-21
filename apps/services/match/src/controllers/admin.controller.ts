@@ -29,15 +29,15 @@ import {
 import { idParam } from "./match.controller.js";
 
 export interface AdminController {
-  listLeagues(context: HttpRouterContext): Promise<ItemsDto<League>>;
-  createLeague(context: HttpRouterContext): Promise<League>;
-  listTeams(context: HttpRouterContext): Promise<ItemsDto<AdminTeam>>;
-  createTeam(context: HttpRouterContext): Promise<AdminTeam>;
-  updateTeam(context: HttpRouterContext): Promise<AdminTeam>;
-  listFixtures(context: HttpRouterContext): Promise<ItemsDto<AdminFixture>>;
-  createFixture(context: HttpRouterContext): Promise<AdminFixture>;
-  getMatch(context: HttpRouterContext): Promise<AdminMatchDto>;
-  performMatchAction(context: HttpRouterContext): Promise<AdminMatchDto>;
+  readonly listLeagues: (context: HttpRouterContext) => Promise<ItemsDto<League>>;
+  readonly createLeague: (context: HttpRouterContext) => Promise<League>;
+  readonly listTeams: (context: HttpRouterContext) => Promise<ItemsDto<AdminTeam>>;
+  readonly createTeam: (context: HttpRouterContext) => Promise<AdminTeam>;
+  readonly updateTeam: (context: HttpRouterContext) => Promise<AdminTeam>;
+  readonly listFixtures: (context: HttpRouterContext) => Promise<ItemsDto<AdminFixture>>;
+  readonly createFixture: (context: HttpRouterContext) => Promise<AdminFixture>;
+  readonly getMatch: (context: HttpRouterContext) => Promise<AdminMatchDto>;
+  readonly performMatchAction: (context: HttpRouterContext) => Promise<AdminMatchDto>;
 }
 
 /** The permission is re-checked here: the gateway's route table is not this service's only line of defence. */

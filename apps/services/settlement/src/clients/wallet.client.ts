@@ -2,11 +2,7 @@ import { createRpcClient } from "@betng/service-kit";
 import type { ServiceEndpoint } from "@betng/service-kit";
 import { createRPCMetadata } from "@zudojs/rpc";
 import type { RPCClient } from "@zudojs/rpc";
-import type {
-  WalletCreditRequest,
-  WalletCreditResult,
-  WalletPeer,
-} from "../interfaces/index.js";
+import type { WalletCreditRequest, WalletPeer } from "../interfaces/index.js";
 
 export const WALLET_PROCEDURE = Object.freeze({
   CREDIT: "wallet.credit",

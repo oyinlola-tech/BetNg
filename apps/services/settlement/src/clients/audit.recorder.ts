@@ -1,6 +1,6 @@
 import type { Logger } from "@betng/service-kit";
 import { AuditUnavailableError } from "../errors/index.js";
-import type { AuditEntry, AuditRecorder, IdentityPeer } from "../interfaces/index.js";
+import type { AuditRecorder, IdentityPeer } from "../interfaces/index.js";
 
 function describe(error: unknown): string {
   return error instanceof Error ? error.message : String(error);

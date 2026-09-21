@@ -8,8 +8,7 @@
 
 import type { MatchLifecycle } from "@betng/contracts";
 import { LIFECYCLE_STATUS } from "../constants/index.js";
-import { Prisma } from "../generated/prisma/client.js";
-import type { PrismaClient } from "../generated/prisma/client.js";
+import type { Prisma, PrismaClient } from "../generated/prisma/client.js";
 import { MATCH_INCLUDE } from "../interfaces/index.js";
 import type { LifecycleRepository } from "../interfaces/index.js";
 
@@ -121,9 +120,8 @@ export function createLifecycleRepository(prisma: PrismaClient): LifecycleReposi
     voidMatch: async (matchId, actor, reason, at) =>
       prisma.$transaction(async (tx) => {
         // The row lock makes "read the state, then leave it" atomic against a scheduler transition.
-        const rows = await tx.$queryRaw<{ lifecycle: string }[]>(
-          Prisma.sql`SELECT lifecycle FROM "match"."matches" WHERE id = ${matchId}::uuid FOR UPDATE`,
-        );
+        const rows = await tx.$queryRaw<{ lifecycle: string }[]>`
+          SELECT lifecycle FROM "match"."matches" WHERE id = ${matchId}::uuid FOR UPDATE`;
         const from = rows[0]?.lifecycle as MatchLifecycle | undefined;
 
         if (from === undefined || UNVOIDABLE.includes(from)) return undefined;

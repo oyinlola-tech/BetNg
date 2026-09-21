@@ -52,7 +52,10 @@
     "verify": "bash scripts/verify.sh"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@playwright/test": "^1.63.0",
     "@types/node": "^26.6.2",
+    "jsdom": "^30.1.0",
     "prettier": "^3.9.8",
     "tsx": "^4.23.15",
     "typescript": "7.0.2",
