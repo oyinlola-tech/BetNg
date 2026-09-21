@@ -53,7 +53,8 @@
     "test:unit": "vitest run --project unit",
     "test:watch": "vitest",
     "typecheck": "pnpm -r run typecheck",
-    "verify": "bash scripts/verify.sh"
+    "verify": "bash scripts/verify.sh",
+    "verify:platform": "bash scripts/verify-platform.sh"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",

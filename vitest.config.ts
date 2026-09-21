@@ -23,7 +23,7 @@ export default defineConfig({
             "apps/{web,shop,admin,tv}/tests/**/*.test.{ts,tsx}",
           ],
           environment: "jsdom",
-          setupFiles: ["packages/ui-web/vitest.setup.ts"],
+          setupFiles: ["packages/ui-web/tests/support/setup.ts"],
         },
       },
     ],

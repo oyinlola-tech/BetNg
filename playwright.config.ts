@@ -23,8 +23,9 @@ export default defineConfig({
   retries: process.env["CI"] === undefined ? 0 : 1,
   workers: 2,
   reporter: [["list"], ["html", { open: "never" }]],
-  timeout: 45_000,
-  expect: { timeout: 10_000 },
+  // The dev servers compile each lazy route on first request, so the first visit to a page is slow.
+  timeout: 90_000,
+  expect: { timeout: 25_000 },
   use: {
     trace: "retain-on-failure",
     screenshot: "only-on-failure",

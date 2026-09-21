@@ -21,7 +21,7 @@ export default tseslint.config(
       parserOptions: {
         projectService: {
           // Test files sit outside each package's build tsconfig.
-          allowDefaultProject: ["packages/*/tests/*.ts", "apps/*/tests/*.ts", "apps/services/*/tests/*.ts", "apps/services/*/prisma.config.ts", "vitest.config.ts"],
+          allowDefaultProject: ["packages/*/tests/*.ts", "apps/*/tests/*.ts", "apps/services/*/tests/*.ts", "apps/services/*/prisma.config.ts", "vitest.config.ts", "playwright.config.ts"],
           maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING: 64,
         },
         tsconfigRootDir: import.meta.dirname,
@@ -33,6 +33,8 @@ export default tseslint.config(
         "error",
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
       ],
+      // Storage and parsing fallbacks swallow by design; the fallback value follows the block.
+      "no-empty": ["error", { allowEmptyCatch: true }],
     },
   },
   {
@@ -45,7 +47,7 @@ export default tseslint.config(
   },
   {
     // Test doubles are async to match the interfaces they stand in for, and are passed around unbound.
-    files: ["**/tests/**/*.ts"],
+    files: ["**/tests/**/*.{ts,tsx}", "e2e/**/*.ts"],
     rules: {
       "@typescript-eslint/require-await": "off",
       "@typescript-eslint/unbound-method": "off",
