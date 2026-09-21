@@ -24,7 +24,7 @@ Source: `packages/design-tokens/src/color.ts` → `--bn-*` CSS variables → Tai
 | `background` | warm paper `#F5F3EE` | near black `#0A0C10` | page |
 | `surface` / `surface-elevated` | `#FDFCFA` / `#FFFFFF` | `#12151B` / `#191D25` | cards, panels / popovers, dialogs |
 | `surface-sunken` / `surface-hover` | `#ECE9E2` / `#F7F5F0` | `#0D1015` / `#1A1F28` | wells, table heads / hover |
-| `text-primary` / `secondary` / `muted` | `#14130F` / `#4B4840` / `#726D62` | `#F2F4F7` / `#B2BAC6` / `#7B8595` | three levels only |
+| `text-primary` / `secondary` / `muted` | `#14130F` / `#4B4840` / `#696459` | `#F2F4F7` / `#B2BAC6` / `#8690A0` | three levels only |
 | `border` / `border-strong` | `#E3DFD6` / `#CBC5B8` | `#222732` / `#323946` | hairlines / inputs, dividers that must read |
 | `brand` | cobalt `#2457F5` | `#4C7DFF` | primary action, selection, focus, links |
 
@@ -35,6 +35,7 @@ Status colours each have a `-subtle` background partner: `success`, `warning`, `
 - `live` is reserved for in-play state. Nothing else is red-live.
 - Status is always a word or icon **plus** colour, never colour alone.
 - Status colour appears on badges, dots, left rules and icons. It is never the fill of a card, a page section or a primary button (except `danger` for destructive actions).
+- Text on a filled colour is never hard-coded white: use `text-text-on-brand`, `text-text-on-live` and `text-text-on-status`, which flip to a dark ink in the dark theme where the fills are bright. `packages/design-tokens/tests/contrast.test.ts` holds every text, status and on-fill pairing to WCAG AA in both themes.
 - Chart series use `series-1..3` only, assigned by position; status colours are never series colours.
 
 Theme: Light / Dark / System via `ThemeProvider`, persisted, applied before first paint (`data-theme` on `:root`).
