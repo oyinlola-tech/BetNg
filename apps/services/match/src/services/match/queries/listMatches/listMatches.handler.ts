@@ -6,7 +6,10 @@ import { resolveWindow } from "../../../../utils/index.js";
 import type { HandlerDependencies } from "../../match.dependencies.js";
 import type { ListMatchesQuery } from "./listMatches.query.js";
 
-export class ListMatchesHandler extends QueryHandler<ListMatchesQuery, readonly Match[]> {
+export class ListMatchesHandler extends QueryHandler<
+  ListMatchesQuery,
+  readonly Match[]
+> {
   public readonly queryType = MATCH_QUERY.LIST_MATCHES;
 
   private readonly deps: HandlerDependencies;
@@ -18,8 +21,15 @@ export class ListMatchesHandler extends QueryHandler<ListMatchesQuery, readonly 
 
   public async execute(query: ListMatchesQuery): Promise<readonly Match[]> {
     const { filter } = query;
-    const recentResults = filter.status === "COMPLETED" && filter.from === undefined && filter.to === undefined;
-    const window = resolveWindow(filter, this.deps.clock(), recentResults || filter.matchday !== undefined);
+    const recentResults =
+      filter.status === "COMPLETED" &&
+      filter.from === undefined &&
+      filter.to === undefined;
+    const window = resolveWindow(
+      filter,
+      this.deps.clock(),
+      recentResults || filter.matchday !== undefined,
+    );
     const matches = await this.deps.matches.listMatches({
       ...(filter.leagueId === undefined ? {} : { leagueId: filter.leagueId }),
       ...(filter.status === undefined ? {} : { status: filter.status }),

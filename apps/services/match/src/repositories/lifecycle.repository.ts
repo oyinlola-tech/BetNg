@@ -1,39 +1,45 @@
-/**
- * Lifecycle writes.
- *
- * Every state change is a conditional update (`WHERE lifecycle = <expected>`) committed together with its
- * `match_transitions` rows. Two workers racing for the same transition therefore cannot both win: the loser's
- * update matches no row, and it writes nothing.
- */
-
 import type { MatchLifecycle } from "@betng/contracts";
 import { LIFECYCLE_STATUS } from "../constants/index.js";
 import type { Prisma, PrismaClient } from "../generated/prisma/client.js";
 import { MATCH_INCLUDE } from "../interfaces/index.js";
 import type { LifecycleRepository } from "../interfaces/index.js";
 
-const UNVOIDABLE: readonly MatchLifecycle[] = ["SETTLEMENT_COMPLETED", "VOIDED"];
+const UNVOIDABLE: readonly MatchLifecycle[] = [
+  "SETTLEMENT_COMPLETED",
+  "VOIDED",
+];
 
 function dueNow(now: Date): Prisma.MatchWhereInput {
   return { OR: [{ nextAttemptAt: null }, { nextAttemptAt: { lte: now } }] };
 }
 
-export function createLifecycleRepository(prisma: PrismaClient): LifecycleRepository {
+export function createLifecycleRepository(
+  prisma: PrismaClient,
+): LifecycleRepository {
   return {
     listDue: async (query) =>
       prisma.match.findMany({
         where: {
           lifecycle: { in: [...query.states] },
           ...(query.ignoreLease === true ? {} : dueNow(query.now)),
-          ...(query.maxFailures === undefined ? {} : { failureCount: { lt: query.maxFailures } }),
+          ...(query.maxFailures === undefined
+            ? {}
+            : { failureCount: { lt: query.maxFailures } }),
           fixture: {
-            ...(query.kickoffBy === undefined ? {} : { kickoffAt: { lte: query.kickoffBy } }),
-            ...(query.bettingClosesBy === undefined && query.bettingClosesAfter === undefined
+            ...(query.kickoffBy === undefined
+              ? {}
+              : { kickoffAt: { lte: query.kickoffBy } }),
+            ...(query.bettingClosesBy === undefined &&
+            query.bettingClosesAfter === undefined
               ? {}
               : {
                   bettingClosesAt: {
-                    ...(query.bettingClosesBy === undefined ? {} : { lte: query.bettingClosesBy }),
-                    ...(query.bettingClosesAfter === undefined ? {} : { gt: query.bettingClosesAfter }),
+                    ...(query.bettingClosesBy === undefined
+                      ? {}
+                      : { lte: query.bettingClosesBy }),
+                    ...(query.bettingClosesAfter === undefined
+                      ? {}
+                      : { gt: query.bettingClosesAfter }),
                   },
                 }),
           },
@@ -71,7 +77,9 @@ export function createLifecycleRepository(prisma: PrismaClient): LifecycleReposi
             toState: state,
             at: input.at,
             actor: input.actor,
-            ...(input.reason === undefined ? {} : { reason: input.reason.slice(0, 240) }),
+            ...(input.reason === undefined
+              ? {}
+              : { reason: input.reason.slice(0, 240) }),
           });
           previous = state;
         }
@@ -94,7 +102,11 @@ export function createLifecycleRepository(prisma: PrismaClient): LifecycleReposi
     recordFailure: async (matchId, state, reason, nextAttemptAt) => {
       await prisma.match.updateMany({
         where: { id: matchId, lifecycle: state },
-        data: { failureReason: reason.slice(0, 240), failureCount: { increment: 1 }, nextAttemptAt },
+        data: {
+          failureReason: reason.slice(0, 240),
+          failureCount: { increment: 1 },
+          nextAttemptAt,
+        },
       });
     },
 
@@ -109,8 +121,16 @@ export function createLifecycleRepository(prisma: PrismaClient): LifecycleReposi
 
     reveal: async (matchId, fromSequence, revealed) => {
       const updated = await prisma.match.updateMany({
-        where: { id: matchId, lifecycle: "EVENTS_PUBLISHED", revealedSequence: fromSequence },
-        data: { revealedSequence: revealed.sequence, homeScore: revealed.homeScore, awayScore: revealed.awayScore },
+        where: {
+          id: matchId,
+          lifecycle: "EVENTS_PUBLISHED",
+          revealedSequence: fromSequence,
+        },
+        data: {
+          revealedSequence: revealed.sequence,
+          homeScore: revealed.homeScore,
+          awayScore: revealed.awayScore,
+        },
       });
 
       return updated.count === 1;
@@ -127,11 +147,23 @@ export function createLifecycleRepository(prisma: PrismaClient): LifecycleReposi
 
         await tx.match.update({
           where: { id: matchId },
-          data: { lifecycle: "VOIDED", status: LIFECYCLE_STATUS.VOIDED, voidedAt: at, nextAttemptAt: null },
+          data: {
+            lifecycle: "VOIDED",
+            status: LIFECYCLE_STATUS.VOIDED,
+            voidedAt: at,
+            nextAttemptAt: null,
+          },
         });
 
         await tx.matchTransition.create({
-          data: { matchId, fromState: from, toState: "VOIDED", at, actor, reason: reason.slice(0, 240) },
+          data: {
+            matchId,
+            fromState: from,
+            toState: "VOIDED",
+            at,
+            actor,
+            reason: reason.slice(0, 240),
+          },
         });
 
         return from;

@@ -5,7 +5,10 @@ import { toTeam } from "../../../../models/index.js";
 import type { HandlerDependencies } from "../../match.dependencies.js";
 import type { ListTeamsQuery } from "./listTeams.query.js";
 
-export class ListTeamsHandler extends QueryHandler<ListTeamsQuery, readonly TeamDto[]> {
+export class ListTeamsHandler extends QueryHandler<
+  ListTeamsQuery,
+  readonly TeamDto[]
+> {
   public readonly queryType = MATCH_QUERY.LIST_TEAMS;
 
   private readonly deps: HandlerDependencies;

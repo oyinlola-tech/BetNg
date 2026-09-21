@@ -4,7 +4,12 @@ import {
   matchAdminActionRequestSchema,
   updateTeamRequestSchema,
 } from "@betng/contracts";
-import type { ListMatchesQuery, ListTeamsQuery, MatchAdminActionRequest, UpdateTeamRequest } from "@betng/contracts";
+import type {
+  ListMatchesQuery,
+  ListTeamsQuery,
+  MatchAdminActionRequest,
+  UpdateTeamRequest,
+} from "@betng/contracts";
 import { validate } from "@zudojs/validation";
 import type { ValidationSchema } from "@zudojs/validation";
 import {
@@ -27,29 +32,45 @@ import type {
   SeasonQuery,
 } from "../dtos/index.js";
 
-export const listMatchesQueryValidator: ValidationSchema<ListMatchesQuery> = listMatchesQuerySchema;
+export const listMatchesQueryValidator: ValidationSchema<ListMatchesQuery> =
+  listMatchesQuerySchema;
 
-export const listTeamsQueryValidator: ValidationSchema<ListTeamsQuery> = listTeamsQuerySchema;
+export const listTeamsQueryValidator: ValidationSchema<ListTeamsQuery> =
+  listTeamsQuerySchema;
 
-export const listFixturesQueryValidator: ValidationSchema<ListFixturesQuery> = listFixturesQuerySchema;
+export const listFixturesQueryValidator: ValidationSchema<ListFixturesQuery> =
+  listFixturesQuerySchema;
 
-export const listResultsQueryValidator: ValidationSchema<ListResultsQuery> = listResultsQuerySchema;
+export const listResultsQueryValidator: ValidationSchema<ListResultsQuery> =
+  listResultsQuerySchema;
 
-export const seasonQueryValidator: ValidationSchema<SeasonQuery> = seasonQuerySchema;
+export const seasonQueryValidator: ValidationSchema<SeasonQuery> =
+  seasonQuerySchema;
 
-export const adminFixturesQueryValidator: ValidationSchema<AdminFixturesQuery> = adminFixturesQuerySchema;
+export const adminFixturesQueryValidator: ValidationSchema<AdminFixturesQuery> =
+  adminFixturesQuerySchema;
 
-export const createLeagueValidator: ValidationSchema<CreateLeagueRequest> = createLeagueRequestSchema;
+export const createLeagueValidator: ValidationSchema<CreateLeagueRequest> =
+  createLeagueRequestSchema;
 
-export const createTeamValidator: ValidationSchema<CreateTeamRequest> = createTeamRequestSchema;
+export const createTeamValidator: ValidationSchema<CreateTeamRequest> =
+  createTeamRequestSchema;
 
-export const createFixtureValidator: ValidationSchema<CreateFixtureRequest> = createFixtureRequestSchema;
+export const createFixtureValidator: ValidationSchema<CreateFixtureRequest> =
+  createFixtureRequestSchema;
 
-export const updateTeamValidator: ValidationSchema<UpdateTeamRequest> = updateTeamRequestSchema
-  .extend({ ratings: updateTeamRequestSchema.shape.ratings.unwrap().strict().optional() })
-  .strict();
+export const updateTeamValidator: ValidationSchema<UpdateTeamRequest> =
+  updateTeamRequestSchema
+    .extend({
+      ratings: updateTeamRequestSchema.shape.ratings
+        .unwrap()
+        .strict()
+        .optional(),
+    })
+    .strict();
 
-export const matchActionValidator: ValidationSchema<MatchAdminActionRequest> = matchAdminActionRequestSchema.strict();
+export const matchActionValidator: ValidationSchema<MatchAdminActionRequest> =
+  matchAdminActionRequestSchema.strict();
 
 /** A path id that is not a UUID cannot name a row, so it is answered like any other unknown id. */
 export function isUuid(value: string): boolean {

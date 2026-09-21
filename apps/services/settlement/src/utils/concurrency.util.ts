@@ -1,4 +1,3 @@
-/** Runs `task` over `items` with at most `limit` in flight. Results keep the order of `items`. */
 export async function mapWithConcurrency<TItem, TResult>(
   items: readonly TItem[],
   limit: number,

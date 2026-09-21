@@ -1,17 +1,4 @@
-/**
- * Cross-schema reads of the wallet and betting services' tables.
- *
- * Column names and types are the shared read model in `docs/architecture.md`
- * §8. Every value is a bound parameter and every identifier is written out
- * here; nothing from a request reaches the SQL text.
- *
- * "Today" is the current UTC calendar day. Sales are the stakes of shop bets
- * placed today that were not cancelled; payouts are the payouts of tickets
- * paid today; a cashier's transactions are tickets sold plus tickets paid.
- *
- * A source table that does not exist yet (the owning service has not migrated)
- * contributes zeros and is logged once. Any other failure propagates.
- */
+// Cross-schema reads of the §8 read model. "Today" is the UTC day. A table that does not exist yet yields zeros (logged once); any other failure propagates.
 
 import type { Logger } from "@betng/service-kit";
 import type { PrismaClient } from "../generated/prisma/client.js";

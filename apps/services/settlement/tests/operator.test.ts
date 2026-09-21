@@ -6,7 +6,7 @@ import type { OperatorOverview } from "../src/services/operator/queries/index.js
 import { UpdateCommissionConfigCommand } from "../src/services/commission/commands/index.js";
 import { GetCommissionConfigQuery } from "../src/services/commission/queries/index.js";
 import type { CurrentCommissionConfig } from "../src/services/commission/queries/index.js";
-import { SettleMatchCommand } from "../src/services/settlement/commands/index.js";
+import { SettleMatchCommand, VoidMatchCommand } from "../src/services/settlement/commands/index.js";
 import type { ClosedPeriodResult } from "../src/models/index.js";
 import { percentToBasisPoints } from "../src/utils/index.js";
 import { createHarness, SYSTEM } from "./support.js";
@@ -97,11 +97,7 @@ describe("operator ledger and owner protection", () => {
 
     await settle(matchA);
     await harness.app.commandBus.execute(
-      new (await import("../src/services/settlement/commands/index.js")).VoidMatchCommand({
-        matchId: voidedA,
-        reason: "Voided in test",
-        actor: SYSTEM,
-      }),
+      new VoidMatchCommand({ matchId: voidedA, reason: "Voided in test", actor: SYSTEM }),
     );
 
     const live = (await overview()).current;

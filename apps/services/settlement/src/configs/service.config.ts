@@ -11,10 +11,9 @@ export const DEFAULT_PORT = 3004;
 const RETRY_INTERVAL_MS = 5000;
 
 export interface SettlementOptions {
-  /** Whether the in-process timer re-applies effects and rolls the period over at the UTC day boundary. */
   readonly retryEnabled: boolean;
   readonly retryIntervalMs: number;
-  /** The platform-wide shop share seeded once, in basis points. Afterwards the database is authoritative. */
+  /** Seeded once; afterwards the database is authoritative. */
   readonly defaultShopShareBasisPoints: number;
 }
 

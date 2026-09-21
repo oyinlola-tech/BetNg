@@ -1,8 +1,3 @@
-/**
- * League table arithmetic: three points for a win, one for a draw; ordered by points, goal difference, goals
- * scored, then team id so the order is stable.
- */
-
 import type { FormResult } from "@betng/contracts";
 
 export interface PlayedMatch {
@@ -41,7 +36,8 @@ interface Tally {
 const FORM_LENGTH = 5;
 
 function record(tally: Tally, scored: number, conceded: number): void {
-  const outcome: FormResult = scored > conceded ? "W" : scored < conceded ? "L" : "D";
+  const outcome: FormResult =
+    scored > conceded ? "W" : scored < conceded ? "L" : "D";
 
   tally.played += 1;
   tally.goalsFor += scored;
@@ -52,14 +48,25 @@ function record(tally: Tally, scored: number, conceded: number): void {
   tally.form.push(outcome);
 }
 
-export function computeStandings(teamIds: readonly string[], matches: readonly PlayedMatch[]): readonly TableRow[] {
+export function computeStandings(
+  teamIds: readonly string[],
+  matches: readonly PlayedMatch[],
+): readonly TableRow[] {
   const tallies = new Map<string, Tally>();
   const tallyOf = (teamId: string): Tally => {
     const existing = tallies.get(teamId);
 
     if (existing !== undefined) return existing;
 
-    const created: Tally = { played: 0, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, form: [] };
+    const created: Tally = {
+      played: 0,
+      won: 0,
+      drawn: 0,
+      lost: 0,
+      goalsFor: 0,
+      goalsAgainst: 0,
+      form: [],
+    };
 
     tallies.set(teamId, created);
 
@@ -68,7 +75,9 @@ export function computeStandings(teamIds: readonly string[], matches: readonly P
 
   teamIds.forEach(tallyOf);
 
-  for (const match of [...matches].sort((a, b) => a.completedAt.getTime() - b.completedAt.getTime())) {
+  for (const match of [...matches].sort(
+    (a, b) => a.completedAt.getTime() - b.completedAt.getTime(),
+  )) {
     record(tallyOf(match.homeTeamId), match.homeGoals, match.awayGoals);
     record(tallyOf(match.awayTeamId), match.awayGoals, match.homeGoals);
   }

@@ -1,5 +1,11 @@
 export { createRestClient } from "./restClient.core.js";
-export type { BetNgRestClient, LedgerEntry, MatchWindowQuery } from "./restClient.core.js";
+export type {
+  BetNgRestClient,
+  LedgerEntry,
+  MatchWindowQuery,
+  SearchRequest,
+  TransactionPageQuery,
+} from "./restClient.core.js";
 
 export { BetNgApiError, codeForStatus, isErrorResponse } from "./restError.js";
 export type { ApiFailureKind } from "./restError.js";

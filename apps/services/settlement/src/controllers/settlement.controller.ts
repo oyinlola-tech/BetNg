@@ -1,8 +1,3 @@
-/**
- * No handler here accepts an outcome, a payout or a result: settlement is recalculated from the recorded
- * result and the odds stored on the bet, whoever asks.
- */
-
 import {
   forbidden,
   getRequestId,
@@ -44,7 +39,7 @@ export interface SettlementController {
   readonly settleMatchInternally: (context: HttpRouterContext) => Promise<MatchSettlement>;
 }
 
-/** A customer is scoped to their own bets; an admin needs `settlement:read`; nobody else may read. */
+/** The customer's id to scope to, or undefined for an admin with `settlement:read`. */
 function readerScope(context: HttpRouterContext): string | undefined {
   const actor = requireActor(context.request, { kind: ["CUSTOMER", "ADMIN"] });
 
@@ -133,7 +128,7 @@ export function createSettlementController(
     },
 
     settleMatchInternally: async (context) => {
-      // Service-to-service only; to anyone without the internal token the route does not exist.
+      // Without the internal service token the route does not exist.
       if (!isInternalRequest(context.request)) {
         throw notFound("Not found.", { code: ErrorCodes.NOT_FOUND, expose: true });
       }

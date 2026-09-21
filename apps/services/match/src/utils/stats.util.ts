@@ -1,11 +1,3 @@
-/**
- * Live match statistics.
- *
- * Goals, corners and cards are counted from the events already revealed. Possession, shots, fouls and offsides
- * have no events of their own, so they are the simulation's full-time totals scaled by how much of the match has
- * been played: exact at full time, and never below what the revealed events already imply.
- */
-
 import type { SideStats } from "@betng/contracts";
 import { z } from "@zudojs/validation";
 import type { SimulationEventRow } from "../interfaces/index.js";
@@ -21,7 +13,10 @@ const sideTotalsSchema = z.object({
   offsides: count,
 });
 
-export const resultStatsSchema = z.object({ home: sideTotalsSchema, away: sideTotalsSchema });
+export const resultStatsSchema = z.object({
+  home: sideTotalsSchema,
+  away: sideTotalsSchema,
+});
 
 type SideTotals = z.infer<typeof sideTotalsSchema>;
 
@@ -32,8 +27,16 @@ interface RevealedCounts {
   redCards: number;
 }
 
-function countRevealed(events: readonly SimulationEventRow[], side: "HOME" | "AWAY"): RevealedCounts {
-  const counts: RevealedCounts = { goals: 0, corners: 0, yellowCards: 0, redCards: 0 };
+function countRevealed(
+  events: readonly SimulationEventRow[],
+  side: "HOME" | "AWAY",
+): RevealedCounts {
+  const counts: RevealedCounts = {
+    goals: 0,
+    corners: 0,
+    yellowCards: 0,
+    redCards: 0,
+  };
 
   for (const event of events) {
     if (event.side !== side) continue;
@@ -50,8 +53,16 @@ function scale(total: number, fraction: number): number {
   return fraction >= 1 ? Math.round(total) : Math.floor(total * fraction);
 }
 
-function sideStats(totals: SideTotals, possession: number, revealed: RevealedCounts, fraction: number): SideStats {
-  const onTarget = Math.max(revealed.goals, scale(totals.shotsOnTarget ?? totals.shots_on_target ?? 0, fraction));
+function sideStats(
+  totals: SideTotals,
+  possession: number,
+  revealed: RevealedCounts,
+  fraction: number,
+): SideStats {
+  const onTarget = Math.max(
+    revealed.goals,
+    scale(totals.shotsOnTarget ?? totals.shots_on_target ?? 0, fraction),
+  );
 
   return {
     possession,
@@ -71,11 +82,22 @@ export function liveStats(
   fraction: number,
 ): { readonly home: SideStats; readonly away: SideStats } {
   const played = Math.min(1, Math.max(0, fraction));
-  // Possession starts level and drifts to its full-time split; the two sides always add up to 100.
-  const homePossession = Math.round(50 + (totals.home.possession - 50) * played);
+  const homePossession = Math.round(
+    50 + (totals.home.possession - 50) * played,
+  );
 
   return {
-    home: sideStats(totals.home, homePossession, countRevealed(revealedEvents, "HOME"), played),
-    away: sideStats(totals.away, 100 - homePossession, countRevealed(revealedEvents, "AWAY"), played),
+    home: sideStats(
+      totals.home,
+      homePossession,
+      countRevealed(revealedEvents, "HOME"),
+      played,
+    ),
+    away: sideStats(
+      totals.away,
+      100 - homePossession,
+      countRevealed(revealedEvents, "AWAY"),
+      played,
+    ),
   };
 }

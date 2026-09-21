@@ -1,6 +1,7 @@
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { randomUUID } from "node:crypto";
+import { parseEnv } from "node:util";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { createApp, loadSettlementConfig } from "../src/index.js";
 import type { SettlementApp } from "../src/index.js";
@@ -20,12 +21,17 @@ export const TEST_PORT = 4104;
 
 const envFile = resolve(import.meta.dirname, "../../../../.env");
 
-if (existsSync(envFile)) {
-  process.loadEnvFile(envFile);
-}
+// Parsed, not loaded: the tests must not inherit INTERNAL_SERVICE_TOKEN or any other runtime setting.
+const env: Readonly<Record<string, string | undefined>> = {
+  ...(existsSync(envFile) ? parseEnv(readFileSync(envFile, "utf8")) : {}),
+  ...process.env,
+};
+
+// Unset means "no internal-token check"; the one test that needs a token sets its own.
+delete process.env["INTERNAL_SERVICE_TOKEN"];
 
 function serviceUrl(): string {
-  const configured = process.env["SETTLEMENT_DATABASE_URL"];
+  const configured = env["SETTLEMENT_DATABASE_URL"];
 
   if (configured === undefined) {
     throw new Error("SETTLEMENT_DATABASE_URL is not set.");
@@ -38,12 +44,12 @@ function serviceUrl(): string {
   return url.toString();
 }
 
-/** The local-development superuser, used only to create and fill the tables other services own. */
+// Superuser: only to create and fill the tables other services own.
 function superuserUrl(): string {
   const url = new URL(serviceUrl());
 
-  url.username = process.env["POSTGRES_USER"] ?? "betng";
-  url.password = process.env["POSTGRES_PASSWORD"] ?? "betng_local_dev";
+  url.username = env["POSTGRES_USER"] ?? "betng";
+  url.password = env["POSTGRES_PASSWORD"] ?? "betng_local_dev";
   url.search = "";
 
   return url.toString();
@@ -214,7 +220,7 @@ export class Fixtures {
   }
 }
 
-/** Fakes of the three RPC peers. Every call is recorded; the wallet is idempotent by key like the real one. */
+/** Every call is recorded; the wallet is idempotent by key like the real one. */
 export class FakePeers {
   public readonly bettingCalls: ApplySettlementRequest[] = [];
   public readonly walletCalls: WalletCreditRequest[] = [];

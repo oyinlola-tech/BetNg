@@ -5,7 +5,10 @@ import { toAdminTeam } from "../../../../models/index.js";
 import type { HandlerDependencies } from "../../match.dependencies.js";
 import type { ListAdminTeamsQuery } from "./listAdminTeams.query.js";
 
-export class ListAdminTeamsHandler extends QueryHandler<ListAdminTeamsQuery, readonly AdminTeam[]> {
+export class ListAdminTeamsHandler extends QueryHandler<
+  ListAdminTeamsQuery,
+  readonly AdminTeam[]
+> {
   public readonly queryType = MATCH_QUERY.LIST_ADMIN_TEAMS;
 
   private readonly deps: HandlerDependencies;
@@ -15,7 +18,11 @@ export class ListAdminTeamsHandler extends QueryHandler<ListAdminTeamsQuery, rea
     this.deps = deps;
   }
 
-  public async execute(query: ListAdminTeamsQuery): Promise<readonly AdminTeam[]> {
-    return (await this.deps.catalogue.listTeams(query.leagueId)).map(toAdminTeam);
+  public async execute(
+    query: ListAdminTeamsQuery,
+  ): Promise<readonly AdminTeam[]> {
+    return (await this.deps.catalogue.listTeams(query.leagueId)).map(
+      toAdminTeam,
+    );
   }
 }

@@ -47,10 +47,10 @@ export type ClockPeriod =
 export interface MatchClockView {
   readonly period: ClockPeriod;
   readonly minute: number;
-  readonly addedMinutes?: number;
+  readonly addedMinutes?: number | undefined;
   readonly asOf: string;
   /** Real milliseconds per match minute. When present a client may advance the displayed minute between reports, within the period. */
-  readonly minuteLengthMs?: number;
+  readonly minuteLengthMs?: number | undefined;
 }
 
 export interface Score {

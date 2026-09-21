@@ -1,8 +1,3 @@
-/**
- * Persistence shapes. Money is `bigint` kobo from the database to the edge of the service; it becomes a JSON
- * integer only in a DTO mapper.
- */
-
 import type { MatchSettlementKind } from "../constants/index.js";
 import type { BetOutcome, LegOutcome } from "../utils/index.js";
 
@@ -81,7 +76,7 @@ export interface BetLegRecord {
   readonly marketType: string;
   readonly selectionCode: string;
   readonly line: string | null;
-  /** The odds accepted with the bet, as text. Settlement never reads a current price. */
+  /** The odds accepted with the bet. Settlement never reads a current price. */
   readonly odds: string;
   readonly matchStatus: string | null;
   readonly matchLifecycle: string | null;
@@ -106,6 +101,5 @@ export interface AdminSettlementRecord {
   readonly status: AdminSettlementStatus;
   readonly error: string | null;
   readonly timestamp: Date;
-  /** Matches among the bet's legs whose settlement is FAILED; what a retry re-runs. */
   readonly failedMatchIds: readonly string[];
 }

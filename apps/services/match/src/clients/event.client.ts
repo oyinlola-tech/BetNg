@@ -11,16 +11,27 @@ export const EVENT_PROCEDURE = Object.freeze({ PUBLISH: "event.publish" });
 /** The stream is a projection; a slow event service must not hold the scheduler's tick. */
 const PUBLISH_TIMEOUT_MS = 1500;
 
-const publishResultSchema: ValidationSchema<{ readonly sequence: number }> = z.object({
-  sequence: z.int().min(0),
-});
+const publishResultSchema: ValidationSchema<{ readonly sequence: number }> =
+  z.object({
+    sequence: z.int().min(0),
+  });
 
-export function createEventClient(endpoint: ServiceEndpoint): EventPeer & { readonly raw: RPCClient } {
-  const raw = createRpcClient(endpoint, { timeoutMs: Math.min(endpoint.timeoutMs, PUBLISH_TIMEOUT_MS) });
+export function createEventClient(
+  endpoint: ServiceEndpoint,
+): EventPeer & { readonly raw: RPCClient } {
+  const raw = createRpcClient(endpoint, {
+    timeoutMs: Math.min(endpoint.timeoutMs, PUBLISH_TIMEOUT_MS),
+  });
 
   return {
     raw,
     publish: async (event, requestId) =>
-      callValidated(raw, EVENT_PROCEDURE.PUBLISH, event, requestId, publishResultSchema),
+      callValidated(
+        raw,
+        EVENT_PROCEDURE.PUBLISH,
+        event,
+        requestId,
+        publishResultSchema,
+      ),
   };
 }

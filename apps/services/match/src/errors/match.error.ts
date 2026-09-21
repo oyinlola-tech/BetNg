@@ -1,8 +1,3 @@
-/**
- * `DomainError` already carries the status, the code and the `expose` flag
- * the service kit's error handler renders.
- */
-
 import { DomainError } from "@zudojs/errors";
 import { ErrorCodes } from "@betng/contracts";
 import type { ErrorCode } from "@betng/contracts";
@@ -31,12 +26,15 @@ export class MatchNotFoundError extends NotFoundError {
 
 export class StatsNotAvailableError extends DomainError {
   public constructor(matchId: string) {
-    super("This match has no statistics yet.", { code: ErrorCodes.NOT_FOUND, statusCode: 404, metadata: { matchId } });
+    super("This match has no statistics yet.", {
+      code: ErrorCodes.NOT_FOUND,
+      statusCode: 404,
+      metadata: { matchId },
+    });
     this.name = "StatsNotAvailableError";
   }
 }
 
-/** The request is well formed but cannot apply to the state the resource is in. */
 export class MatchConflictError extends DomainError {
   public constructor(message: string) {
     super(message, { code: ErrorCodes.CONFLICT, statusCode: 409 });
@@ -47,18 +45,24 @@ export class MatchConflictError extends DomainError {
 /** A match that has a committed result can never be simulated again; the only remedy is voiding it. */
 export class ResultImmutableError extends DomainError {
   public constructor(matchId: string) {
-    super("This match already has a result. A result is immutable; void the match instead.", {
-      code: ErrorCodes.RESULT_IMMUTABLE,
-      statusCode: 409,
-      metadata: { matchId },
-    });
+    super(
+      "This match already has a result. A result is immutable; void the match instead.",
+      {
+        code: ErrorCodes.RESULT_IMMUTABLE,
+        statusCode: 409,
+        metadata: { matchId },
+      },
+    );
 
     this.name = "ResultImmutableError";
   }
 }
 
 export class InvalidRequestError extends DomainError {
-  public readonly details: readonly { readonly path: string; readonly message: string }[];
+  public readonly details: readonly {
+    readonly path: string;
+    readonly message: string;
+  }[];
 
   public constructor(message: string, path: string) {
     super(message, { code: ErrorCodes.VALIDATION_FAILED, statusCode: 422 });

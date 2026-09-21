@@ -1,10 +1,3 @@
-/**
- * PostgreSQL implementation of {@link SettlementRepository}.
- *
- * Every value reaches SQL as a bound parameter. The admin list joins this schema to `betting`, `match`,
- * `simulation` and `identity` with schema-qualified names; it writes none of them.
- */
-
 import { join, sql } from "../databases/index.js";
 import type { PrismaClient, Sql } from "../databases/index.js";
 import type { MatchSettlementKind } from "../constants/index.js";
@@ -78,7 +71,7 @@ interface AdminRow {
   readonly failed_match_ids: readonly string[];
 }
 
-/** How far back the admin list looks for completed match settlements; unfinished ones are always listed. */
+// Completed match settlements older than this drop off the admin list; unfinished ones never do.
 const ADMIN_WINDOW_HOURS = 48;
 
 const SETTLEMENT_COLUMNS = sql`
@@ -184,11 +177,7 @@ export function createSettlementRepository(prisma: PrismaClient): SettlementRepo
     return hydrate(rows);
   };
 
-  /**
-   * One row per bet that has a leg on a match settlement has been asked to settle. `scope` narrows the bets;
-   * the status is derived, never stored: stamped → COMPLETED/VOIDED, a FAILED match among the legs → FAILED,
-   * anything else is still PENDING. A leg's score is shown only once its match is COMPLETED.
-   */
+  // Status is derived, never stored. A leg's score is shown only once its match is COMPLETED.
   const adminRows = async (
     scope: Sql,
     status: AdminSettlementStatus | undefined,
@@ -254,7 +243,7 @@ export function createSettlementRepository(prisma: PrismaClient): SettlementRepo
 
   return {
     beginMatchSettlement: async (matchId, kind) => {
-      // Once a match has been voided its settlement stays a void, whatever a later caller asks for.
+      // A voided match stays voided whatever a later caller asks for.
       const started = await prisma.$queryRaw<MatchSettlementRow[]>`
         INSERT INTO settlement.match_settlements AS ms (match_id, kind, status, attempts)
         VALUES (${matchId}::uuid, ${kind}, 'STARTED', 1)
@@ -341,7 +330,7 @@ export function createSettlementRepository(prisma: PrismaClient): SettlementRepo
 
         const row = inserted[0];
 
-        // Nothing inserted: the bet already has its settlement. Writing anything more would be a second payout.
+        // Already settled: writing anything more would be a second payout.
         if (row === undefined) {
           return undefined;
         }

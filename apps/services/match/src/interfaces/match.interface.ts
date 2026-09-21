@@ -1,13 +1,22 @@
-import type { MatchEventType, MatchLifecycle, MatchSide, MatchStatus } from "@betng/contracts";
+import type {
+  MatchEventType,
+  MatchLifecycle,
+  MatchSide,
+  MatchStatus,
+} from "@betng/contracts";
 import type { League, Prisma, Team } from "../generated/prisma/client.js";
 
 export const MATCH_INCLUDE = {
   fixture: { include: { league: true, homeTeam: true, awayTeam: true } },
 } satisfies Prisma.MatchInclude;
 
-export type MatchRecord = Prisma.MatchGetPayload<{ include: typeof MATCH_INCLUDE }>;
+export type MatchRecord = Prisma.MatchGetPayload<{
+  include: typeof MATCH_INCLUDE;
+}>;
 
-export type FixtureRecord = Prisma.FixtureGetPayload<{ include: { match: true } }>;
+export type FixtureRecord = Prisma.FixtureGetPayload<{
+  include: { match: true };
+}>;
 
 export type TeamRecord = Prisma.TeamGetPayload<{ include: { league: true } }>;
 
@@ -39,11 +48,24 @@ export interface NewLeague {
   readonly staggerSeconds: number;
 }
 
-export type NewTeam = Omit<Prisma.TeamUncheckedCreateInput, "id" | "createdAt" | "updatedAt">;
+export type NewTeam = Omit<
+  Prisma.TeamUncheckedCreateInput,
+  "id" | "createdAt" | "updatedAt"
+>;
 
 export type TeamPatch = Pick<
   Prisma.TeamUncheckedUpdateInput,
-  "name" | "shortName" | "status" | "strength" | "attack" | "midfield" | "defence" | "goalkeeping" | "pace" | "finishing" | "form"
+  | "name"
+  | "shortName"
+  | "status"
+  | "strength"
+  | "attack"
+  | "midfield"
+  | "defence"
+  | "goalkeeping"
+  | "pace"
+  | "finishing"
+  | "form"
 >;
 
 export interface NewFixture {
@@ -64,10 +86,7 @@ export interface CatalogueRepository {
   listTeams(leagueId?: string): Promise<readonly TeamRecord[]>;
   findTeam(id: string): Promise<TeamRecord | undefined>;
   createTeam(team: NewTeam): Promise<TeamRecord>;
-  /**
-   * Applies `patch` and runs `afterUpdate` inside the same transaction, so a change whose audit entry cannot be
-   * written is rolled back.
-   */
+  /** `afterUpdate` runs inside the update's transaction: if it throws, the change is rolled back. */
   updateTeam(
     id: string,
     patch: TeamPatch,
@@ -86,16 +105,22 @@ export interface MatchRepository {
   listMatches(filter: MatchFilter): Promise<readonly MatchRecord[]>;
   findMatch(id: string): Promise<MatchRecord | undefined>;
   listTransitions(matchId: string): Promise<readonly TransitionRecord[]>;
-  listCompleted(filter: { readonly leagueId?: string; readonly season?: number; readonly limit: number }): Promise<readonly MatchRecord[]>;
-  /** The season of the league's most recent kick-off, or of its first fixture when none has kicked off. */
+  listCompleted(filter: {
+    readonly leagueId?: string;
+    readonly season?: number;
+    readonly limit: number;
+  }): Promise<readonly MatchRecord[]>;
   currentSeason(leagueId: string, now: Date): Promise<number>;
   /** The scheduler's newest round in a league; rounds an admin added by hand are not part of the rotation. */
   latestScheduledRound(leagueId: string): Promise<RoundCursor | undefined>;
   countUpcomingRounds(leagueId: string, now: Date): Promise<number>;
-  /** Creates fixtures and their matches at `FIXTURE_CREATED` in one transaction. Returns the matches created. */
   createFixtures(
     fixtures: readonly NewFixture[],
-    options: { readonly source: "SCHEDULER" | "ADMIN"; readonly actor: string; readonly at: Date },
+    options: {
+      readonly source: "SCHEDULER" | "ADMIN";
+      readonly actor: string;
+      readonly at: Date;
+    },
   ): Promise<readonly string[]>;
 }
 
@@ -120,22 +145,40 @@ export interface LifecycleRepository {
     readonly ignoreLease?: boolean;
     readonly limit: number;
   }): Promise<readonly MatchRecord[]>;
-  /**
-   * Moves a match along `path` if, and only if, it is still in `from`. The state change and its transition rows
-   * commit together; `false` means another worker got there first and nothing was written.
-   */
+  /** Conditional on the match still being in `from`; `false` means another worker won and nothing was written. */
   transition(input: TransitionInput): Promise<boolean>;
-  /** Takes the right to work on a match in `state` until `until`. `false` when it is not due or has moved on. */
-  claim(matchId: string, state: MatchLifecycle, now: Date, until: Date): Promise<boolean>;
-  recordFailure(matchId: string, state: MatchLifecycle, reason: string, nextAttemptAt: Date): Promise<void>;
-  resetAttempts(matchId: string, state: MatchLifecycle, now: Date): Promise<boolean>;
+  claim(
+    matchId: string,
+    state: MatchLifecycle,
+    now: Date,
+    until: Date,
+  ): Promise<boolean>;
+  recordFailure(
+    matchId: string,
+    state: MatchLifecycle,
+    reason: string,
+    nextAttemptAt: Date,
+  ): Promise<void>;
+  resetAttempts(
+    matchId: string,
+    state: MatchLifecycle,
+    now: Date,
+  ): Promise<boolean>;
   reveal(
     matchId: string,
     fromSequence: number,
-    revealed: { readonly sequence: number; readonly homeScore: number; readonly awayScore: number },
+    revealed: {
+      readonly sequence: number;
+      readonly homeScore: number;
+      readonly awayScore: number;
+    },
   ): Promise<boolean>;
-  /** Voids a match from whatever state it is in, unless it is already settled or void. Returns the state it left. */
-  voidMatch(matchId: string, actor: string, reason: string, at: Date): Promise<MatchLifecycle | undefined>;
+  voidMatch(
+    matchId: string,
+    actor: string,
+    reason: string,
+    at: Date,
+  ): Promise<MatchLifecycle | undefined>;
 }
 
 export interface SimulationEventRow {
@@ -171,10 +214,20 @@ export interface SimulationReader {
   hasResult(matchId: string): Promise<boolean>;
   /** Only for a match at or past full time, or for figures that are scaled before they leave the service. */
   findResult(matchId: string): Promise<SimulationResultRow | undefined>;
-  listEvents(matchId: string, range: { readonly after: number; readonly upTo?: number; readonly limit: number }): Promise<readonly SimulationEventRow[]>;
+  listEvents(
+    matchId: string,
+    range: {
+      readonly after: number;
+      readonly upTo?: number;
+      readonly limit: number;
+    },
+  ): Promise<readonly SimulationEventRow[]>;
   countEventsAfter(matchId: string, sequence: number): Promise<number>;
-  listScorers(leagueId: string, season: number, limit: number): Promise<readonly ScorerRow[]>;
-  /** Of `matchIds`, those the simulation has a committed result for. */
+  listScorers(
+    leagueId: string,
+    season: number,
+    limit: number,
+  ): Promise<readonly ScorerRow[]>;
   matchesWithResult(matchIds: readonly string[]): Promise<readonly string[]>;
 }
 

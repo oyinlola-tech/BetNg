@@ -36,18 +36,33 @@ import {
 
 export interface MatchController {
   readonly listLeagues: () => Promise<ItemsDto<League>>;
-  readonly listTeams: (context: HttpRouterContext) => Promise<ItemsDto<TeamDto>>;
-  readonly listFixtures: (context: HttpRouterContext) => Promise<ItemsDto<Fixture>>;
-  readonly listMatches: (context: HttpRouterContext) => Promise<ItemsDto<Match>>;
+  readonly listTeams: (
+    context: HttpRouterContext,
+  ) => Promise<ItemsDto<TeamDto>>;
+  readonly listFixtures: (
+    context: HttpRouterContext,
+  ) => Promise<ItemsDto<Fixture>>;
+  readonly listMatches: (
+    context: HttpRouterContext,
+  ) => Promise<ItemsDto<Match>>;
   readonly getMatch: (context: HttpRouterContext) => Promise<Match>;
-  readonly listMatchEvents: (context: HttpRouterContext) => Promise<ItemsDto<MatchEvent>>;
+  readonly listMatchEvents: (
+    context: HttpRouterContext,
+  ) => Promise<ItemsDto<MatchEvent>>;
   readonly getMatchStats: (context: HttpRouterContext) => Promise<MatchStats>;
-  readonly listResults: (context: HttpRouterContext) => Promise<ItemsDto<CompletedMatch>>;
+  readonly listResults: (
+    context: HttpRouterContext,
+  ) => Promise<ItemsDto<CompletedMatch>>;
   readonly getStandings: (context: HttpRouterContext) => Promise<Standings>;
-  readonly listScorers: (context: HttpRouterContext) => Promise<ItemsDto<TopScorer>>;
+  readonly listScorers: (
+    context: HttpRouterContext,
+  ) => Promise<ItemsDto<TopScorer>>;
 }
 
-export function idParam(context: HttpRouterContext, resource: "league" | "team" | "match"): string {
+export function idParam(
+  context: HttpRouterContext,
+  resource: "league" | "team" | "match",
+): string {
   const id = requireParam(context.params, "id");
 
   if (!isUuid(id)) throw new NotFoundError(resource, id.slice(0, 64));
@@ -58,44 +73,66 @@ export function idParam(context: HttpRouterContext, resource: "league" | "team" 
 export function createMatchController(queryBus: QueryBus): MatchController {
   return {
     listLeagues: async () => ({
-      items: await queryBus.execute<ListLeaguesQuery, readonly League[]>(new ListLeaguesQuery()),
+      items: await queryBus.execute<ListLeaguesQuery, readonly League[]>(
+        new ListLeaguesQuery(),
+      ),
     }),
 
     listTeams: async (context) => {
       const query = parseQuery(context.query, listTeamsQueryValidator);
 
-      return { items: await queryBus.execute<ListTeamsQuery, readonly TeamDto[]>(new ListTeamsQuery(query.leagueId)) };
+      return {
+        items: await queryBus.execute<ListTeamsQuery, readonly TeamDto[]>(
+          new ListTeamsQuery(query.leagueId),
+        ),
+      };
     },
 
     listFixtures: async (context) => ({
       items: await queryBus.execute<ListFixturesQuery, readonly Fixture[]>(
-        new ListFixturesQuery(parseQuery(context.query, listFixturesQueryValidator)),
+        new ListFixturesQuery(
+          parseQuery(context.query, listFixturesQueryValidator),
+        ),
       ),
     }),
 
     listMatches: async (context) => ({
       items: await queryBus.execute<ListMatchesQuery, readonly Match[]>(
-        new ListMatchesQuery(parseQuery(context.query, listMatchesQueryValidator)),
+        new ListMatchesQuery(
+          parseQuery(context.query, listMatchesQueryValidator),
+        ),
       ),
     }),
 
-    getMatch: async (context) => queryBus.execute<GetMatchQuery, Match>(new GetMatchQuery(idParam(context, "match"))),
+    getMatch: async (context) =>
+      queryBus.execute<GetMatchQuery, Match>(
+        new GetMatchQuery(idParam(context, "match")),
+      ),
 
     listMatchEvents: async (context) => ({
-      items: await queryBus.execute<ListMatchEventsQuery, readonly MatchEvent[]>(
-        new ListMatchEventsQuery(idParam(context, "match")),
-      ),
+      items: await queryBus.execute<
+        ListMatchEventsQuery,
+        readonly MatchEvent[]
+      >(new ListMatchEventsQuery(idParam(context, "match"))),
     }),
 
     getMatchStats: async (context) =>
-      queryBus.execute<GetMatchStatsQuery, MatchStats>(new GetMatchStatsQuery(idParam(context, "match"))),
+      queryBus.execute<GetMatchStatsQuery, MatchStats>(
+        new GetMatchStatsQuery(idParam(context, "match")),
+      ),
 
     listResults: async (context) => {
       const query = parseQuery(context.query, listResultsQueryValidator);
 
       return {
-        items: await queryBus.execute<ListResultsQuery, readonly CompletedMatch[]>(
-          new ListResultsQuery({ leagueId: query.leagueId, limit: query.limit }),
+        items: await queryBus.execute<
+          ListResultsQuery,
+          readonly CompletedMatch[]
+        >(
+          new ListResultsQuery({
+            leagueId: query.leagueId,
+            limit: query.limit,
+          }),
         ),
       };
     },
@@ -104,7 +141,10 @@ export function createMatchController(queryBus: QueryBus): MatchController {
       const query = parseQuery(context.query, seasonQueryValidator);
 
       return queryBus.execute<GetStandingsQuery, Standings>(
-        new GetStandingsQuery({ leagueId: idParam(context, "league"), season: query.season }),
+        new GetStandingsQuery({
+          leagueId: idParam(context, "league"),
+          season: query.season,
+        }),
       );
     },
 
@@ -113,7 +153,11 @@ export function createMatchController(queryBus: QueryBus): MatchController {
 
       return {
         items: await queryBus.execute<ListScorersQuery, readonly TopScorer[]>(
-          new ListScorersQuery({ leagueId: idParam(context, "league"), season: query.season, limit: query.limit }),
+          new ListScorersQuery({
+            leagueId: idParam(context, "league"),
+            season: query.season,
+            limit: query.limit,
+          }),
         ),
       };
     },

@@ -6,13 +6,7 @@ import { SECURITY } from "../../constants/index.js";
 import type { VerificationIssuer } from "../../interfaces/index.js";
 import { verificationCodeHash } from "../../utils/index.js";
 
-/**
- * Issues e-mail verification codes.
- *
- * This project has no mail server. In development and test the code is written
- * to the log, which is where a developer reads it; in production it is not
- * logged and therefore not delivered, and no route ever returns it.
- */
+/** No mail server exists: the code is logged in development and test only, never in production, and no route returns it. */
 export function createVerificationIssuer(security: SecurityConfig, logger: Logger): VerificationIssuer {
   return {
     issue: async (repositories, customer, requestId) => {

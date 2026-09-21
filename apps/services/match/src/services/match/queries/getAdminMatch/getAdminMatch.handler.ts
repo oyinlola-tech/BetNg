@@ -6,7 +6,10 @@ import { toAdminMatch } from "../../../../models/index.js";
 import type { HandlerDependencies } from "../../match.dependencies.js";
 import type { GetAdminMatchQuery } from "./getAdminMatch.query.js";
 
-export class GetAdminMatchHandler extends QueryHandler<GetAdminMatchQuery, AdminMatchDto> {
+export class GetAdminMatchHandler extends QueryHandler<
+  GetAdminMatchQuery,
+  AdminMatchDto
+> {
   public readonly queryType = MATCH_QUERY.GET_ADMIN_MATCH;
 
   private readonly deps: HandlerDependencies;
@@ -21,6 +24,9 @@ export class GetAdminMatchHandler extends QueryHandler<GetAdminMatchQuery, Admin
 
     if (found === undefined) throw new MatchNotFoundError(query.matchId);
 
-    return toAdminMatch(found, await this.deps.matches.listTransitions(found.id));
+    return toAdminMatch(
+      found,
+      await this.deps.matches.listTransitions(found.id),
+    );
   }
 }

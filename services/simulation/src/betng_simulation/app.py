@@ -82,7 +82,10 @@ def create_app(
         if seed_secret is None:
             logger.warning(
                 "Seeds are not keyed: results are derivable from public inputs",
-                extra={"event": "seed_secret_missing", "variable": SEED_SECRET_VARIABLE},
+                extra={
+                    "event": "seed_secret_missing",
+                    "variable": SEED_SECRET_VARIABLE,
+                },
             )
         try:
             await apply_migrations(pool, DATABASE_SCHEMA, MIGRATIONS_DIRECTORY, logger)

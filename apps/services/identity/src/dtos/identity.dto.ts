@@ -1,7 +1,4 @@
-/**
- * Row → contract mappers. These decide what leaves the service: no mapper
- * reads a hash, a TOTP secret or a token, so none can be returned by accident.
- */
+// No mapper reads a hash, a TOTP secret or a token, so none can be returned by accident.
 
 import { asId } from "@betng/contracts";
 import type {
@@ -37,7 +34,6 @@ export interface ListDto<T> {
   readonly items: readonly T[];
 }
 
-/** The answer of `identity.authenticate`: who a token belongs to and what they may do. */
 export interface AuthenticatedActorDto {
   readonly kind: "CUSTOMER" | "CASHIER" | "ADMIN";
   readonly id: string;
@@ -149,7 +145,6 @@ export function toAdminUser(row: AdminUserRow): AdminUser {
 const ADMIN_ROLES: readonly string[] = Object.keys(ADMIN_ROLE_PERMISSIONS);
 const SHOP_ROLES: readonly string[] = Object.keys(SHOP_ROLE_PERMISSIONS);
 
-/** `admin:<id>`, `shop:<cashierId>` or `system`, as the audit screen expects. */
 function auditActor(row: AuditLogRow): string {
   if (row.actorId === SYSTEM_ACTOR.id) {
     return SYSTEM_ACTOR.id;

@@ -1,6 +1,15 @@
 import { darkTheme, lightTheme, type ColorTheme } from "./color.js";
-import { radius, shadow, spacing, zIndex } from "./layout.js";
+import {
+  borderWidth,
+  controlHeight,
+  iconSize,
+  radius,
+  shadow,
+  spacing,
+  zIndex,
+} from "./layout.js";
 import { duration, easing } from "./motion.js";
+import { tvCrest, tvLayout, tvRootFontSize, tvType } from "./tv.js";
 import { fontFamily, fontSize, letterSpacing } from "./typography.js";
 
 function kebab(name: string): string {
@@ -36,6 +45,30 @@ export function renderCss(): string {
     ),
     ...Object.entries(easing).map(([k, v]) => `  --bn-ease-${k}: ${v};`),
     ...Object.entries(zIndex).map(([k, v]) => `  --bn-z-${k}: ${String(v)};`),
+    ...Object.entries(borderWidth).map(
+      ([k, v]) => `  --bn-border-${k}: ${String(v)}px;`,
+    ),
+    ...Object.entries(controlHeight).map(
+      ([k, v]) => `  --bn-control-${k}: ${String(v)}px;`,
+    ),
+    ...Object.entries(iconSize).map(
+      ([k, v]) => `  --bn-icon-${k}: ${String(v)}px;`,
+    ),
+  ].join("\n");
+
+  const tv = [
+    `  --bn-tv-root: ${tvRootFontSize};`,
+    ...Object.entries(tvType).map(
+      ([k, v]) => `  --bn-tv-text-${kebab(k)}: ${String(v)}rem;`,
+    ),
+    ...Object.entries(tvCrest).map(
+      ([k, v]) => `  --bn-tv-crest-${k}: ${String(v)}rem;`,
+    ),
+    `  --bn-tv-safe-area: ${String(tvLayout.safeArea)}rem;`,
+    `  --bn-tv-gutter: ${String(tvLayout.gutter)}rem;`,
+    `  --bn-tv-row: ${String(tvLayout.rowHeight)}rem;`,
+    `  --bn-tv-focus-ring: ${String(tvLayout.focusRing)}rem;`,
+    `  --bn-tv-focus-scale: ${String(tvLayout.focusScale)};`,
   ].join("\n");
 
   return [
@@ -57,6 +90,10 @@ export function renderCss(): string {
     "    color-scheme: dark;",
     colorBlock(darkTheme).replace(/^ {2}/gm, "    "),
     "  }",
+    "}",
+    "",
+    ':root[data-surface="tv"] {',
+    tv,
     "}",
     "",
     "@media (prefers-reduced-motion: reduce) {",

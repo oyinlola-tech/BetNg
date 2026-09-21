@@ -8,7 +8,7 @@ import type {
 } from "../models/index.js";
 
 export interface ClosePeriodInput {
-  /** When given, only this period is closed; a different open period means someone else already closed it. */
+  /** When given, only this period is closed. */
   readonly expectedPeriodId?: string;
   readonly nextKind: OperatorPeriodKind;
   readonly now: Date;
@@ -19,10 +19,7 @@ export interface OperatorRepository {
   summarise(period: OperatorPeriodRecord): Promise<OperatorSummaryRecord>;
   listClosed(limit: number): Promise<readonly OperatorSummaryRecord[]>;
   listPeriods(limit: number): Promise<readonly OperatorPeriodRecord[]>;
-  /**
-   * Closes the open period, writes its `operator_ledger` row and one `commission_ledger` row per shop, and
-   * opens the next period — one transaction. Returns undefined when `expectedPeriodId` is no longer open.
-   */
+  /** One transaction. Undefined when no period, or not `expectedPeriodId`, is open. */
   closePeriod(input: ClosePeriodInput): Promise<ClosedPeriodResult | undefined>;
 }
 
@@ -51,10 +48,7 @@ export interface CommissionLedgerFilter {
 export interface CommissionRepository {
   seedDefault(shopShareBasisPoints: number): Promise<boolean>;
   current(): Promise<CommissionConfigSnapshot>;
-  /**
-   * Appends a configuration version. `confirm` runs inside the transaction with the before/after pair; when
-   * it throws, the version is not written.
-   */
+  /** `confirm` runs inside the transaction; when it throws, the version is not written. */
   append(
     config: NewCommissionConfig,
     confirm: (change: CommissionConfigChange) => Promise<void>,

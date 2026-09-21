@@ -1,7 +1,4 @@
-/**
- * Inbound schemas. The contract schemas decide the shapes; `.strict()` makes
- * an unknown key a validation failure rather than something silently dropped.
- */
+// `.strict()` makes an unknown key a validation failure instead of silently dropping it.
 
 import {
   adminLoginRequestSchema,

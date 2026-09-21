@@ -10,10 +10,7 @@ export interface OperatorPeriodRecord {
   readonly endsAt: Date | null;
 }
 
-/**
- * The operator's figures for a period. `operatorResult` is `grossStakes - grossPayouts` and is negative when
- * payouts exceeded stakes; it is reported as it is.
- */
+/** `operatorResult = grossStakes - grossPayouts`; negative when payouts exceeded stakes, and kept so. */
 export interface OperatorSummaryRecord {
   readonly period: OperatorPeriodRecord;
   readonly grossStakes: bigint;

@@ -21,10 +21,12 @@ export type {
   SideStats,
 } from "./match.type.js";
 export type {
+  MarketGroupKey,
   MarketKind,
   MarketView,
   MatchMarketsView,
   OddsTrend,
+  SelectionStatus,
   SelectionView,
 } from "./market.type.js";
 export type {

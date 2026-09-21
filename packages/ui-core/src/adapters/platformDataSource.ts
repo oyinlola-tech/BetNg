@@ -1,9 +1,12 @@
 import {
   BetNgApiError,
+  accountChannel,
   type BetNgRestClient,
-  type LiveClient,
-  type LiveHandlers,
+  type ConnectionStatus,
+  type RealtimeClient,
+  type RealtimeEvent,
 } from "@betng/client-sdk";
+import { matchChannel } from "@betng/contracts/runtime";
 import type {
   Bet,
   Fixture,
@@ -11,26 +14,38 @@ import type {
   LeagueId,
   LiveEvent,
   Match,
+  MatchClock,
   MatchEvent,
   MatchId,
   Notification,
   Team,
   TeamId,
+  Transaction,
 } from "@betng/contracts";
 import type {
   BetNgDataSource,
   LiveMatchHandlers,
   MatchFilter,
+  MatchSignal,
 } from "../dataSource.type.js";
 import { DataSourceError } from "../dataSource.type.js";
 import { translateApiError } from "./errors.js";
 import { formatScore } from "../format.js";
-import { derivePhase, isFinished } from "../phase.js";
+import { currentCurrency } from "../money.js";
+import { isFinished, resolvePhase } from "../phase.js";
 import { computeStandings } from "../standings.js";
 import type {
   BetLegView,
+  BetPlacementView,
+  BetRejectionReason,
   BetView,
+  ClockPeriod,
   ConnectionState,
+  HeadToHeadView,
+  MarketGroupKey,
+  MatchClockView,
+  MatchLineupsView,
+  PlatformConfigView,
   LeagueView,
   MarketKind,
   MarketView,
@@ -53,7 +68,7 @@ export interface KeyValueStorage {
 
 export interface PlatformDataSourceOptions {
   readonly rest: BetNgRestClient;
-  readonly openLive: (handlers: LiveHandlers) => LiveClient;
+  readonly realtime: RealtimeClient;
   /** A fixed demo user, or a getter reading the signed-in customer; `undefined` means signed out. */
   readonly userId: string | (() => string | undefined);
   readonly storage?: KeyValueStorage;
@@ -73,6 +88,15 @@ const MARKET_NAMES: Readonly<Record<MarketKind, string>> = {
   BOTH_TEAMS_TO_SCORE: "Both Teams To Score",
   CORRECT_SCORE: "Correct Score",
   GOAL_SPREAD: "Goal Spread",
+};
+
+const MARKET_GROUPS: Readonly<Record<MarketKind, MarketGroupKey>> = {
+  MATCH_RESULT: "MAIN",
+  DOUBLE_CHANCE: "MAIN",
+  OVER_UNDER: "GOALS",
+  BOTH_TEAMS_TO_SCORE: "GOALS",
+  CORRECT_SCORE: "SCORE",
+  GOAL_SPREAD: "HANDICAP",
 };
 
 const MARKET_COLUMNS: Readonly<Record<MarketKind, number>> = {
@@ -123,24 +147,40 @@ function toTeamView(team: Team): TeamView {
   };
 }
 
-function liveEventKind(type: LiveEvent["type"]): MatchEventView["kind"] {
-  switch (type) {
-    case "KICKOFF":
-    case "MATCH_STARTED":
-      return "KICK_OFF";
-    case "MATCH_FINISHED":
-      return "FULL_TIME";
-    default:
-      return type;
-  }
-}
+const TIMELINE_KINDS: Readonly<Partial<Record<LiveEvent["type"], MatchEventView["kind"]>>> = {
+  KICKOFF: "KICK_OFF",
+  GOAL: "GOAL",
+  YELLOW_CARD: "YELLOW_CARD",
+  RED_CARD: "RED_CARD",
+  CORNER: "CORNER",
+  SUBSTITUTION: "SUBSTITUTION",
+  HALF_TIME: "HALF_TIME",
+  SECOND_HALF: "SECOND_HALF",
+  MATCH_FINISHED: "FULL_TIME",
+};
 
-function toLiveEventView(event: LiveEvent): MatchEventView {
+const SIGNALS: Readonly<Partial<Record<string, MatchSignal>>> = {
+  MATCH_STARTED: "MATCH_UPDATED",
+  MATCH_UPDATED: "MATCH_UPDATED",
+  BETTING_OPENED: "BETTING_OPENED",
+  BETTING_CLOSED: "BETTING_CLOSED",
+  ODDS_UPDATED: "ODDS_UPDATED",
+  MARKET_UPDATED: "MARKET_UPDATED",
+  SIMULATION_STARTED: "SIMULATION_STARTED",
+  SETTLEMENT_STARTED: "SETTLEMENT_STARTED",
+  SETTLEMENT_COMPLETED: "SETTLEMENT_COMPLETED",
+};
+
+function toLiveEventView(event: LiveEvent): MatchEventView | undefined {
+  const kind = TIMELINE_KINDS[event.type];
+
+  if (kind === undefined) return undefined;
+
   return {
     id: `${event.matchId}-${String(event.sequence)}`,
     matchId: event.matchId,
     sequence: event.sequence,
-    kind: liveEventKind(event.type),
+    kind,
     minute: event.minute,
     ...(event.side === undefined ? {} : { side: event.side }),
     score: event.score,
@@ -149,7 +189,70 @@ function toLiveEventView(event: LiveEvent): MatchEventView {
   };
 }
 
-/** Bets answer `CONFLICT` when betting has closed; everything else follows the shared mapping. */
+type MatchWire = Match & {
+  readonly clock?: MatchClock | undefined;
+  readonly statusReason?: string | undefined;
+};
+
+/** The clock from the platform's own events, for a match payload that does not carry one. */
+function clockFromEvents(
+  events: readonly MatchEventView[],
+  asOf: string,
+): MatchClockView | undefined {
+  const last = events.at(-1);
+
+  if (last === undefined) return undefined;
+
+  let period: ClockPeriod = "FIRST_HALF";
+
+  for (const event of events) {
+    if (event.kind === "HALF_TIME") period = "HALF_TIME";
+    else if (event.kind === "SECOND_HALF") period = "SECOND_HALF";
+    else if (event.kind === "FULL_TIME") period = "FULL_TIME";
+  }
+
+  return {
+    period,
+    minute: last.minute,
+    asOf: last.occurredAt === "" ? asOf : last.occurredAt,
+  };
+}
+
+const REFUSALS: Readonly<Partial<Record<string, BetRejectionReason>>> = {
+  MARKET_CLOSED: "MARKET_CLOSED",
+  ODDS_CHANGED: "ODDS_CHANGED",
+  STAKE_LIMITED: "STAKE_LIMITED",
+  RISK_REJECTED: "RISK_REJECTED",
+  INSUFFICIENT_FUNDS: "INSUFFICIENT_FUNDS",
+  INVALID_BET: "INVALID_BET",
+};
+
+/** A business refusal of a bet, as a placement result. Anything else stays an error. */
+function toRefusal(
+  cause: unknown,
+  clientReference: string,
+): BetPlacementView | undefined {
+  if (!(cause instanceof BetNgApiError)) return undefined;
+
+  const reason = REFUSALS[cause.code];
+
+  if (reason === undefined) return undefined;
+
+  const maxStake = cause.data["maxStake"];
+  const rejected = cause.data["selectionIds"];
+
+  return {
+    outcome: "REJECTED",
+    clientReference,
+    reason,
+    message: cause.message,
+    ...(typeof maxStake === "number" ? { maxStake } : {}),
+    ...(Array.isArray(rejected)
+      ? { rejectedSelectionIds: rejected as BetPlacementView["rejectedSelectionIds"] & {} }
+      : {}),
+  };
+}
+
 function translate(cause: unknown): DataSourceError {
   if (cause instanceof BetNgApiError && cause.code === "CONFLICT") return new DataSourceError("BETTING_CLOSED", cause.message);
 
@@ -221,7 +324,7 @@ export function createPlatformDataSource(
     return found;
   }
 
-  async function toSummary(match: Match): Promise<MatchSummary> {
+  async function toSummary(match: MatchWire): Promise<MatchSummary> {
     const [allLeagues, allTeams, fixture] = await Promise.all([
       leagues(),
       teams(),
@@ -235,7 +338,10 @@ export function createPlatformDataSource(
       throw new DataSourceError("NOT_FOUND", "The match's teams are unknown.");
     }
 
-    const phase = derivePhase(match.status, fixture.kickoffAt, Date.now());
+    const phase = resolvePhase(match.status, {
+      lifecycle: match.lifecycle,
+      period: match.clock?.period,
+    });
 
     return {
       id: match.id,
@@ -251,8 +357,14 @@ export function createPlatformDataSource(
       bettingClosesAt: fixture.bettingClosesAt,
       status: match.status,
       phase,
+      ...(match.clock === undefined ? {} : { clock: match.clock }),
+      ...(match.lifecycle === undefined ? {} : { lifecycle: match.lifecycle }),
+      ...(match.statusReason === undefined
+        ? {}
+        : { statusReason: match.statusReason }),
       score: match.score ?? { home: 0, away: 0 },
       openMarkets: phase === "BETTING_OPEN" ? 1 : 0,
+      updatedAt: match.updatedAt,
     };
   }
 
@@ -280,7 +392,7 @@ export function createPlatformDataSource(
     };
   }
 
-  async function toView(match: Match): Promise<MatchView> {
+  async function toView(match: MatchWire): Promise<MatchView> {
     const [summary, events, stats] = await Promise.all([
       toSummary(match),
       optional(
@@ -306,8 +418,23 @@ export function createPlatformDataSource(
       return toEventView(event, index + 1, running);
     });
 
+    const clock =
+      summary.clock ??
+      (match.status === "IN_PLAY"
+        ? clockFromEvents(views, match.updatedAt)
+        : undefined);
+
     return {
       ...summary,
+      ...(clock === undefined
+        ? {}
+        : {
+            clock,
+            phase: resolvePhase(match.status, {
+              lifecycle: match.lifecycle,
+              period: clock.period,
+            }),
+          }),
       score: match.score ?? views.at(-1)?.score ?? summary.score,
       events: views,
       ...(stats === undefined
@@ -319,7 +446,15 @@ export function createPlatformDataSource(
   const matchHandlers = new Map<string, Set<LiveMatchHandlers>>();
   const connectionListeners = new Set<(state: ConnectionState) => void>();
   let connection: ConnectionState = "CONNECTING";
-  let live: LiveClient | undefined;
+  let started = false;
+
+  const CONNECTION: Readonly<Record<ConnectionStatus, ConnectionState>> = {
+    CONNECTING: "CONNECTING",
+    CONNECTED: "CONNECTED",
+    RECONNECTING: "RECONNECTING",
+    DISCONNECTED: "OFFLINE",
+    FAILED: "FAILED",
+  };
 
   function setConnection(state: ConnectionState): void {
     connection = state;
@@ -328,32 +463,36 @@ export function createPlatformDataSource(
       for (const h of set) h.onConnection(state);
   }
 
-  function ensureLive(): LiveClient {
-    if (live !== undefined) return live;
+  function ensureLive(): RealtimeClient {
+    if (started) return options.realtime;
 
-    live = options.openLive({
-      onEvent: (event) => {
-        const set = matchHandlers.get(event.matchId);
-
-        if (set === undefined) return;
-
-        const view = toLiveEventView(event);
-
-        for (const h of set) h.onEvent(view);
-      },
-      onOpen: () => {
-        setConnection("CONNECTED");
-      },
-      onClose: (willReconnect) => {
-        setConnection(willReconnect ? "RECONNECTING" : "OFFLINE");
-      },
-      // A gap surfaces to the controller as a sequence jump on the next
-      // event, which triggers its re-read; nothing more is needed here.
-      onDesync: () => undefined,
+    started = true;
+    options.realtime.onStatus((status) => {
+      setConnection(CONNECTION[status]);
     });
-    live.connect();
+    options.realtime.onDesync((channel) => {
+      for (const [matchId, set] of matchHandlers) {
+        if (matchChannel(matchId) !== channel) continue;
+        for (const h of set) h.onSignal?.("MATCH_UPDATED");
+      }
+    });
+    options.realtime.connect();
 
-    return live;
+    return options.realtime;
+  }
+
+  function deliver(matchId: string, event: RealtimeEvent): void {
+    const set = matchHandlers.get(matchId);
+
+    if (set === undefined) return;
+
+    const view = toLiveEventView(event.payload as LiveEvent);
+    const signal = SIGNALS[event.type];
+
+    for (const h of set) {
+      if (view !== undefined) h.onEvent(view);
+      else if (signal !== undefined) h.onSignal?.(signal);
+    }
   }
 
   const accountListeners = new Set<() => void>();
@@ -444,8 +583,37 @@ export function createPlatformDataSource(
       balance: w.balance,
       reserved: w.reserved,
       available: w.balance - w.reserved,
-      currency: "NGN",
+      currency: currentCurrency().code,
       simulated: true,
+    };
+  }
+
+  const TRANSACTION_LABELS: Readonly<Record<Transaction["type"], string>> = {
+    DEPOSIT: "Deposit",
+    WITHDRAWAL: "Withdrawal",
+    BET_STAKE: "Bet stake",
+    BET_PAYOUT: "Payout",
+    BET_REFUND: "Refund",
+  };
+
+  function toTransactionView(t: Transaction): TransactionView {
+    const wire = t as Transaction & {
+      readonly status?: TransactionView["status"];
+      readonly description?: string;
+      readonly betId?: string;
+    };
+
+    return {
+      id: t.id,
+      type: t.type,
+      amount: t.amount,
+      balanceAfter: t.balanceAfter,
+      ...(t.reference === undefined ? {} : { reference: t.reference }),
+      description: wire.description ?? TRANSACTION_LABELS[t.type],
+      createdAt: t.createdAt,
+      currency: t.currency,
+      ...(wire.status === undefined ? {} : { status: wire.status }),
+      ...(wire.betId === undefined ? {} : { betId: wire.betId }),
     };
   }
 
@@ -614,6 +782,11 @@ export function createPlatformDataSource(
           ...(m.line === undefined ? {} : { line: m.line }),
           status: m.status,
           columns: MARKET_COLUMNS[m.type],
+          group: MARKET_GROUPS[m.type],
+          updatedAt: m.updatedAt,
+          ...(m.oddsVersion === undefined
+            ? {}
+            : { oddsVersion: m.oddsVersion }),
           selections: m.selections.map((s) => ({
             id: s.id,
             marketId: s.marketId,
@@ -643,23 +816,98 @@ export function createPlatformDataSource(
       ].sort((a, b) => b - a);
     },
 
+    getMatchLineups: async (matchId): Promise<MatchLineupsView> =>
+      optional(() => rest.getMatchLineups(matchId), {
+        matchId,
+        confirmed: false,
+      }) as Promise<MatchLineupsView>,
+
+    getHeadToHead: async (matchId): Promise<HeadToHeadView> => {
+      const empty = { matchId, played: 0, homeWins: 0, draws: 0, awayWins: 0, meetings: [] };
+      const wire = await optional(() => rest.getHeadToHead(matchId), empty);
+      const [allLeagues, allTeams] = await Promise.all([leagues(), teams()]);
+      const meetings = wire.meetings.flatMap((m) => {
+        const home = allTeams.find((t) => t.id === m.homeTeamId);
+        const away = allTeams.find((t) => t.id === m.awayTeamId);
+
+        if (home === undefined || away === undefined) return [];
+
+        return [
+          {
+            matchId: m.matchId,
+            kickoffAt: m.kickoffAt,
+            leagueCode: allLeagues.find((l) => l.id === m.leagueId)?.code ?? "",
+            home: toTeamView(home),
+            away: toTeamView(away),
+            score: m.score,
+          },
+        ];
+      });
+
+      return { ...wire, matchId, meetings };
+    },
+
+    search: async (query) => {
+      const term = query.term.trim();
+
+      if (term.length < 2) return { term, hits: [] };
+
+      const wire = await required(() =>
+        rest.search({
+          q: term,
+          ...(query.kinds === undefined ? {} : { kinds: query.kinds }),
+          ...(query.limit === undefined ? {} : { limit: query.limit }),
+        }),
+      );
+
+      return {
+        term: wire.term,
+        hits: wire.hits.map((hit) => ({
+          kind: hit.kind,
+          id: hit.id,
+          title: hit.title,
+          ...(hit.subtitle === undefined ? {} : { subtitle: hit.subtitle }),
+          ...(hit.matchId === undefined ? {} : { matchId: hit.matchId }),
+          ...(hit.leagueId === undefined ? {} : { leagueId: hit.leagueId }),
+          ...(hit.teamId === undefined ? {} : { teamId: hit.teamId }),
+        })),
+      };
+    },
+
+    getPlatformConfig: async (): Promise<PlatformConfigView> => {
+      const wire = await optional(() => rest.getPublicConfig(), undefined);
+
+      if (wire === undefined) return { currency: currentCurrency(), features: {} };
+
+      return {
+        currency: wire.currency,
+        features: wire.features,
+        ...(wire.stakeLimits === undefined ? {} : { stakeLimits: wire.stakeLimits }),
+        ...(wire.competitionTimezone === undefined
+          ? {}
+          : { competitionTimezone: wire.competitionTimezone }),
+        ...(wire.maintenance === undefined ? {} : { maintenance: wire.maintenance }),
+      };
+    },
+
     subscribeMatch: (matchId, handlers) => {
       const client = ensureLive();
       const set = matchHandlers.get(matchId) ?? new Set<LiveMatchHandlers>();
 
       set.add(handlers);
       matchHandlers.set(matchId, set);
-      client.subscribe(matchId);
+
+      const release = client.subscribe(matchChannel(matchId), (event) => {
+        deliver(matchId, event);
+      });
+
       handlers.onConnection(connection);
 
       return {
         unsubscribe: () => {
           set.delete(handlers);
-
-          if (set.size === 0) {
-            matchHandlers.delete(matchId);
-            client.unsubscribe(matchId);
-          }
+          if (set.size === 0) matchHandlers.delete(matchId);
+          release();
         },
       };
     },
@@ -679,25 +927,33 @@ export function createPlatformDataSource(
 
     listTransactions: async () =>
       (await required(() => rest.listTransactions(uid()))).map(
-        (t): TransactionView => ({
-          id: t.id,
-          type: t.type,
-          amount: t.amount,
-          balanceAfter: t.balanceAfter,
-          ...(t.reference === undefined ? {} : { reference: t.reference }),
-          description:
-            t.type === "DEPOSIT"
-              ? "Simulated deposit"
-              : t.type === "WITHDRAWAL"
-                ? "Simulated withdrawal"
-                : t.type === "BET_STAKE"
-                  ? "Stake"
-                  : t.type === "BET_PAYOUT"
-                    ? "Payout"
-                    : "Refund",
-          createdAt: t.createdAt,
-        }),
+        toTransactionView,
       ),
+
+    queryTransactions: async (query) => {
+      const page = await required(() =>
+        rest.queryTransactions(uid(), {
+          ...query,
+          ...(query.types === undefined ? {} : { types: query.types }),
+        }),
+      );
+
+      // A service that does not page yet answers `{ items }`; the page is cut here so the screen still works.
+      if (typeof page.total !== "number") {
+        const all = page.items.map(toTransactionView);
+        const size = query.pageSize ?? 20;
+        const index = query.page ?? 1;
+
+        return {
+          items: all.slice((index - 1) * size, index * size),
+          page: index,
+          pageSize: size,
+          total: all.length,
+        };
+      }
+
+      return { ...page, items: page.items.map(toTransactionView) };
+    },
 
     deposit: async (amount) => {
       const { wallet } = await required(() => rest.deposit(uid(), amount));
@@ -715,37 +971,59 @@ export function createPlatformDataSource(
       return toWalletView(wallet);
     },
 
-    placeBet: async (input) => {
-      const bet = await required(() =>
-        rest.placeBet({
-          userId: uid() as Bet["userId"],
-          stake: input.stake,
-          currency: "NGN",
-          selections: input.selections.map((s) => ({
-            matchId: s.matchId,
-            marketId: s.marketId,
-            selectionId: s.selectionId,
-            odds: s.odds,
-            marketType: s.marketKind,
-            marketLabel: s.marketName,
-            selectionLabel: s.selectionLabel,
-          })),
-        }),
-      );
+    placeBet: async (input): Promise<BetPlacementView> => {
+      let bet: Bet;
+
+      try {
+        bet = await rest.placeBet(
+          {
+            userId: uid() as Bet["userId"],
+            stake: input.stake,
+            currency: "NGN",
+            selections: input.selections.map((s) => ({
+              matchId: s.matchId,
+              marketId: s.marketId,
+              selectionId: s.selectionId,
+              odds: s.odds,
+              marketType: s.marketKind,
+              marketLabel: s.marketName,
+              selectionLabel: s.selectionLabel,
+              ...(s.oddsVersion === undefined
+                ? {}
+                : { oddsVersion: s.oddsVersion }),
+            })),
+          },
+          { idempotencyKey: input.clientReference },
+        );
+      } catch (cause) {
+        const refusal = toRefusal(cause, input.clientReference);
+
+        if (refusal !== undefined) return refusal;
+
+        throw translate(cause);
+      }
 
       notifyAccount();
 
+      const limited = bet.stake < input.stake;
+
       return {
-        id: bet.id,
-        legs: input.selections.map((s) => ({
-          ...s,
-          outcome: "PENDING" as const,
-        })),
-        stake: bet.stake,
-        totalOdds: bet.totalOdds,
-        potentialPayout: bet.potentialPayout,
-        status: bet.status,
-        placedAt: bet.placedAt,
+        outcome: limited ? "LIMITED" : "ACCEPTED",
+        clientReference: input.clientReference,
+        ...(limited ? { reason: "STAKE_LIMITED" as const } : {}),
+        bet: {
+          id: bet.id,
+          legs: input.selections.map((s) => ({
+            ...s,
+            outcome: "PENDING" as const,
+          })),
+          stake: bet.stake,
+          totalOdds: bet.totalOdds,
+          potentialPayout: bet.potentialPayout,
+          status: bet.status,
+          placedAt: bet.placedAt,
+          currency: bet.currency,
+        },
       };
     },
 
@@ -803,8 +1081,18 @@ export function createPlatformDataSource(
     subscribeAccount: (listener) => {
       accountListeners.add(listener);
 
+      const id =
+        typeof options.userId === "function"
+          ? options.userId()
+          : options.userId;
+      const release =
+        id === undefined
+          ? undefined
+          : ensureLive().subscribe(accountChannel(id), notifyAccount);
+
       return () => {
         accountListeners.delete(listener);
+        release?.();
       };
     },
   };

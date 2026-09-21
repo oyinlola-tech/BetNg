@@ -12,10 +12,7 @@ export interface WalletClient extends WalletPeer {
   readonly raw: RPCClient;
 }
 
-/**
- * Settlement only ever credits, and only a customer: a payout for a winning online bet or the stake back for
- * a void one. There is deliberately no debit here and no other owner type.
- */
+/** Credit only, customer only: there is deliberately no debit and no other owner type. */
 export function createWalletClient(endpoint: ServiceEndpoint): WalletClient {
   const client = createRpcClient(endpoint);
 

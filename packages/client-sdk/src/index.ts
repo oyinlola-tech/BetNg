@@ -22,7 +22,9 @@ export type {
   BetNgRestClient,
   BetNgShopClient,
   LedgerEntry,
+  SearchRequest,
   TicketQuery,
+  TransactionPageQuery,
 } from "./rest/index.js";
 
 export {

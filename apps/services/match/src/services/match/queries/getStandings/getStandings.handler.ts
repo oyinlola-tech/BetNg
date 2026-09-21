@@ -9,7 +9,10 @@ import type { GetStandingsQuery } from "./getStandings.query.js";
 
 const SEASON_MATCH_LIMIT = 5000;
 
-export class GetStandingsHandler extends QueryHandler<GetStandingsQuery, Standings> {
+export class GetStandingsHandler extends QueryHandler<
+  GetStandingsQuery,
+  Standings
+> {
   public readonly queryType = MATCH_QUERY.GET_STANDINGS;
 
   private readonly deps: HandlerDependencies;
@@ -25,9 +28,14 @@ export class GetStandingsHandler extends QueryHandler<GetStandingsQuery, Standin
     if (league === undefined) throw new NotFoundError("league", query.leagueId);
 
     const now = this.deps.clock();
-    const season = query.season ?? (await this.deps.matches.currentSeason(league.id, now));
+    const season =
+      query.season ?? (await this.deps.matches.currentSeason(league.id, now));
     const teams = await this.deps.catalogue.listTeams(league.id);
-    const completed = await this.deps.matches.listCompleted({ leagueId: league.id, season, limit: SEASON_MATCH_LIMIT });
+    const completed = await this.deps.matches.listCompleted({
+      leagueId: league.id,
+      season,
+      limit: SEASON_MATCH_LIMIT,
+    });
     const rows = computeStandings(
       teams.map((team) => team.id),
       completed.map((match) => ({
@@ -42,7 +50,8 @@ export class GetStandingsHandler extends QueryHandler<GetStandingsQuery, Standin
     return {
       leagueId: asId<"LeagueId">(league.id),
       season,
-      matchdaysPlayed: new Set(completed.map((match) => match.fixture.matchday)).size,
+      matchdaysPlayed: new Set(completed.map((match) => match.fixture.matchday))
+        .size,
       rows: rows.map((row) => ({ ...row, teamId: asId<"TeamId">(row.teamId) })),
       generatedAt: now.toISOString(),
     };

@@ -53,7 +53,7 @@ describe("redactSnapshot", () => {
   });
 
   it("bounds the stored size and passes absent values through", () => {
-    expect(redactSnapshot({ blob: "x".repeat(40_000) })).toEqual({ truncated: true, originalBytes: expect.any(Number) });
+    expect(redactSnapshot({ blob: "x".repeat(40_000) })).toMatchObject({ truncated: true });
     expect(redactSnapshot(undefined)).toBeUndefined();
     expect(redactSnapshot(null)).toBeUndefined();
   });

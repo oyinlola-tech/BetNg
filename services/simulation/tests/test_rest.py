@@ -195,6 +195,7 @@ class TestResultSecrecy:
         unknown = find_run(client, match_id)
         assert unknown is not None
         assert unknown["score"] is None
+        assert unknown["seed"] is None
 
         for status in ("BETTING_CLOSED", "IN_PLAY", "CANCELLED"):
             matches.matches[match_id] = MatchView(status, "Premier Division")
@@ -202,8 +203,10 @@ class TestResultSecrecy:
 
             assert hidden is not None
             assert hidden["score"] is None
+            assert hidden["seed"] is None
+            assert created["seed"] not in str(hidden)
+            assert "seedMaterial" not in hidden
             assert hidden["status"] == "COMPLETED"
-            assert hidden["seed"] == created["seed"]
             assert hidden["modelVersion"] == created["modelVersion"]
             assert "homeGoals" not in str(hidden)
             assert "winner" not in str(hidden)
@@ -216,6 +219,7 @@ class TestResultSecrecy:
             "home": created["result"]["homeGoals"],
             "away": created["result"]["awayGoals"],
         }
+        assert revealed["seed"] == created["seed"]
         assert revealed["id"] == created["simulationId"]
         assert revealed["events"] == created["eventCount"]
         assert revealed["matchLabel"] == "Lagos Lions v Abuja Eagles"
@@ -268,6 +272,7 @@ class TestRunActions:
             listed = find_run(client, match_id, status="FAILED")
             assert listed is not None
             assert listed["score"] is None
+            assert listed["seed"] is None
             assert listed["error"] == "ValueError: the engine was made to fail"
             url = f"/api/v1/admin/simulations/{listed['id']}/actions"
 
@@ -279,6 +284,7 @@ class TestRunActions:
             assert queued.status_code == 200
             assert queued.json()["status"] == "QUEUED"
             assert queued.json()["score"] is None
+            assert queued.json()["seed"] is None
 
             repeated = client.post(
                 url,

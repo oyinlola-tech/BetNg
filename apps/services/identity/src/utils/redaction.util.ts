@@ -1,10 +1,4 @@
-/**
- * Server-side redaction of audit snapshots.
- *
- * Callers are other services and this one; none is trusted to have removed
- * secrets. Any key that looks like one is dropped, at every depth, before the
- * entry is stored, so the audit log cannot become a credential store.
- */
+// No caller is trusted to have removed secrets: secret-looking keys are dropped at every depth before an audit entry is stored.
 
 import { SECURITY } from "../constants/index.js";
 
@@ -40,12 +34,7 @@ function redactValue(value: unknown, depth: number): unknown {
   return output;
 }
 
-/**
- * Redacts a snapshot and bounds its stored size.
- *
- * An oversized snapshot is replaced by a marker rather than refused: the fact
- * that the change happened must still be recorded.
- */
+/** An oversized snapshot is replaced by a marker rather than refused: the change must still be recorded. */
 export function redactSnapshot(value: unknown): unknown {
   if (value === undefined || value === null) {
     return undefined;

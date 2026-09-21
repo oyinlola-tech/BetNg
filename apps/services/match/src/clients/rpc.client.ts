@@ -1,10 +1,3 @@
-/**
- * Shared plumbing of the match service's RPC clients.
- *
- * A peer's answer is validated like any other input: the lifecycle advances on what a peer said, so a malformed
- * answer is a failed call, not a transition.
- */
-
 import { createRPCMetadata } from "@zudojs/rpc";
 import type { RPCClient } from "@zudojs/rpc";
 import { validate } from "@zudojs/validation";

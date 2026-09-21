@@ -6,7 +6,6 @@ export interface MaintenanceJob {
   readonly stop: () => void;
 }
 
-/** Deletes rows that no longer decide anything: dead sessions, spent codes, idle lockout counters. */
 export function startMaintenanceJob(store: IdentityStore, logger: Logger): MaintenanceJob {
   const sweep = async (): Promise<void> => {
     const now = Date.now();

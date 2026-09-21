@@ -1,10 +1,3 @@
-/**
- * Commission configuration and the commission ledger.
- *
- * Configuration is versioned by `effective_from`: a change appends a row and the database rejects any edit.
- * The ledger is written only by closing a period (see the operator repository).
- */
-
 import { sql } from "../databases/index.js";
 import type { Prisma, PrismaClient } from "../databases/index.js";
 import type { CommissionRepository } from "../interfaces/index.js";
@@ -37,7 +30,7 @@ export interface CommissionLedgerRow {
 const CONFIG_COLUMNS = sql`
   id, shop_id, shop_share_percent::text AS shop_share_percent, effective_from, created_by, reason`;
 
-/** Serialises configuration writers so "before" is the version the new row really replaces. */
+// Serialises writers so the audited "before" is the version the new row really replaces.
 const CONFIG_LOCK_KEY = "settlement.commission_config";
 
 function toConfig(row: ConfigRow): CommissionConfigRecord {
@@ -142,7 +135,6 @@ export function createCommissionRepository(prisma: PrismaClient): CommissionRepo
 
         const change = { before, after: toConfig(row) };
 
-        // Throws when the audit entry cannot be written, which rolls the new version back.
         await confirm(change);
 
         return change;

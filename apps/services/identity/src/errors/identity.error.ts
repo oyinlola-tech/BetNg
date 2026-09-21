@@ -1,9 +1,4 @@
-/**
- * What the identity service refuses, and how each refusal is answered.
- *
- * Messages are written for the person at the sign-in form. None of them says
- * which part of a credential was wrong or whether an account exists.
- */
+// No message says which part of a credential was wrong or whether an account exists.
 
 import { DomainError } from "@zudojs/errors";
 import { ErrorCodes } from "@betng/contracts";
@@ -73,7 +68,6 @@ export class ResourceNotFoundError extends DomainError {
   }
 }
 
-/** A well-formed request the platform still cannot accept; `field` names the offending input. */
 export class InvalidInputError extends DomainError {
   public readonly details: readonly { readonly path: string; readonly message: string }[];
 

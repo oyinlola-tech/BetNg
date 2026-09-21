@@ -95,3 +95,4 @@ Thumbs.db
 !.vscode/extensions.json
 *.swp
 *~
+scripts/e2e/.logs/

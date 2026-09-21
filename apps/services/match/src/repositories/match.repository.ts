@@ -3,7 +3,9 @@ import type { Prisma, PrismaClient } from "../generated/prisma/client.js";
 import { MATCH_INCLUDE } from "../interfaces/index.js";
 import type { FixtureFilter, MatchRepository } from "../interfaces/index.js";
 
-function fixtureWhere(filter: Omit<FixtureFilter, "limit">): Prisma.FixtureWhereInput {
+function fixtureWhere(
+  filter: Omit<FixtureFilter, "limit">,
+): Prisma.FixtureWhereInput {
   return {
     ...(filter.leagueId === undefined ? {} : { leagueId: filter.leagueId }),
     ...(filter.season === undefined ? {} : { season: filter.season }),
@@ -36,14 +38,29 @@ export function createMatchRepository(prisma: PrismaClient): MatchRepository {
           fixture: fixtureWhere(filter),
         },
         include: MATCH_INCLUDE,
-        orderBy: [{ fixture: { kickoffAt: filter.newestFirst === true ? "desc" : "asc" } }, { id: "asc" }],
+        orderBy: [
+          {
+            fixture: {
+              kickoffAt: filter.newestFirst === true ? "desc" : "asc",
+            },
+          },
+          { id: "asc" },
+        ],
         take: filter.limit,
       }),
 
-    findMatch: async (id) => (await prisma.match.findUnique({ where: { id }, include: MATCH_INCLUDE })) ?? undefined,
+    findMatch: async (id) =>
+      (await prisma.match.findUnique({
+        where: { id },
+        include: MATCH_INCLUDE,
+      })) ?? undefined,
 
     listTransitions: async (matchId) =>
-      prisma.matchTransition.findMany({ where: { matchId }, orderBy: { sequence: "asc" }, take: 200 }),
+      prisma.matchTransition.findMany({
+        where: { matchId },
+        orderBy: { sequence: "asc" },
+        take: 200,
+      }),
 
     listCompleted: async (filter) =>
       prisma.match.findMany({
@@ -52,7 +69,9 @@ export function createMatchRepository(prisma: PrismaClient): MatchRepository {
           homeScore: { not: null },
           awayScore: { not: null },
           fixture: {
-            ...(filter.leagueId === undefined ? {} : { leagueId: filter.leagueId }),
+            ...(filter.leagueId === undefined
+              ? {}
+              : { leagueId: filter.leagueId }),
             ...(filter.season === undefined ? {} : { season: filter.season }),
           },
         },
@@ -100,7 +119,12 @@ export function createMatchRepository(prisma: PrismaClient): MatchRepository {
 
     createFixtures: async (fixtures, options) =>
       prisma.$transaction(async (tx) => {
-        const rows = fixtures.map((fixture) => ({ ...fixture, id: randomUUID(), source: options.source, createdAt: options.at }));
+        const rows = fixtures.map((fixture) => ({
+          ...fixture,
+          id: randomUUID(),
+          source: options.source,
+          createdAt: options.at,
+        }));
 
         // A pairing an admin already added to this matchday is left as it is rather than failing the round.
         await tx.fixture.createMany({ data: rows, skipDuplicates: true });
@@ -110,7 +134,10 @@ export function createMatchRepository(prisma: PrismaClient): MatchRepository {
           select: { id: true },
         });
 
-        const matches = inserted.map((fixture) => ({ id: randomUUID(), fixtureId: fixture.id }));
+        const matches = inserted.map((fixture) => ({
+          id: randomUUID(),
+          fixtureId: fixture.id,
+        }));
 
         await tx.match.createMany({
           data: matches.map((match) => ({

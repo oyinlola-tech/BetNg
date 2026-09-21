@@ -6,7 +6,7 @@ import type { AdminSettlementRecord } from "../../../../models/index.js";
 import type { MatchSettler } from "../../match.settler.js";
 import type { RetrySettlementCommand } from "./retrySettlement.command.js";
 
-/** Re-runs the match settlement; the outcome is recalculated from the recorded result, never supplied. */
+/** The outcome is recalculated from the recorded result, never supplied by the caller. */
 export class RetrySettlementHandler extends CommandHandler<RetrySettlementCommand, AdminSettlementRecord> {
   public readonly commandType = SETTLEMENT_COMMAND.RETRY_SETTLEMENT;
 

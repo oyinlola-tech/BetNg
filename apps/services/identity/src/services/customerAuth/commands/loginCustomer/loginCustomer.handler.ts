@@ -14,13 +14,7 @@ import type { LoginCustomerCommand } from "./loginCustomer.command.js";
 
 type Dependencies = Pick<HandlerDependencies, "store" | "hasher" | "sessions" | "throttle">;
 
-/**
- * Customer sign-in.
- *
- * Only the `customers` table is consulted: an admin's or a cashier's
- * credentials match nothing here. The account's state (suspended, unverified)
- * is disclosed only after the password has been proven.
- */
+/** Reads `customers` only, so admin or cashier credentials match nothing. Account state is disclosed only after the password is proven. */
 export class LoginCustomerHandler extends CommandHandler<LoginCustomerCommand, CustomerSession> {
   public readonly commandType = IDENTITY_COMMAND.LOGIN_CUSTOMER;
 

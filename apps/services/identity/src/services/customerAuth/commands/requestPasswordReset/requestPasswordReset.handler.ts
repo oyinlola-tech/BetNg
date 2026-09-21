@@ -8,15 +8,7 @@ import type { RequestPasswordResetCommand } from "./requestPasswordReset.command
 
 type Dependencies = Pick<HandlerDependencies, "store" | "logger">;
 
-/**
- * Records a password-reset request.
- *
- * The answer is always the same and always takes `PASSWORD_RESET_RESPONSE_MS`,
- * far longer than the work, so neither the body nor the clock says whether the
- * address has an account. A failure is logged, never surfaced, for the same
- * reason. The token's hash is stored and the token is discarded: there is no
- * mail server to carry it, and no route here accepts one.
- */
+/** Same answer and same duration whether or not the address exists; failures are logged, never surfaced, for the same reason. */
 export class RequestPasswordResetHandler extends CommandHandler<RequestPasswordResetCommand> {
   public readonly commandType = IDENTITY_COMMAND.REQUEST_PASSWORD_RESET;
 

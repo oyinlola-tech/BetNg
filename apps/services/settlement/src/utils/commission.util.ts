@@ -1,12 +1,8 @@
-/**
- * Commission arithmetic: integers only. A percent with two decimal places is carried as basis points.
- */
-
 const PERCENT_TEXT = /^(\d{1,3})(?:\.(\d{1,2}))?$/;
 
 const FULL_SHARE_BASIS_POINTS = 10_000;
 
-/** "12.5" → 1250. Accepts a NUMERIC(5,2) rendered as text, or a request number with at most two places. */
+/** "12.5" → 1250. Integer maths only: a percent is carried as basis points. */
 export function percentToBasisPoints(percent: string | number): number {
   const text = typeof percent === "number" ? String(percent) : percent.trim();
   const match = PERCENT_TEXT.exec(text);
@@ -42,12 +38,7 @@ export interface CommissionSplit {
   readonly platformShareAmount: bigint;
 }
 
-/**
- * Splits a shop's realised operator result.
- *
- * The shop shares in a positive result only. A zero or negative result leaves the shop with nothing and the
- * whole (negative) figure on the platform side: it is recorded, and no wallet absorbs it.
- */
+/** The shop shares in a positive result only; a negative result stays whole on the platform side. */
 export function splitCommission(operatorResult: bigint, shopShareBasisPoints: number): CommissionSplit {
   if (
     !Number.isInteger(shopShareBasisPoints) ||

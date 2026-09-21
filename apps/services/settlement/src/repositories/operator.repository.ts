@@ -1,10 +1,5 @@
-/**
- * The operator ledger and its reporting periods.
- *
- * A period's figures are an aggregate of its `operator_ledger_entries` — never a stored running total that
- * could drift. `operator_result = gross_stakes - gross_payouts` and is written exactly as computed: a period
- * where payouts exceeded stakes closes with a negative result, and nothing anywhere is debited to cover it.
- */
+// A period's figures are always an aggregate of its entries. `operator_result` is written as computed,
+// negative included; nothing is debited anywhere to cover it.
 
 import type { Prisma, PrismaClient } from "../databases/index.js";
 import type { OperatorRepository } from "../interfaces/index.js";
@@ -48,10 +43,7 @@ interface ShareRow {
 
 type Executor = Pick<Prisma.TransactionClient, "$queryRaw">;
 
-/**
- * Stakes count when the bet stood (WON or LOST); payouts count when it won. A void bet is a refund: it is
- * neither a stake taken nor a payout made. The rate is clamped to what NUMERIC(9,6) holds.
- */
+// A void bet is a refund: neither a stake taken nor a payout made. The rate is clamped to NUMERIC(9,6).
 async function aggregate(executor: Executor, periodId: string): Promise<AggregateRow> {
   const rows = await executor.$queryRaw<AggregateRow[]>`
     WITH totals AS (
@@ -126,7 +118,6 @@ export function createOperatorRepository(prisma: PrismaClient): OperatorReposito
 
     closePeriod: async (input) =>
       prisma.$transaction(async (tx) => {
-        // FOR UPDATE waits for every settlement transaction holding the period's share lock.
         const open = await lockOpenPeriod(tx, "update");
 
         if (
@@ -173,7 +164,7 @@ export function createOperatorRepository(prisma: PrismaClient): OperatorReposito
         if (shops.length > 0) {
           const shopIds = shops.map((shop) => shop.shop_id);
 
-          // The share in force at the close: the shop's own latest version, else the platform default.
+          // The shop's own latest version in force at the close, else the platform default.
           const shares = await tx.$queryRaw<ShareRow[]>`
             SELECT DISTINCT ON (shop_id) shop_id, shop_share_percent::text AS shop_share_percent
             FROM settlement.commission_config

@@ -2,8 +2,8 @@ import { createHash } from "node:crypto";
 import type { CustomerProfile, CustomerSession, RegistrationPending } from "@betng/contracts";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { loadIdentityConfig } from "../src/configs/index.js";
-import { adminActor, freshEmail, PASSWORD, startHarness } from "./support/harness.js";
-import type { ErrorBody, Harness } from "./support/harness.js";
+import { adminActor, freshEmail, PASSWORD, startHarness } from "./harness.js";
+import type { ErrorBody, Harness } from "./harness.js";
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 

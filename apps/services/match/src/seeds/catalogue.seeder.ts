@@ -1,10 +1,3 @@
-/**
- * Seeds the catalogue on first start.
- *
- * Runs only when `match.leagues` is empty, inside one transaction, so a database is either unseeded or fully
- * seeded. Ids are random UUIDs generated here, once: nothing downstream may assume a particular league or team id.
- */
-
 import { randomUUID } from "node:crypto";
 import type { Logger } from "@betng/service-kit";
 import type { PrismaClient } from "../generated/prisma/client.js";
@@ -14,7 +7,10 @@ import { LEAGUE_SEEDS } from "./catalogue.seed.js";
 /** Serialises concurrent first starts; any constant unique to this service's seed will do. */
 const SEED_ADVISORY_LOCK = 7_310_001;
 
-export async function seedCatalogue(prisma: PrismaClient, logger: Logger): Promise<boolean> {
+export async function seedCatalogue(
+  prisma: PrismaClient,
+  logger: Logger,
+): Promise<boolean> {
   const seeded = await prisma.$transaction(async (tx) => {
     await tx.$queryRaw`SELECT pg_advisory_xact_lock(${SEED_ADVISORY_LOCK}::bigint)::text AS locked`;
 
@@ -56,7 +52,10 @@ export async function seedCatalogue(prisma: PrismaClient, logger: Logger): Promi
   if (seeded) {
     logger.info("Catalogue seeded", {
       leagues: LEAGUE_SEEDS.length,
-      teams: LEAGUE_SEEDS.reduce((total, league) => total + league.clubs.length, 0),
+      teams: LEAGUE_SEEDS.reduce(
+        (total, league) => total + league.clubs.length,
+        0,
+      ),
     });
   }
 

@@ -1,11 +1,3 @@
-/**
- * The settlement service's data-access contracts.
- *
- * A settlement is written once. `recordSettlement` is the no-double-pay guarantee: it inserts on the unique
- * `(bet_id, revision)` key and reports whether this call created the row, so a redelivered or concurrent
- * request finds the settlement that already exists instead of writing a second one.
- */
-
 import type { MatchSettlementKind } from "../constants/index.js";
 import type {
   AdminSettlementRecord,
@@ -67,10 +59,6 @@ export interface SettlementRepository {
   findAdminByBet(betId: string): Promise<AdminSettlementRecord | undefined>;
 }
 
-/**
- * Read-only access to the schemas other services own. Settlement reads bets, legs, match state and the
- * authoritative result; it writes none of them.
- */
 export interface PlatformReader {
   findMatch(matchId: string): Promise<MatchState | undefined>;
   findResult(matchId: string): Promise<FinalScore | undefined>;

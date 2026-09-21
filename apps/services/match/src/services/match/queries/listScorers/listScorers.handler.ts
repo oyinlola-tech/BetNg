@@ -6,7 +6,10 @@ import { NotFoundError } from "../../../../errors/index.js";
 import type { HandlerDependencies } from "../../match.dependencies.js";
 import type { ListScorersQuery } from "./listScorers.query.js";
 
-export class ListScorersHandler extends QueryHandler<ListScorersQuery, readonly TopScorer[]> {
+export class ListScorersHandler extends QueryHandler<
+  ListScorersQuery,
+  readonly TopScorer[]
+> {
   public readonly queryType = MATCH_QUERY.LIST_SCORERS;
 
   private readonly deps: HandlerDependencies;
@@ -21,9 +24,19 @@ export class ListScorersHandler extends QueryHandler<ListScorersQuery, readonly 
 
     if (league === undefined) throw new NotFoundError("league", query.leagueId);
 
-    const season = query.season ?? (await this.deps.matches.currentSeason(league.id, this.deps.clock()));
-    const scorers = await this.deps.simulation.listScorers(league.id, season, query.limit ?? LIST_LIMIT.SCORERS_DEFAULT);
+    const season =
+      query.season ??
+      (await this.deps.matches.currentSeason(league.id, this.deps.clock()));
+    const scorers = await this.deps.simulation.listScorers(
+      league.id,
+      season,
+      query.limit ?? LIST_LIMIT.SCORERS_DEFAULT,
+    );
 
-    return scorers.map((row) => ({ ...row, player: row.player.slice(0, 80), teamId: asId<"TeamId">(row.teamId) }));
+    return scorers.map((row) => ({
+      ...row,
+      player: row.player.slice(0, 80),
+      teamId: asId<"TeamId">(row.teamId),
+    }));
   }
 }

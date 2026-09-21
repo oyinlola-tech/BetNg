@@ -7,7 +7,12 @@ import type { RunMatchRequest, RunMatchResponse } from "@betng/contracts";
 import { createApp, loadMatchConfig } from "../src/index.js";
 import type { MatchApp } from "../src/index.js";
 import { PrismaClient } from "../src/generated/prisma/client.js";
-import type { AuditInput, LiveEventInput, MarketsStatus, Peers } from "../src/interfaces/index.js";
+import type {
+  AuditInput,
+  LiveEventInput,
+  MarketsStatus,
+  Peers,
+} from "../src/interfaces/index.js";
 
 const ROOT_ENV = resolve(import.meta.dirname, "../../../../.env");
 
@@ -19,12 +24,16 @@ const DATABASE = process.env["MATCH_TEST_DATABASE"] ?? "betng_test_match";
 function required(key: string): string {
   const value = process.env[key];
 
-  if (value === undefined || value === "") throw new Error(`${key} is not set; see .env.example.`);
+  if (value === undefined || value === "")
+    throw new Error(`${key} is not set; see .env.example.`);
 
   return value;
 }
 
-function testUrl(credentials?: { readonly user: string; readonly password: string }): string {
+function testUrl(credentials?: {
+  readonly user: string;
+  readonly password: string;
+}): string {
   const target = new URL(required("MATCH_DATABASE_URL"));
 
   target.pathname = `/${DATABASE}`;
@@ -38,15 +47,27 @@ function testUrl(credentials?: { readonly user: string; readonly password: strin
 }
 
 export const MATCH_URL = testUrl();
-const SUPERUSER_URL = testUrl({ user: required("POSTGRES_USER"), password: required("POSTGRES_PASSWORD") });
+const SUPERUSER_URL = testUrl({
+  user: required("POSTGRES_USER"),
+  password: required("POSTGRES_PASSWORD"),
+});
 
 export const TEST_PORT = 4101;
 export const INTERNAL_TOKEN = "match-test-internal-token-0123456789";
 
-export const TEST_TIMING = Object.freeze({ secondsPerMinute: 0.5, halfTimeSeconds: 2, lead: 10 });
+export const TEST_TIMING = Object.freeze({
+  secondsPerMinute: 0.5,
+  halfTimeSeconds: 2,
+  lead: 10,
+});
 
 export function createSuperuser(): PrismaClient {
-  return new PrismaClient({ adapter: new PrismaPg({ connectionString: SUPERUSER_URL }, { schema: "match" }) });
+  return new PrismaClient({
+    adapter: new PrismaPg(
+      { connectionString: SUPERUSER_URL },
+      { schema: "match" },
+    ),
+  });
 }
 
 export async function ensurePeerTables(superuser: PrismaClient): Promise<void> {
@@ -86,24 +107,69 @@ export interface TimelineEvent {
 
 export const TIMELINE: readonly TimelineEvent[] = [
   { minute: 0, type: "KICK_OFF", score: [0, 0] },
-  { minute: 10, type: "GOAL", side: "HOME", player: "A. Striker", secondaryPlayer: "B. Winger", score: [1, 0] },
+  {
+    minute: 10,
+    type: "GOAL",
+    side: "HOME",
+    player: "A. Striker",
+    secondaryPlayer: "B. Winger",
+    score: [1, 0],
+  },
   { minute: 30, type: "CORNER", side: "AWAY", score: [1, 0] },
   { minute: 45, type: "HALF_TIME", score: [1, 0] },
   { minute: 46, type: "SECOND_HALF", score: [1, 0] },
-  { minute: 70, type: "GOAL", side: "AWAY", player: "C. Forward", score: [1, 1] },
-  { minute: 78, type: "YELLOW_CARD", side: "AWAY", player: "D. Holder", score: [1, 1] },
-  { minute: 85, type: "GOAL", side: "HOME", player: "A. Striker", score: [2, 1] },
+  {
+    minute: 70,
+    type: "GOAL",
+    side: "AWAY",
+    player: "C. Forward",
+    score: [1, 1],
+  },
+  {
+    minute: 78,
+    type: "YELLOW_CARD",
+    side: "AWAY",
+    player: "D. Holder",
+    score: [1, 1],
+  },
+  {
+    minute: 85,
+    type: "GOAL",
+    side: "HOME",
+    player: "A. Striker",
+    score: [2, 1],
+  },
   { minute: 90, type: "FULL_TIME", score: [2, 1] },
 ];
 
 export const FINAL_STATS = {
   asOfMinute: 90,
-  home: { possession: 58, shots: 14, shotsOnTarget: 6, corners: 0, fouls: 10, offsides: 2, yellowCards: 0, redCards: 0 },
-  away: { possession: 42, shots: 8, shotsOnTarget: 3, corners: 1, fouls: 12, offsides: 4, yellowCards: 1, redCards: 0 },
+  home: {
+    possession: 58,
+    shots: 14,
+    shotsOnTarget: 6,
+    corners: 0,
+    fouls: 10,
+    offsides: 2,
+    yellowCards: 0,
+    redCards: 0,
+  },
+  away: {
+    possession: 42,
+    shots: 8,
+    shotsOnTarget: 3,
+    corners: 1,
+    fouls: 12,
+    offsides: 4,
+    yellowCards: 1,
+    redCards: 0,
+  },
 };
 
-/** Commits a result and its timeline the way the simulation service would. */
-export async function commitSimulation(superuser: PrismaClient, matchId: string): Promise<string> {
+export async function commitSimulation(
+  superuser: PrismaClient,
+  matchId: string,
+): Promise<string> {
   const simulationId = randomUUID();
 
   await superuser.$executeRawUnsafe(
@@ -149,7 +215,12 @@ export interface FakePeers extends Peers {
     readonly audits: AuditInput[];
   };
   /** Failures are injected per match: rows left by earlier runs are ticked too and must not consume them. */
-  readonly fail: { readonly simulation: Map<string, number>; readonly settlement: Map<string, number>; audit: boolean; odds: boolean };
+  readonly fail: {
+    readonly simulation: Map<string, number>;
+    readonly settlement: Map<string, number>;
+    audit: boolean;
+    odds: boolean;
+  };
 }
 
 export function createFakePeers(superuser: PrismaClient): FakePeers {
@@ -163,8 +234,16 @@ export function createFakePeers(superuser: PrismaClient): FakePeers {
     events: [],
     audits: [],
   };
-  const fail: FakePeers["fail"] = { simulation: new Map(), settlement: new Map(), audit: false, odds: false };
-  const shouldFail = (budget: Map<string, number>, matchId: string): boolean => {
+  const fail: FakePeers["fail"] = {
+    simulation: new Map(),
+    settlement: new Map(),
+    audit: false,
+    odds: false,
+  };
+  const shouldFail = (
+    budget: Map<string, number>,
+    matchId: string,
+  ): boolean => {
     const left = budget.get(matchId) ?? 0;
 
     budget.set(matchId, Math.max(0, left - 1));
@@ -193,7 +272,8 @@ export function createFakePeers(superuser: PrismaClient): FakePeers {
       runMatch: async (request): Promise<RunMatchResponse> => {
         calls.runMatch.push(request);
 
-        if (shouldFail(fail.simulation, request.matchId)) throw new Error("simulation is down");
+        if (shouldFail(fail.simulation, request.matchId))
+          throw new Error("simulation is down");
 
         const simulationId = await commitSimulation(superuser, request.matchId);
 
@@ -221,14 +301,27 @@ export function createFakePeers(superuser: PrismaClient): FakePeers {
       settleMatch: async (matchId) => {
         calls.settleMatch.push(matchId);
 
-        if (shouldFail(fail.settlement, matchId)) throw new Error("settlement is down");
+        if (shouldFail(fail.settlement, matchId))
+          throw new Error("settlement is down");
 
-        return { matchId, status: "COMPLETED", betsTotal: 1, betsSettled: 1, duplicate: false };
+        return {
+          matchId,
+          status: "COMPLETED",
+          betsTotal: 1,
+          betsSettled: 1,
+          duplicate: false,
+        };
       },
       voidMatch: async (matchId, reason) => {
         calls.voidMatch.push({ matchId, reason });
 
-        return { matchId, status: "COMPLETED", betsTotal: 1, betsSettled: 1, duplicate: false };
+        return {
+          matchId,
+          status: "COMPLETED",
+          betsTotal: 1,
+          betsSettled: 1,
+          duplicate: false,
+        };
       },
     },
     event: {
@@ -296,7 +389,9 @@ export async function createHarness(): Promise<Harness> {
     BETTING_CLOSE_LEAD_SECONDS: String(TEST_TIMING.lead),
   });
   const app = createApp(config, { peers, clock: clock.now });
-  const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: MATCH_URL }, { schema: "match" }) });
+  const prisma = new PrismaClient({
+    adapter: new PrismaPg({ connectionString: MATCH_URL }, { schema: "match" }),
+  });
 
   return {
     app,
@@ -321,21 +416,53 @@ export interface TestFixture {
   readonly bettingClosesAt: Date;
 }
 
-export async function createFixture(harness: Harness, inSeconds = 60): Promise<TestFixture> {
+export async function createFixture(
+  harness: Harness,
+  inSeconds = 60,
+): Promise<TestFixture> {
   const tag = randomUUID().slice(0, 8);
   const now = harness.clock.now();
   const league = await harness.prisma.league.create({
-    data: { name: `Test League ${tag}`, code: tag.toUpperCase(), slug: `test-${tag}`, country: "Testland", status: "SUSPENDED" },
+    data: {
+      name: `Test League ${tag}`,
+      code: tag.toUpperCase(),
+      slug: `test-${tag}`,
+      country: "Testland",
+      status: "SUSPENDED",
+    },
   });
-  const ratings = { strength: 70, attack: 70, defence: 70, midfield: 70, goalkeeping: 70, pace: 70, finishing: 70, possession: 70 };
+  const ratings = {
+    strength: 70,
+    attack: 70,
+    defence: 70,
+    midfield: 70,
+    goalkeeping: 70,
+    pace: 70,
+    finishing: 70,
+    possession: 70,
+  };
   const home = await harness.prisma.team.create({
-    data: { leagueId: league.id, name: `Home ${tag}`, shortName: "Home", code: "HOM", ...ratings },
+    data: {
+      leagueId: league.id,
+      name: `Home ${tag}`,
+      shortName: "Home",
+      code: "HOM",
+      ...ratings,
+    },
   });
   const away = await harness.prisma.team.create({
-    data: { leagueId: league.id, name: `Away ${tag}`, shortName: "Away", code: "AWY", ...ratings },
+    data: {
+      leagueId: league.id,
+      name: `Away ${tag}`,
+      shortName: "Away",
+      code: "AWY",
+      ...ratings,
+    },
   });
   const kickoffAt = new Date(now.getTime() + inSeconds * 1000);
-  const bettingClosesAt = new Date(kickoffAt.getTime() - TEST_TIMING.lead * 1000);
+  const bettingClosesAt = new Date(
+    kickoffAt.getTime() - TEST_TIMING.lead * 1000,
+  );
   const fixture = await harness.prisma.fixture.create({
     data: {
       leagueId: league.id,
@@ -349,16 +476,33 @@ export async function createFixture(harness: Harness, inSeconds = 60): Promise<T
       createdAt: now,
     },
   });
-  const match = await harness.prisma.match.create({ data: { fixtureId: fixture.id, createdAt: now } });
-
-  await harness.prisma.matchTransition.create({
-    data: { matchId: match.id, toState: "FIXTURE_CREATED", at: now, actor: "test" },
+  const match = await harness.prisma.match.create({
+    data: { fixtureId: fixture.id, createdAt: now },
   });
 
-  return { leagueId: league.id, homeTeamId: home.id, awayTeamId: away.id, matchId: match.id, kickoffAt, bettingClosesAt };
+  await harness.prisma.matchTransition.create({
+    data: {
+      matchId: match.id,
+      toState: "FIXTURE_CREATED",
+      at: now,
+      actor: "test",
+    },
+  });
+
+  return {
+    leagueId: league.id,
+    homeTeamId: home.id,
+    awayTeamId: away.id,
+    matchId: match.id,
+    kickoffAt,
+    bettingClosesAt,
+  };
 }
 
-export async function placeBet(harness: Harness, fixture: TestFixture): Promise<void> {
+export async function placeBet(
+  harness: Harness,
+  fixture: TestFixture,
+): Promise<void> {
   await harness.superuser.$executeRawUnsafe(
     `INSERT INTO betting.bet_selections (id, bet_id, match_id, market_id, selection_id, league_id, market_type,
        selection_code, odds, odds_version, market_label, selection_label, match_label, league_name, kickoff_at, outcome)
@@ -374,14 +518,25 @@ export async function placeBet(harness: Harness, fixture: TestFixture): Promise<
   );
 }
 
-export async function transitionsOf(harness: Harness, matchId: string): Promise<string[]> {
-  const rows = await harness.prisma.matchTransition.findMany({ where: { matchId }, orderBy: { sequence: "asc" } });
+export async function transitionsOf(
+  harness: Harness,
+  matchId: string,
+): Promise<string[]> {
+  const rows = await harness.prisma.matchTransition.findMany({
+    where: { matchId },
+    orderBy: { sequence: "asc" },
+  });
 
   return rows.map((row) => row.toState);
 }
 
-export async function lifecycleOf(harness: Harness, matchId: string): Promise<string> {
-  return (await harness.prisma.match.findUniqueOrThrow({ where: { id: matchId } })).lifecycle;
+export async function lifecycleOf(
+  harness: Harness,
+  matchId: string,
+): Promise<string> {
+  return (
+    await harness.prisma.match.findUniqueOrThrow({ where: { id: matchId } })
+  ).lifecycle;
 }
 
 export function atMinute(fixture: TestFixture, minute: number): number {
@@ -389,10 +544,15 @@ export function atMinute(fixture: TestFixture, minute: number): number {
 
   return minute <= 45
     ? fixture.kickoffAt.getTime() + minute * spm
-    : fixture.kickoffAt.getTime() + 45 * spm + TEST_TIMING.halfTimeSeconds * 1000 + (minute - 45) * spm;
+    : fixture.kickoffAt.getTime() +
+        45 * spm +
+        TEST_TIMING.halfTimeSeconds * 1000 +
+        (minute - 45) * spm;
 }
 
-export function adminHeaders(permissions: readonly string[]): Record<string, string> {
+export function adminHeaders(
+  permissions: readonly string[],
+): Record<string, string> {
   return {
     "content-type": "application/json",
     "x-betng-internal-token": INTERNAL_TOKEN,

@@ -9,7 +9,10 @@ import { definedOnly, overallStrength } from "../../../../utils/index.js";
 import type { HandlerDependencies } from "../../match.dependencies.js";
 import type { UpdateTeamCommand } from "./updateTeam.command.js";
 
-export class UpdateTeamHandler extends CommandHandler<UpdateTeamCommand, AdminTeam> {
+export class UpdateTeamHandler extends CommandHandler<
+  UpdateTeamCommand,
+  AdminTeam
+> {
   public readonly commandType = MATCH_COMMAND.UPDATE_TEAM;
 
   private readonly deps: HandlerDependencies;
@@ -25,10 +28,15 @@ export class UpdateTeamHandler extends CommandHandler<UpdateTeamCommand, AdminTe
 
     if (current === undefined) throw new NotFoundError("team", teamId);
 
-    const ratings = { ...toAdminTeam(current).ratings, ...definedOnly(request.ratings ?? {}) };
+    const ratings = {
+      ...toAdminTeam(current).ratings,
+      ...definedOnly(request.ratings ?? {}),
+    };
     const patch: TeamPatch = {
       ...(request.name === undefined ? {} : { name: request.name }),
-      ...(request.shortName === undefined ? {} : { shortName: request.shortName }),
+      ...(request.shortName === undefined
+        ? {}
+        : { shortName: request.shortName }),
       ...(request.status === undefined ? {} : { status: request.status }),
       ...(request.ratings === undefined
         ? {}
@@ -46,33 +54,40 @@ export class UpdateTeamHandler extends CommandHandler<UpdateTeamCommand, AdminTe
 
     // A configuration change fails if its audit entry cannot be written: the audit call runs inside the update's
     // transaction, so a failure rolls the change back.
-    const updated = await this.deps.catalogue.updateTeam(teamId, patch, async (before, after) => {
-      try {
-        await this.deps.identity.recordAudit({
-          actorId: actor.id,
-          actorRole: actor.role,
-          action: "team_strength_changed",
-          entityType: "team",
-          entityId: teamId,
-          before: toAdminTeam(before),
-          after: toAdminTeam(after),
-          severity: "NOTICE",
-          requestId: actor.requestId,
-        });
-      } catch (error) {
-        this.deps.logger.error("Team change rejected: audit entry not written", {
-          event: "match.auditFailed",
-          teamId,
-          requestId: actor.requestId,
-          error: error instanceof Error ? error.message : String(error),
-        });
+    const updated = await this.deps.catalogue.updateTeam(
+      teamId,
+      patch,
+      async (before, after) => {
+        try {
+          await this.deps.identity.recordAudit({
+            actorId: actor.id,
+            actorRole: actor.role,
+            action: "team_strength_changed",
+            entityType: "team",
+            entityId: teamId,
+            before: toAdminTeam(before),
+            after: toAdminTeam(after),
+            severity: "NOTICE",
+            requestId: actor.requestId,
+          });
+        } catch (error) {
+          this.deps.logger.error(
+            "Team change rejected: audit entry not written",
+            {
+              event: "match.auditFailed",
+              teamId,
+              requestId: actor.requestId,
+              error: error instanceof Error ? error.message : String(error),
+            },
+          );
 
-        throw new PeerFailedError(
-          ErrorCodes.UPSTREAM_UNAVAILABLE,
-          "The change was not applied because its audit entry could not be written.",
-        );
-      }
-    });
+          throw new PeerFailedError(
+            ErrorCodes.UPSTREAM_UNAVAILABLE,
+            "The change was not applied because its audit entry could not be written.",
+          );
+        }
+      },
+    );
 
     if (updated === undefined) throw new NotFoundError("team", teamId);
 

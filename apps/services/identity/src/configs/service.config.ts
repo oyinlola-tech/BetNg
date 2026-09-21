@@ -16,7 +16,6 @@ export interface SecurityConfig {
   readonly devVerificationCode: string | undefined;
   /** There is no mail server; issued codes are logged in development and test, never in production. */
   readonly logVerificationCodes: boolean;
-  /** Base32 secret for the seeded two-factor admin. Read by the development seed only. */
   readonly seedAdminTotpSecret: string | undefined;
 }
 

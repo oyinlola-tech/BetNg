@@ -1,10 +1,3 @@
-/**
- * Leg evaluation: a pure function of the authoritative final score and the terms stored on the bet leg.
- *
- * Nothing here reads a price, a stake or a bettor. The same score and the same leg always give the same
- * outcome, which is what makes settlement reproducible from the database alone.
- */
-
 export type LegOutcome = "WON" | "LOST" | "VOID";
 
 export interface FinalScore {
@@ -15,13 +8,12 @@ export interface FinalScore {
 export interface LegTerms {
   readonly marketType: string;
   readonly selectionCode: string;
-  /** `betting.bet_selections.line` as text, e.g. "2.5"; null for markets without a line. */
   readonly line: string | null;
 }
 
 export interface LegEvaluation {
   readonly outcome: LegOutcome;
-  /** False when the market or selection code is not one this service knows: the leg is void, stake back. */
+  /** False for an unknown market or selection code: the leg is void. */
   readonly recognised: boolean;
 }
 
@@ -62,10 +54,7 @@ function evaluateDoubleChance(code: string, score: FinalScore): LegEvaluation {
   }
 }
 
-/**
- * The line is read from the selection code (`OVER_2_5` → 2.5). A stored `line` that disagrees with the code
- * means the leg's terms are ambiguous, and an ambiguous leg is void rather than guessed.
- */
+// A stored line that disagrees with the code makes the leg ambiguous: void, never guessed.
 function evaluateOverUnder(terms: LegTerms, score: FinalScore): LegEvaluation {
   const match = OVER_UNDER_CODE.exec(terms.selectionCode);
 
@@ -79,7 +68,6 @@ function evaluateOverUnder(terms: LegTerms, score: FinalScore): LegEvaluation {
     return UNRECOGNISED;
   }
 
-  // Total goals are whole numbers, so "over x.5" is "more than x".
   const over = score.homeGoals + score.awayGoals > whole;
 
   return decided(match[1] === "OVER" ? over : !over);
@@ -99,7 +87,6 @@ function evaluateBothTeamsToScore(code: string, score: FinalScore): LegEvaluatio
 }
 
 function evaluateGoalSpread(code: string, score: FinalScore): LegEvaluation {
-  // Home −1.5 covers when the home side wins by two or more; away +1.5 is the complement.
   const homeCovers = score.homeGoals - score.awayGoals >= 2;
 
   switch (code) {

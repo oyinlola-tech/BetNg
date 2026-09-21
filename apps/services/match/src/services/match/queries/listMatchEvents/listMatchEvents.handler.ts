@@ -6,7 +6,10 @@ import { toMatchEvent } from "../../../../models/index.js";
 import type { HandlerDependencies } from "../../match.dependencies.js";
 import type { ListMatchEventsQuery } from "./listMatchEvents.query.js";
 
-export class ListMatchEventsHandler extends QueryHandler<ListMatchEventsQuery, readonly MatchEvent[]> {
+export class ListMatchEventsHandler extends QueryHandler<
+  ListMatchEventsQuery,
+  readonly MatchEvent[]
+> {
   public readonly queryType = MATCH_QUERY.LIST_MATCH_EVENTS;
 
   private readonly deps: HandlerDependencies;
@@ -16,7 +19,9 @@ export class ListMatchEventsHandler extends QueryHandler<ListMatchEventsQuery, r
     this.deps = deps;
   }
 
-  public async execute(query: ListMatchEventsQuery): Promise<readonly MatchEvent[]> {
+  public async execute(
+    query: ListMatchEventsQuery,
+  ): Promise<readonly MatchEvent[]> {
     const found = await this.deps.matches.findMatch(query.matchId);
 
     if (found === undefined) throw new MatchNotFoundError(query.matchId);

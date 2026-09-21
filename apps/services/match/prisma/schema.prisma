@@ -1,17 +1,6 @@
-// BetNG match service schema (`match` schema of the `betng` database).
-//
-// This service owns the catalogue (leagues, teams), fixtures, matches and the
-// lifecycle transition log. Match events and results belong to the simulation
-// service (`simulation.match_events`, `simulation.match_results`) and are read
-// cross-schema, never copied here: a match row carries only the *revealed*
-// running score.
-//
-// The column names below are part of the shared read model in
-// `docs/architecture.md` §8: other services read them, so they may be added to
-// but not renamed or retyped.
-//
-// Prisma 7 no longer takes the connection URL here: migrations read it from
-// `prisma.config.ts`, and the client is built with a driver adapter.
+// BetNG match service: the `match` schema of the `betng` database.
+// Column names are part of the shared read model (docs/architecture.md §8): add, never rename or retype.
+// Events and results belong to the simulation service and are read cross-schema, never copied here.
 
 generator client {
   provider = "prisma-client-js"
@@ -30,7 +19,7 @@ enum LeagueStatus {
   @@map("league_status")
 }
 
-/// A competition the platform runs. The scheduler creates rounds only for ACTIVE leagues.
+/// The scheduler creates rounds only for ACTIVE leagues.
 model League {
   id             String       @id @default(uuid()) @db.Uuid
   name           String       @db.VarChar(120)
@@ -39,7 +28,7 @@ model League {
   country        String       @db.VarChar(60)
   sport          String       @default("football") @db.VarChar(32)
   status         LeagueStatus @default(ACTIVE)
-  /// Offset of this league's kick-offs within the round cycle, so leagues do not all start together.
+  /// Offset of this league's kick-offs within the round cycle.
   staggerSeconds Int          @default(0) @map("stagger_seconds")
   createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
 
@@ -56,7 +45,7 @@ enum TeamStatus {
   @@map("team_status")
 }
 
-/// A team and its simulation inputs. Ratings are properties of the team, never of a bettor.
+/// Ratings are properties of the team, never of a bettor.
 model Team {
   id             String     @id @default(uuid()) @db.Uuid
   leagueId       String     @map("league_id") @db.Uuid
@@ -90,7 +79,6 @@ model Team {
   @@map("teams")
 }
 
-/// A scheduled pairing. The Match is the instance of it that gets played.
 model Fixture {
   id              String   @id @default(uuid()) @db.Uuid
   leagueId        String   @map("league_id") @db.Uuid
@@ -100,7 +88,7 @@ model Fixture {
   awayTeamId      String   @map("away_team_id") @db.Uuid
   kickoffAt       DateTime @map("kickoff_at") @db.Timestamptz(3)
   bettingClosesAt DateTime @map("betting_closes_at") @db.Timestamptz(3)
-  /// SCHEDULER for a round of the rotation, ADMIN for a fixture added by hand. Only the former advances the rotation.
+  /// SCHEDULER or ADMIN. Only scheduler fixtures advance the round rotation.
   source          String   @default("SCHEDULER") @db.VarChar(16)
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
 
@@ -128,7 +116,6 @@ enum MatchStatus {
   @@map("match_status")
 }
 
-/// One virtual match.
 model Match {
   id                  String      @id @default(uuid()) @db.Uuid
   fixtureId           String      @unique @map("fixture_id") @db.Uuid
@@ -151,8 +138,7 @@ model Match {
   voidedAt            DateTime?   @map("voided_at") @db.Timestamptz(3)
   failureReason       String?     @map("failure_reason") @db.VarChar(240)
   failureCount        Int         @default(0) @map("failure_count")
-  /// Earliest instant the scheduler may try this match's pending step again. Doubles as the
-  /// lease a worker holds while a peer call is in flight.
+  /// When the pending step may next be tried; also the lease held while a peer call is in flight.
   nextAttemptAt       DateTime?   @map("next_attempt_at") @db.Timestamptz(3)
   createdAt           DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt           DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)

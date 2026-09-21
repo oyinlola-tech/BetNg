@@ -3,14 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "BetNG settlement service — Resolves bets against completed match results.",
+  "description": "BetNG settlement service — deterministic, idempotent settlement, the operator ledger, the commission ledger and reporting periods.",
   "zudojs": {
     "features": [
       "database"
     ]
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && rm -rf dist/generated && cp -r src/generated dist/generated",
     "clean": "rm -rf dist *.tsbuildinfo",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",

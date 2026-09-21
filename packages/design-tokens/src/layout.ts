@@ -53,3 +53,25 @@ export const zIndex = Object.freeze({
 });
 
 export const minTouchTarget = 44;
+
+export const borderWidth = Object.freeze({ hairline: 1, strong: 2 });
+
+export const controlHeight = Object.freeze({ xs: 24, sm: 32, md: 40, lg: 48 });
+
+export const iconSize = Object.freeze({ xs: 12, sm: 16, md: 20, lg: 24, xl: 32 });
+
+export const crestSizes = Object.freeze([
+  16, 20, 24, 32, 40, 48, 64, 80, 96, 128,
+] as const);
+
+export type CrestSize = (typeof crestSizes)[number];
+
+export const screen = Object.freeze({
+  smallMobile: 320,
+  largeMobile: 430,
+  tablet: 768,
+  laptop: 1024,
+  desktop: 1280,
+  largeDesktop: 1536,
+  tv: 1920,
+});

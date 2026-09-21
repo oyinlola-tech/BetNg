@@ -75,7 +75,13 @@ class TestNoInputForBets:
     def test_the_engine_signature_has_no_bet_parameter(self) -> None:
         parameters = list(inspect.signature(simulate).parameters)
 
-        assert parameters == ["match_id", "home", "away", "configuration"]
+        assert parameters == [
+            "match_id",
+            "home",
+            "away",
+            "configuration",
+            "seed_secret",
+        ]
         assert list(inspect.signature(calculate_probabilities).parameters) == [
             "home",
             "away",

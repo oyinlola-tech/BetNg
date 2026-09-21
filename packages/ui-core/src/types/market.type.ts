@@ -15,6 +15,11 @@ export type MarketKind =
 
 export type OddsTrend = "UP" | "DOWN" | "STEADY";
 
+export type SelectionStatus = "OPEN" | "SUSPENDED" | "UNAVAILABLE";
+
+/** How a client groups markets into tabs. From the platform when it sends one, otherwise by kind. */
+export type MarketGroupKey = "MAIN" | "GOALS" | "SCORE" | "HANDICAP" | "OTHER";
+
 export interface SelectionView {
   readonly id: SelectionId;
   readonly marketId: MarketId;
@@ -24,6 +29,7 @@ export interface SelectionView {
   readonly odds: number;
   readonly probability: number;
   readonly trend: OddsTrend;
+  readonly status?: SelectionStatus;
 }
 
 export interface MarketView {
@@ -35,6 +41,10 @@ export interface MarketView {
   readonly status: MarketStatus;
   readonly columns: number;
   readonly selections: readonly SelectionView[];
+  readonly group?: MarketGroupKey;
+  readonly oddsVersion?: number;
+  readonly suspensionReason?: string;
+  readonly updatedAt?: string;
 }
 
 export interface MatchMarketsView {

@@ -43,10 +43,7 @@ export class SettlementConflictError extends DomainError {
   }
 }
 
-/**
- * Settlement did not complete. The message is written for a client: it never carries upstream or SQL text,
- * which goes to the log with the `cause`.
- */
+/** The message is client-safe; upstream and SQL detail stays on `cause` for the log. */
 export class SettlementFailedError extends DomainError {
   public constructor(matchId: string, message: string, cause?: unknown) {
     super(message, {
@@ -61,7 +58,6 @@ export class SettlementFailedError extends DomainError {
   }
 }
 
-/** A configuration change is refused when its audit entry cannot be written. */
 export class AuditUnavailableError extends DomainError {
   public constructor(cause?: unknown) {
     super("The change was not applied because its audit entry could not be written.", {

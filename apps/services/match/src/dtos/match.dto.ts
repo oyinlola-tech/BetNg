@@ -70,8 +70,15 @@ export type AdminFixturesQuery = z.infer<typeof adminFixturesQuerySchema>;
 export const createLeagueRequestSchema = z
   .object({
     name: z.string().trim().min(1).max(120),
-    code: z.string().trim().regex(/^[A-Z0-9]{2,8}$/),
-    slug: z.string().regex(/^[a-z0-9-]+$/).min(2).max(40),
+    code: z
+      .string()
+      .trim()
+      .regex(/^[A-Z0-9]{2,8}$/),
+    slug: z
+      .string()
+      .regex(/^[a-z0-9-]+$/)
+      .min(2)
+      .max(40),
     country: z.string().trim().min(2).max(60),
     sport: z.string().trim().min(1).max(32).optional(),
     status: leagueStatusSchema.optional(),

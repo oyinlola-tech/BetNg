@@ -134,6 +134,7 @@ def failing_simulate(
     home: SimulationTeam,
     away: SimulationTeam,
     configuration: ModelConfiguration,
+    seed_secret: str | None = None,
 ) -> Any:
     raise ValueError("the engine was made to fail")
 
@@ -141,6 +142,7 @@ def failing_simulate(
 @pytest.fixture(autouse=True)
 def _no_internal_token(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("INTERNAL_SERVICE_TOKEN", raising=False)
+    monkeypatch.delenv("SIMULATION_SEED_SECRET", raising=False)
 
 
 @pytest.fixture

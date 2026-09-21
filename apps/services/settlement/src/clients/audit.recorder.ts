@@ -6,10 +6,6 @@ function describe(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-/**
- * The two audit disciplines of `docs/architecture.md` §9 over one identity peer: a lifecycle entry is best
- * effort, a configuration entry must be written or the change does not happen.
- */
 export function createAuditRecorder(identity: IdentityPeer, logger: Logger): AuditRecorder {
   return {
     recordBestEffort: async (entry) => {

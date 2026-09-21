@@ -39,20 +39,20 @@ export interface ColorTheme {
 }
 
 export const lightTheme: ColorTheme = Object.freeze({
-  background: "#F4F5F7",
-  surface: "#FFFFFF",
+  background: "#F5F3EE",
+  surface: "#FDFCFA",
   surfaceElevated: "#FFFFFF",
-  surfaceSunken: "#EDEFF3",
-  surfaceHover: "#F7F8FA",
+  surfaceSunken: "#ECE9E2",
+  surfaceHover: "#F7F5F0",
 
-  textPrimary: "#0E1218",
-  textSecondary: "#465060",
-  textMuted: "#78828F",
+  textPrimary: "#14130F",
+  textSecondary: "#4B4840",
+  textMuted: "#726D62",
   textOnBrand: "#FFFFFF",
   textOnLive: "#FFFFFF",
 
-  border: "#E2E5EA",
-  borderStrong: "#C9CED6",
+  border: "#E3DFD6",
+  borderStrong: "#CBC5B8",
   focusRing: "#2457F5",
 
   brand: "#2457F5",
@@ -66,11 +66,19 @@ export const lightTheme: ColorTheme = Object.freeze({
   dangerSubtle: "#FBEAEA",
   warning: "#B25E09",
   warningSubtle: "#FDF1E2",
+  info: "#0B6B94",
+  infoSubtle: "#E4F1F7",
   live: "#E3142E",
   liveSubtle: "#FDE9EC",
+  pending: "#5A6170",
+  pendingSubtle: "#ECEDF0",
+  void: "#6E6A62",
+  voidSubtle: "#ECE9E2",
+  suspended: "#A4480F",
+  suspendedSubtle: "#FBEDE3",
 
-  overlay: "rgba(14, 18, 24, 0.48)",
-  skeleton: "#E8EAEE",
+  overlay: "rgba(20, 19, 15, 0.5)",
+  skeleton: "#E9E5DD",
 
   series1: "#2457F5",
   series2: "#EB6834",
@@ -105,8 +113,16 @@ export const darkTheme: ColorTheme = Object.freeze({
   dangerSubtle: "#341418",
   warning: "#F0B441",
   warningSubtle: "#332611",
+  info: "#4FB3DE",
+  infoSubtle: "#0F2733",
   live: "#FF3D52",
   liveSubtle: "#3A1219",
+  pending: "#9AA3B2",
+  pendingSubtle: "#1C2029",
+  void: "#8D8A84",
+  voidSubtle: "#1D1E21",
+  suspended: "#F08A4B",
+  suspendedSubtle: "#33200F",
 
   overlay: "rgba(0, 0, 0, 0.62)",
   skeleton: "#1E232C",
@@ -124,4 +140,14 @@ export const themes: Readonly<Record<ThemeName, ColorTheme>> = Object.freeze({
 });
 
 export type StateTone =
-  "live" | "brand" | "neutral" | "muted" | "success" | "warning" | "danger";
+  | "live"
+  | "brand"
+  | "neutral"
+  | "muted"
+  | "success"
+  | "warning"
+  | "danger"
+  | "info"
+  | "pending"
+  | "void"
+  | "suspended";

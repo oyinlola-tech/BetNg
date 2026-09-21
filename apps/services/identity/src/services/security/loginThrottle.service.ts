@@ -3,13 +3,7 @@ import { TooManyAttemptsError } from "../../errors/index.js";
 import type { LoginThrottle, ThrottleRepository } from "../../interfaces/index.js";
 import { sha256Hex } from "../../utils/index.js";
 
-/**
- * Consecutive-failure lockout per sign-in identifier.
- *
- * The key is the identifier that was typed, hashed, whether or not an account
- * answers to it, so the lockout behaves identically for both and says nothing
- * about which addresses exist. Rate limiting by IP address is the gateway's job.
- */
+/** Keyed by the hashed identifier, known or not, so the lockout cannot be used to enumerate accounts. IP limiting is the gateway's job. */
 export function createLoginThrottle(throttles: ThrottleRepository): LoginThrottle {
   return {
     assertNotLocked: async (key) => {

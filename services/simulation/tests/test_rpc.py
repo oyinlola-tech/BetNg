@@ -96,6 +96,7 @@ class TestRunMatch:
             assert entry.request_id == "rpc-test-0001"
             assert "homeGoals" not in str(entry.after)
             assert "winner" not in str(entry.after)
+            assert "seed" not in str(entry).lower()
 
     @pytest.mark.parametrize(
         "extra",

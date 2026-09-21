@@ -20,13 +20,7 @@ type Dependencies = Pick<HandlerDependencies, "store" | "sessions" | "security">
 const rejected = (): InvalidInputError =>
   new InvalidInputError("code", "That code is not right or has expired. Check it, or request a new one.");
 
-/**
- * Confirms the six-digit code and opens the customer's first session.
- *
- * Every guess is counted before it is compared, in one conditional update, so
- * parallel guesses cannot exceed the cap. An unknown address, a spent code, an
- * expired code and a wrong code all answer the same way.
- */
+/** A guess is counted before it is compared, in one conditional update, so parallel guesses cannot exceed the cap. */
 export class VerifyEmailHandler extends CommandHandler<VerifyEmailCommand, CustomerSession> {
   public readonly commandType = IDENTITY_COMMAND.VERIFY_EMAIL;
 

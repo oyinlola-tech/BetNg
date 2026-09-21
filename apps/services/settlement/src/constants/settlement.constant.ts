@@ -24,19 +24,16 @@ export const SETTLEMENT_QUERY = Object.freeze({
 export type SettlementQueryType =
   (typeof SETTLEMENT_QUERY)[keyof typeof SETTLEMENT_QUERY];
 
-/** Procedures this service serves at `POST /rpc` (`docs/architecture.md` §6). */
 export const SETTLEMENT_PROCEDURE = Object.freeze({
   SETTLE_MATCH: "settlement.settleMatch",
   VOID_MATCH: "settlement.voidMatch",
 });
 
-/** Names from `adminPermissionSchema`. */
 export const SETTLEMENT_PERMISSION = Object.freeze({
   READ: "settlement:read",
   OPERATE: "settlement:operate",
 });
 
-/** Audit actions from `docs/architecture.md` §9. */
 export const AUDIT_ACTION = Object.freeze({
   SETTLEMENT_STARTED: "settlement_started",
   SETTLEMENT_COMPLETED: "settlement_completed",
@@ -64,7 +61,7 @@ export const MATCH_SETTLEMENT_KIND = Object.freeze({
 export type MatchSettlementKind =
   (typeof MATCH_SETTLEMENT_KIND)[keyof typeof MATCH_SETTLEMENT_KIND];
 
-/** Wallet idempotency keys: one payout or refund per bet, however often settlement is retried. */
+/** One payout or refund per bet, however often settlement is retried. Wallet relies on these keys. */
 export const WALLET_KEY = Object.freeze({
   payout: (betId: string): string => `settlement-payout:${betId}`,
   refund: (betId: string): string => `settlement-refund:${betId}`,
@@ -84,6 +81,5 @@ export const LIST_LIMIT = Object.freeze({
 export const SETTLEMENT_BATCH = Object.freeze({
   LEG_CHUNK: 500,
   CONCURRENCY: 4,
-  /** Un-stamped settlements the retry loop picks up per tick. */
   RETRY_LIMIT: 100,
 });

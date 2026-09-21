@@ -43,4 +43,32 @@ export const letterSpacing = Object.freeze({
   caps: "0.08em",
 });
 
+export interface TypeRole {
+  readonly family: keyof typeof fontFamily;
+  readonly size: number;
+  readonly weight: number;
+  readonly lineHeight: number;
+  readonly tracking: string;
+  readonly tabular?: boolean;
+  readonly uppercase?: boolean;
+}
+
+/** The named roles text is set in. A component picks a role, never a raw size. */
+export const typeRole = Object.freeze({
+  display: { family: "display", size: 48, weight: 800, lineHeight: 1.05, tracking: "-0.02em" },
+  h1: { family: "display", size: 30, weight: 700, lineHeight: 1.15, tracking: "-0.02em" },
+  h2: { family: "display", size: 24, weight: 700, lineHeight: 1.2, tracking: "-0.01em" },
+  h3: { family: "display", size: 17, weight: 700, lineHeight: 1.3, tracking: "0" },
+  sectionHeading: { family: "display", size: 12, weight: 700, lineHeight: 1.3, tracking: "0.1em", uppercase: true },
+  body: { family: "sans", size: 14, weight: 400, lineHeight: 1.5, tracking: "0" },
+  small: { family: "sans", size: 12, weight: 400, lineHeight: 1.4, tracking: "0" },
+  caption: { family: "sans", size: 11, weight: 600, lineHeight: 1.4, tracking: "0.08em", uppercase: true },
+  data: { family: "sans", size: 14, weight: 500, lineHeight: 1.3, tracking: "0", tabular: true },
+  score: { family: "display", size: 56, weight: 800, lineHeight: 1, tracking: "-0.02em", tabular: true },
+  odds: { family: "sans", size: 14, weight: 700, lineHeight: 1.2, tracking: "0", tabular: true },
+  financial: { family: "sans", size: 15, weight: 600, lineHeight: 1.3, tracking: "0", tabular: true },
+} satisfies Record<string, TypeRole>);
+
+export type TypeRoleName = keyof typeof typeRole;
+
 export const tvScale = 1.75;

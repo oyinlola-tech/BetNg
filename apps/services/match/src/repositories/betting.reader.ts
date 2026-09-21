@@ -2,10 +2,7 @@ import type { PrismaClient } from "../generated/prisma/client.js";
 import type { BettingReader } from "../interfaces/index.js";
 import { orWhenTableMissing } from "./crossSchema.reader.js";
 
-/**
- * Reads whether a match has been bet on, and nothing else about the bets: the lifecycle only needs to know that
- * betting is active. No stake, bettor or selection is read here, and nothing read here reaches the simulation.
- */
+/** Reads only whether a match has bets: no stake, bettor or selection, and nothing here reaches the simulation. */
 export function createBettingReader(prisma: PrismaClient): BettingReader {
   return {
     matchesWithBets: async (matchIds) => {

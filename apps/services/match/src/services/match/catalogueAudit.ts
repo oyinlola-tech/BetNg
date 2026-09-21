@@ -1,4 +1,7 @@
-import type { CommandActor, HandlerDependencies } from "./match.dependencies.js";
+import type {
+  CommandActor,
+  HandlerDependencies,
+} from "./match.dependencies.js";
 
 /** Best effort: a catalogue addition stands even when identity is unreachable, and the miss is logged. */
 export async function recordCatalogueAudit(

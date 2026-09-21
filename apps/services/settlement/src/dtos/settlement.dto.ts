@@ -102,7 +102,6 @@ export function toOperatorSummaryDto(record: OperatorSummaryRecord): OperatorSum
     period: toOperatorPeriodDto(record.period),
     grossStakes: toSafeNumber(record.grossStakes),
     grossPayouts: toSafeNumber(record.grossPayouts),
-    // Negative when payouts exceeded stakes; reported as recorded.
     operatorResult: toSafeNumber(record.operatorResult),
     operatorResultRate: Number(record.operatorResultRate),
     settledBets: record.settledBets,

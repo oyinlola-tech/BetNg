@@ -1,21 +1,6 @@
-// BetNG identity service schema.
-//
-// This service owns the `identity` schema of the `betng` database: customers,
-// admin users, shops, cashiers, sessions, the audit log and platform settings.
-//
-// Customers, cashiers and admin users are three separate tables on purpose.
-// An admin is structurally not a customer (architecture invariant 9): there is
-// no shared "users" row an admin could be promoted from, no wallet owner type
-// for one, and the `admin_customer_separation` migration refuses a customer
-// row that reuses an admin's e-mail address and the reverse.
-//
-// Secrets are stored only as hashes: scrypt for passwords and PINs, SHA-256
-// for session tokens, verification codes and reset tokens. The columns other
-// services may read are listed in `docs/architecture.md` §8 and must not be
-// renamed or retyped.
-//
-// Prisma 7 no longer takes the connection URL here: migrations read it from
-// `prisma.config.ts`, and the client is built with a driver adapter.
+// The `identity` schema. Customers, cashiers and admin users are separate tables on purpose: an admin is
+// structurally not a customer (invariant 9). Secrets are stored only as hashes. Columns listed in
+// docs/architecture.md §8 are read by other services and must not be renamed or retyped.
 
 generator client {
   provider = "prisma-client-js"
@@ -75,7 +60,6 @@ enum AuditSeverity {
   @@map("audit_severity")
 }
 
-/// A customer of the web and mobile clients. E-mail is stored lower-cased.
 model Customer {
   id              String        @id @default(uuid()) @db.Uuid
   email           String        @unique @db.VarChar(254)
@@ -95,7 +79,6 @@ model Customer {
   @@map("customers")
 }
 
-/// One issued six-digit code. Only its hash is kept; `attempts` caps guessing.
 model EmailVerification {
   id         String    @id @default(uuid()) @db.Uuid
   customerId String    @map("customer_id") @db.Uuid
@@ -125,10 +108,7 @@ model PasswordReset {
   @@map("password_resets")
 }
 
-/// An operator of the admin control plane. Never a customer; owns no wallet.
-///
-/// `totpLastStep` is the RFC 6238 time step of the last accepted code, so a
-/// code cannot be replayed inside its validity window.
+/// `totpLastStep` is the time step of the last accepted code, so a code cannot be replayed within its window.
 model AdminUser {
   id               String        @id @default(uuid()) @db.Uuid
   email            String        @unique @db.VarChar(254)
@@ -146,7 +126,6 @@ model AdminUser {
   @@map("admin_users")
 }
 
-/// A betting shop. `code` is stored upper-cased. The float lives in the wallet service.
 model Shop {
   id        String     @id @default(uuid()) @db.Uuid
   code      String     @unique @db.VarChar(20)
@@ -164,11 +143,7 @@ model Shop {
   @@map("shops")
 }
 
-/// A shop terminal login. `username` is stored lower-cased and is unique per shop.
-///
-/// Issued credentials are temporary until first used: `credentialsExpireAt` is
-/// set when an admin creates or resets them and cleared by the first successful
-/// sign-in. After it passes unused, they no longer sign in and must be reset.
+/// `credentialsExpireAt` is set when an admin issues credentials and cleared by the first sign-in; unused past it, they stop working.
 model Cashier {
   id                  String        @id @default(uuid()) @db.Uuid
   shopId              String        @map("shop_id") @db.Uuid
@@ -189,7 +164,7 @@ model Cashier {
   @@map("cashiers")
 }
 
-/// A bearer session. The token itself is never stored, only its SHA-256.
+/// Only the SHA-256 of a session token is stored.
 model Session {
   id         String      @id @default(uuid()) @db.Uuid
   kind       SessionKind
@@ -205,11 +180,7 @@ model Session {
   @@map("sessions")
 }
 
-/// Consecutive failed sign-ins per login identifier, known or not.
-///
-/// Keyed by a hash of the identifier rather than by account, so an address
-/// that does not exist locks exactly like one that does and the lockout
-/// cannot be used to enumerate accounts.
+/// Keyed by a hash of the typed identifier, not by account, so the lockout cannot enumerate accounts.
 model LoginThrottle {
   keyHash     String    @id @map("key_hash")
   failures    Int       @default(0)
@@ -244,7 +215,6 @@ model AuditLog {
   @@map("audit_logs")
 }
 
-/// The single platform settings document. `version` increases by one per change.
 model PlatformSettings {
   id        Int      @id @default(1) @db.SmallInt
   value     Json

@@ -1,16 +1,5 @@
-// BetNG settlement service schema.
-//
-// The service owns the `settlement` schema of the one `betng` database: settlements, the operator ledger,
-// the commission ledger and the reporting periods. It writes nothing else and reads the other schemas
-// (`betting`, `match`, `simulation`, `identity`) with schema-qualified raw queries.
-//
-// Identifiers belonging to another service are plain columns, not foreign keys: the owner of that row is
-// another service, and referential integrity across services is the API's job.
-//
-// Status and outcome columns are text guarded by CHECK constraints (second migration) so every reader,
-// Python included, sees plain strings. Append-only rules are triggers in the same migration.
-//
-// Prisma 7 takes the connection URL from `prisma.config.ts`; the client is built with a driver adapter.
+// The `settlement` schema. Other services' ids are plain columns, not foreign keys. Status columns are text
+// with CHECK constraints, and the append-only rules are triggers: both live in the second migration.
 
 generator client {
   provider = "prisma-client-js"
@@ -21,12 +10,11 @@ datasource db {
   provider = "postgresql"
 }
 
-/// One bet resolved against authoritative results. Written once; only `effects_applied_at` is ever set,
-/// once, when the wallet and betting effects have been applied.
+/// Written once; only `effects_applied_at` is ever set, once, when the effects have been applied.
 model Settlement {
   id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   betId            String    @map("bet_id") @db.Uuid
-  /// A correction would be a new row at the next revision. `(bet_id, revision)` is the no-double-pay key.
+  /// `(bet_id, revision)` is the no-double-pay key.
   revision         Int       @default(1)
   outcome          String
   stake            BigInt
@@ -50,14 +38,13 @@ model Settlement {
   @@map("settlements")
 }
 
-/// How one leg resolved. `selection_id` is `betting.bet_selections.selection_id`.
+/// `selection_id` is `betting.bet_selections.selection_id`.
 model SettledSelection {
   id           String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   settlementId String  @map("settlement_id") @db.Uuid
   selectionId  String  @map("selection_id") @db.Uuid
   matchId      String  @map("match_id") @db.Uuid
   outcome      String
-  /// The final score the leg was judged against, "h-a". Null for a leg on a voided match.
   result       String?
 
   settlement Settlement @relation(fields: [settlementId], references: [id])
@@ -67,10 +54,9 @@ model SettledSelection {
   @@map("settled_selections")
 }
 
-/// Progress of settling one match. The only mutable table besides `operator_periods`.
 model MatchSettlement {
   matchId       String    @id @map("match_id") @db.Uuid
-  /// `RESULT` for a settlement from the result, `VOID` for a voided match.
+  /// `RESULT` or `VOID`.
   kind          String    @default("RESULT")
   status        String
   betsTotal     Int       @default(0) @map("bets_total")
@@ -84,7 +70,7 @@ model MatchSettlement {
   @@map("match_settlements")
 }
 
-/// A reporting period, `SESSION-YYYYMMDD-NNNN`. At most one is OPEN (partial unique index).
+/// `SESSION-YYYYMMDD-NNNN`. At most one is OPEN (partial unique index).
 model OperatorPeriod {
   id       String    @id
   kind     String
@@ -101,7 +87,6 @@ model OperatorPeriod {
   @@map("operator_periods")
 }
 
-/// The operator's side of one settlement, written in the settlement's transaction.
 model OperatorLedgerEntry {
   id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   settlementId String   @unique @map("settlement_id") @db.Uuid
@@ -123,7 +108,7 @@ model OperatorLedgerEntry {
   @@map("operator_ledger_entries")
 }
 
-/// The closed result of a period. `operator_result` may be negative and is recorded as it is.
+/// `operator_result` may be negative and is recorded as it is.
 model OperatorLedger {
   periodId           String   @id @map("period_id")
   grossStakes        BigInt   @map("gross_stakes")
@@ -154,7 +139,6 @@ model CommissionConfig {
   @@map("commission_config")
 }
 
-/// A shop's share of its own realised operator result in a closed period.
 model CommissionLedger {
   id                   String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   periodId             String   @map("period_id")

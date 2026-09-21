@@ -3,54 +3,81 @@ export type * from "./types/index.js";
 export { DataSourceError } from "./dataSource.type.js";
 export type {
   BetNgDataSource,
+  DataSourceErrorCode,
+  DataSourceErrorDetail,
   LiveMatchHandlers,
   LiveSubscription,
   MatchFilter,
+  MatchSignal,
 } from "./dataSource.type.js";
 
 export {
-  FIRST_HALF_SECONDS,
-  FULL_TIME_SECONDS,
-  SECOND_HALF_START_SECONDS,
-  VIRTUAL_TIMING,
-  instantAtMinute,
-  matchClock,
-} from "./timing.js";
-export type { ClockPeriod, MatchClock } from "./timing.js";
-
-export {
   canBet,
-  derivePhase,
   isFinished,
   isInPlay,
+  isInterrupted,
   isUpcoming,
   phaseDescription,
   phaseLabel,
   phaseTone,
+  resolvePhase,
 } from "./phase.js";
+export type { PhaseSignals } from "./phase.js";
+export {
+  clockLabel,
+  clockProgress,
+  displayClock,
+  isStale,
+} from "./clock.js";
+export type { DisplayClock } from "./clock.js";
 
 export {
   formatBroadcastClock,
   formatCountdown,
-  formatDateTime,
-  formatKickoffTime,
   formatMatchday,
   formatMinute,
+  formatOdds,
+  formatScore,
+} from "./format.js";
+export {
+  configureCurrency,
+  currentCurrency,
+  estimateReturn,
+  formatCurrency,
   formatMoney,
   formatMoneyCompact,
-  formatOdds,
-  formatRelative,
-  formatScore,
-  formatShortDate,
   formatSignedMoney,
+  multiplyOdds,
+  parseMoney,
+} from "./money.js";
+export type { Money, MoneyFormatOptions } from "./money.js";
+export {
+  configureDateTime,
+  formatAge,
+  formatDateTime,
+  formatKickoffTime,
+  formatRelative,
+  formatShortDate,
+  formatTimeZoneName,
+  localDayRange,
   toLocalDateKey,
-} from "./format.js";
-
+} from "./datetime.js";
+export type { DateTimeConfig } from "./datetime.js";
+export { DEFAULT_FLAGS, parseFlagOverrides, resolveFlags } from "./flags.js";
+export { consoleSink, createLogger, redact } from "./logger.js";
+export type {
+  LogCategory,
+  LogEntry,
+  LogLevel,
+  LogSink,
+  Logger,
+} from "./logger.js";
 export {
   MAX_SELECTIONS,
   QUICK_STAKES,
   STAKE_LIMITS,
   combinedOdds,
+  createClientReference,
   isSelected,
   parseStakeInput,
   removeSelection,

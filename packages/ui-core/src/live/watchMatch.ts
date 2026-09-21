@@ -1,8 +1,10 @@
 import type { MatchId } from "@betng/contracts";
 import type { BetNgDataSource } from "../dataSource.type.js";
-import { derivePhase } from "../phase.js";
+import { resolvePhase } from "../phase.js";
 import type {
+  ClockPeriod,
   ConnectionState,
+  MatchClockView,
   MatchEventView,
   MatchView,
 } from "../types/index.js";
@@ -13,13 +15,33 @@ export interface LiveMatchSnapshot {
   readonly resyncing: boolean;
   readonly error: string | undefined;
   readonly lastEvent: MatchEventView | undefined;
+  readonly syncedAt: number | undefined;
 }
 
 export interface LiveMatchController {
   readonly getSnapshot: () => LiveMatchSnapshot;
   readonly subscribe: (listener: () => void) => () => void;
   readonly stop: () => void;
-  readonly tick: (now?: number) => void;
+  readonly resync: () => void;
+}
+
+const PERIOD_AFTER: Readonly<Partial<Record<MatchEventView["kind"], ClockPeriod>>> = {
+  KICK_OFF: "FIRST_HALF",
+  HALF_TIME: "HALF_TIME",
+  SECOND_HALF: "SECOND_HALF",
+  FULL_TIME: "FULL_TIME",
+};
+
+function clockAfter(
+  current: MatchClockView | undefined,
+  event: MatchEventView,
+): MatchClockView {
+  return {
+    ...current,
+    period: PERIOD_AFTER[event.kind] ?? current?.period ?? "FIRST_HALF",
+    minute: event.minute,
+    asOf: event.occurredAt === "" ? new Date().toISOString() : event.occurredAt,
+  };
 }
 
 export function watchMatch(
@@ -32,11 +54,13 @@ export function watchMatch(
     resyncing: false,
     error: undefined,
     lastEvent: undefined,
+    syncedAt: undefined,
   };
 
   const listeners = new Set<() => void>();
   let stopped = false;
   let resyncSerial = 0;
+  let streamSequence = 0;
 
   function publish(next: Partial<LiveMatchSnapshot>): void {
     snapshot = { ...snapshot, ...next };
@@ -54,7 +78,12 @@ export function watchMatch(
       // A later resync superseded this one; its answer is newer.
       if (stopped || serial !== resyncSerial) return;
 
-      publish({ match, resyncing: false, error: undefined });
+      publish({
+        match,
+        resyncing: false,
+        error: undefined,
+        syncedAt: Date.now(),
+      });
     } catch (cause) {
       if (stopped || serial !== resyncSerial) return;
 
@@ -73,30 +102,46 @@ export function watchMatch(
 
     // No snapshot yet: the read in flight will include this event.
     if (current === undefined) return;
+    if (event.sequence <= streamSequence) return;
 
-    const last = current.events.at(-1)?.sequence ?? 0;
+    const gap = streamSequence > 0 && event.sequence > streamSequence + 1;
 
-    if (event.sequence <= last) return;
+    streamSequence = event.sequence;
 
-    if (event.sequence > last + 1) {
+    if (gap) {
       void resync();
+
       return;
     }
 
-    const phase = derivePhase(current.status, current.kickoffAt, Date.now());
+    const known = current.events.some(
+      (e) =>
+        e.id === event.id ||
+        (e.kind === event.kind && e.minute === event.minute && e.side === event.side),
+    );
+
+    if (known) return;
+
+    const status =
+      event.kind === "FULL_TIME"
+        ? "COMPLETED"
+        : event.kind === "KICK_OFF"
+          ? "IN_PLAY"
+          : current.status;
+    const clock = clockAfter(current.clock, event);
 
     publish({
       match: {
         ...current,
         events: [...current.events, event],
         score: event.score,
-        phase,
-        status:
-          event.kind === "FULL_TIME"
-            ? "COMPLETED"
-            : event.kind === "KICK_OFF"
-              ? "IN_PLAY"
-              : current.status,
+        status,
+        clock,
+        phase: resolvePhase(status, {
+          lifecycle: current.lifecycle,
+          period: clock.period,
+        }),
+        updatedAt: clock.asOf,
       },
       lastEvent: event,
     });
@@ -111,6 +156,9 @@ export function watchMatch(
 
   const subscription = source.subscribeMatch(matchId, {
     onEvent: applyEvent,
+    onSignal: () => {
+      void resync();
+    },
     onConnection: (state) => {
       const recovered = wasDown && state === "CONNECTED";
 
@@ -136,16 +184,8 @@ export function watchMatch(
       subscription.unsubscribe();
       listeners.clear();
     },
-    tick: (now = Date.now()) => {
-      const current = snapshot.match;
-
-      if (current === undefined) return;
-
-      const phase = derivePhase(current.status, current.kickoffAt, now);
-
-      if (phase !== current.phase) {
-        publish({ match: { ...current, phase } });
-      }
+    resync: () => {
+      void resync();
     },
   };
 }

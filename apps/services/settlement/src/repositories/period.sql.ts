@@ -1,10 +1,5 @@
-/**
- * Reporting-period SQL shared by the settlement and operator repositories.
- *
- * A settlement takes a share lock on the OPEN period for the length of its transaction. Closing a period
- * updates that row, so the close waits for every in-flight settlement and none can slip an entry into a
- * period whose ledger row has already been written.
- */
+// A settlement holds a share lock on the OPEN period; closing updates that row, so the close waits for every
+// in-flight settlement and no entry can land in a period whose ledger row is already written.
 
 import type { Prisma } from "../databases/index.js";
 import type { OperatorPeriodKind, OperatorPeriodRecord } from "../models/index.js";
@@ -30,10 +25,7 @@ export function toPeriod(row: PeriodRow): OperatorPeriodRecord {
 
 const OPEN_ATTEMPTS = 3;
 
-/**
- * Inserts the next `SESSION-YYYYMMDD-NNNN` of the UTC day as OPEN. A concurrent opener wins quietly: the
- * single-open index turns this insert into a no-op.
- */
+// A concurrent opener wins quietly: the single-open index turns this insert into a no-op.
 export async function insertNextPeriod(
   tx: Prisma.TransactionClient,
   kind: OperatorPeriodKind,
@@ -52,7 +44,6 @@ export async function insertNextPeriod(
 
 export type PeriodLock = "share" | "update";
 
-/** Locks and returns the OPEN period, or undefined when none is open. */
 export async function lockOpenPeriod(
   tx: Prisma.TransactionClient,
   lock: PeriodLock,
@@ -71,7 +62,6 @@ export async function lockOpenPeriod(
   return row === undefined ? undefined : toPeriod(row);
 }
 
-/** The OPEN period under a share lock, opening a DAY period when there is none. */
 export async function lockOrOpenPeriod(
   tx: Prisma.TransactionClient,
   now: Date,

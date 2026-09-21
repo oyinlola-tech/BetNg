@@ -1,14 +1,19 @@
 import type { PrismaClient } from "../generated/prisma/client.js";
 import type { CatalogueRepository } from "../interfaces/index.js";
 
-/** How long a team update may hold its transaction while the audit entry is written. */
 const UPDATE_TIMEOUT_MS = 10_000;
 
-export function createCatalogueRepository(prisma: PrismaClient): CatalogueRepository {
+export function createCatalogueRepository(
+  prisma: PrismaClient,
+): CatalogueRepository {
   return {
-    listLeagues: async () => prisma.league.findMany({ orderBy: [{ staggerSeconds: "asc" }, { name: "asc" }] }),
+    listLeagues: async () =>
+      prisma.league.findMany({
+        orderBy: [{ staggerSeconds: "asc" }, { name: "asc" }],
+      }),
 
-    findLeague: async (id) => (await prisma.league.findUnique({ where: { id } })) ?? undefined,
+    findLeague: async (id) =>
+      (await prisma.league.findUnique({ where: { id } })) ?? undefined,
 
     countLeagues: async () => prisma.league.count(),
 
@@ -21,18 +26,30 @@ export function createCatalogueRepository(prisma: PrismaClient): CatalogueReposi
         orderBy: [{ leagueId: "asc" }, { name: "asc" }],
       }),
 
-    findTeam: async (id) => (await prisma.team.findUnique({ where: { id }, include: { league: true } })) ?? undefined,
+    findTeam: async (id) =>
+      (await prisma.team.findUnique({
+        where: { id },
+        include: { league: true },
+      })) ?? undefined,
 
-    createTeam: async (team) => prisma.team.create({ data: team, include: { league: true } }),
+    createTeam: async (team) =>
+      prisma.team.create({ data: team, include: { league: true } }),
 
     updateTeam: async (id, patch, afterUpdate) =>
       prisma.$transaction(
         async (tx) => {
-          const before = await tx.team.findUnique({ where: { id }, include: { league: true } });
+          const before = await tx.team.findUnique({
+            where: { id },
+            include: { league: true },
+          });
 
           if (before === null) return undefined;
 
-          const after = await tx.team.update({ where: { id }, data: patch, include: { league: true } });
+          const after = await tx.team.update({
+            where: { id },
+            data: patch,
+            include: { league: true },
+          });
 
           await afterUpdate(before, after);
 

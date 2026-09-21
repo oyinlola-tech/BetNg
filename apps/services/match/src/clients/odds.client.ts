@@ -11,24 +11,41 @@ export const ODDS_PROCEDURE = Object.freeze({
   SET_MATCH_MARKETS_STATUS: "odds.setMatchMarketsStatus",
 });
 
-const publishMarketsResultSchema: ValidationSchema<PublishMarketsResult> = z.object({
-  matchId: z.uuid(),
-  markets: z.int().min(0),
-  oddsVersion: z.int().min(1),
-});
+const publishMarketsResultSchema: ValidationSchema<PublishMarketsResult> =
+  z.object({
+    matchId: z.uuid(),
+    markets: z.int().min(0),
+    oddsVersion: z.int().min(1),
+  });
 
-const marketsStatusResultSchema: ValidationSchema<{ readonly updated: number }> = z.object({
+const marketsStatusResultSchema: ValidationSchema<{
+  readonly updated: number;
+}> = z.object({
   updated: z.int().min(0),
 });
 
-export function createOddsClient(endpoint: ServiceEndpoint): OddsPeer & { readonly raw: RPCClient } {
+export function createOddsClient(
+  endpoint: ServiceEndpoint,
+): OddsPeer & { readonly raw: RPCClient } {
   const raw = createRpcClient(endpoint);
 
   return {
     raw,
     publishMarkets: async (input, requestId) =>
-      callValidated(raw, ODDS_PROCEDURE.PUBLISH_MARKETS, input, requestId, publishMarketsResultSchema),
+      callValidated(
+        raw,
+        ODDS_PROCEDURE.PUBLISH_MARKETS,
+        input,
+        requestId,
+        publishMarketsResultSchema,
+      ),
     setMatchMarketsStatus: async (matchId, status, requestId) =>
-      callValidated(raw, ODDS_PROCEDURE.SET_MATCH_MARKETS_STATUS, { matchId, status }, requestId, marketsStatusResultSchema),
+      callValidated(
+        raw,
+        ODDS_PROCEDURE.SET_MATCH_MARKETS_STATUS,
+        { matchId, status },
+        requestId,
+        marketsStatusResultSchema,
+      ),
   };
 }

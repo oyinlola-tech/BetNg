@@ -1,9 +1,4 @@
-/**
- * RFC 6238 time-based one-time passwords (HMAC-SHA1, 30 s step, six digits).
- *
- * `@zudojs/crypto` has no TOTP and refuses SHA-1, which the RFC and every
- * authenticator app use, so this is built on `node:crypto`.
- */
+// RFC 6238 TOTP on node:crypto: @zudojs/crypto has no TOTP and refuses SHA-1, which authenticator apps use.
 
 import { createHmac, timingSafeEqual } from "node:crypto";
 
@@ -11,7 +6,6 @@ const BASE32_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 
 export const TOTP_STEP_SECONDS = 30;
 export const TOTP_DIGITS = 6;
-/** Steps either side of the current one that are accepted, to absorb clock drift. */
 export const TOTP_WINDOW = 1;
 
 const CODE_PATTERN = /^\d{6}$/u;
@@ -67,7 +61,6 @@ export function totpStep(atMs: number): number {
   return Math.floor(atMs / 1000 / TOTP_STEP_SECONDS);
 }
 
-/** RFC 4226 HOTP for one counter value. */
 export function hotp(key: Uint8Array, counter: number, digits: number = TOTP_DIGITS): string {
   const message = Buffer.alloc(8);
   message.writeBigUInt64BE(BigInt(counter));
@@ -87,18 +80,10 @@ export interface TotpCheck {
   readonly secretBase32: string;
   readonly code: string;
   readonly atMs: number;
-  /** The step of the last code this account used; that step and any before it are refused. */
   readonly lastUsedStep: number | undefined;
 }
 
-/**
- * Returns the time step the code is valid for, or `undefined`.
- *
- * Every candidate step is computed and compared in constant time, so neither
- * the matching step nor a near miss is observable. The caller must persist the
- * returned step (conditionally on it still being newer) before granting a
- * session; that is what makes a code single-use.
- */
+/** Every candidate step is compared in constant time. The caller must persist the returned step before granting a session; that makes a code single-use. */
 export function verifyTotp(check: TotpCheck): number | undefined {
   if (!CODE_PATTERN.test(check.code)) {
     return undefined;

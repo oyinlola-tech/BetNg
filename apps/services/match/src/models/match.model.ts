@@ -1,11 +1,3 @@
-/**
- * Maps database rows to the shapes in `@betng/contracts`.
- *
- * This is the one place a match row becomes a public answer, so it is also where result secrecy is kept: a score
- * leaves only as the revealed running score stored on the match, and an event only if the caller already
- * established that it has been revealed.
- */
-
 import { asId, matchEventTypeSchema } from "@betng/contracts";
 import type {
   AdminFixture,
@@ -76,7 +68,15 @@ export function toFixture(row: Omit<FixtureRecord, "match">): Fixture {
 
 type MatchColumns = Pick<
   MatchRecord,
-  "id" | "fixtureId" | "status" | "lifecycle" | "homeScore" | "awayScore" | "completedAt" | "createdAt" | "updatedAt"
+  | "id"
+  | "fixtureId"
+  | "status"
+  | "lifecycle"
+  | "homeScore"
+  | "awayScore"
+  | "completedAt"
+  | "createdAt"
+  | "updatedAt"
 >;
 
 export function toMatch(row: MatchColumns): Match {
@@ -84,8 +84,12 @@ export function toMatch(row: MatchColumns): Match {
     id: asId<"MatchId">(row.id),
     fixtureId: asId<"FixtureId">(row.fixtureId),
     status: row.status,
-    ...(row.homeScore === null || row.awayScore === null ? {} : { score: { home: row.homeScore, away: row.awayScore } }),
-    ...(row.completedAt === null ? {} : { completedAt: row.completedAt.toISOString() }),
+    ...(row.homeScore === null || row.awayScore === null
+      ? {}
+      : { score: { home: row.homeScore, away: row.awayScore } }),
+    ...(row.completedAt === null
+      ? {}
+      : { completedAt: row.completedAt.toISOString() }),
     lifecycle: row.lifecycle,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
@@ -104,14 +108,21 @@ export function toMatchEvent(row: SimulationEventRow): MatchEvent | undefined {
     minute: Math.min(120, Math.max(0, row.minute)),
     ...(row.side === null ? {} : { side: row.side }),
     ...(row.player === null ? {} : { player: row.player }),
-    ...(row.secondaryPlayer === null ? {} : { secondaryPlayer: row.secondaryPlayer }),
+    ...(row.secondaryPlayer === null
+      ? {}
+      : { secondaryPlayer: row.secondaryPlayer }),
     score: { home: row.scoreHome, away: row.scoreAway },
     description: row.description.slice(0, 240),
   };
 }
 
 export function toCompletedMatch(row: MatchRecord): CompletedMatch | undefined {
-  if (row.status !== "COMPLETED" || row.homeScore === null || row.awayScore === null || row.completedAt === null) {
+  if (
+    row.status !== "COMPLETED" ||
+    row.homeScore === null ||
+    row.awayScore === null ||
+    row.completedAt === null
+  ) {
     return undefined;
   }
 
@@ -128,7 +139,12 @@ export function toCompletedMatch(row: MatchRecord): CompletedMatch | undefined {
     result: {
       homeGoals: row.homeScore,
       awayGoals: row.awayScore,
-      winner: row.homeScore > row.awayScore ? "HOME" : row.homeScore < row.awayScore ? "AWAY" : "DRAW",
+      winner:
+        row.homeScore > row.awayScore
+          ? "HOME"
+          : row.homeScore < row.awayScore
+            ? "AWAY"
+            : "DRAW",
       winningGap: Math.abs(row.homeScore - row.awayScore),
     },
   };
@@ -157,7 +173,11 @@ export function toAdminTeam(row: TeamRecord): AdminTeam {
   };
 }
 
-const NOT_OPEN: readonly string[] = ["FIXTURE_CREATED", "MARKETS_CREATED", "ODDS_PUBLISHED"];
+const NOT_OPEN: readonly string[] = [
+  "FIXTURE_CREATED",
+  "MARKETS_CREATED",
+  "ODDS_PUBLISHED",
+];
 const OPEN: readonly string[] = ["BETTING_OPEN", "BETTING_ACTIVE"];
 const BEFORE_CLOSE: readonly string[] = [...NOT_OPEN, ...OPEN];
 const BEFORE_FINISH: readonly string[] = [
@@ -176,7 +196,8 @@ function bettingStatus(lifecycle: string): BettingStatus {
 }
 
 function simulationStatus(row: MatchColumns): SimulationStatus {
-  if (row.lifecycle === "VOIDED") return row.homeScore === null ? "QUEUED" : "COMPLETED";
+  if (row.lifecycle === "VOIDED")
+    return row.homeScore === null ? "QUEUED" : "COMPLETED";
   if (BEFORE_CLOSE.includes(row.lifecycle)) return "QUEUED";
   if (row.lifecycle === "BETTING_CLOSED") return "READY";
   if (row.lifecycle === "SIMULATION_STARTED") return "RUNNING";
@@ -192,10 +213,7 @@ function settlementStatus(lifecycle: string): SettlementStatus {
   return lifecycle === "SETTLEMENT_FAILED" ? "FAILED" : "PENDING";
 }
 
-/**
- * The admin view of a fixture. Its `score` is the same revealed running score the public sees (0–0 before
- * kick-off): an operator gets no earlier sight of a result than a customer does.
- */
+/** Result secrecy: `score` is the revealed running score the public sees, never the committed result. */
 export function toAdminFixture(row: MatchRecord): AdminFixture {
   return {
     matchId: asId<"MatchId">(row.id),
@@ -214,7 +232,10 @@ export function toAdminFixture(row: MatchRecord): AdminFixture {
   };
 }
 
-export function toAdminMatch(row: MatchRecord, transitions: readonly TransitionRecord[]): AdminMatchDto {
+export function toAdminMatch(
+  row: MatchRecord,
+  transitions: readonly TransitionRecord[],
+): AdminMatchDto {
   return {
     ...toAdminFixture(row),
     fixtureId: asId<"FixtureId">(row.fixtureId),
@@ -224,7 +245,9 @@ export function toAdminMatch(row: MatchRecord, transitions: readonly TransitionR
     bettingClosesAt: row.fixture.bettingClosesAt.toISOString(),
     failureCount: row.failureCount,
     ...(row.failureReason === null ? {} : { failureReason: row.failureReason }),
-    ...(row.nextAttemptAt === null ? {} : { nextAttemptAt: row.nextAttemptAt.toISOString() }),
+    ...(row.nextAttemptAt === null
+      ? {}
+      : { nextAttemptAt: row.nextAttemptAt.toISOString() }),
     transitions: transitions.map((transition) => ({
       from: transition.fromState,
       to: transition.toState,

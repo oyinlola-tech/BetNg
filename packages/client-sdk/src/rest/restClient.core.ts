@@ -3,13 +3,18 @@ import type {
   Bet,
   CompletedMatch,
   Fixture,
+  HeadToHead,
   League,
   Match,
   MatchEvent,
+  MatchLineups,
   MatchOdds,
   MatchStats,
   Notification,
+  Page,
   PlaceBetRequest,
+  PublicConfig,
+  SearchResponse,
   Standings,
   Team,
   TopScorer,
@@ -17,7 +22,12 @@ import type {
   Wallet,
 } from "@betng/contracts";
 import type { BetNgClientConfig } from "../config/index.js";
-import { buildQuery, createRequester, type ListResponse } from "./request.js";
+import {
+  buildQuery,
+  createRequester,
+  type ListResponse,
+  type RequestOptions,
+} from "./request.js";
 import { createAuthClient, type BetNgAuthClient } from "./authClient.js";
 import { createShopClient, type BetNgShopClient } from "./shopClient.js";
 import { createAdminClient, type BetNgAdminClient } from "./adminClient.js";
@@ -35,6 +45,24 @@ export interface MatchWindowQuery {
   readonly from?: string;
   readonly to?: string;
   readonly limit?: number;
+}
+
+export interface SearchRequest {
+  readonly q: string;
+  readonly kinds?: readonly string[];
+  readonly limit?: number;
+}
+
+export interface TransactionPageQuery {
+  readonly page?: number;
+  readonly pageSize?: number;
+  readonly types?: readonly string[];
+  readonly statuses?: readonly string[];
+  readonly from?: string;
+  readonly to?: string;
+  readonly search?: string;
+  readonly sort?: string;
+  readonly direction?: "asc" | "desc";
 }
 
 const text = (value: number | undefined): string | undefined =>
@@ -64,6 +92,10 @@ export interface BetNgRestClient {
   listMatchEvents(matchId: string): Promise<readonly MatchEvent[]>;
   getMatchStats(matchId: string): Promise<MatchStats>;
   getMatchOdds(matchId: string): Promise<MatchOdds>;
+  getMatchLineups(matchId: string): Promise<MatchLineups>;
+  getHeadToHead(matchId: string): Promise<HeadToHead>;
+  search(query: SearchRequest): Promise<SearchResponse>;
+  getPublicConfig(): Promise<PublicConfig>;
   getStandings(leagueId: string, season?: number): Promise<Standings>;
   listTopScorers(
     leagueId: string,
@@ -71,7 +103,10 @@ export interface BetNgRestClient {
   ): Promise<readonly TopScorer[]>;
   listNotifications(userId: string): Promise<readonly Notification[]>;
   markNotificationsRead(userId: string, ids?: readonly string[]): Promise<void>;
-  placeBet(request: PlaceBetRequest): Promise<Bet>;
+  placeBet(
+    request: PlaceBetRequest,
+    options?: Pick<RequestOptions, "idempotencyKey">,
+  ): Promise<Bet>;
   listBets(query?: {
     readonly userId?: string;
     readonly status?: string;
@@ -79,6 +114,10 @@ export interface BetNgRestClient {
   getBet(betId: string): Promise<Bet>;
   getWallet(userId: string): Promise<Wallet>;
   listTransactions(userId: string): Promise<readonly Transaction[]>;
+  queryTransactions(
+    userId: string,
+    query: TransactionPageQuery,
+  ): Promise<Page<Transaction>>;
   deposit(userId: string, amount: number): Promise<LedgerEntry>;
   withdraw(userId: string, amount: number): Promise<LedgerEntry>;
 
@@ -158,6 +197,24 @@ export function createRestClient(config: BetNgClientConfig): BetNgRestClient {
     getMatchOdds: async (matchId) =>
       request<MatchOdds>("GET", `${API_PREFIX}/matches/${matchId}/odds`),
 
+    getMatchLineups: async (matchId) =>
+      request<MatchLineups>("GET", `${API_PREFIX}/matches/${matchId}/lineups`),
+
+    getHeadToHead: async (matchId) =>
+      request<HeadToHead>(
+        "GET",
+        `${API_PREFIX}/matches/${matchId}/head-to-head`,
+      ),
+
+    search: async (query) =>
+      request<SearchResponse>(
+        "GET",
+        `${API_PREFIX}/search${buildQuery({ q: query.q, kinds: query.kinds, limit: query.limit })}`,
+      ),
+
+    getPublicConfig: async () =>
+      request<PublicConfig>("GET", `${API_PREFIX}/config`),
+
     getStandings: async (leagueId, season) =>
       request<Standings>(
         "GET",
@@ -192,8 +249,8 @@ export function createRestClient(config: BetNgClientConfig): BetNgRestClient {
       );
     },
 
-    placeBet: async (betRequest) =>
-      request<Bet>("POST", `${API_PREFIX}/bets`, betRequest),
+    placeBet: async (betRequest, options) =>
+      request<Bet>("POST", `${API_PREFIX}/bets`, betRequest, options),
 
     listBets: async (query = {}) =>
       (
@@ -215,6 +272,12 @@ export function createRestClient(config: BetNgClientConfig): BetNgRestClient {
           `${API_PREFIX}/wallets/${userId}/transactions`,
         )
       ).items,
+
+    queryTransactions: async (userId, query) =>
+      request<Page<Transaction>>(
+        "GET",
+        `${API_PREFIX}/wallets/${userId}/transactions${buildQuery({ ...query, page: query.page ?? 1 })}`,
+      ),
 
     deposit: async (userId, amount) =>
       request<LedgerEntry>("POST", `${API_PREFIX}/wallets/deposit`, {

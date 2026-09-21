@@ -34,7 +34,11 @@ export function createPeers(services: ServiceConfig["services"]): RpcPeers {
     event,
     identity,
     close: async () => {
-      await Promise.all([odds, simulation, risk, settlement, event, identity].map(async (peer) => peer.raw.close()));
+      await Promise.all(
+        [odds, simulation, risk, settlement, event, identity].map(
+          async (peer) => peer.raw.close(),
+        ),
+      );
     },
   };
 }

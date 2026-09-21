@@ -5,7 +5,6 @@ import { RetryEffectsCommand } from "../services/settlement/commands/index.js";
 import type { RetryEffectsResult } from "../services/settlement/commands/index.js";
 
 export interface MaintenanceJob {
-  /** One pass: re-apply effects of un-stamped settlements, then roll the period over at the UTC day boundary. */
   readonly tick: () => Promise<void>;
   readonly start: () => void;
   readonly stop: () => Promise<void>;
@@ -47,7 +46,6 @@ export function createMaintenanceJob(options: MaintenanceJobOptions): Maintenanc
   };
 
   const tick = async (): Promise<void> => {
-    // A slow pass is never overlapped by the next one.
     running ??= pass().finally(() => {
       running = undefined;
     });

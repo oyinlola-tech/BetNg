@@ -1,11 +1,10 @@
-/**
- * The peers the match service calls, as the lifecycle sees them.
- *
- * Each is a small interface over one RPC client, injected, so the lifecycle is tested against fakes and never
- * learns a URL. Every call carries the request id that travels in the RPC metadata.
- */
-
-import type { LiveEventType, MatchSide, RunMatchRequest, RunMatchResponse, TeamStrength } from "@betng/contracts";
+import type {
+  LiveEventType,
+  MatchSide,
+  RunMatchRequest,
+  RunMatchResponse,
+  TeamStrength,
+} from "@betng/contracts";
 
 export type MarketsStatus = "OPEN" | "CLOSED" | "SETTLED" | "VOID";
 
@@ -17,18 +16,32 @@ export interface PublishMarketsResult {
 
 export interface OddsPeer {
   publishMarkets(
-    input: { readonly matchId: string; readonly home: TeamStrength; readonly away: TeamStrength },
+    input: {
+      readonly matchId: string;
+      readonly home: TeamStrength;
+      readonly away: TeamStrength;
+    },
     requestId: string,
   ): Promise<PublishMarketsResult>;
-  setMatchMarketsStatus(matchId: string, status: MarketsStatus, requestId: string): Promise<{ readonly updated: number }>;
+  setMatchMarketsStatus(
+    matchId: string,
+    status: MarketsStatus,
+    requestId: string,
+  ): Promise<{ readonly updated: number }>;
 }
 
 export interface SimulationPeer {
-  runMatch(request: RunMatchRequest, requestId: string): Promise<RunMatchResponse>;
+  runMatch(
+    request: RunMatchRequest,
+    requestId: string,
+  ): Promise<RunMatchResponse>;
 }
 
 export interface RiskPeer {
-  freezeExposure(matchId: string, requestId: string): Promise<{ readonly matchId: string; readonly frozenAt: string }>;
+  freezeExposure(
+    matchId: string,
+    requestId: string,
+  ): Promise<{ readonly matchId: string; readonly frozenAt: string }>;
 }
 
 export interface MatchSettlementResult {
@@ -40,8 +53,15 @@ export interface MatchSettlementResult {
 }
 
 export interface SettlementPeer {
-  settleMatch(matchId: string, requestId: string): Promise<MatchSettlementResult>;
-  voidMatch(matchId: string, reason: string, requestId: string): Promise<MatchSettlementResult>;
+  settleMatch(
+    matchId: string,
+    requestId: string,
+  ): Promise<MatchSettlementResult>;
+  voidMatch(
+    matchId: string,
+    reason: string,
+    requestId: string,
+  ): Promise<MatchSettlementResult>;
 }
 
 export interface LiveEventInput {
@@ -54,7 +74,10 @@ export interface LiveEventInput {
 }
 
 export interface EventPeer {
-  publish(event: LiveEventInput, requestId: string): Promise<{ readonly sequence: number }>;
+  publish(
+    event: LiveEventInput,
+    requestId: string,
+  ): Promise<{ readonly sequence: number }>;
 }
 
 export interface AuditInput {

@@ -1,13 +1,3 @@
-/**
- * Settles, or voids, every bet with a leg on one match.
- *
- * Deterministic: a leg's outcome is a pure function of the authoritative score and the terms stored on the
- * leg, and the payout is integer arithmetic over the odds stored on the bet. Idempotent: a bet is settled by
- * inserting on the unique `(bet_id, revision)` key, so a repeated or concurrent call finds the settlement
- * and pays nothing again. Honest: the match settlement is COMPLETED only when every ready bet is settled and
- * its effects are stamped; anything less is FAILED and surfaces as `SETTLEMENT_FAILED`.
- */
-
 import type { Logger } from "@betng/service-kit";
 import {
   AUDIT_ACTION,
@@ -105,10 +95,7 @@ export class MatchSettler {
   private readonly audit: AuditRecorder;
   private readonly logger: Logger;
 
-  /**
-   * Calls for the same match run one after another in this process, so the second sees what the first did
-   * and answers `duplicate`. Across processes the unique key and the idempotent effects give the same safety.
-   */
+  // Same-match calls are serialised in-process; across processes the unique (bet_id, revision) key guards.
   private readonly queues = new Map<string, Promise<unknown>>();
 
   public constructor(dependencies: MatchSettlerDependencies) {
@@ -370,10 +357,7 @@ export class MatchSettler {
     }
   }
 
-  /**
-   * Every leg's outcome, or undefined while a leg's match has no revealed result yet. A result is used only
-   * once its match is COMPLETED: it exists from kick-off, but settling on it earlier would reveal it.
-   */
+  // A result exists from kick-off but is used only once its match is COMPLETED, or settling would reveal it.
   private resolveLegs(
     context: MatchContext,
     bet: BetRecord,

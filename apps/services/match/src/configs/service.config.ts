@@ -9,7 +9,6 @@ export const SERVICE_VERSION = "0.2.0";
 export const DEFAULT_PORT = 3001;
 
 export interface MatchTiming {
-  /** Wall-clock seconds one match minute lasts. May be fractional in tests. */
   readonly secondsPerMinute: number;
   readonly halfTimeSeconds: number;
   readonly bettingCloseLeadSeconds: number;
@@ -38,7 +37,11 @@ function readNumber(
   env: Env,
   key: string,
   fallback: number,
-  bounds: { readonly min: number; readonly max: number; readonly integer?: boolean },
+  bounds: {
+    readonly min: number;
+    readonly max: number;
+    readonly integer?: boolean;
+  },
 ): number {
   const raw = env[key];
 
@@ -63,12 +66,42 @@ function readNumber(
 
 export function readTiming(env: Env): MatchTiming {
   return Object.freeze({
-    secondsPerMinute: readNumber(env, "MATCH_SECONDS_PER_MINUTE", DEFAULT_TIMING.secondsPerMinute, { min: 0.001, max: 60 }),
-    halfTimeSeconds: readNumber(env, "MATCH_HALF_TIME_SECONDS", DEFAULT_TIMING.halfTimeSeconds, { min: 0, max: 900 }),
-    bettingCloseLeadSeconds: readNumber(env, "BETTING_CLOSE_LEAD_SECONDS", DEFAULT_TIMING.bettingCloseLeadSeconds, { min: 0, max: 3600 }),
-    roundCycleSeconds: readNumber(env, "ROUND_CYCLE_SECONDS", DEFAULT_TIMING.roundCycleSeconds, { min: 1, max: 86_400 }),
-    leagueStaggerSeconds: readNumber(env, "LEAGUE_STAGGER_SECONDS", DEFAULT_TIMING.leagueStaggerSeconds, { min: 0, max: 86_400 }),
-    upcomingRounds: readNumber(env, "UPCOMING_ROUNDS", DEFAULT_TIMING.upcomingRounds, { min: 1, max: 20, integer: true }),
+    secondsPerMinute: readNumber(
+      env,
+      "MATCH_SECONDS_PER_MINUTE",
+      DEFAULT_TIMING.secondsPerMinute,
+      { min: 0.001, max: 60 },
+    ),
+    halfTimeSeconds: readNumber(
+      env,
+      "MATCH_HALF_TIME_SECONDS",
+      DEFAULT_TIMING.halfTimeSeconds,
+      { min: 0, max: 900 },
+    ),
+    bettingCloseLeadSeconds: readNumber(
+      env,
+      "BETTING_CLOSE_LEAD_SECONDS",
+      DEFAULT_TIMING.bettingCloseLeadSeconds,
+      { min: 0, max: 3600 },
+    ),
+    roundCycleSeconds: readNumber(
+      env,
+      "ROUND_CYCLE_SECONDS",
+      DEFAULT_TIMING.roundCycleSeconds,
+      { min: 1, max: 86_400 },
+    ),
+    leagueStaggerSeconds: readNumber(
+      env,
+      "LEAGUE_STAGGER_SECONDS",
+      DEFAULT_TIMING.leagueStaggerSeconds,
+      { min: 0, max: 86_400 },
+    ),
+    upcomingRounds: readNumber(
+      env,
+      "UPCOMING_ROUNDS",
+      DEFAULT_TIMING.upcomingRounds,
+      { min: 1, max: 20, integer: true },
+    ),
   });
 }
 
@@ -87,6 +120,7 @@ export async function loadMatchConfig(env?: Env): Promise<MatchConfig> {
   return Object.freeze({
     ...service,
     timing: readTiming(source),
-    schedulerEnabled: (source["SCHEDULER_ENABLED"] ?? "true").toLowerCase() !== "false",
+    schedulerEnabled:
+      (source["SCHEDULER_ENABLED"] ?? "true").toLowerCase() !== "false",
   });
 }

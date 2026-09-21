@@ -1,2 +1,2 @@
 export type ConnectionState =
-  "CONNECTING" | "CONNECTED" | "RECONNECTING" | "OFFLINE";
+  "CONNECTING" | "CONNECTED" | "RECONNECTING" | "OFFLINE" | "FAILED";

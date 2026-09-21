@@ -6,7 +6,10 @@ import { resolveWindow } from "../../../../utils/index.js";
 import type { HandlerDependencies } from "../../match.dependencies.js";
 import type { ListFixturesQuery } from "./listFixtures.query.js";
 
-export class ListFixturesHandler extends QueryHandler<ListFixturesQuery, readonly Fixture[]> {
+export class ListFixturesHandler extends QueryHandler<
+  ListFixturesQuery,
+  readonly Fixture[]
+> {
   public readonly queryType = MATCH_QUERY.LIST_FIXTURES;
 
   private readonly deps: HandlerDependencies;
@@ -18,7 +21,11 @@ export class ListFixturesHandler extends QueryHandler<ListFixturesQuery, readonl
 
   public async execute(query: ListFixturesQuery): Promise<readonly Fixture[]> {
     const { filter } = query;
-    const window = resolveWindow(filter, this.deps.clock(), filter.matchday !== undefined);
+    const window = resolveWindow(
+      filter,
+      this.deps.clock(),
+      filter.matchday !== undefined,
+    );
     const fixtures = await this.deps.matches.listFixtures({
       ...(filter.leagueId === undefined ? {} : { leagueId: filter.leagueId }),
       ...(filter.season === undefined ? {} : { season: filter.season }),

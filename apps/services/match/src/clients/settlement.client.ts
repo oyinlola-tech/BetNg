@@ -3,7 +3,10 @@ import type { ServiceEndpoint } from "@betng/service-kit";
 import type { RPCClient } from "@zudojs/rpc";
 import { z } from "@zudojs/validation";
 import type { ValidationSchema } from "@zudojs/validation";
-import type { MatchSettlementResult, SettlementPeer } from "../interfaces/index.js";
+import type {
+  MatchSettlementResult,
+  SettlementPeer,
+} from "../interfaces/index.js";
 import { callValidated } from "./rpc.client.js";
 
 export const SETTLEMENT_PROCEDURE = Object.freeze({
@@ -21,14 +24,30 @@ const resultSchema: ValidationSchema<MatchSettlementResult> = z.object({
   duplicate: z.boolean(),
 });
 
-export function createSettlementClient(endpoint: ServiceEndpoint): SettlementPeer & { readonly raw: RPCClient } {
-  const raw = createRpcClient(endpoint, { timeoutMs: Math.max(endpoint.timeoutMs, SETTLE_TIMEOUT_MS) });
+export function createSettlementClient(
+  endpoint: ServiceEndpoint,
+): SettlementPeer & { readonly raw: RPCClient } {
+  const raw = createRpcClient(endpoint, {
+    timeoutMs: Math.max(endpoint.timeoutMs, SETTLE_TIMEOUT_MS),
+  });
 
   return {
     raw,
     settleMatch: async (matchId, requestId) =>
-      callValidated(raw, SETTLEMENT_PROCEDURE.SETTLE_MATCH, { matchId }, requestId, resultSchema),
+      callValidated(
+        raw,
+        SETTLEMENT_PROCEDURE.SETTLE_MATCH,
+        { matchId },
+        requestId,
+        resultSchema,
+      ),
     voidMatch: async (matchId, reason, requestId) =>
-      callValidated(raw, SETTLEMENT_PROCEDURE.VOID_MATCH, { matchId, reason }, requestId, resultSchema),
+      callValidated(
+        raw,
+        SETTLEMENT_PROCEDURE.VOID_MATCH,
+        { matchId, reason },
+        requestId,
+        resultSchema,
+      ),
   };
 }

@@ -30,7 +30,8 @@ def to_admin_run(record: AdminRunRecord, match: MatchView | None) -> AdminSimula
             "completed_at": run.completed_at,
             "events": record.event_count,
             "score": score,
-            "seed": run.seed,
+            # Withheld with the score: a seed plus the source code is a result.
+            "seed": run.seed if revealed else None,
             "model_version": run.model_version,
             "configuration_version": run.configuration_version,
             "attempt": run.attempt,

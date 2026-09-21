@@ -5,7 +5,6 @@ import { utcDateKey } from "../../../../utils/index.js";
 import type { PeriodCloseAuditor } from "../../periodClose.auditor.js";
 import type { RollOverPeriodCommand } from "./rollOverPeriod.command.js";
 
-/** Closes a DAY period opened on an earlier UTC day and opens today's. Returns whether it rolled over. */
 export class RollOverPeriodHandler extends CommandHandler<RollOverPeriodCommand, boolean> {
   public readonly commandType = SETTLEMENT_COMMAND.ROLL_OVER_PERIOD;
 

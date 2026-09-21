@@ -1,10 +1,4 @@
-/**
- * Cross-schema reads (`docs/architecture.md` §8). Read-only by construction: every statement is a SELECT,
- * and the service's login has no write grant outside `settlement`.
- *
- * Settlement reads bets here to settle them. It never produces, alters or infers a result: the score comes
- * from `simulation.match_results` alone.
- */
+// Cross-schema reads (docs/architecture.md §8): SELECT only. The score comes from simulation.match_results alone.
 
 import type { PrismaClient } from "../databases/index.js";
 import type { PlatformReader } from "../interfaces/index.js";

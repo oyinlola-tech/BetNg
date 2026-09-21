@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { buildSeason, matchdaysPerSeason } from "../src/utils/index.js";
 
-const TEAMS = Array.from({ length: 20 }, (_, index) => `team-${String(index + 1).padStart(2, "0")}`);
+const TEAMS = Array.from(
+  { length: 20 },
+  (_, index) => `team-${String(index + 1).padStart(2, "0")}`,
+);
 
 describe("round-robin season", () => {
   const season = buildSeason(TEAMS);
@@ -15,7 +18,10 @@ describe("round-robin season", () => {
 
   it("never plays a team twice in a matchday", () => {
     for (const matchday of season) {
-      const playing = matchday.flatMap((pairing) => [pairing.homeTeamId, pairing.awayTeamId]);
+      const playing = matchday.flatMap((pairing) => [
+        pairing.homeTeamId,
+        pairing.awayTeamId,
+      ]);
 
       expect(new Set(playing).size).toBe(20);
     }
@@ -41,8 +47,12 @@ describe("round-robin season", () => {
 
   it("mirrors the first half in the second", () => {
     for (let matchday = 0; matchday < 19; matchday += 1) {
-      const first = (season[matchday] ?? []).map((pairing) => `${pairing.awayTeamId}>${pairing.homeTeamId}`).sort();
-      const second = (season[matchday + 19] ?? []).map((pairing) => `${pairing.homeTeamId}>${pairing.awayTeamId}`).sort();
+      const first = (season[matchday] ?? [])
+        .map((pairing) => `${pairing.awayTeamId}>${pairing.homeTeamId}`)
+        .sort();
+      const second = (season[matchday + 19] ?? [])
+        .map((pairing) => `${pairing.homeTeamId}>${pairing.awayTeamId}`)
+        .sort();
 
       expect(second).toEqual(first);
     }
@@ -53,7 +63,13 @@ describe("round-robin season", () => {
 
     expect(odd).toHaveLength(10);
     expect(odd.every((matchday) => matchday.length === 2)).toBe(true);
-    expect(new Set(odd.flat().map((pairing) => `${pairing.homeTeamId}>${pairing.awayTeamId}`)).size).toBe(20);
+    expect(
+      new Set(
+        odd
+          .flat()
+          .map((pairing) => `${pairing.homeTeamId}>${pairing.awayTeamId}`),
+      ).size,
+    ).toBe(20);
   });
 
   it("is empty for fewer than two teams", () => {

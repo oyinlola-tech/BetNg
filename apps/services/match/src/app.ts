@@ -6,10 +6,18 @@ import {
   redisProbe,
   serviceProbe,
 } from "@betng/service-kit";
-import type { DependencyProbe, Logger, RedisConnection, ServiceServer } from "@betng/service-kit";
+import type {
+  DependencyProbe,
+  Logger,
+  RedisConnection,
+  ServiceServer,
+} from "@betng/service-kit";
 import { createPeers } from "./clients/index.js";
 import type { MatchConfig } from "./configs/index.js";
-import { createAdminController, createMatchController } from "./controllers/index.js";
+import {
+  createAdminController,
+  createMatchController,
+} from "./controllers/index.js";
 import { createMatchDatabase } from "./databases/index.js";
 import type { Clock, Peers } from "./interfaces/index.js";
 import { createSchedulerJob } from "./jobs/index.js";
@@ -42,17 +50,30 @@ export interface MatchAppOverrides {
   readonly redis?: RedisConnection;
 }
 
-const PEER_NAMES = ["odds", "simulation", "risk", "settlement", "event", "identity"] as const;
+const PEER_NAMES = [
+  "odds",
+  "simulation",
+  "risk",
+  "settlement",
+  "event",
+  "identity",
+] as const;
 
-export function createApp(config: MatchConfig, overrides: MatchAppOverrides = {}): MatchApp {
+export function createApp(
+  config: MatchConfig,
+  overrides: MatchAppOverrides = {},
+): MatchApp {
   if (config.databaseUrl === undefined || config.redisUrl === undefined) {
-    throw new Error("The match service needs MATCH_DATABASE_URL and REDIS_URL.");
+    throw new Error(
+      "The match service needs MATCH_DATABASE_URL and REDIS_URL.",
+    );
   }
 
   const logger = createServiceLogger(config);
   const database = createMatchDatabase(config.databaseUrl);
   const redis = overrides.redis ?? createRedisConnection(config.redisUrl);
-  const rpcPeers = overrides.peers === undefined ? createPeers(config.services) : undefined;
+  const rpcPeers =
+    overrides.peers === undefined ? createPeers(config.services) : undefined;
   const peers = overrides.peers ?? rpcPeers;
   const clock = overrides.clock ?? (() => new Date());
 
@@ -74,7 +95,11 @@ export function createApp(config: MatchConfig, overrides: MatchAppOverrides = {}
     logger,
   });
 
-  const scheduler = createSchedulerJob({ redis, tick: async () => lifecycle.tick(), logger });
+  const scheduler = createSchedulerJob({
+    redis,
+    tick: async () => lifecycle.tick(),
+    logger,
+  });
 
   const container = loadContainer({
     catalogue,
@@ -90,7 +115,11 @@ export function createApp(config: MatchConfig, overrides: MatchAppOverrides = {}
   const probes: DependencyProbe[] = [
     database.probe,
     redisProbe(redis),
-    ...PEER_NAMES.map((name) => serviceProbe(createServiceClient(config.services[name]), { optional: true })),
+    ...PEER_NAMES.map((name) =>
+      serviceProbe(createServiceClient(config.services[name]), {
+        optional: true,
+      }),
+    ),
   ];
 
   const { queryBus, commandBus } = loadServices(container);
@@ -118,7 +147,9 @@ export function createApp(config: MatchConfig, overrides: MatchAppOverrides = {}
       if (config.schedulerEnabled) {
         scheduler.start();
       } else {
-        logger.info("Scheduler disabled by SCHEDULER_ENABLED=false", { event: "match.schedulerDisabled" });
+        logger.info("Scheduler disabled by SCHEDULER_ENABLED=false", {
+          event: "match.schedulerDisabled",
+        });
       }
     },
     // The scheduler stops first, so no tick is left calling a peer or the database while they close.

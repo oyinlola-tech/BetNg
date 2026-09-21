@@ -1,10 +1,3 @@
-/**
- * The peers settlement calls over RPC (`docs/architecture.md` §6), behind interfaces so tests inject fakes.
- *
- * Every call is idempotent on the callee's side: `betting.applySettlement` by bet, `wallet.credit` by
- * idempotency key. That is what lets the retry loop re-apply effects without paying twice.
- */
-
 import type { BetOutcome, LegOutcome } from "../utils/index.js";
 
 export interface ApplySettlementRequest {
@@ -28,10 +21,7 @@ export interface BettingPeer {
   applySettlement(request: ApplySettlementRequest, requestId: string): Promise<ApplySettlementResult>;
 }
 
-/**
- * A credit to a customer wallet. The owner type is fixed: settlement pays customers and nobody else. There
- * is no operator or admin wallet, and a negative operator result is never moved anywhere.
- */
+/** The owner type is fixed: settlement credits customers and nobody else; there is no operator wallet. */
 export interface WalletCreditRequest {
   readonly ownerType: "CUSTOMER";
   readonly ownerId: string;
@@ -67,7 +57,6 @@ export interface IdentityPeer {
   recordAudit(entry: AuditEntry): Promise<{ readonly id: string }>;
 }
 
-/** Who an operation is attributed to in the audit trail. */
 export interface AuditActor {
   readonly actorId: string;
   readonly actorRole: string;
@@ -76,6 +65,6 @@ export interface AuditActor {
 
 export interface AuditRecorder {
   recordBestEffort(entry: AuditEntry): Promise<void>;
-  /** Configuration entries: a failure throws `AuditUnavailableError`, and the change is abandoned. */
+  /** Configuration entries: a failure throws and the change is abandoned. */
   recordRequired(entry: AuditEntry): Promise<void>;
 }

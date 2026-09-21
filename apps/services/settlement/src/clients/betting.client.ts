@@ -16,7 +16,6 @@ export interface BettingClient extends BettingPeer {
   readonly raw: RPCClient;
 }
 
-/** Betting owns `betting.bets`; settlement tells it the outcome and never writes the row itself. */
 export function createBettingClient(endpoint: ServiceEndpoint): BettingClient {
   const client = createRpcClient(endpoint);
 

@@ -2,14 +2,23 @@ import { CommandHandler } from "@zudojs/cqrs";
 import type { AdminTeam } from "@betng/contracts";
 import { isConflictError } from "@zudojs/database";
 import { MATCH_COMMAND } from "../../../../constants/index.js";
-import { InvalidRequestError, MatchConflictError } from "../../../../errors/index.js";
+import {
+  InvalidRequestError,
+  MatchConflictError,
+} from "../../../../errors/index.js";
 import { toAdminTeam } from "../../../../models/index.js";
-import { DEFAULT_HOME_ADVANTAGE, overallStrength } from "../../../../utils/index.js";
+import {
+  DEFAULT_HOME_ADVANTAGE,
+  overallStrength,
+} from "../../../../utils/index.js";
 import { recordCatalogueAudit } from "../../catalogueAudit.js";
 import type { HandlerDependencies } from "../../match.dependencies.js";
 import type { CreateTeamCommand } from "./createTeam.command.js";
 
-export class CreateTeamHandler extends CommandHandler<CreateTeamCommand, AdminTeam> {
+export class CreateTeamHandler extends CommandHandler<
+  CreateTeamCommand,
+  AdminTeam
+> {
   public readonly commandType = MATCH_COMMAND.CREATE_TEAM;
 
   private readonly deps: HandlerDependencies;
@@ -22,7 +31,9 @@ export class CreateTeamHandler extends CommandHandler<CreateTeamCommand, AdminTe
   public async execute(command: CreateTeamCommand): Promise<AdminTeam> {
     const { request, actor } = command;
 
-    if ((await this.deps.catalogue.findLeague(request.leagueId)) === undefined) {
+    if (
+      (await this.deps.catalogue.findLeague(request.leagueId)) === undefined
+    ) {
       throw new InvalidRequestError("No league with this id.", "leagueId");
     }
 
@@ -36,7 +47,10 @@ export class CreateTeamHandler extends CommandHandler<CreateTeamCommand, AdminTe
         stadium: request.stadium ?? "",
         ...(request.colors === undefined
           ? {}
-          : { colorPrimary: request.colors.primary, colorSecondary: request.colors.secondary }),
+          : {
+              colorPrimary: request.colors.primary,
+              colorSecondary: request.colors.secondary,
+            }),
         strength: overallStrength(request.ratings),
         attack: request.ratings.attack,
         midfield: request.ratings.midfield,
@@ -50,11 +64,21 @@ export class CreateTeamHandler extends CommandHandler<CreateTeamCommand, AdminTe
       });
       const created = toAdminTeam(team);
 
-      await recordCatalogueAudit(this.deps, actor, "team_created", "team", team.id, created);
+      await recordCatalogueAudit(
+        this.deps,
+        actor,
+        "team_created",
+        "team",
+        team.id,
+        created,
+      );
 
       return created;
     } catch (error) {
-      if (isConflictError(error)) throw new MatchConflictError("This league already has a team with this code.");
+      if (isConflictError(error))
+        throw new MatchConflictError(
+          "This league already has a team with this code.",
+        );
 
       throw error;
     }

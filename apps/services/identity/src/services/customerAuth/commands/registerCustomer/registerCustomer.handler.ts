@@ -12,14 +12,8 @@ type Dependencies = Pick<HandlerDependencies, "store" | "hasher" | "verification
 const TAKEN = "An account with that email already exists. Log in instead.";
 
 /**
- * Creates an unverified customer and issues a verification code. No session
- * starts here; `verifyEmail` opens the first one.
- *
- * An address already registered is refused, verified or not, so a second
- * registration can never replace the password the first one chose. The one
- * exception is a registration whose code lapsed unused: nobody proved they own
- * the address, so it is released and the new registration takes it. An admin's
- * address is refused the same way: an admin is never a customer.
+ * A registered address is refused, verified or not, so a second registration can never replace the first one's password.
+ * Exception: a registration whose code lapsed unused is released. An admin's address is refused too (invariant 9).
  */
 export class RegisterCustomerHandler extends CommandHandler<RegisterCustomerCommand, RegistrationPending> {
   public readonly commandType = IDENTITY_COMMAND.REGISTER_CUSTOMER;

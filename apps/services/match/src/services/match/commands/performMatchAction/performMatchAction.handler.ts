@@ -6,7 +6,10 @@ import { toAdminMatch } from "../../../../models/index.js";
 import type { HandlerDependencies } from "../../match.dependencies.js";
 import type { PerformMatchActionCommand } from "./performMatchAction.command.js";
 
-export class PerformMatchActionHandler extends CommandHandler<PerformMatchActionCommand, AdminMatchDto> {
+export class PerformMatchActionHandler extends CommandHandler<
+  PerformMatchActionCommand,
+  AdminMatchDto
+> {
   public readonly commandType = MATCH_COMMAND.PERFORM_MATCH_ACTION;
 
   private readonly deps: HandlerDependencies;
@@ -16,27 +19,57 @@ export class PerformMatchActionHandler extends CommandHandler<PerformMatchAction
     this.deps = deps;
   }
 
-  public async execute(command: PerformMatchActionCommand): Promise<AdminMatchDto> {
+  public async execute(
+    command: PerformMatchActionCommand,
+  ): Promise<AdminMatchDto> {
     const { matchId, request, actor } = command;
     const { lifecycle, matches } = this.deps;
 
-    if ((await matches.findMatch(matchId)) === undefined) throw new MatchNotFoundError(matchId);
+    if ((await matches.findMatch(matchId)) === undefined)
+      throw new MatchNotFoundError(matchId);
 
     switch (request.action) {
       case "OPEN_BETTING":
-        await lifecycle.openBetting(matchId, actor, request.reason, actor.requestId);
+        await lifecycle.openBetting(
+          matchId,
+          actor,
+          request.reason,
+          actor.requestId,
+        );
         break;
       case "CLOSE_BETTING":
-        await lifecycle.closeBetting(matchId, actor, request.reason, actor.requestId);
+        await lifecycle.closeBetting(
+          matchId,
+          actor,
+          request.reason,
+          actor.requestId,
+        );
         break;
       case "START_SIMULATION":
-        await lifecycle.startSimulation(matchId, actor, request.reason, actor.requestId, "START");
+        await lifecycle.startSimulation(
+          matchId,
+          actor,
+          request.reason,
+          actor.requestId,
+          "START",
+        );
         break;
       case "RERUN_SIMULATION":
-        await lifecycle.startSimulation(matchId, actor, request.reason, actor.requestId, "RERUN");
+        await lifecycle.startSimulation(
+          matchId,
+          actor,
+          request.reason,
+          actor.requestId,
+          "RERUN",
+        );
         break;
       case "VOID_MATCH":
-        await lifecycle.voidMatch(matchId, actor, request.reason, actor.requestId);
+        await lifecycle.voidMatch(
+          matchId,
+          actor,
+          request.reason,
+          actor.requestId,
+        );
         break;
     }
 

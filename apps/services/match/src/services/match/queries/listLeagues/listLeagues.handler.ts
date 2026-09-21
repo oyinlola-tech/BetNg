@@ -5,7 +5,10 @@ import { toLeague } from "../../../../models/index.js";
 import type { HandlerDependencies } from "../../match.dependencies.js";
 import type { ListLeaguesQuery } from "./listLeagues.query.js";
 
-export class ListLeaguesHandler extends QueryHandler<ListLeaguesQuery, readonly League[]> {
+export class ListLeaguesHandler extends QueryHandler<
+  ListLeaguesQuery,
+  readonly League[]
+> {
   public readonly queryType = MATCH_QUERY.LIST_LEAGUES;
 
   private readonly deps: HandlerDependencies;

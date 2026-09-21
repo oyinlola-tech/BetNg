@@ -25,8 +25,7 @@ ConfigurationCommitGuard = Callable[
 
 
 class OddsRepository(Protocol):
-    async def get_active_configuration(self) -> ConfigurationRecord:
-        ...
+    async def get_active_configuration(self) -> ConfigurationRecord: ...
 
     async def insert_configuration(
         self,
@@ -36,11 +35,9 @@ class OddsRepository(Protocol):
         created_by: str,
         reason: str,
         before_commit: ConfigurationCommitGuard,
-    ) -> ConfigurationRecord:
-        ...
+    ) -> ConfigurationRecord: ...
 
-    async def find_publication(self, match_id: str) -> PublishOutcome | None:
-        ...
+    async def find_publication(self, match_id: str) -> PublishOutcome | None: ...
 
     async def publish_markets(
         self,
@@ -49,13 +46,11 @@ class OddsRepository(Protocol):
         pricing_version: int,
         model_version: str,
         model_configuration_version: int,
-    ) -> PublishOutcome:
-        ...
+    ) -> PublishOutcome: ...
 
     async def set_match_markets_status(
         self, match_id: str, status: str, allowed_from: frozenset[str]
-    ) -> int:
-        ...
+    ) -> int: ...
 
     async def change_market_status(
         self,
@@ -66,38 +61,31 @@ class OddsRepository(Protocol):
         """Change one market's status under a row lock; ``None`` if absent."""
         ...
 
-    async def get_market(self, market_id: str) -> MarketRecord | None:
-        ...
+    async def get_market(self, market_id: str) -> MarketRecord | None: ...
 
-    async def list_markets(self, match_ids: list[str]) -> list[MarketRecord]:
-        ...
+    async def list_markets(self, match_ids: list[str]) -> list[MarketRecord]: ...
 
-    async def list_trading_markets(self, limit: int) -> list[MarketRecord]:
-        ...
+    async def list_trading_markets(self, limit: int) -> list[MarketRecord]: ...
 
     async def list_snapshots(self, market_id: str, limit: int) -> list[SnapshotRecord]:
         """Return up to ``limit`` of a market's snapshots, oldest first."""
         ...
 
-    async def opening_odds(self, market_ids: list[str]) -> dict[str, Decimal]:
-        ...
+    async def opening_odds(self, market_ids: list[str]) -> dict[str, Decimal]: ...
 
 
 class ProbabilityModel(Protocol):
     async def calculate(
         self, home: TeamStrength, away: TeamStrength, request_id: str | None
-    ) -> ProbabilityMatrix:
-        ...
+    ) -> ProbabilityMatrix: ...
 
-    async def ping(self) -> None:
-        ...
+    async def ping(self) -> None: ...
 
 
 class EventPublisher(Protocol):
     async def publish_odds_updated(
         self, match_id: str, description: str, request_id: str | None
-    ) -> None:
-        ...
+    ) -> None: ...
 
 
 class AuditRecorder(Protocol):
@@ -109,10 +97,10 @@ class AuditRecorder(Protocol):
 
 
 class MatchDirectory(Protocol):
-    async def find(self, match_ids: list[str]) -> dict[str, MatchInfo]:
-        ...
+    async def find(self, match_ids: list[str]) -> dict[str, MatchInfo]: ...
 
 
 class ExposureReader(Protocol):
-    async def by_selection(self, market_ids: list[str]) -> dict[str, SelectionExposure]:
-        ...
+    async def by_selection(
+        self, market_ids: list[str]
+    ) -> dict[str, SelectionExposure]: ...

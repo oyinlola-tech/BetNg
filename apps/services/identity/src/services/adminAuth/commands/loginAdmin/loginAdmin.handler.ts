@@ -26,10 +26,7 @@ const CODE_REQUIRED =
   "This account uses two-factor authentication. Enter the six-digit code from your authenticator.";
 const CODE_REJECTED = "That code is not correct. Check your authenticator and try again.";
 
-/**
- * Admin sign-in. Reads `admin_users` only, so customer credentials match nothing here.
- * The admin app moves to its code step on a 422 `VALIDATION_FAILED`, sent only after the password is proven.
- */
+/** Reads `admin_users` only. The admin app moves to its code step on a 422 `VALIDATION_FAILED`, sent only after the password is proven. */
 export class LoginAdminHandler extends CommandHandler<LoginAdminCommand, AdminSession> {
   public readonly commandType = IDENTITY_COMMAND.LOGIN_ADMIN;
 

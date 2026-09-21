@@ -5,16 +5,16 @@ import process from "node:process";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { ACTOR_HEADERS } from "@betng/service-kit";
 import type { AdminRole, ShopRole } from "@betng/contracts";
-import { createApp } from "../../src/app.js";
-import type { IdentityApp } from "../../src/app.js";
-import { loadIdentityConfig } from "../../src/configs/index.js";
-import { ADMIN_ROLE_PERMISSIONS, SHOP_ROLE_PERMISSIONS } from "../../src/constants/index.js";
-import { PrismaClient } from "../../src/generated/prisma/client.js";
-import type { AdminUser, Cashier, Customer, Shop } from "../../src/generated/prisma/client.js";
-import type { IdentityStore, PasswordHasher } from "../../src/interfaces/index.js";
-import { createIdentityStore } from "../../src/repositories/index.js";
-import { createPasswordHasher } from "../../src/services/security/index.js";
-import { encodeBase32 } from "../../src/utils/index.js";
+import { createApp } from "../src/app.js";
+import type { IdentityApp } from "../src/app.js";
+import { loadIdentityConfig } from "../src/configs/index.js";
+import { ADMIN_ROLE_PERMISSIONS, SHOP_ROLE_PERMISSIONS } from "../src/constants/index.js";
+import { PrismaClient } from "../src/generated/prisma/client.js";
+import type { AdminUser, Cashier, Customer, Shop } from "../src/generated/prisma/client.js";
+import type { IdentityStore, PasswordHasher } from "../src/interfaces/index.js";
+import { createIdentityStore } from "../src/repositories/index.js";
+import { createPasswordHasher } from "../src/services/security/index.js";
+import { encodeBase32 } from "../src/utils/index.js";
 
 export const TEST_PORT = 4110;
 export const TEST_DATABASE = "betng_test_identity";
@@ -96,7 +96,7 @@ export const cashierActor = (cashier: Cashier): ActorInput => ({
 });
 
 export async function startHarness(): Promise<Harness> {
-  const envFile = resolve(import.meta.dirname, "../../../../../.env");
+  const envFile = resolve(import.meta.dirname, "../../../../.env");
 
   if (process.env["IDENTITY_DATABASE_URL"] === undefined && existsSync(envFile)) {
     process.loadEnvFile(envFile);
@@ -121,11 +121,11 @@ export async function startHarness(): Promise<Harness> {
   const logs: string[] = [];
   const write = process.stdout.write.bind(process.stdout);
 
-  process.stdout.write = ((chunk: string | Uint8Array): boolean => {
+  process.stdout.write = (chunk: string | Uint8Array): boolean => {
     logs.push(typeof chunk === "string" ? chunk : Buffer.from(chunk).toString("utf8"));
 
     return true;
-  }) as typeof process.stdout.write;
+  };
 
   const config = await loadIdentityConfig({
     NODE_ENV: "test",

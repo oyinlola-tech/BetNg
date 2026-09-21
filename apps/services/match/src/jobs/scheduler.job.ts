@@ -5,7 +5,6 @@ import { SCHEDULER } from "../constants/index.js";
 export interface SchedulerJob {
   start(): void;
   stop(): Promise<void>;
-  /** One guarded pass. Resolves `false` when the lock was held elsewhere or could not be asked for. */
   runOnce(): Promise<boolean>;
 }
 
@@ -28,19 +27,30 @@ export function createSchedulerJob(options: SchedulerOptions): SchedulerJob {
 
   async function guardedTick(): Promise<boolean> {
     try {
-      const outcome = await withRedisLock(redis, SCHEDULER.LOCK_KEY, { ttlMs: SCHEDULER.LOCK_TTL_MS }, tick);
+      const outcome = await withRedisLock(
+        redis,
+        SCHEDULER.LOCK_KEY,
+        { ttlMs: SCHEDULER.LOCK_TTL_MS },
+        tick,
+      );
 
-      if (redisWasDown) logger.info("Scheduler lock available again", { event: "match.schedulerResumed" });
+      if (redisWasDown)
+        logger.info("Scheduler lock available again", {
+          event: "match.schedulerResumed",
+        });
 
       redisWasDown = false;
 
       return outcome.acquired;
     } catch (error) {
       if (!redisWasDown) {
-        logger.error("Scheduler tick skipped: the Redis lock could not be taken", {
-          event: "match.schedulerSkipped",
-          error: error instanceof Error ? error.message : String(error),
-        });
+        logger.error(
+          "Scheduler tick skipped: the Redis lock could not be taken",
+          {
+            event: "match.schedulerSkipped",
+            error: error instanceof Error ? error.message : String(error),
+          },
+        );
       }
 
       redisWasDown = true;

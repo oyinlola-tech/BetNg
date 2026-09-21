@@ -41,7 +41,7 @@ export type AuditEntryInput = Omit<NewAuditLog, "before" | "after" | "reason" | 
 };
 
 export interface AuditWriter {
-  /** Redacts and appends. Pass the transaction's repositories to commit the entry with the change it records. */
+  /** Pass the transaction's repositories so the entry commits with the change it records. */
   write(repositories: IdentityRepositories, entry: AuditEntryInput): Promise<string>;
 }
 
@@ -58,14 +58,9 @@ export type ResolvedSession =
   | { readonly kind: "ADMIN"; readonly session: Session; readonly admin: AdminUser };
 
 export interface SessionResolver {
-  /**
-   * Resolves a bearer token to its live session and subject.
-   *
-   * @throws UnauthenticatedError for an unknown or revoked token, SessionExpiredError for an expired
-   * one, AccountSuspendedError when the subject (or a cashier's shop) is suspended.
-   */
+  /** @throws UnauthenticatedError (unknown/revoked), SessionExpiredError, AccountSuspendedError (subject or its shop). */
   resolve(token: string): Promise<ResolvedSession>;
-  /** As `resolve`, and the token must belong to `kind`; any other kind is unauthenticated here. */
+  /** A token of any other kind is unauthenticated here. */
   resolveAs<K extends SessionKind>(token: string | undefined, kind: K): Promise<Extract<ResolvedSession, { kind: K }>>;
 }
 

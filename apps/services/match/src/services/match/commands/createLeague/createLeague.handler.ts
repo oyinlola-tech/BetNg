@@ -8,7 +8,10 @@ import { recordCatalogueAudit } from "../../catalogueAudit.js";
 import type { HandlerDependencies } from "../../match.dependencies.js";
 import type { CreateLeagueCommand } from "./createLeague.command.js";
 
-export class CreateLeagueHandler extends CommandHandler<CreateLeagueCommand, League> {
+export class CreateLeagueHandler extends CommandHandler<
+  CreateLeagueCommand,
+  League
+> {
   public readonly commandType = MATCH_COMMAND.CREATE_LEAGUE;
 
   private readonly deps: HandlerDependencies;
@@ -31,14 +34,25 @@ export class CreateLeagueHandler extends CommandHandler<CreateLeagueCommand, Lea
         country: request.country,
         sport: request.sport ?? "football",
         status: request.status ?? "ACTIVE",
-        staggerSeconds: (existing * timing.leagueStaggerSeconds) % timing.roundCycleSeconds,
+        staggerSeconds:
+          (existing * timing.leagueStaggerSeconds) % timing.roundCycleSeconds,
       });
 
-      await recordCatalogueAudit(this.deps, actor, "league_created", "league", league.id, toLeague(league));
+      await recordCatalogueAudit(
+        this.deps,
+        actor,
+        "league_created",
+        "league",
+        league.id,
+        toLeague(league),
+      );
 
       return toLeague(league);
     } catch (error) {
-      if (isConflictError(error)) throw new MatchConflictError("A league with this code or slug already exists.");
+      if (isConflictError(error))
+        throw new MatchConflictError(
+          "A league with this code or slug already exists.",
+        );
 
       throw error;
     }

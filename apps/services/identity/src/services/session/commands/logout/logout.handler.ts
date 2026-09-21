@@ -7,10 +7,7 @@ import type { LogoutCommand } from "./logout.command.js";
 
 type Dependencies = Pick<HandlerDependencies, "store" | "audit">;
 
-/**
- * Revokes the presented session. Only a session of the route's own kind is touched,
- * and a token that is already dead is answered the same 204: there is nothing left to end.
- */
+/** Only a session of the route's own kind is revoked; an already-dead token still answers 204. */
 export class LogoutHandler extends CommandHandler<LogoutCommand> {
   public readonly commandType = IDENTITY_COMMAND.LOGOUT;
 

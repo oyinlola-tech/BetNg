@@ -7,18 +7,69 @@ describe("standings", () => {
   const rows = computeStandings(
     ["A", "B", "C", "D"],
     [
-      { homeTeamId: "A", awayTeamId: "B", homeGoals: 2, awayGoals: 0, completedAt: at(1) },
-      { homeTeamId: "C", awayTeamId: "A", homeGoals: 1, awayGoals: 1, completedAt: at(2) },
-      { homeTeamId: "B", awayTeamId: "C", homeGoals: 3, awayGoals: 1, completedAt: at(3) },
-      { homeTeamId: "A", awayTeamId: "C", homeGoals: 0, awayGoals: 1, completedAt: at(4) },
+      {
+        homeTeamId: "A",
+        awayTeamId: "B",
+        homeGoals: 2,
+        awayGoals: 0,
+        completedAt: at(1),
+      },
+      {
+        homeTeamId: "C",
+        awayTeamId: "A",
+        homeGoals: 1,
+        awayGoals: 1,
+        completedAt: at(2),
+      },
+      {
+        homeTeamId: "B",
+        awayTeamId: "C",
+        homeGoals: 3,
+        awayGoals: 1,
+        completedAt: at(3),
+      },
+      {
+        homeTeamId: "A",
+        awayTeamId: "C",
+        homeGoals: 0,
+        awayGoals: 1,
+        completedAt: at(4),
+      },
     ],
   );
   const row = (teamId: string) => rows.find((entry) => entry.teamId === teamId);
 
   it("awards three points for a win and one for a draw", () => {
-    expect(row("A")).toMatchObject({ played: 3, won: 1, drawn: 1, lost: 1, goalsFor: 3, goalsAgainst: 2, goalDifference: 1, points: 4 });
-    expect(row("B")).toMatchObject({ played: 2, won: 1, drawn: 0, lost: 1, goalsFor: 3, goalsAgainst: 3, goalDifference: 0, points: 3 });
-    expect(row("C")).toMatchObject({ played: 3, won: 1, drawn: 1, lost: 1, goalsFor: 3, goalsAgainst: 4, goalDifference: -1, points: 4 });
+    expect(row("A")).toMatchObject({
+      played: 3,
+      won: 1,
+      drawn: 1,
+      lost: 1,
+      goalsFor: 3,
+      goalsAgainst: 2,
+      goalDifference: 1,
+      points: 4,
+    });
+    expect(row("B")).toMatchObject({
+      played: 2,
+      won: 1,
+      drawn: 0,
+      lost: 1,
+      goalsFor: 3,
+      goalsAgainst: 3,
+      goalDifference: 0,
+      points: 3,
+    });
+    expect(row("C")).toMatchObject({
+      played: 3,
+      won: 1,
+      drawn: 1,
+      lost: 1,
+      goalsFor: 3,
+      goalsAgainst: 4,
+      goalDifference: -1,
+      points: 4,
+    });
     expect(row("D")).toMatchObject({ played: 0, points: 0, form: [] });
   });
 
@@ -42,7 +93,13 @@ describe("standings", () => {
       })),
     );
 
-    expect(long.find((entry) => entry.teamId === "X")?.form).toEqual(["W", "W", "W", "W", "W"]);
+    expect(long.find((entry) => entry.teamId === "X")?.form).toEqual([
+      "W",
+      "W",
+      "W",
+      "W",
+      "W",
+    ]);
     expect(long.find((entry) => entry.teamId === "Y")?.points).toBe(6);
   });
 });

@@ -41,7 +41,6 @@ export const IDENTITY_QUERY = Object.freeze({
   GET_SETTINGS: "identity.getSettings",
 });
 
-/** Identity's own audit actions (`docs/architecture.md` §9). */
 export const AUDIT_ACTION = Object.freeze({
   ADMIN_LOGIN: "admin_login",
   ADMIN_LOGIN_FAILED: "admin_login_failed",

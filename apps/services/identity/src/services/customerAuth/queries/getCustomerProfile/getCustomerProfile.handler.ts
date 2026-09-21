@@ -7,7 +7,6 @@ import type { GetCustomerProfileQuery } from "./getCustomerProfile.query.js";
 
 type Dependencies = Pick<HandlerDependencies, "resolver">;
 
-/** `GET /auth/me`: the profile behind the bearer token, which must be a customer's. */
 export class GetCustomerProfileHandler extends QueryHandler<GetCustomerProfileQuery, CustomerProfile> {
   public readonly queryType = IDENTITY_QUERY.GET_CUSTOMER_PROFILE;
 

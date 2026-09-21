@@ -1,11 +1,4 @@
-/**
- * Prisma-backed repositories for the `identity` schema.
- *
- * Every repository is built over a `Db`, which is either the client or a
- * transaction, so the same code runs inside and outside `transaction`. Guards
- * that must not race (spending a code, claiming a TOTP step, versioned
- * settings) are conditional updates whose row count is the answer.
- */
+// Guards that must not race (spending a code, claiming a TOTP step, versioned settings) are conditional updates whose row count is the answer.
 
 import type { PlatformSettings } from "@betng/contracts";
 import { SETTINGS_ROW_ID } from "../constants/index.js";

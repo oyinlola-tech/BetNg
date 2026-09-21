@@ -2,7 +2,15 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { runMatchRequestSchema } from "@betng/contracts";
 import { createRedisConnection } from "@betng/service-kit";
 import { createSchedulerJob } from "../src/jobs/index.js";
-import { atMinute, createFixture, createHarness, lifecycleOf, placeBet, TIMELINE, transitionsOf } from "./helpers.js";
+import {
+  atMinute,
+  createFixture,
+  createHarness,
+  lifecycleOf,
+  placeBet,
+  TIMELINE,
+  transitionsOf,
+} from "./helpers.js";
 import type { Harness } from "./helpers.js";
 
 const FULL_WALK = [
@@ -22,7 +30,12 @@ const FULL_WALK = [
 
 let harness: Harness;
 
-const silentLogger = { info: () => undefined, warn: () => undefined, error: () => undefined, debug: () => undefined };
+const silentLogger = {
+  info: () => undefined,
+  warn: () => undefined,
+  error: () => undefined,
+  debug: () => undefined,
+};
 
 beforeAll(async () => {
   harness = await createHarness();
@@ -33,7 +46,9 @@ afterAll(async () => {
 });
 
 function runsFor(matchId: string): number {
-  return harness.peers.calls.runMatch.filter((request) => request.matchId === matchId).length;
+  return harness.peers.calls.runMatch.filter(
+    (request) => request.matchId === matchId,
+  ).length;
 }
 
 describe("match lifecycle", () => {
@@ -44,7 +59,9 @@ describe("match lifecycle", () => {
     await lifecycle.tick();
     await lifecycle.tick();
     expect(await lifecycleOf(harness, fixture.matchId)).toBe("BETTING_OPEN");
-    expect(harness.peers.calls.publishMarkets.filter((id) => id === fixture.matchId)).toHaveLength(1);
+    expect(
+      harness.peers.calls.publishMarkets.filter((id) => id === fixture.matchId),
+    ).toHaveLength(1);
 
     await placeBet(harness, fixture);
     await lifecycle.tick();
@@ -58,7 +75,10 @@ describe("match lifecycle", () => {
     await lifecycle.tick();
     expect(await lifecycleOf(harness, fixture.matchId)).toBe("BETTING_CLOSED");
     expect(harness.peers.calls.freezeExposure).toContain(fixture.matchId);
-    expect(harness.peers.calls.marketsStatus).toContainEqual({ matchId: fixture.matchId, status: "CLOSED" });
+    expect(harness.peers.calls.marketsStatus).toContainEqual({
+      matchId: fixture.matchId,
+      status: "CLOSED",
+    });
     expect(runsFor(fixture.matchId)).toBe(0);
 
     harness.clock.set(fixture.kickoffAt);
@@ -66,17 +86,35 @@ describe("match lifecycle", () => {
     await lifecycle.tick();
     expect(runsFor(fixture.matchId)).toBe(1);
 
-    const inPlay = await harness.prisma.match.findUniqueOrThrow({ where: { id: fixture.matchId } });
+    const inPlay = await harness.prisma.match.findUniqueOrThrow({
+      where: { id: fixture.matchId },
+    });
 
-    expect(inPlay).toMatchObject({ lifecycle: "EVENTS_PUBLISHED", status: "IN_PLAY", homeScore: 0, awayScore: 0, revealedSequence: 1 });
+    expect(inPlay).toMatchObject({
+      lifecycle: "EVENTS_PUBLISHED",
+      status: "IN_PLAY",
+      homeScore: 0,
+      awayScore: 0,
+      revealedSequence: 1,
+    });
 
     harness.clock.set(atMinute(fixture, 10) - 1);
     await lifecycle.tick();
-    expect((await harness.prisma.match.findUniqueOrThrow({ where: { id: fixture.matchId } })).homeScore).toBe(0);
+    expect(
+      (
+        await harness.prisma.match.findUniqueOrThrow({
+          where: { id: fixture.matchId },
+        })
+      ).homeScore,
+    ).toBe(0);
 
     harness.clock.set(atMinute(fixture, 10));
     await lifecycle.tick();
-    expect(await harness.prisma.match.findUniqueOrThrow({ where: { id: fixture.matchId } })).toMatchObject({
+    expect(
+      await harness.prisma.match.findUniqueOrThrow({
+        where: { id: fixture.matchId },
+      }),
+    ).toMatchObject({
       homeScore: 1,
       awayScore: 0,
       revealedSequence: 2,
@@ -85,7 +123,11 @@ describe("match lifecycle", () => {
 
     harness.clock.set(atMinute(fixture, 90) - 1);
     await lifecycle.tick();
-    expect(await harness.prisma.match.findUniqueOrThrow({ where: { id: fixture.matchId } })).toMatchObject({
+    expect(
+      await harness.prisma.match.findUniqueOrThrow({
+        where: { id: fixture.matchId },
+      }),
+    ).toMatchObject({
       lifecycle: "EVENTS_PUBLISHED",
       homeScore: 2,
       awayScore: 1,
@@ -97,14 +139,26 @@ describe("match lifecycle", () => {
     await Promise.all([lifecycle.tick(), lifecycle.tick()]);
     await lifecycle.tick();
 
-    const settled = await harness.prisma.match.findUniqueOrThrow({ where: { id: fixture.matchId } });
+    const settled = await harness.prisma.match.findUniqueOrThrow({
+      where: { id: fixture.matchId },
+    });
 
-    expect(settled).toMatchObject({ lifecycle: "SETTLEMENT_COMPLETED", status: "COMPLETED", homeScore: 2, awayScore: 1 });
+    expect(settled).toMatchObject({
+      lifecycle: "SETTLEMENT_COMPLETED",
+      status: "COMPLETED",
+      homeScore: 2,
+      awayScore: 1,
+    });
     expect(settled.completedAt).not.toBeNull();
     expect(await transitionsOf(harness, fixture.matchId)).toEqual(FULL_WALK);
     expect(runsFor(fixture.matchId)).toBe(1);
-    expect(harness.peers.calls.settleMatch.filter((id) => id === fixture.matchId)).toHaveLength(1);
-    expect(harness.peers.calls.marketsStatus).toContainEqual({ matchId: fixture.matchId, status: "SETTLED" });
+    expect(
+      harness.peers.calls.settleMatch.filter((id) => id === fixture.matchId),
+    ).toHaveLength(1);
+    expect(harness.peers.calls.marketsStatus).toContainEqual({
+      matchId: fixture.matchId,
+      status: "SETTLED",
+    });
 
     // Publishing is at-least-once, and the ticks above overlap without the Redis lock: repeats are allowed, gaps are not.
     const stream = harness.peers.calls.events
@@ -130,7 +184,9 @@ describe("match lifecycle", () => {
       "SETTLEMENT_COMPLETED",
     ]);
 
-    const audits = harness.peers.calls.audits.filter((entry) => entry.entityId === fixture.matchId);
+    const audits = harness.peers.calls.audits.filter(
+      (entry) => entry.entityId === fixture.matchId,
+    );
 
     expect(audits.map((entry) => entry.action)).toEqual([
       "simulation_started",
@@ -138,15 +194,25 @@ describe("match lifecycle", () => {
       "settlement_started",
       "settlement_completed",
     ]);
-    expect(audits.every((entry) => entry.actorId === "system" && entry.actorRole === "SYSTEM")).toBe(true);
-    expect(JSON.stringify(audits)).not.toMatch(/homeGoals|awayGoals|winner|score/i);
+    expect(
+      audits.every(
+        (entry) => entry.actorId === "system" && entry.actorRole === "SYSTEM",
+      ),
+    ).toBe(true);
+    expect(JSON.stringify(audits)).not.toMatch(
+      /homeGoals|awayGoals|winner|score/i,
+    );
   });
 
   it("sends the simulation the teams and nothing else", async () => {
     const request = harness.peers.calls.runMatch.at(-1);
 
     expect(runMatchRequestSchema.safeParse(request).success).toBe(true);
-    expect(Object.keys(request ?? {}).sort()).toEqual(["away", "home", "matchId"]);
+    expect(Object.keys(request ?? {}).sort()).toEqual([
+      "away",
+      "home",
+      "matchId",
+    ]);
   });
 
   it("recovers from a failed simulation with backoff", async () => {
@@ -161,11 +227,20 @@ describe("match lifecycle", () => {
     harness.clock.set(fixture.kickoffAt);
     await lifecycle.tick();
 
-    const failed = await harness.prisma.match.findUniqueOrThrow({ where: { id: fixture.matchId } });
+    const failed = await harness.prisma.match.findUniqueOrThrow({
+      where: { id: fixture.matchId },
+    });
 
-    expect(failed).toMatchObject({ lifecycle: "SIMULATION_FAILED", status: "BETTING_CLOSED", failureCount: 1, homeScore: null });
+    expect(failed).toMatchObject({
+      lifecycle: "SIMULATION_FAILED",
+      status: "BETTING_CLOSED",
+      failureCount: 1,
+      homeScore: null,
+    });
     expect(failed.failureReason).toContain("SIMULATION_FAILED");
-    expect(failed.nextAttemptAt?.getTime()).toBe(fixture.kickoffAt.getTime() + 2000);
+    expect(failed.nextAttemptAt?.getTime()).toBe(
+      fixture.kickoffAt.getTime() + 2000,
+    );
 
     await lifecycle.tick();
     expect(runsFor(fixture.matchId)).toBe(1);
@@ -173,7 +248,11 @@ describe("match lifecycle", () => {
     harness.clock.set(fixture.kickoffAt.getTime() + 2000);
     await lifecycle.tick();
 
-    expect(await harness.prisma.match.findUniqueOrThrow({ where: { id: fixture.matchId } })).toMatchObject({
+    expect(
+      await harness.prisma.match.findUniqueOrThrow({
+        where: { id: fixture.matchId },
+      }),
+    ).toMatchObject({
       lifecycle: "EVENTS_PUBLISHED",
       failureCount: 0,
       failureReason: null,
@@ -191,7 +270,13 @@ describe("match lifecycle", () => {
       "RESULT_GENERATED",
       "EVENTS_PUBLISHED",
     ]);
-    expect(harness.peers.calls.audits.some((entry) => entry.entityId === fixture.matchId && entry.action === "simulation_failed")).toBe(true);
+    expect(
+      harness.peers.calls.audits.some(
+        (entry) =>
+          entry.entityId === fixture.matchId &&
+          entry.action === "simulation_failed",
+      ),
+    ).toBe(true);
   });
 
   it("stops retrying a simulation after five attempts", async () => {
@@ -218,7 +303,11 @@ describe("match lifecycle", () => {
     await lifecycle.tick();
 
     expect(runsFor(fixture.matchId)).toBe(5);
-    expect(await harness.prisma.match.findUniqueOrThrow({ where: { id: fixture.matchId } })).toMatchObject({
+    expect(
+      await harness.prisma.match.findUniqueOrThrow({
+        where: { id: fixture.matchId },
+      }),
+    ).toMatchObject({
       lifecycle: "SIMULATION_FAILED",
       failureCount: 5,
     });
@@ -238,7 +327,11 @@ describe("match lifecycle", () => {
     harness.clock.set(atMinute(fixture, 90));
     await lifecycle.tick();
 
-    expect(await harness.prisma.match.findUniqueOrThrow({ where: { id: fixture.matchId } })).toMatchObject({
+    expect(
+      await harness.prisma.match.findUniqueOrThrow({
+        where: { id: fixture.matchId },
+      }),
+    ).toMatchObject({
       lifecycle: "SETTLEMENT_FAILED",
       status: "COMPLETED",
       failureCount: 1,
@@ -246,12 +339,18 @@ describe("match lifecycle", () => {
 
     harness.clock.set(atMinute(fixture, 90) + 2000);
     await lifecycle.tick();
-    expect(await lifecycleOf(harness, fixture.matchId)).toBe("SETTLEMENT_FAILED");
+    expect(await lifecycleOf(harness, fixture.matchId)).toBe(
+      "SETTLEMENT_FAILED",
+    );
 
     harness.clock.set(atMinute(fixture, 90) + 2000 + 4000);
     await lifecycle.tick();
 
-    expect(await harness.prisma.match.findUniqueOrThrow({ where: { id: fixture.matchId } })).toMatchObject({
+    expect(
+      await harness.prisma.match.findUniqueOrThrow({
+        where: { id: fixture.matchId },
+      }),
+    ).toMatchObject({
       lifecycle: "SETTLEMENT_COMPLETED",
       failureCount: 0,
     });
@@ -263,7 +362,9 @@ describe("match lifecycle", () => {
       "SETTLEMENT_STARTED",
       "SETTLEMENT_COMPLETED",
     ]);
-    expect(harness.peers.calls.settleMatch.filter((id) => id === fixture.matchId)).toHaveLength(3);
+    expect(
+      harness.peers.calls.settleMatch.filter((id) => id === fixture.matchId),
+    ).toHaveLength(3);
   });
 
   it("leaves a match unopened while odds is down and opens it when odds returns", async () => {
@@ -272,7 +373,11 @@ describe("match lifecycle", () => {
 
     harness.peers.fail.odds = true;
     await lifecycle.tick();
-    expect(await harness.prisma.match.findUniqueOrThrow({ where: { id: fixture.matchId } })).toMatchObject({
+    expect(
+      await harness.prisma.match.findUniqueOrThrow({
+        where: { id: fixture.matchId },
+      }),
+    ).toMatchObject({
       lifecycle: "FIXTURE_CREATED",
       failureCount: 1,
     });
@@ -286,9 +391,24 @@ describe("match lifecycle", () => {
   it("keeps three upcoming rounds of ten fixtures for an active league", async () => {
     const tag = crypto.randomUUID().slice(0, 8);
     const league = await harness.prisma.league.create({
-      data: { name: `Rounds ${tag}`, code: tag.toUpperCase(), slug: `rounds-${tag}`, country: "Testland", staggerSeconds: 60 },
+      data: {
+        name: `Rounds ${tag}`,
+        code: tag.toUpperCase(),
+        slug: `rounds-${tag}`,
+        country: "Testland",
+        staggerSeconds: 60,
+      },
     });
-    const ratings = { strength: 70, attack: 70, defence: 70, midfield: 70, goalkeeping: 70, pace: 70, finishing: 70, possession: 70 };
+    const ratings = {
+      strength: 70,
+      attack: 70,
+      defence: 70,
+      midfield: 70,
+      goalkeeping: 70,
+      pace: 70,
+      finishing: 70,
+      possession: 70,
+    };
 
     await harness.prisma.team.createMany({
       data: Array.from({ length: 20 }, (_, index) => ({
@@ -311,18 +431,39 @@ describe("match lifecycle", () => {
         include: { match: true },
         orderBy: [{ matchday: "asc" }],
       });
-      const kickoffs = [...new Set(fixtures.map((fixture) => fixture.kickoffAt.getTime()))];
+      const kickoffs = [
+        ...new Set(fixtures.map((fixture) => fixture.kickoffAt.getTime())),
+      ];
 
       expect(fixtures).toHaveLength(30);
-      expect(fixtures.map((fixture) => fixture.matchday)).toEqual([...Array<number>(10).fill(1), ...Array<number>(10).fill(2), ...Array<number>(10).fill(3)]);
-      expect(fixtures.every((fixture) => fixture.season === 1 && fixture.match !== null)).toBe(true);
+      expect(fixtures.map((fixture) => fixture.matchday)).toEqual([
+        ...Array<number>(10).fill(1),
+        ...Array<number>(10).fill(2),
+        ...Array<number>(10).fill(3),
+      ]);
+      expect(
+        fixtures.every(
+          (fixture) => fixture.season === 1 && fixture.match !== null,
+        ),
+      ).toBe(true);
       expect(kickoffs).toHaveLength(3);
-      expect(kickoffs.every((kickoff) => kickoff % 240_000 === 60_000)).toBe(true);
+      expect(kickoffs.every((kickoff) => kickoff % 240_000 === 60_000)).toBe(
+        true,
+      );
       expect((kickoffs[1] ?? 0) - (kickoffs[0] ?? 0)).toBe(240_000);
       expect(kickoffs[0]).toBeGreaterThanOrEqual(now.getTime() + 10_000);
-      expect(fixtures.every((fixture) => fixture.kickoffAt.getTime() - fixture.bettingClosesAt.getTime() === 10_000)).toBe(true);
+      expect(
+        fixtures.every(
+          (fixture) =>
+            fixture.kickoffAt.getTime() - fixture.bettingClosesAt.getTime() ===
+            10_000,
+        ),
+      ).toBe(true);
     } finally {
-      await harness.prisma.league.update({ where: { id: league.id }, data: { status: "ARCHIVED" } });
+      await harness.prisma.league.update({
+        where: { id: league.id },
+        data: { status: "ARCHIVED" },
+      });
     }
   });
 });
@@ -340,7 +481,9 @@ describe("scheduler job", () => {
       },
     });
 
-    expect(await Promise.all([job.runOnce(), job.runOnce(), job.runOnce()])).toEqual([true, true, true]);
+    expect(
+      await Promise.all([job.runOnce(), job.runOnce(), job.runOnce()]),
+    ).toEqual([true, true, true]);
     expect(ticks).toBe(1);
     await redis.close();
 

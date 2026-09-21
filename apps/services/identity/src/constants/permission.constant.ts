@@ -1,10 +1,4 @@
-/**
- * Role → permission maps. The one place a role's reach is decided.
- *
- * Sessions and `identity.authenticate` answer with the list resolved here; the
- * gateway forwards it and every service re-checks the permission it needs.
- * Customers have none.
- */
+// The one place a role's reach is decided. Customers have no permissions.
 
 import { adminPermissionSchema } from "@betng/contracts";
 import type { AdminPermission, AdminRole, ShopPermission, ShopRole } from "@betng/contracts";

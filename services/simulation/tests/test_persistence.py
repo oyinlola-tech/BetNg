@@ -33,10 +33,13 @@ def build_handler(
     repository: SimulationRepository,
     audit: FakeAuditRecorder,
     simulate_match: Simulate = simulate,
+    seed_secret: str | None = None,
 ) -> tuple[RunMatchHandler, BackgroundAuditor]:
     auditor = BackgroundAuditor(audit, LOGGER)
 
-    return RunMatchHandler(repository, simulate_match, auditor, LOGGER), auditor
+    handler = RunMatchHandler(repository, simulate_match, seed_secret, auditor, LOGGER)
+
+    return handler, auditor
 
 
 def command(match_id: str) -> RunMatchCommand:

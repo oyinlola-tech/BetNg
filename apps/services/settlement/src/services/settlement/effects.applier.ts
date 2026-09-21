@@ -1,15 +1,5 @@
-/**
- * Applies a settlement's effects and stamps it.
- *
- * Effects are what settlement causes outside its own schema: the bet's status in betting, and for an online
- * bet the customer's payout or refund in wallet. Each is idempotent on the callee's side — by bet, and by the
- * wallet idempotency key — so re-applying after a partial failure cannot pay twice. `effects_applied_at` is
- * stamped only after every effect succeeded; an un-stamped settlement is what the retry loop picks up.
- *
- * A shop ticket moves no wallet money here: the cashier pays at the counter and betting debits the float
- * then. Nothing in this file can debit anything, and no credit goes to anyone but the customer who placed
- * the bet.
- */
+// Effects are idempotent on the callee (by bet, by wallet key); `effects_applied_at` is stamped only after all
+// succeeded. Shop tickets move no wallet money here, and nothing in this file can debit anyone.
 
 import type { Logger } from "@betng/service-kit";
 import { WALLET_KEY } from "../../constants/index.js";
@@ -57,7 +47,7 @@ export class EffectsApplier {
   private readonly wallet: WalletPeer;
   private readonly logger: Logger;
 
-  /** One application per settlement at a time in this process; the retry loop and a settle call share it. */
+  // The retry loop and a settle call must not apply the same settlement side by side.
   private readonly inFlight = new Map<string, Promise<void>>();
 
   public constructor(dependencies: EffectsApplierDependencies) {

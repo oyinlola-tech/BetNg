@@ -47,6 +47,8 @@ def load_seed_secret(environment: str) -> str | None:
         )
 
     if secret == SEED_SECRET_PLACEHOLDER:
-        raise ValueError(f"{SEED_SECRET_VARIABLE} is still the development placeholder.")
+        raise ValueError(
+            f"{SEED_SECRET_VARIABLE} is still the development placeholder."
+        )
 
     return secret

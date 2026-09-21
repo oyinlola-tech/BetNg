@@ -7,10 +7,7 @@ import { sha256Hex } from "../../utils/index.js";
 
 const HOUR_MS = 3_600_000;
 
-/**
- * Opens sessions. The token leaves the service once, in the sign-in answer;
- * only its SHA-256 is stored, so a copy of the table opens nothing.
- */
+/** The token leaves the service once, in the sign-in answer; only its SHA-256 is stored. */
 export function createSessionIssuer(security: SecurityConfig): SessionIssuer {
   const ttlHours: Readonly<Record<SessionKind, number>> = {
     CUSTOMER: security.customerSessionTtlHours,
