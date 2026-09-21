@@ -1,12 +1,13 @@
 import type { AdminPermission } from "@betng/contracts";
-import { Button, PermissionDenied, Tooltip, type ButtonProps } from "@betng/ui-web";
+import { Button, ForbiddenState, Tooltip, type ButtonProps } from "@betng/ui-web";
 import { useAdmin } from "../hooks/useAdmin";
+import { missingPermission } from "../lib/navigation";
 
-/** Renders the page only when the session carries the permission; the platform still checks every request. */
+/** Presentation only: the platform checks the permission again on every request. */
 export function RequirePermission({ permission, children }: { readonly permission: AdminPermission; readonly children: React.ReactNode }): React.JSX.Element {
   const { can } = useAdmin();
 
-  if (!can(permission)) return <PermissionDenied permission={permission} />;
+  if (!can(permission)) return <ForbiddenState permission={permission} />;
 
   return <>{children}</>;
 }
@@ -19,8 +20,7 @@ export interface GuardedButtonProps extends ButtonProps {
 
 export function GuardedButton({ permission, blockedReason, disabled, children, ...rest }: GuardedButtonProps): React.JSX.Element {
   const { can } = useAdmin();
-  const allowed = can(permission);
-  const reason = !allowed ? `Requires the “${permission}” permission` : blockedReason;
+  const reason = can(permission) ? blockedReason : missingPermission(permission);
   const button = (
     <Button {...rest} disabled={disabled === true || reason !== undefined}>
       {children}

@@ -3,11 +3,10 @@ import { Link } from "react-router";
 import { ArrowDown, ArrowUp, Minus, Pause, Play } from "lucide-react";
 import type { AdminMarketOdds, AdminSelectionOdds } from "@betng/contracts";
 import { formatMoney, formatOdds } from "@betng/ui-core";
-import { Button, EmptyState, ErrorState, Panel, SkeletonRows, cn } from "@betng/ui-web";
-import { useAdminAction, useFixtures } from "../hooks/queries";
-import { useAdmin } from "../hooks/useAdmin";
+import { Button, EmptyState, ErrorBoundary, ErrorState, MarketSkeleton, Panel, cn, emptyPresets } from "@betng/ui-web";
+import { useAdminAction } from "../hooks/queries";
 import { formatPercent } from "../lib/format";
-import { adminSource } from "../services/sources";
+import { adminSource } from "../services/runtime";
 import { Status, useFlashKey } from "./Bits";
 import { GuardedButton } from "./Guard";
 import { useReasonAction, type PendingAction } from "./ReasonAction";
@@ -43,13 +42,13 @@ function OddsCell({ value }: { readonly value: number }): React.JSX.Element {
   );
 }
 
-const MarketBlock = memo(function MarketBlock({ market, mode, ask, resumable }: { readonly market: AdminMarketOdds; readonly mode: "markets" | "odds"; readonly ask: (action: PendingAction) => void; readonly resumable: boolean }): React.JSX.Element {
+const MarketBlock = memo(function MarketBlock({ market, mode, ask, bettingClosed }: { readonly market: AdminMarketOdds; readonly mode: "markets" | "odds"; readonly ask: (action: PendingAction) => void; readonly bettingClosed: boolean }): React.JSX.Element {
   const action = useAdminAction({
     run: (input: { readonly action: "SUSPEND" | "RESUME"; readonly reason: string }) => adminSource.marketAction(market.marketId, input),
     success: (m) => `${m.marketLabel} ${m.status === "OPEN" ? "resumed" : "suspended"}`,
   });
   const open = market.status === "OPEN";
-  const stake = market.selections.reduce((acc, s) => acc + s.stake, 0);
+  const resumable = market.status === "SUSPENDED" && !bettingClosed;
 
   return (
     <div className="border-b border-border last:border-b-0">
@@ -63,16 +62,12 @@ const MarketBlock = memo(function MarketBlock({ market, mode, ask, resumable }: 
             <dt className="text-text-muted">Margin</dt>
             <dd className="tabular text-text-primary">{formatPercent(market.margin)}</dd>
           </div>
-          <div className="hidden w-36 gap-1.5 sm:flex">
-            <dt className="text-text-muted">Stake</dt>
-            <dd className="tabular text-text-primary">{formatMoney(stake)}</dd>
-          </div>
           <div className="flex w-40 gap-1.5">
             <dt className="text-text-muted">Exposure</dt>
             <dd className="tabular font-medium text-text-primary">{formatMoney(market.exposure)}</dd>
           </div>
         </dl>
-        {!open && !resumable && <span className="w-28 whitespace-nowrap text-right text-sm text-text-muted">{market.status === "SETTLED" ? "Settled" : "Closed by schedule"}</span>}
+        {!open && !resumable && <span className="w-28 whitespace-nowrap text-right text-sm text-text-muted">{market.status === "SETTLED" ? "Settled" : bettingClosed ? "Betting closed" : "Not trading"}</span>}
         {(open || resumable) && (
           <GuardedButton
             permission="odds:write"
@@ -106,7 +101,7 @@ const MarketBlock = memo(function MarketBlock({ market, mode, ask, resumable }: 
                 <th scope="col" className="py-1 font-semibold">Selection</th>
                 <th scope="col" className="py-1 text-right font-semibold">Current</th>
                 <th scope="col" className="py-1 text-right font-semibold">Opening</th>
-                <th scope="col" className="py-1 text-right font-semibold">Move</th>
+                <th scope="col" title="Current price against the opening price" className="py-1 text-right font-semibold">Move</th>
                 <th scope="col" className="py-1 text-right font-semibold">Model prob.</th>
                 <th scope="col" className="py-1 text-right font-semibold">Stake</th>
                 <th scope="col" className="py-1 text-right font-semibold">Liability</th>
@@ -132,12 +127,8 @@ const MarketBlock = memo(function MarketBlock({ market, mode, ask, resumable }: 
   );
 });
 
-export function MarketsBoard({ markets, loading, error, onRetry, mode, linkMatches = true, showMatchHeader = true }: { readonly markets: readonly AdminMarketOdds[] | undefined; readonly loading: boolean; readonly error: unknown; readonly onRetry: () => void; readonly mode: "markets" | "odds"; readonly linkMatches?: boolean; readonly showMatchHeader?: boolean }): React.JSX.Element {
+export function MarketsBoard({ markets, loading, error, onRetry, mode, linkMatches = true, showMatchHeader = true, bettingClosed = false }: { readonly markets: readonly AdminMarketOdds[] | undefined; readonly loading: boolean; readonly error: unknown; readonly onRetry: () => void; readonly mode: "markets" | "odds"; readonly linkMatches?: boolean; readonly showMatchHeader?: boolean; /** The platform reports betting is not open on this match, so no market on it can be resumed. */ readonly bettingClosed?: boolean }): React.JSX.Element {
   const { ask, dialog } = useReasonAction();
-  const { can } = useAdmin();
-  const fixtures = useFixtures({}, can("fixtures:read"));
-  // A market suspended by an operator can be resumed only while its match is still taking bets; the schedule closes the rest.
-  const taking = useMemo(() => new Set((fixtures.data ?? []).filter((f) => f.bettingStatus === "OPEN").map((f) => f.matchId as string)), [fixtures.data]);
   const [limit, setLimit] = useState(6);
   const byMatch = useMemo(() => {
     const groups = new Map<string, AdminMarketOdds[]>();
@@ -147,8 +138,8 @@ export function MarketsBoard({ markets, loading, error, onRetry, mode, linkMatch
     return [...groups.values()];
   }, [markets]);
 
-  if (markets === undefined) return error !== null && error !== undefined && !loading ? <ErrorState error={error} onRetry={onRetry} /> : <SkeletonRows rows={8} />;
-  if (byMatch.length === 0) return <EmptyState title="No markets trading" description="Markets appear when a matchday opens for betting and stay until full time." />;
+  if (markets === undefined) return error !== null && error !== undefined && !loading ? <ErrorState error={error} onRetry={onRetry} /> : <MarketSkeleton />;
+  if (byMatch.length === 0) return <EmptyState icon={<emptyPresets.noMarkets.icon className="size-5" />} title={emptyPresets.noMarkets.title} description={emptyPresets.noMarkets.description} />;
 
   return (
     <div className="space-y-4">
@@ -161,7 +152,7 @@ export function MarketsBoard({ markets, loading, error, onRetry, mode, linkMatch
           <Panel
             key={first.matchId}
             flush
-            {...(showMatchHeader ? { title: first.matchLabel, description: `${first.leagueName} · ${String(group.length)} markets · exposure ${formatMoney(group.reduce((acc, m) => acc + m.exposure, 0))}` } : {})}
+            {...(showMatchHeader ? { title: first.matchLabel, description: `${first.leagueName} · ${String(group.length)} markets` } : {})}
             actions={
               linkMatches && showMatchHeader ? (
                 <Link to={`/matches/${first.matchId}`} className="text-sm font-medium text-brand hover:underline focus-ring">
@@ -170,9 +161,11 @@ export function MarketsBoard({ markets, loading, error, onRetry, mode, linkMatch
               ) : undefined
             }
           >
-            {group.map((market) => (
-              <MarketBlock key={market.marketId} market={market} mode={mode} ask={ask} resumable={market.status === "SUSPENDED" && (fixtures.data === undefined || taking.has(market.matchId))} />
-            ))}
+            <ErrorBoundary scope="feature">
+              {group.map((market) => (
+                <MarketBlock key={market.marketId} market={market} mode={mode} ask={ask} bettingClosed={bettingClosed} />
+              ))}
+            </ErrorBoundary>
           </Panel>
         );
       })}

@@ -11,7 +11,7 @@ export interface BrandLogoProps {
 export function BrandLogo({ size = 28, product, markOnly = false, className }: BrandLogoProps): React.JSX.Element {
   return (
     <span className={cn("inline-flex items-center gap-2", className)}>
-      <svg width={size} height={size} viewBox={LOGO_VIEWBOX} role="img" aria-label="BetNG" className="shrink-0">
+      <svg width={size} height={size} viewBox={LOGO_VIEWBOX} role="img" aria-label="BETNG" className="shrink-0">
         <path d={LOGO_TILE_PATH} fill="var(--bn-brand)" />
         <path d={LOGO_B_PATH} fill="var(--bn-text-on-brand)" />
         <path d={LOGO_CUT_PATH} fill="var(--bn-brand)" opacity={0.92} />
