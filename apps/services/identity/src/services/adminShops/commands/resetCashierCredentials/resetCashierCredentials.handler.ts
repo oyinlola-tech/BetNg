@@ -50,6 +50,12 @@ export class ResetCashierCredentialsHandler extends CommandHandler<
       await repositories.sessions.revokeForSubjects("CASHIER", [cashierId], new Date());
       await repositories.throttles.clear(sha256Hex(throttleKey.cashierPin(cashierId)));
 
+      const shop = await repositories.shops.findById(shopId);
+
+      if (shop !== undefined) {
+        await repositories.throttles.clear(sha256Hex(throttleKey.cashier(shop.code, cashier.username)));
+      }
+
       await audit.write(repositories, {
         actorId: actor.id,
         actorRole: actor.role,

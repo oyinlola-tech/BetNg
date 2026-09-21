@@ -1,9 +1,4 @@
-"""Simulation service configuration.
-
-The service owns the ``simulation`` schema of the platform database and reads
-its URL from ``SIMULATION_DATABASE_URL``. It cannot run without it: a result
-that is not stored is not a result.
-"""
+"""Simulation service configuration."""
 
 from __future__ import annotations
 
@@ -26,13 +21,7 @@ def load_simulation_settings() -> ServiceSettings:
 
 
 def require_database_url(settings: ServiceSettings) -> str:
-    """Return the database URL.
-
-    Raises:
-        ValueError: When it is not configured, so the service fails at startup
-            rather than on its first request.
-
-    """
+    """Return the database URL."""
     if not settings.database_url:
         raise ValueError(f"{DATABASE_URL_VARIABLE} must be set.")
 

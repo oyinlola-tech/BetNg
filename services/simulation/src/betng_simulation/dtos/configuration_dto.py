@@ -1,9 +1,4 @@
-"""The tunable parameters of the model, as they travel and as they are stored.
-
-Every field is optional so the same shape serves a partial update and a stored
-version. Bounds live here so an operator cannot store a configuration that
-makes the engine meaningless or its output unbounded.
-"""
+"""The tunable parameters of the model, as they travel and as they are stored."""
 
 from __future__ import annotations
 
@@ -23,8 +18,7 @@ Probability = Annotated[float | None, _number(0, 1)]
 Rate = Annotated[float | None, _number(0, 30)]
 Cap = Annotated[int | None, Field(ge=0, le=40)]
 
-#: The one parameter whose null is meaningful: it switches the low-score
-#: correction off.
+#: Null is meaningful only here: it switches the low-score correction off.
 NULLABLE_PARAMETERS = frozenset({"rho"})
 
 

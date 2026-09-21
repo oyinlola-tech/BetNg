@@ -53,12 +53,7 @@ def create_app(
     match_read_model: MatchReadModel | None = None,
     simulate_match: Simulate = simulate,
 ) -> FastAPI:
-    """Assemble the service.
-
-    The keyword arguments replace a collaborator that reaches outside the
-    service, so a test needs neither the identity service nor the ``match``
-    schema.
-    """
+    """Assemble the service."""
     resolved = settings or load_simulation_settings()
     logger = logging.getLogger(resolved.service_name)
 
@@ -91,8 +86,7 @@ def create_app(
         finally:
             await pool.close()
 
-    # The RPC router is mounted here rather than by the kit so it shares the
-    # dependency that binds the request id an audit entry must carry.
+    # Mounted here, not by the kit, so RPC calls also bind the request id.
     rpc_router = APIRouter(dependencies=[Depends(bind_request_context)])
     rpc_router.include_router(
         create_rpc_router(create_simulation_rpc_server(command_bus, query_bus))

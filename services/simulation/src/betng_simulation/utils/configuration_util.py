@@ -51,13 +51,7 @@ def build_configuration(
     parameters: Mapping[str, Any],
     base: ModelConfiguration | None = None,
 ) -> ModelConfiguration:
-    """Overlay ``parameters`` on ``base`` (the defaults when omitted).
-
-    Raises:
-        InvalidConfigurationError: When a parameter is unknown or out of
-            bounds, or the combination is inconsistent.
-
-    """
+    """Overlay ``parameters`` on ``base`` (the defaults when omitted)."""
     try:
         validated = ModelParametersDto.model_validate(dict(parameters))
     except ValidationError as error:

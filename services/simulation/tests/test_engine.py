@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
+import itertools
 
 import pytest
 
@@ -96,7 +97,7 @@ class TestConsistency:
         assert [event.sequence for event in events] == list(range(1, len(events) + 1))
         assert all(
             earlier.minute <= later.minute
-            for earlier, later in zip(events, events[1:], strict=False)
+            for earlier, later in itertools.pairwise(events)
         )
 
         assert (events[0].type, events[0].minute) == ("KICK_OFF", 0)

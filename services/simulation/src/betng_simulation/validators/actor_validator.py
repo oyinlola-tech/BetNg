@@ -1,10 +1,4 @@
-"""Server-side authorisation for the admin routes.
-
-The gateway has already checked the permission, and this checks it again: a
-route must not depend on the component in front of it for its own safety. It
-runs as a route dependency, so an unauthorised caller is refused before the
-body is even validated.
-"""
+"""Authorisation for admin routes, re-checked here and run before validation."""
 
 from __future__ import annotations
 

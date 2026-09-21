@@ -1,19 +1,10 @@
-"""Sampling primitives built on ``Random.random`` alone.
-
-``Random.random`` is the one generator method whose output for a given seed is
-stable across Python versions. The higher-level helpers (``choices``,
-``randint``, ``shuffle``) are free to change their algorithm, which would
-silently change every replayed match.
-"""
+"""Sampling on ``Random.random`` alone: the one method stable across Pythons."""
 
 from __future__ import annotations
 
 import math
 import random
 from collections.abc import Sequence
-from typing import TypeVar
-
-T = TypeVar("T")
 
 
 def sample_index(rng: random.Random, size: int) -> int:
@@ -25,7 +16,7 @@ def sample_index(rng: random.Random, size: int) -> int:
 
 
 def sample_int(rng: random.Random, low: int, high: int) -> int:
-    """Uniform integer in ``[low, high]``."""
+    """Draw a uniform integer in ``[low, high]``."""
     return low + sample_index(rng, high - low + 1)
 
 
@@ -34,15 +25,15 @@ def sample_bool(rng: random.Random, probability: float) -> bool:
     return rng.random() < probability
 
 
-def sample_choice(rng: random.Random, items: Sequence[T]) -> T:
+def sample_choice[T](rng: random.Random, items: Sequence[T]) -> T:
     """Draw one item uniformly."""
     return items[sample_index(rng, len(items))]
 
 
-def sample_weighted(
+def sample_weighted[T](
     rng: random.Random, items: Sequence[T], weights: Sequence[float]
 ) -> T:
-    """Inverse-CDF draw. Falls back to uniform when every weight is zero."""
+    """Draw by inverse CDF; uniform when every weight is zero."""
     total = sum(weights)
 
     if total <= 0:

@@ -25,12 +25,7 @@ RETRY = "RETRY"
 
 
 class ApplyRunActionHandler(CommandHandler[ApplyRunActionCommand, AdminSimulationRun]):
-    """Marks a failed run for retry, or cancels it.
-
-    ``RETRY`` does not simulate. It flags the run so the match scheduler calls
-    ``simulation.runMatch`` again; a failed run never holds the match lock, so
-    that call proceeds. A match that has a result is refused outright.
-    """
+    """Flags a failed run for retry or cancels it; never simulates."""
 
     message_type = SimulationCommand.APPLY_RUN_ACTION
 

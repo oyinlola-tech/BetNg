@@ -1,14 +1,7 @@
-"""Data access for the ``simulation`` schema.
-
-Every statement is schema-qualified and every value is a bound parameter. The
-methods take the connection they run on, so a handler decides what shares a
-transaction: claiming a run, storing its result and storing its events commit
-together or not at all.
-"""
+"""Data access for the ``simulation`` schema."""
 
 from __future__ import annotations
 
-import json
 import uuid
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -51,12 +44,8 @@ _RUN_COLUMNS = (
     "failure_reason, home_team_name, away_team_name, retry_requested_at"
 )
 
-# The SQL fragments below are constants of this module; no input reaches SQL
-# text, only bound parameters.
-#
-# A failed run an admin asked to retry reads as QUEUED until a later attempt
-# exists. CANCELLED has no counterpart in the admin contract, so it reads as
-# the failed run it was.
+# SQL text is built from these constants only; input is always a bound parameter.
+# The admin contract has no CANCELLED, so a cancelled run reads as FAILED.
 _ADMIN_STATUS = """
     CASE
         WHEN r.status = 'FAILED'
@@ -144,7 +133,7 @@ def _side_stats_json(stats: SideStats) -> dict[str, int]:
 
 
 def stats_to_json(match_id: str, stats: MatchStats) -> dict[str, Any]:
-    """The ``matchStatsSchema`` shape, as the match service serves it."""
+    """Return the ``matchStatsSchema`` JSON shape."""
     return {
         "matchId": match_id,
         "asOfMinute": stats.as_of_minute,
@@ -162,12 +151,7 @@ class SimulationRepository:
 
     @asynccontextmanager
     async def transaction(self) -> AsyncIterator[Connection]:
-        """One connection, committed on exit and rolled back on an error.
-
-        Raises:
-            DatabaseUnavailableError: When the database cannot be reached.
-
-        """
+        """One connection, committed on exit and rolled back on an error."""
         try:
             async with self._pool.connection() as connection:
                 yield connection
@@ -268,12 +252,7 @@ class SimulationRepository:
         home: SimulationTeam,
         away: SimulationTeam,
     ) -> bool:
-        """Insert the ``RUNNING`` row that locks the match.
-
-        Returns ``False`` when the match already has a live run. If that run is
-        still in flight on another connection, this statement waits for it to
-        commit or roll back first.
-        """
+        """Insert the RUNNING row that locks the match; False if a live run exists."""
         cursor = await connection.execute(
             "INSERT INTO simulation.simulation_runs "
             "(id, match_id, status, model_version, configuration_version, seed, "
@@ -351,8 +330,7 @@ class SimulationRepository:
     def _event_parameters(
         match_id: str, run_id: str, event: MatchEventDraft
     ) -> tuple[Any, ...]:
-        # Derived from the match and the sequence, so a replay of the same
-        # match yields the same event ids.
+        # Deterministic, so a replay of the match yields the same event ids.
         event_id = uuid.uuid5(uuid.UUID(match_id), f"event:{event.sequence}")
 
         return (
@@ -423,7 +401,7 @@ class SimulationRepository:
     async def get_latest_run(
         self, connection: Connection, match_id: str
     ) -> RunRecord | None:
-        """The live run when there is one, otherwise the latest attempt."""
+        """Return the live run when there is one, otherwise the latest attempt."""
         cursor = await connection.execute(
             f"SELECT {_RUN_COLUMNS} FROM simulation.simulation_runs "
             "WHERE match_id = %s "
@@ -474,7 +452,7 @@ class SimulationRepository:
             seed=row["seed"],
             model_version=row["model_version"],
             configuration_version=row["configuration_version"],
-            stats=_as_json_object(row["stats"]),
+            stats=dict(row["stats"]),
             created_at=row["created_at"],
         )
 
@@ -554,12 +532,3 @@ class SimulationRepository:
         )
 
         return cursor.rowcount == 1
-
-
-def _as_json_object(value: Any) -> dict[str, Any]:
-    if isinstance(value, str):
-        loaded = json.loads(value)
-    else:
-        loaded = value
-
-    return dict(loaded)

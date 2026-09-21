@@ -1,8 +1,4 @@
-"""The wire shapes of the admin routes.
-
-``AdminSimulationRun`` mirrors ``adminSimulationRunSchema`` in
-`packages/contracts/src/admin/operations.type.ts`.
-"""
+"""The wire shapes of the admin routes."""
 
 from __future__ import annotations
 
@@ -34,8 +30,7 @@ class AdminSimulationRun(ContractModel):
     started_at: IsoTimestamp | None = None
     completed_at: IsoTimestamp | None = None
     events: int
-    #: ``None`` until the match is ``COMPLETED``: no admin route reveals a
-    #: score while a match is still being played out.
+    #: ``None`` until the match is ``COMPLETED`` (result secrecy).
     score: AdminRunScore | None
     seed: str
     model_version: str
@@ -49,8 +44,7 @@ class AdminSimulationRun(ContractModel):
     def _omit_absent_optionals(
         self, handler: SerializerFunctionWrapHandler
     ) -> dict[str, Any]:
-        # The contract's optional fields are absent, not null. `score` is the
-        # exception: its null is the statement that the score is withheld.
+        # Contract optionals are absent, not null; a null `score` means withheld.
         data: dict[str, Any] = handler(self)
 
         return {

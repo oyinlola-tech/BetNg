@@ -1,5 +1,2 @@
-/**
- * Background jobs. The match service runs none in this phase.
- */
-
-export {};
+export { createSchedulerJob } from "./scheduler.job.js";
+export type { SchedulerJob, SchedulerOptions } from "./scheduler.job.js";

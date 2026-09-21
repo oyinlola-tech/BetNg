@@ -1,10 +1,4 @@
-"""The wire shapes of the simulation RPC procedures and internal routes.
-
-They mirror `packages/contracts/src/platform/lifecycle.type.ts`. They are
-written out again here rather than imported, because a TypeScript package must
-not become a build dependency of a Python service: the contract is the JSON in
-`docs/architecture.md` §6, and each side implements it in its own language.
-"""
+"""The wire shapes of the simulation RPC procedures and internal routes."""
 
 from __future__ import annotations
 

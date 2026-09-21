@@ -3,7 +3,9 @@ import { createApp } from "./app.js";
 import { loadMatchConfig } from "./configs/index.js";
 
 await runService(async () => {
-  const config = await loadMatchConfig();
+  const app = createApp(await loadMatchConfig());
 
-  return createApp(config);
+  await app.startBackground();
+
+  return app;
 });

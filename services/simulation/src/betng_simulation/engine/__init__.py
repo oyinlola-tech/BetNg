@@ -1,8 +1,4 @@
-"""The simulation engine: pure functions, no I/O.
-
-Nothing in this package opens a connection, reads a clock or reads the
-environment, so a result depends only on the arguments of :func:`simulate`.
-"""
+"""The simulation engine: pure functions, no I/O."""
 
 from .engine import derive_winner, simulate
 from .goals import sample_score

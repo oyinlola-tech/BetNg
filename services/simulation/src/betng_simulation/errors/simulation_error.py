@@ -1,8 +1,4 @@
-"""The failures the simulation service describes to a caller.
-
-Codes and statuses are the ones `docs/architecture.md` §4 names. Messages are
-written for the caller: none carries SQL, a path or an upstream's internals.
-"""
+"""The failures the simulation service describes to a caller."""
 
 from __future__ import annotations
 

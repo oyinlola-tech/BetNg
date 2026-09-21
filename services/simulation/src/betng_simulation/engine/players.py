@@ -1,10 +1,4 @@
-"""Fictional squads.
-
-A team's squad is derived from its id alone, so the same team fields the same
-players in every match and a scorers table built from the timelines is
-coherent. The names are combinations from a fixed pool of given names and
-surnames; none is taken from a real player.
-"""
+"""Fictional squads derived from the team id; no name is a real player's."""
 
 from __future__ import annotations
 
@@ -72,8 +66,6 @@ def _squad_prng(team_id: str) -> random.Random:
 
 
 def _draw_name(rng: random.Random, taken: set[str]) -> str:
-    # The pool holds far more combinations than a squad needs, so a free name
-    # is found within a few draws.
     while True:
         given = GIVEN_NAMES[sample_index(rng, len(GIVEN_NAMES))]
         surname = SURNAMES[sample_index(rng, len(SURNAMES))]

@@ -12,10 +12,7 @@ from .....dtos import AdminSimulationRun, SimulationActionRequest
 
 @dataclass(frozen=True)
 class ApplyRunActionCommand(Command[AdminSimulationRun]):
-    """An operator's ``RETRY`` or ``CANCEL`` of a failed run.
-
-    Neither action can produce, change or remove a result.
-    """
+    """An operator's ``RETRY`` or ``CANCEL`` of a failed run."""
 
     run_id: str
     request: SimulationActionRequest

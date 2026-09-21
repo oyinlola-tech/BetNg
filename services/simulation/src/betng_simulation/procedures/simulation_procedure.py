@@ -1,15 +1,4 @@
-"""The simulation service's RPC procedures.
-
-Simulation is RPC-primary: its callers are the match service asking for an
-authoritative result and the odds service asking for the score matrix. Neither
-is browsing a resource, so a procedure name and a typed payload fit better
-than a URL, and a typed error that survives the wire beats interpreting a
-status code.
-
-The procedures dispatch onto the *same* command and query buses the REST
-controllers use. There is exactly one implementation of each operation; REST
-and RPC are two doors into it, not two copies of it.
-"""
+"""The simulation service's RPC procedures."""
 
 from __future__ import annotations
 
@@ -35,8 +24,7 @@ def create_simulation_rpc_server(
     """Register the RPC procedures on the shared buses."""
     server = RpcServer()
 
-    # The handlers return plain camelCase JSON: the kit would otherwise dump a
-    # model by field name, and the wire contract is by alias.
+    # Dumped by alias here: the kit would dump a model by field name.
     async def run_match(payload: RunMatchRequest) -> dict[str, Any]:
         response = await command_bus.execute(RunMatchCommand(payload))
 

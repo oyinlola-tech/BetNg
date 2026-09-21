@@ -1,9 +1,4 @@
-"""Simulation handlers for the internal routes.
-
-A controller is the translation layer and nothing else: FastAPI has already
-validated the input against the contract shape, so the controller dispatches
-one message on a bus and returns the result. No engine logic lives here.
-"""
+"""Simulation handlers for the internal routes."""
 
 from __future__ import annotations
 

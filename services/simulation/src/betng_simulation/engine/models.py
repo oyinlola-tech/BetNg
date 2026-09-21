@@ -1,14 +1,4 @@
-"""The engine's value types.
-
-Everything the engine consumes and produces is a frozen dataclass, and every
-number the model depends on is a field of :class:`ModelConfiguration`. A
-function in this package therefore holds no tunable of its own: changing the
-model means storing a new configuration version, which also changes the seed.
-
-Note what is absent. No type here has a field for a stake, a bettor, a shop, a
-cashier or an exposure figure, so there is nothing through which the book's
-position could reach a result.
-"""
+"""Engine value types; none has a field for bet data, by design."""
 
 from __future__ import annotations
 
@@ -65,16 +55,11 @@ class SimulationTeam:
 
 @dataclass(frozen=True)
 class ModelConfiguration:
-    """One version of the model's parameters.
-
-    The defaults are configuration version 1. A later version is a row in
-    ``simulation.model_configurations``; no version is ever edited.
-    """
+    """One version of the model's parameters."""
 
     version: int = 1
     model_version: str = MODEL_VERSION
 
-    # Expected goals.
     base_goals: float = 1.35
     rating_scale: float = 100.0
     strength_sensitivity: float = 1.6
@@ -91,13 +76,10 @@ class ModelConfiguration:
     min_expected_goals: float = 0.15
     max_expected_goals: float = 4.5
 
-    # Score matrix.
     max_goals: int = 8
-    #: Dixon-Coles low-score dependence. ``None`` leaves the two Poisson
-    #: distributions independent.
+    #: Dixon-Coles low-score dependence; ``None`` disables the correction.
     rho: float | None = -0.08
 
-    # Timeline.
     first_half_goal_share: float = 0.45
     assist_probability: float = 0.7
     scorer_weight_forward: float = 5.0
@@ -112,7 +94,6 @@ class ModelConfiguration:
     min_substitutions: int = 3
     max_substitutions: int = 5
 
-    # Statistics.
     possession_rating_weight: float = 1.0
     possession_midfield_weight: float = 0.5
     possession_noise: float = 3.0

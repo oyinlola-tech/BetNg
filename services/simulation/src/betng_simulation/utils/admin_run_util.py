@@ -12,11 +12,7 @@ CANCELLED_NOTE = "Cancelled by an operator."
 
 
 def to_admin_run(record: AdminRunRecord, match: MatchView | None) -> AdminSimulationRun:
-    """Project a run for an admin.
-
-    The score is included only once the match is ``COMPLETED``. A match this
-    service cannot find in the ``match`` schema is treated as not revealed.
-    """
+    """Project a run for an admin; the score only once the match is COMPLETED."""
     run = record.run
     revealed = match is not None and match.result_revealed
     score = (

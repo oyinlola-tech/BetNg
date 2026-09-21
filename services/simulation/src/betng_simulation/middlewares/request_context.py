@@ -1,9 +1,4 @@
-"""The current request's correlation id, for code below the HTTP layer.
-
-The kit's RPC router hands a procedure its payload and nothing else, so the
-identifier an audit entry must carry is bound to the context here, by a router
-dependency, and read where it is needed.
-"""
+"""The current request's correlation id, for code below the HTTP layer."""
 
 from __future__ import annotations
 

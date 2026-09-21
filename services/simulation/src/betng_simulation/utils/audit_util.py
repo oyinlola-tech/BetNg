@@ -1,9 +1,4 @@
-"""Best-effort audit delivery for lifecycle events.
-
-A lifecycle entry must never delay or fail a simulation, so it is written in
-the background and a failure is logged. A configuration change is different:
-it awaits its entry and is refused without one (see the update handler).
-"""
+"""Best-effort audit delivery for lifecycle events."""
 
 from __future__ import annotations
 
@@ -20,8 +15,7 @@ class BackgroundAuditor:
         """Store the collaborators."""
         self._recorder = recorder
         self._logger = logger
-        # The loop keeps only a weak reference to a task; without this set an
-        # unfinished delivery could be garbage-collected.
+        # Strong references: the loop alone would let a pending task be collected.
         self._pending: set[asyncio.Task[None]] = set()
 
     def submit(self, *entries: AuditEntry) -> None:

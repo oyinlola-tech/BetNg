@@ -232,7 +232,8 @@ class TestImmutability:
                     "INSERT INTO simulation.match_results (match_id, simulation_id, "
                     "home_goals, away_goals, winner, winning_gap, home_xg, away_xg, "
                     "seed, model_version, configuration_version, stats) "
-                    "VALUES (%s, %s, 0, 3, 'HOME', 3, 1, 1, 'x', 'poisson-1.0', 1, '{}')",
+                    "VALUES (%s, %s, 0, 3, 'HOME', 3, 1, 1, 'x', 'poisson-1.0', 1, "
+                    "'{}')",
                     (str(uuid.uuid4()), str(response.simulation_id)),
                 )
 

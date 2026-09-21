@@ -1,10 +1,4 @@
-"""The base every wire shape is built on.
-
-JSON is camelCase on the wire and snake_case in Python, and an unknown field is
-a validation error rather than something to ignore: a payload that tries to
-carry a stake, a bettor or an exposure figure into this service is refused
-outright instead of being silently dropped.
-"""
+"""The base every wire shape is built on."""
 
 from __future__ import annotations
 

@@ -1,8 +1,4 @@
-"""Admin simulation routes, served at the path the gateway exposes.
-
-There is deliberately no route here that sets a score, picks a winner or
-re-runs a match that has a result.
-"""
+"""Admin routes at the gateway's path; none sets a score or re-runs a result."""
 
 from __future__ import annotations
 

@@ -163,6 +163,9 @@ class RpcServer:
                     ],
                 )
 
+        request_id = frame.metadata.get("requestId") if frame.metadata else None
+        token = _RPC_REQUEST_ID.set(request_id if isinstance(request_id, str) else None)
+
         try:
             result = await procedure.handler(payload)
         except RpcError as error:

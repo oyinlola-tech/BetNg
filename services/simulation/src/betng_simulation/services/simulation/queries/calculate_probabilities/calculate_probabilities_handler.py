@@ -14,12 +14,7 @@ from .calculate_probabilities_query import CalculateProbabilitiesQuery
 class CalculateProbabilitiesHandler(
     QueryHandler[CalculateProbabilitiesQuery, ProbabilityMatrixResponse]
 ):
-    """Builds the score matrix under the active configuration.
-
-    The simulation service owns probability; the odds service turns it into a
-    price. This is the same function the engine samples a result from, so a
-    price and the outcome it prices share one distribution.
-    """
+    """Builds the score matrix under the active configuration."""
 
     message_type = SimulationQuery.CALCULATE_PROBABILITIES
 

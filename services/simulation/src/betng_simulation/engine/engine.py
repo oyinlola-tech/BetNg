@@ -1,10 +1,4 @@
-"""The simulation entry point.
-
-``simulate`` is a pure function of the match id, the two teams and the model
-configuration. Its signature is the proof that betting cannot influence a
-result: there is no parameter through which a stake, a bettor, a shop or an
-exposure figure could be passed.
-"""
+"""Simulation entry point: pure, and its signature admits no bet data."""
 
 from __future__ import annotations
 

@@ -1,9 +1,4 @@
-"""Cross-schema reads of the ``match`` schema.
-
-The simulation login can read every schema and write only its own. These reads
-decide whether an admin may yet see a score, so a failure here withholds the
-answer rather than guessing.
-"""
+"""Cross-schema reads of the ``match`` schema."""
 
 from __future__ import annotations
 

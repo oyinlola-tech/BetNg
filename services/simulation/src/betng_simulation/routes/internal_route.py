@@ -1,10 +1,4 @@
-"""Internal simulation routes.
-
-``/internal`` is never proxied by the gateway: these routes are for peer
-services and for debugging, which is why they may return a result that has not
-been revealed yet. For the same reason they answer 404 to a caller that does
-not present the platform's internal token.
-"""
+"""Internal routes: never proxied, so they may return unrevealed results."""
 
 from __future__ import annotations
 

@@ -22,11 +22,7 @@ REASON_FIELD = "reason"
 class UpdateConfigurationHandler(
     CommandHandler[UpdateConfigurationCommand, ModelConfigurationView]
 ):
-    """Stores a new configuration version and activates it.
-
-    No stored version is edited. The change commits only after its audit entry
-    is written: an unaudited change to the model is refused.
-    """
+    """Activates a new version; refused unless its audit entry is written."""
 
     message_type = SimulationCommand.UPDATE_CONFIGURATION
 
@@ -90,7 +86,7 @@ class UpdateConfigurationHandler(
             except ServiceError:
                 raise
             except Exception as error:
-                # Raising inside the transaction rolls the new version back.
+                # Raising here rolls the new version back.
                 self._logger.error(
                     "Configuration change refused: audit entry not written",
                     extra={

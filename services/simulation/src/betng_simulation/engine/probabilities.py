@@ -1,9 +1,4 @@
-"""Expected goals and the score matrix.
-
-The matrix built here is the single source of probability on the platform: the
-odds service prices from it and :mod:`.goals` samples the result from it, so a
-price and the outcome it prices always come from the same distribution.
-"""
+"""Expected goals and the score matrix that is both priced and sampled."""
 
 from __future__ import annotations
 
@@ -72,7 +67,7 @@ def _side_expected_goals(
 def expected_goals(
     home: TeamStrength, away: TeamStrength, configuration: ModelConfiguration
 ) -> tuple[float, float]:
-    """Each side's expected goals, from its attack against the other's defence."""
+    """Return each side's expected goals: its attack against the other's defence."""
     home_venue = 1.0 + (
         configuration.home_advantage_weight
         * home.home_advantage
@@ -95,7 +90,7 @@ def _poisson_pmf(mean: float, max_goals: int) -> list[float]:
 def _low_score_correction(
     home_goals: int, away_goals: int, home_xg: float, away_xg: float, rho: float
 ) -> float:
-    """The Dixon-Coles adjustment, which only touches 0-0, 0-1, 1-0 and 1-1."""
+    """Return the Dixon-Coles factor; only 0-0, 0-1, 1-0 and 1-1 differ from 1."""
     if home_goals == 0 and away_goals == 0:
         factor = 1.0 - home_xg * away_xg * rho
     elif home_goals == 0 and away_goals == 1:
@@ -113,7 +108,7 @@ def _low_score_correction(
 def score_matrix(
     home_xg: float, away_xg: float, configuration: ModelConfiguration
 ) -> tuple[tuple[float, ...], ...]:
-    """Independent Poisson scores, truncated at ``max_goals`` and renormalised."""
+    """Return independent Poisson scores, truncated at ``max_goals``, renormalised."""
     home_pmf = _poisson_pmf(home_xg, configuration.max_goals)
     away_pmf = _poisson_pmf(away_xg, configuration.max_goals)
     rho = configuration.rho
@@ -155,7 +150,7 @@ def calculate_probabilities(
 
 
 def outcome_probabilities(matrix: ProbabilityMatrix) -> tuple[float, float, float]:
-    """``(home win, draw, away win)`` summed from the matrix."""
+    """Return ``(home win, draw, away win)`` summed from the matrix."""
     home = draw = away = 0.0
 
     for home_goals, row in enumerate(matrix.cells):

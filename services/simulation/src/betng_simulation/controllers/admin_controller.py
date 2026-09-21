@@ -1,8 +1,4 @@
-"""Handlers for the gateway-proxied admin routes.
-
-The routes authorise the actor before a handler runs. Nothing here can set a
-score, pick a winner or re-run a match that has a result.
-"""
+"""Handlers for the gateway-proxied admin routes."""
 
 from __future__ import annotations
 

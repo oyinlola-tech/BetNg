@@ -35,11 +35,7 @@ class _Attempt:
 
 
 def _describe_failure(error: Exception) -> str:
-    """A reason safe to store and to show an admin.
-
-    Only the engine's own errors keep their text; anything else could carry
-    SQL or connection details and is reduced to its type.
-    """
+    """Return a failure reason safe to store and show: never SQL or paths."""
     if isinstance(error, (ValueError, ArithmeticError)):
         return f"{type(error).__name__}: {str(error)[:MAX_FAILURE_DETAIL]}"
 
@@ -47,13 +43,7 @@ def _describe_failure(error: Exception) -> str:
 
 
 class RunMatchHandler(CommandHandler[RunMatchCommand, RunMatchResponse]):
-    """Plays a match exactly once.
-
-    Claiming the run, storing the result and storing the timeline share one
-    transaction. The claim is an insert against a partial unique index, so a
-    concurrent second caller waits there and, once the first commits, is handed
-    the stored run instead of simulating again.
-    """
+    """Plays a match once: claim, result and events commit in one transaction."""
 
     message_type = SimulationCommand.RUN_MATCH
 
@@ -215,9 +205,8 @@ class RunMatchHandler(CommandHandler[RunMatchCommand, RunMatchResponse]):
         if attempt is None:
             return
 
-        # The run's own transaction rolled back, so the failure is recorded in
-        # a new one. A FAILED row is outside the lock index: it never blocks
-        # the retry.
+        # Separate transaction: the run's own rolled back. FAILED rows sit
+        # outside the lock index, so they never block a retry.
         try:
             async with self._repository.transaction() as connection:
                 await self._repository.record_failed_run(
@@ -256,8 +245,7 @@ class RunMatchHandler(CommandHandler[RunMatchCommand, RunMatchResponse]):
 
     @staticmethod
     def _audit(attempt: _Attempt, action: str, reason: str | None = None) -> AuditEntry:
-        # The audit trail is readable through the gateway, so an entry never
-        # carries the score: the result stays secret until it is revealed.
+        # The audit trail is gateway-readable, so an entry never carries the score.
         return AuditEntry(
             actor_id=SYSTEM_ACTOR_ID,
             actor_role=SYSTEM_ACTOR_ROLE,

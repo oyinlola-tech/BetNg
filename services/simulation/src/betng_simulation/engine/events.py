@@ -1,13 +1,4 @@
-"""Timeline and statistics generation.
-
-The score is fixed before this module runs. It decides *when* things happen
-and *who* is involved, never *how many goals* there are: the timeline carries
-exactly the goals of the sampled score.
-
-Minutes are drawn first and the match is then walked in order, so who is on
-the pitch is always known: a player who was sent off or substituted cannot
-score afterwards, and a substitute cannot score before coming on.
-"""
+"""Timeline for an already-decided score; it never changes the goal count."""
 
 from __future__ import annotations
 
@@ -283,7 +274,6 @@ def _play_red_card(rng: random.Random, timeline: _Timeline, slot: _Slot) -> None
 
 def _play_substitution(rng: random.Random, timeline: _Timeline, slot: _Slot) -> None:
     lineup = timeline.lineup(slot.side)
-    # A player who came on is not taken off again.
     leaving_candidates = [
         player
         for player in _outfield(lineup.on_pitch)
@@ -371,7 +361,6 @@ def _side_stats(
     expected_goals: float,
     configuration: ModelConfiguration,
 ) -> SideStats:
-    # A side that was expected to score more also shot more.
     pressure = expected_goals / configuration.base_goals
     yellow_cards = _count(events, "YELLOW_CARD", side)
     red_cards = _count(events, "RED_CARD", side)
@@ -392,7 +381,6 @@ def _side_stats(
         shots=shots,
         shots_on_target=shots_on_target,
         corners=_count(events, "CORNER", side),
-        # Every card follows a foul.
         fouls=yellow_cards
         + red_cards
         + sample_poisson(

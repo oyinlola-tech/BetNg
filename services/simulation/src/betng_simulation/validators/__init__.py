@@ -1,8 +1,4 @@
-"""Request checks that are not expressed by a body schema.
-
-FastAPI validates each body, path and query value against the Pydantic models
-in ``dtos``; what remains is who is calling.
-"""
+"""Request checks that are not expressed by a body schema."""
 
 from .actor_validator import require_admin
 

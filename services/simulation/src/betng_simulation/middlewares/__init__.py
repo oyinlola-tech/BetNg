@@ -1,8 +1,4 @@
-"""Service-local HTTP middleware.
-
-Correlation, access logging and error rendering are shared by every BetNG
-service and come from ``betng_service_kit``.
-"""
+"""Service-local HTTP middleware."""
 
 from .request_context import bind_request_context, current_request_id
 

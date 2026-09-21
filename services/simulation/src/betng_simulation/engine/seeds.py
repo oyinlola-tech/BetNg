@@ -1,8 +1,4 @@
-"""Seed derivation.
-
-A seed is a function of the match, the model and the configuration, and of
-nothing else, so the same three inputs always replay the same match.
-"""
+"""Seed derivation."""
 
 from __future__ import annotations
 

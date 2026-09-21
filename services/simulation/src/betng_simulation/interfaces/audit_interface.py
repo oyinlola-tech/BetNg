@@ -1,8 +1,4 @@
-"""The audit trail, as the simulation service sees it.
-
-The trail belongs to the identity service. It is reached through this protocol
-so a test can substitute a recorder that needs no network.
-"""
+"""The audit trail, as the simulation service sees it."""
 
 from __future__ import annotations
 

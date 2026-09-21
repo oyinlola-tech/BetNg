@@ -1,1 +1,1 @@
-export { registerMatchRoutes } from "./match.route.js";
+export { registerAdminRoutes, registerMatchRoutes } from "./match.route.js";
