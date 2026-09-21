@@ -1,19 +1,21 @@
 import type { MatchId } from "@betng/contracts";
+import type {
+  MatchEventKind,
+  MatchSide,
+  MatchStats,
+  Player,
+  Score,
+  SideStats,
+} from "@betng/ui-core";
+import type { Club } from "./clubs.js";
+import { rng, uuidFrom, type Rng } from "./prng.js";
+import type { FixtureRef } from "./season.js";
 import {
   FIRST_HALF_SECONDS,
   FULL_TIME_SECONDS,
   SECOND_HALF_START_SECONDS,
   VIRTUAL_TIMING,
-  type MatchEventKind,
-  type MatchSide,
-  type MatchStats,
-  type Player,
-  type Score,
-  type SideStats,
-} from "@betng/ui-core";
-import type { Club } from "./clubs.js";
-import { rng, uuidFrom, type Rng } from "./prng.js";
-import type { FixtureRef } from "./season.js";
+} from "./timing.js";
 
 export interface ScriptEvent {
   readonly id: string;
@@ -100,6 +102,34 @@ function releaseFor(r: Rng, minute: number): number {
   return minute <= 45
     ? minute * spm + jitter
     : SECOND_HALF_START_SECONDS + (minute - 45) * spm + jitter;
+}
+
+const OWN_GOAL_WEIGHTS: Record<Player["position"], number> = {
+  GK: 1,
+  DF: 6,
+  MF: 2,
+  FW: 0,
+};
+const OFFSIDE_WEIGHTS: Record<Player["position"], number> = {
+  GK: 0,
+  DF: 0,
+  MF: 2,
+  FW: 7,
+};
+
+const otherSide = (side: MatchSide): MatchSide =>
+  side === "HOME" ? "AWAY" : "HOME";
+
+/** The side a goal event counts for. An own goal is recorded against the side that conceded it. */
+export function scoringSide(event: {
+  readonly kind: MatchEventKind;
+  readonly side?: MatchSide;
+}): MatchSide | undefined {
+  if (event.side === undefined) return undefined;
+  if (event.kind === "GOAL" || event.kind === "PENALTY_GOAL") return event.side;
+  if (event.kind === "OWN_GOAL") return otherSide(event.side);
+
+  return undefined;
 }
 
 const scriptCache = new Map<string, MatchScript>();
@@ -233,17 +263,6 @@ export function scriptFor(fixture: FixtureRef): MatchScript {
     }
   }
 
-  drafts.push({ kind: "KICK_OFF", minute: 0, release: 0 });
-  drafts.push({ kind: "HALF_TIME", minute: 45, release: FIRST_HALF_SECONDS });
-  drafts.push({
-    kind: "SECOND_HALF",
-    minute: 45,
-    release: SECOND_HALF_START_SECONDS,
-  });
-  drafts.push({ kind: "FULL_TIME", minute: 90, release: FULL_TIME_SECONDS });
-
-  drafts.sort((a, b) => a.release - b.release);
-
   const ticks: StatTick[] = [];
   const goalsFor = (side: MatchSide): number =>
     drafts.filter((d) => d.kind === "GOAL" && d.side === side).length;
@@ -274,6 +293,104 @@ export function scriptFor(fixture: FixtureRef): MatchScript {
       ticks.push({ minute: eventMinute(r), side, kind: "OFFSIDE" });
   }
 
+  // Everything below draws from its own stream, so the scores and cards above never move.
+  const x = rng(`script-extra:${fixture.matchId}`);
+
+  for (const d of [...drafts]) {
+    if (d.kind !== "GOAL" || d.side === undefined) continue;
+
+    const conceding = otherSide(d.side);
+
+    if (x.chance(0.08)) {
+      const fouler = pickByPosition(x, clubFor(conceding).squad, BOOKED_WEIGHTS);
+
+      d.kind = "PENALTY_GOAL";
+      delete d.secondaryPlayer;
+      ticks.push({ minute: d.minute, side: conceding, kind: "FOUL" });
+      drafts.push({
+        kind: "FOUL",
+        minute: d.minute,
+        side: conceding,
+        player: fouler.name,
+        release: d.release - 1,
+      });
+
+      if (x.chance(0.4)) {
+        drafts.push({
+          kind: "VAR",
+          minute: d.minute,
+          side: d.side,
+          release: d.release - 0.5,
+        });
+      }
+    } else if (x.chance(0.03)) {
+      d.kind = "OWN_GOAL";
+      d.player = pickByPosition(
+        x,
+        clubFor(conceding).squad,
+        OWN_GOAL_WEIGHTS,
+      ).name;
+      d.side = conceding;
+      delete d.secondaryPlayer;
+    }
+  }
+
+  for (const side of ["HOME", "AWAY"] as const) {
+    if (!x.chance(0.04)) continue;
+
+    const minute = eventMinute(x);
+    const release = releaseFor(x, minute);
+    const conceding = otherSide(side);
+
+    ticks.push({ minute, side: conceding, kind: "FOUL" });
+    drafts.push({
+      kind: "FOUL",
+      minute,
+      side: conceding,
+      player: pickByPosition(x, clubFor(conceding).squad, BOOKED_WEIGHTS).name,
+      release: release - 1,
+    });
+    drafts.push({
+      kind: "PENALTY_MISSED",
+      minute,
+      side,
+      player: pickByPosition(x, clubFor(side).squad, SCORER_WEIGHTS).name,
+      release,
+    });
+  }
+
+  for (const tick of [...ticks]) {
+    if (tick.kind === "OFFSIDE") {
+      drafts.push({
+        kind: "OFFSIDE",
+        minute: tick.minute,
+        side: tick.side,
+        player: pickByPosition(x, clubFor(tick.side).squad, OFFSIDE_WEIGHTS)
+          .name,
+        release: releaseFor(x, tick.minute),
+      });
+    } else if (tick.kind === "FOUL" && x.chance(0.2)) {
+      drafts.push({
+        kind: "FOUL",
+        minute: tick.minute,
+        side: tick.side,
+        player: pickByPosition(x, clubFor(tick.side).squad, BOOKED_WEIGHTS)
+          .name,
+        release: releaseFor(x, tick.minute),
+      });
+    }
+  }
+
+  drafts.push({ kind: "KICK_OFF", minute: 0, release: 0 });
+  drafts.push({ kind: "HALF_TIME", minute: 45, release: FIRST_HALF_SECONDS });
+  drafts.push({
+    kind: "SECOND_HALF",
+    minute: 45,
+    release: SECOND_HALF_START_SECONDS,
+  });
+  drafts.push({ kind: "FULL_TIME", minute: 90, release: FULL_TIME_SECONDS });
+
+  drafts.sort((a, b) => a.release - b.release);
   ticks.sort((a, b) => a.minute - b.minute);
 
   let score: Score = { home: 0, away: 0 };
@@ -283,9 +400,11 @@ export function scriptFor(fixture: FixtureRef): MatchScript {
   const events = drafts.map((d, index): ScriptEvent => {
     const team = d.side === undefined ? undefined : clubFor(d.side);
 
-    if (d.kind === "GOAL") {
+    const credited = scoringSide(d);
+
+    if (credited !== undefined) {
       score =
-        d.side === "HOME"
+        credited === "HOME"
           ? { ...score, home: score.home + 1 }
           : { ...score, away: score.away + 1 };
     }
@@ -326,6 +445,27 @@ export function scriptFor(fixture: FixtureRef): MatchScript {
         break;
       case "SHOT":
         description = "Shot";
+        break;
+      case "PENALTY_GOAL":
+        description = `${d.player ?? "Penalty"} scores from the spot for ${team?.name ?? ""}`;
+        break;
+      case "OWN_GOAL":
+        description = `Own goal by ${d.player ?? ""} (${team?.shortName ?? ""})`;
+        break;
+      case "PENALTY_MISSED":
+        description = `${d.player ?? ""} (${team?.shortName ?? ""}) misses a penalty`;
+        break;
+      case "VAR":
+        description = `VAR check complete: penalty to ${team?.name ?? ""} stands`;
+        break;
+      case "OFFSIDE":
+        description = `${d.player ?? ""} (${team?.shortName ?? ""}) is caught offside`;
+        break;
+      case "FOUL":
+        description = `Foul by ${d.player ?? ""} (${team?.shortName ?? ""})`;
+        break;
+      case "FREE_KICK":
+        description = `Free kick to ${team?.name ?? ""}`;
         break;
     }
 

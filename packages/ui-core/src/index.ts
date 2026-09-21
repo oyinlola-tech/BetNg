@@ -116,3 +116,15 @@ export type { FastbetPick, FastbetResult } from "./fastbet.js";
 
 export { TOTAL_LINES, leadingSelections } from "./leading.js";
 export type { LeadingCell } from "./leading.js";
+export { readClientEnv } from "./runtime/clientEnv.js";
+export type {
+  AppEnvironment,
+  ClientEnv,
+  DataSourceMode,
+  RawEnv,
+} from "./runtime/clientEnv.js";
+export { createPlatformClients } from "./runtime/platformClients.js";
+export type {
+  PlatformClientOptions,
+  PlatformClients,
+} from "./runtime/platformClients.js";

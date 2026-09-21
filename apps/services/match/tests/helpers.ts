@@ -364,6 +364,12 @@ export interface Harness {
   readonly superuser: PrismaClient;
   readonly peers: FakePeers;
   readonly clock: TestClock;
+  /** Matches this run created; retired on close so later runs do not keep ticking them. */
+  readonly createdMatchIds: string[];
+  retire(where: {
+    readonly matchIds?: readonly string[];
+    readonly leagueId?: string;
+  }): Promise<void>;
   close(): Promise<void>;
 }
 
@@ -393,13 +399,33 @@ export async function createHarness(): Promise<Harness> {
     adapter: new PrismaPg({ connectionString: MATCH_URL }, { schema: "match" }),
   });
 
+  const createdMatchIds: string[] = [];
+  const retire: Harness["retire"] = async (where) => {
+    await prisma.match.updateMany({
+      where: {
+        lifecycle: { notIn: ["SETTLEMENT_COMPLETED", "VOIDED"] },
+        ...(where.matchIds === undefined
+          ? {}
+          : { id: { in: [...where.matchIds] } }),
+        ...(where.leagueId === undefined
+          ? {}
+          : { fixture: { leagueId: where.leagueId } }),
+      },
+      data: { lifecycle: "VOIDED", status: "CANCELLED" },
+    });
+  };
+
   return {
     app,
     prisma,
     superuser,
     peers,
     clock,
+    createdMatchIds,
+    retire,
     close: async () => {
+      await retire({ matchIds: createdMatchIds });
+
       for (const release of app.onShutdown) await release();
       await prisma.$disconnect();
       await superuser.$disconnect();
@@ -479,6 +505,8 @@ export async function createFixture(
   const match = await harness.prisma.match.create({
     data: { fixtureId: fixture.id, createdAt: now },
   });
+
+  harness.createdMatchIds.push(match.id);
 
   await harness.prisma.matchTransition.create({
     data: {

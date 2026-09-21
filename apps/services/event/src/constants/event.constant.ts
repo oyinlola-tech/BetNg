@@ -12,7 +12,7 @@ export const EVENT_QUERY = Object.freeze({
 export type EventQueryType = (typeof EVENT_QUERY)[keyof typeof EVENT_QUERY];
 
 export const EVENT_PROCEDURE = Object.freeze({
-  PUBLISH_EVENT: "event.publishEvent",
+  PUBLISH_EVENT: "event.publish",
 });
 
 /**

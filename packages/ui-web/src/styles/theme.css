@@ -29,8 +29,16 @@
   --color-danger-subtle: var(--bn-danger-subtle);
   --color-warning: var(--bn-warning);
   --color-warning-subtle: var(--bn-warning-subtle);
+  --color-info: var(--bn-info);
+  --color-info-subtle: var(--bn-info-subtle);
   --color-live: var(--bn-live);
   --color-live-subtle: var(--bn-live-subtle);
+  --color-pending: var(--bn-pending);
+  --color-pending-subtle: var(--bn-pending-subtle);
+  --color-void: var(--bn-void);
+  --color-void-subtle: var(--bn-void-subtle);
+  --color-suspended: var(--bn-suspended);
+  --color-suspended-subtle: var(--bn-suspended-subtle);
   --color-overlay: var(--bn-overlay);
   --color-skeleton: var(--bn-skeleton);
   --color-series-1: var(--bn-series1);
@@ -96,6 +104,10 @@
   --animate-pulse-live: pulse-live 1.6s ease-in-out infinite;
   --animate-shimmer: shimmer 1.4s linear infinite;
   --animate-flash: flash var(--bn-duration-broadcast) var(--bn-ease-standard);
+  --animate-odds-up: odds-up 1.2s var(--bn-ease-standard);
+  --animate-odds-down: odds-down 1.2s var(--bn-ease-standard);
+  --animate-score-pop: score-pop var(--bn-duration-slow) var(--bn-ease-decelerate);
+  --animate-event-in: event-in var(--bn-duration-slow) var(--bn-ease-decelerate);
 
   @keyframes toast-in {
     from {
@@ -148,6 +160,41 @@
       background-position: 200% 0;
     }
   }
+  @keyframes odds-up {
+    0% {
+      background-color: var(--bn-success-subtle);
+    }
+    100% {
+      background-color: transparent;
+    }
+  }
+  @keyframes odds-down {
+    0% {
+      background-color: var(--bn-danger-subtle);
+    }
+    100% {
+      background-color: transparent;
+    }
+  }
+  @keyframes score-pop {
+    0% {
+      transform: scale(1.18);
+      color: var(--bn-live);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+  @keyframes event-in {
+    from {
+      opacity: 0;
+      transform: translateY(-6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
   @keyframes flash {
     0% {
       background-color: var(--bn-brand-subtle);
@@ -190,6 +237,52 @@
 
 @utility caps-label {
   @apply text-xs font-semibold uppercase tracking-caps text-text-muted;
+}
+
+@utility type-display {
+  @apply font-display text-5xl font-extrabold tracking-tight;
+  line-height: 1.05;
+}
+@utility type-h1 {
+  @apply font-display text-3xl font-bold tracking-tight;
+}
+@utility type-h2 {
+  @apply font-display text-2xl font-bold;
+  letter-spacing: -0.01em;
+}
+@utility type-h3 {
+  @apply font-display text-lg font-bold;
+}
+@utility type-section {
+  @apply font-display text-sm font-bold uppercase text-text-secondary;
+  letter-spacing: 0.1em;
+}
+@utility type-body {
+  @apply font-sans text-base font-normal;
+}
+@utility type-small {
+  @apply font-sans text-sm font-normal;
+}
+@utility type-caption {
+  @apply text-xs font-semibold uppercase tracking-caps text-text-muted;
+}
+@utility type-data {
+  @apply font-sans text-base font-medium;
+  font-variant-numeric: tabular-nums;
+}
+@utility type-score {
+  @apply font-display font-extrabold tracking-tight;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+@utility type-odds {
+  @apply font-sans text-base font-bold;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+@utility type-financial {
+  @apply font-sans text-md font-semibold;
+  font-variant-numeric: tabular-nums;
 }
 
 @utility focus-ring {

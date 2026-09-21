@@ -40,7 +40,7 @@ class TeamStrengthDto(ContractModel):
 class SimulationTeamDto(ContractModel):
     team_id: UUID
     name: Annotated[str, Field(min_length=1, max_length=120)]
-    short_name: Annotated[str, Field(min_length=2, max_length=8)]
+    short_name: Annotated[str, Field(min_length=2, max_length=12)]
     strength: TeamStrengthDto
 
     def to_engine(self) -> SimulationTeam:

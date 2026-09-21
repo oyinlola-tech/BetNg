@@ -1,10 +1,8 @@
 import type { Cashier, ShopDailyReport, ShopPermission, ShopSession, ShopTransaction, ShopTransactionType, Ticket, TicketId, TicketSelection } from "@betng/contracts";
 import {
   DataSourceError,
-  FULL_TIME_SECONDS,
   MAX_SELECTIONS,
   STAKE_LIMITS,
-  VIRTUAL_TIMING,
   createSessionStore,
   formatMoney,
   formatScore,
@@ -18,8 +16,9 @@ import { marketsFor, settleSelection } from "../markets.js";
 import { rng, uuidFrom } from "../prng.js";
 import { statusAt } from "../season.js";
 import { scriptFor } from "../simulate.js";
+import { FULL_TIME_SECONDS, VIRTUAL_TIMING } from "../timing.js";
 import { CASHIERS, DEMO_PASSWORD, DEMO_PIN, OPENING_FLOAT, ROLE_PERMISSIONS, SHOP, SHOP_ID } from "./directory.js";
-import { combinedOddsOf, expiryFor, pastDateKeys, pastDayTickets, ticketCode, todaySeedTickets } from "./history.js";
+import { combinedOddsOf, expiryFor, pastDateKeys, pastDayTickets, payoutOf, ticketCode, todaySeedTickets } from "./history.js";
 
 export interface MockShopOptions {
   readonly platform: MockPlatform;
@@ -213,13 +212,13 @@ export function createMockShopSource(options: MockShopOptions): ShopDataSource {
 
       const voided = selections.every((l) => l.outcome === "VOID");
       const lost = selections.some((l) => l.outcome === "LOST");
-      const liveOdds = combinedOddsOf(selections.filter((l) => l.outcome === "WON"));
+      const winners = selections.filter((l) => l.outcome === "WON");
 
       return {
         ...ticket,
         selections,
         status: voided ? "VOID" : lost ? "LOST" : "WON",
-        payout: voided ? ticket.stake : lost ? 0 : Math.round(ticket.stake * liveOdds),
+        payout: voided ? ticket.stake : lost ? 0 : payoutOf(ticket.stake, winners),
         settledAt: new Date(t).toISOString(),
       };
     });
@@ -380,7 +379,7 @@ export function createMockShopSource(options: MockShopOptions): ShopDataSource {
         selections,
         stake: input.stake,
         totalOdds,
-        potentialPayout: Math.round(input.stake * totalOdds),
+        potentialPayout: payoutOf(input.stake, selections),
         status: "OPEN",
         placedAt: new Date(t).toISOString(),
         expiresAt: expiryFor(t),

@@ -1,12 +1,16 @@
 import type { LeagueId, MatchId, TeamId } from "@betng/contracts";
 import {
   DataSourceError,
+  MAX_SELECTIONS,
+  STAKE_LIMITS,
   computeStandings,
   toLocalDateKey,
   type BetNgDataSource,
   type LeagueView,
   type MatchFilter,
   type MatchSummary,
+  type SearchHit,
+  type SearchKind,
   type TopScorer,
 } from "@betng/ui-core";
 import {
@@ -16,6 +20,7 @@ import {
   type Competition,
 } from "./clubs.js";
 import { MockPlatform, teamView, type MockPlatformOptions } from "./engine.js";
+import { headToHeadFor, lineupsFor } from "./lineups.js";
 import { marketsFor } from "./markets.js";
 import {
   CYCLE_SECONDS,
@@ -49,6 +54,14 @@ function leagueView(competition: Competition, now: number): LeagueView {
     currentMatchday: (round % competition.matchdays) + 1,
     cycleSeconds: CYCLE_SECONDS,
   };
+}
+
+const SEARCH_KINDS: readonly SearchKind[] = ["LEAGUE", "TEAM", "MATCH"];
+const SEARCH_LIMIT = 20;
+const SEARCH_LIMIT_MAX = 50;
+
+function fold(text: string): string {
+  return text.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
 }
 
 function seasonRounds(
@@ -154,6 +167,91 @@ export function createMockDataSource(
     return out;
   }
 
+  function searchHits(
+    needle: string,
+    kinds: readonly SearchKind[],
+  ): readonly SearchHit[] {
+    const t = now();
+    const hits: { readonly hit: SearchHit; readonly rank: number }[] = [];
+    const offer = (hit: SearchHit, ...fields: readonly string[]): void => {
+      const folded = fields.map(fold);
+
+      if (!folded.some((f) => f.includes(needle))) return;
+
+      hits.push({
+        hit,
+        rank:
+          SEARCH_KINDS.indexOf(hit.kind) * 2 +
+          (folded.some((f) => f.startsWith(needle)) ? 0 : 1),
+      });
+    };
+
+    for (const competition of COMPETITIONS) {
+      const { seed } = competition;
+
+      if (kinds.includes("LEAGUE")) {
+        offer(
+          {
+            kind: "LEAGUE",
+            id: competition.id,
+            title: seed.name,
+            subtitle: seed.country,
+            leagueId: competition.id,
+          },
+          seed.name,
+          seed.code,
+          seed.country,
+        );
+      }
+
+      if (kinds.includes("TEAM")) {
+        for (const club of competition.clubs) {
+          offer(
+            {
+              kind: "TEAM",
+              id: club.id,
+              title: club.name,
+              subtitle: seed.name,
+              teamId: club.id,
+              leagueId: competition.id,
+            },
+            club.name,
+            club.shortName,
+            club.code,
+            club.city,
+          );
+        }
+      }
+
+      if (kinds.includes("MATCH")) {
+        const current = currentRound(competition, t);
+
+        for (let round = current - 1; round <= current + 2; round += 1) {
+          for (const f of fixturesForRound(competition, round)) {
+            offer(
+              {
+                kind: "MATCH",
+                id: f.matchId,
+                title: `${f.home.name} v ${f.away.name}`,
+                subtitle: `${seed.code} · Matchday ${String(f.matchday)}`,
+                matchId: f.matchId,
+                leagueId: competition.id,
+              },
+              f.home.name,
+              f.away.name,
+              f.home.shortName,
+              f.away.shortName,
+              `${f.home.name} v ${f.away.name}`,
+              `${f.home.code} ${f.away.code}`,
+            );
+          }
+        }
+      }
+    }
+
+    return hits.sort((a, b) => a.rank - b.rank).map((h) => h.hit);
+  }
+
   const source: MockDataSource = {
     platform,
 
@@ -229,7 +327,11 @@ export function createMockDataSource(
           if (statusAt(fixture, now()) !== "COMPLETED") continue;
 
           for (const event of scriptFor(fixture).events) {
-            if (event.kind !== "GOAL" || event.player === undefined) continue;
+            if (
+              (event.kind !== "GOAL" && event.kind !== "PENALTY_GOAL") ||
+              event.player === undefined
+            )
+              continue;
 
             const club = event.side === "HOME" ? fixture.home : fixture.away;
             const key = `${club.id}:${event.player}`;
@@ -309,6 +411,66 @@ export function createMockDataSource(
       return marketsFor(requireFixture(matchId), now());
     },
 
+    /** @endpoint GET /api/v1/matches/:id/lineups → MatchLineups */
+    getMatchLineups: async (matchId: MatchId) => {
+      await platform.delay();
+
+      return lineupsFor(requireFixture(matchId), now());
+    },
+
+    /** @endpoint GET /api/v1/matches/:id/head-to-head → HeadToHead */
+    getHeadToHead: async (matchId: MatchId) => {
+      await platform.delay();
+
+      return headToHeadFor(requireFixture(matchId), now());
+    },
+
+    /** @endpoint GET /api/v1/search?q= → { term, hits: SearchHit[] } */
+    search: async (query) => {
+      await platform.delay();
+
+      const term = query.term.trim();
+      const limit = Math.min(
+        SEARCH_LIMIT_MAX,
+        Math.max(1, Math.trunc(query.limit ?? SEARCH_LIMIT)),
+      );
+
+      if (term.length < 2) return { term, hits: [] };
+
+      return {
+        term,
+        hits: searchHits(fold(term), query.kinds ?? SEARCH_KINDS).slice(
+          0,
+          limit,
+        ),
+      };
+    },
+
+    /** @endpoint GET /api/v1/config → PlatformConfig */
+    getPlatformConfig: async () => {
+      await platform.delay();
+
+      return {
+        currency: { code: "NGN", symbol: "₦", minorUnits: 2, locale: "en-NG" },
+        features: {
+          virtualFootballEnabled: true,
+          walletEnabled: true,
+          shopEnabled: true,
+          adminEnabled: true,
+          liveEnabled: true,
+          tvEnabled: true,
+          searchEnabled: true,
+        },
+        stakeLimits: {
+          min: STAKE_LIMITS.min,
+          max: STAKE_LIMITS.max,
+          maxSelections: MAX_SELECTIONS,
+        },
+        competitionTimezone: "Africa/Lagos",
+        maintenance: false,
+      };
+    },
+
     listCompletedMatchdays: async (leagueId, season) => {
       await platform.delay();
 
@@ -337,7 +499,7 @@ export function createMockDataSource(
       const stop =
         fixture === undefined
           ? (): void => undefined
-          : platform.stream(fixture, handlers.onEvent);
+          : platform.stream(fixture, handlers);
 
       return {
         unsubscribe: () => {
@@ -359,6 +521,11 @@ export function createMockDataSource(
       await platform.delay();
 
       return platform.transactions();
+    },
+    queryTransactions: async (query) => {
+      await platform.delay();
+
+      return platform.queryTransactions(query);
     },
     deposit: async (amount) => {
       await platform.delay();

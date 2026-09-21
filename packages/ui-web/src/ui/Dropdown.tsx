@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { Children, useEffect, useId, useRef, useState } from "react";
 import { cn } from "../lib/cn";
 
 export interface DropdownItem {
@@ -15,15 +15,23 @@ export interface DropdownItem {
 export interface DropdownProps {
   readonly label: string;
   readonly trigger: React.ReactNode;
-  readonly items: readonly DropdownItem[];
+  readonly items?: readonly DropdownItem[];
+  /** Renders a free-form panel (checkbox lists, filters) instead of a menu. It stays open while the content is used. */
+  readonly children?: React.ReactNode;
   readonly align?: "start" | "end";
   readonly className?: string;
 }
 
-export function Dropdown({ label, trigger, items, align = "end", className }: DropdownProps): React.JSX.Element {
+const FOCUSABLE =
+  '[role="menuitem"]:not(:disabled), input:not(:disabled), button:not(:disabled), select:not(:disabled), a[href]';
+
+export function Dropdown({ label, trigger, items = [], children, align = "end", className }: DropdownProps): React.JSX.Element {
+  const panel = children !== undefined;
+  const rowCount = panel ? Children.count(children) : items.length;
   const [open, setOpen] = useState(false);
   const [position, setPosition] = useState<React.CSSProperties>({});
   const root = useRef<HTMLDivElement>(null);
+  const popup = useRef<HTMLDivElement>(null);
   const menuId = useId();
 
   useEffect(() => {
@@ -40,7 +48,7 @@ export function Dropdown({ label, trigger, items, align = "end", className }: Dr
     document.addEventListener("pointerdown", onPointer);
     window.addEventListener("resize", close);
     window.addEventListener("scroll", close, true);
-    root.current?.querySelector<HTMLButtonElement>('[role="menuitem"]:not(:disabled)')?.focus();
+    popup.current?.querySelector<HTMLElement>(FOCUSABLE)?.focus();
 
     return () => {
       document.removeEventListener("pointerdown", onPointer);
@@ -61,10 +69,13 @@ export function Dropdown({ label, trigger, items, align = "end", className }: Dr
       ref={root}
       className={cn("relative inline-flex", className)}
       onKeyDown={(event) => {
-        if (event.key === "Escape") {
+        if (event.key === "Escape" && open) {
+          event.preventDefault();
+          event.stopPropagation();
           setOpen(false);
           root.current?.querySelector<HTMLButtonElement>("[aria-haspopup]")?.focus();
         }
+        if (panel) return;
         if (event.key === "ArrowDown") {
           event.preventDefault();
           move(1);
@@ -77,7 +88,7 @@ export function Dropdown({ label, trigger, items, align = "end", className }: Dr
     >
       <button
         type="button"
-        aria-haspopup="menu"
+        aria-haspopup={panel ? "dialog" : "menu"}
         aria-expanded={open}
         aria-controls={menuId}
         aria-label={label}
@@ -86,7 +97,7 @@ export function Dropdown({ label, trigger, items, align = "end", className }: Dr
 
           // Fixed to the viewport so a scrolling table or panel cannot clip the menu.
           if (rect !== undefined) {
-            const below = window.innerHeight - rect.bottom > items.length * 34 + 24;
+            const below = window.innerHeight - rect.bottom > rowCount * 34 + 24;
 
             setPosition({
               ...(below ? { top: rect.bottom + 4 } : { bottom: window.innerHeight - rect.top + 4 }),
@@ -100,8 +111,21 @@ export function Dropdown({ label, trigger, items, align = "end", className }: Dr
       >
         {trigger}
       </button>
-      {open && (
+      {open && panel && (
         <div
+          ref={popup}
+          id={menuId}
+          role="dialog"
+          aria-label={label}
+          style={position}
+          className="fixed z-drawer max-h-80 min-w-52 overflow-y-auto rounded-md border border-border bg-surface-elevated p-3 shadow-md animate-fade-in scrollbar-thin"
+        >
+          {children}
+        </div>
+      )}
+      {open && !panel && (
+        <div
+          ref={popup}
           id={menuId}
           role="menu"
           aria-label={label}

@@ -1,37 +1,67 @@
-import type { BetId, MatchId, TransactionId, WalletId } from "@betng/contracts";
+import type {
+  BetId,
+  MatchId,
+  SelectionId,
+  TransactionId,
+  WalletId,
+} from "@betng/contracts";
 import {
   DataSourceError,
-  FULL_TIME_SECONDS,
-  VIRTUAL_TIMING,
-  derivePhase,
+  MAX_SELECTIONS,
+  STAKE_LIMITS,
   formatMoney,
   formatScore,
-  matchClock,
+  resolvePhase,
   slipTotals,
   validateSlip,
+  type BetLegView,
+  type BetPlacementView,
+  type BetRejectionReason,
   type BetView,
   type ConnectionState,
+  type MatchClockView,
   type MatchEventView,
+  type MatchSignal,
   type MatchSummary,
   type MatchView,
   type NotificationPreferences,
   type NotificationView,
+  type PageView,
   type PlaceBetInput,
   type TeamView,
+  type TransactionQuery,
+  type TransactionStatus,
   type TransactionView,
   type WalletView,
 } from "@betng/ui-core";
 import type { Club } from "./clubs.js";
 import { COMPETITIONS } from "./clubs.js";
-import { marketsFor, settleSelection } from "./markets.js";
-import { uuidFrom } from "./prng.js";
-import { findFixture, statusAt, type FixtureRef } from "./season.js";
+import {
+  marketsFor,
+  oddsVersionAt,
+  repricedAtMs,
+  settleSelection,
+} from "./markets.js";
+import { rng, uuidFrom } from "./prng.js";
+import {
+  CYCLE_SECONDS,
+  bettingClosesMs,
+  bettingOpensMs,
+  findFixture,
+  fullTimeMs,
+  lifecycleAt,
+  settledMs,
+  statusAt,
+  type FixtureRef,
+} from "./season.js";
 import {
   releasedEvents,
+  scoringSide,
   scriptFor,
   statsAt,
   type ScriptEvent,
 } from "./simulate.js";
+import { VIRTUAL_TIMING, matchClock, minuteStartedAt } from "./timing.js";
 
 export interface KeyValueStorage {
   get(key: string): string | null | undefined;
@@ -55,10 +85,56 @@ interface AccountState {
   preferences: NotificationPreferences;
   viewed: string[];
   raised: string[];
+  placements: Record<string, BetPlacementView>;
+}
+
+export interface StreamHandlers {
+  readonly onEvent: (event: MatchEventView) => void;
+  readonly onSignal?: ((signal: MatchSignal) => void) | undefined;
 }
 
 const STORAGE_KEY = "betng.mock.account.v1";
 const WALLET_ID = uuidFrom("wallet:demo") as WalletId;
+const CURRENCY = "NGN";
+const WITHDRAWAL_PENDING_MS = 5_000;
+const REMEMBERED_PLACEMENTS = 200;
+const ODDS_TOLERANCE = 0.005;
+
+const LIFECYCLE_SIGNALS: Readonly<Record<string, MatchSignal>> = {
+  BETTING_OPEN: "BETTING_OPENED",
+  BETTING_CLOSED: "BETTING_CLOSED",
+  SIMULATION_STARTED: "SIMULATION_STARTED",
+  MATCH_FINISHED: "SETTLEMENT_STARTED",
+  SETTLEMENT_COMPLETED: "SETTLEMENT_COMPLETED",
+};
+
+const TRANSACTION_SORTS = {
+  createdAt: (a: TransactionView, b: TransactionView) =>
+    a.createdAt.localeCompare(b.createdAt),
+  amount: (a: TransactionView, b: TransactionView) => a.amount - b.amount,
+  balanceAfter: (a: TransactionView, b: TransactionView) =>
+    a.balanceAfter - b.balanceAfter,
+  type: (a: TransactionView, b: TransactionView) =>
+    a.type.localeCompare(b.type),
+} as const;
+
+/** A bare date as an upper bound covers that whole day. */
+function upperBound(to: string): number {
+  const parsed = Date.parse(to);
+
+  return /^\d{4}-\d{2}-\d{2}$/.test(to) ? parsed + 86_400_000 - 1 : parsed;
+}
+
+function clockView(kickoffAt: string, now: number): MatchClockView {
+  const clock = matchClock(kickoffAt, now);
+
+  return {
+    period: clock.period,
+    minute: clock.minute,
+    asOf: new Date(minuteStartedAt(kickoffAt, clock)).toISOString(),
+    minuteLengthMs: VIRTUAL_TIMING.secondsPerMinute * 1000,
+  };
+}
 
 export function teamView(club: Club): TeamView {
   return {
@@ -112,6 +188,8 @@ export class MockPlatform {
   private readonly accountListeners = new Set<() => void>();
   private outageTimer: ReturnType<typeof setTimeout> | undefined;
   private accountTimer: ReturnType<typeof setInterval> | undefined;
+  private readonly jitter = rng("latency");
+  private pendingWithdrawals = 0;
 
   public constructor(options: MockPlatformOptions = {}) {
     this.now = options.now ?? (() => Date.now());
@@ -135,7 +213,7 @@ export class MockPlatform {
   }
 
   public async delay(): Promise<void> {
-    const ms = this.latencyMs * (0.6 + Math.random() * 0.8);
+    const ms = this.latencyMs * (0.6 + this.jitter.next() * 0.8);
 
     if (ms > 0) await new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -151,6 +229,7 @@ export class MockPlatform {
   /** @endpoint GET /api/v1/matches/:id → Match (joined with fixture, league, teams) */
   public summary(fixture: FixtureRef, now: number = this.now()): MatchSummary {
     const status = statusAt(fixture, now);
+    const lifecycle = lifecycleAt(fixture, now);
     const kickoffAt = new Date(fixture.kickoffMs).toISOString();
     const script = scriptFor(fixture);
     const elapsed = (now - fixture.kickoffMs) / 1000;
@@ -159,7 +238,25 @@ export class MockPlatform {
       status === "COMPLETED"
         ? script.finalScore
         : (released.at(-1)?.score ?? { home: 0, away: 0 });
-    const phase = derivePhase(status, kickoffAt, now);
+    const clock =
+      status === "IN_PLAY" || status === "COMPLETED"
+        ? clockView(kickoffAt, now)
+        : undefined;
+    const phase = resolvePhase(status, { lifecycle, period: clock?.period });
+    const lastEventMs =
+      fixture.kickoffMs + (released.at(-1)?.releaseSeconds ?? 0) * 1000;
+    const updatedMs =
+      status === "SCHEDULED"
+        ? Math.min(now, bettingOpensMs(fixture) - CYCLE_SECONDS * 1000)
+        : status === "BETTING_OPEN"
+          ? Math.max(bettingOpensMs(fixture), repricedAtMs(fixture, now))
+          : status === "BETTING_CLOSED"
+            ? bettingClosesMs(fixture)
+            : status === "IN_PLAY"
+              ? Math.max(lastEventMs, Date.parse(clock?.asOf ?? kickoffAt))
+              : lifecycle === "SETTLEMENT_COMPLETED"
+                ? settledMs(fixture)
+                : fullTimeMs(fixture);
 
     return {
       id: fixture.matchId,
@@ -172,13 +269,14 @@ export class MockPlatform {
       home: teamView(fixture.home),
       away: teamView(fixture.away),
       kickoffAt,
-      bettingClosesAt: new Date(
-        fixture.kickoffMs - VIRTUAL_TIMING.bettingCloseLeadSeconds * 1000,
-      ).toISOString(),
+      bettingClosesAt: new Date(bettingClosesMs(fixture)).toISOString(),
       status,
       phase,
+      ...(clock === undefined ? {} : { clock }),
+      lifecycle,
       score,
       openMarkets: status === "BETTING_OPEN" ? 8 : 0,
+      updatedAt: new Date(updatedMs).toISOString(),
     };
   }
 
@@ -192,8 +290,7 @@ export class MockPlatform {
     const elapsed = (now - fixture.kickoffMs) / 1000;
     const released = releasedEvents(script, elapsed);
     const events = released.map((e, i) => toEventView(e, i, fixture));
-    const clock = matchClock(summary.kickoffAt, now);
-    const minute = summary.status === "COMPLETED" ? 90 : clock.minute;
+    const minute = summary.clock?.minute ?? 0;
 
     return {
       ...summary,
@@ -250,38 +347,53 @@ export class MockPlatform {
   }
 
   /**
-   * Streams a match's events as the clock releases them.
+   * Streams a match's events and lifecycle signals as the clock releases them.
    *
-   * @endpoint WS /live · SUBSCRIBE match:<id> → EVENT frames (LiveEvent)
+   * @endpoint WS /live · SUBSCRIBE match:<id> → EVENT frames (LiveEvent) and lifecycle frames (MatchSignal)
    */
-  public stream(
-    fixture: FixtureRef,
-    onEvent: (event: MatchEventView) => void,
-  ): () => void {
+  public stream(fixture: FixtureRef, handlers: StreamHandlers): () => void {
     const script = scriptFor(fixture);
+    const started = this.now();
     let delivered = releasedEvents(
       script,
-      (this.now() - fixture.kickoffMs) / 1000,
+      (started - fixture.kickoffMs) / 1000,
     ).length;
+    let lifecycle = lifecycleAt(fixture, started);
+    let oddsVersion = oddsVersionAt(fixture, started);
 
     const timer = setInterval(() => {
       // Nothing flows while the socket is down. The controller re-reads on
       // recovery, which is where the gap is closed.
       if (this.connection !== "CONNECTED") return;
 
-      const released = releasedEvents(
-        script,
-        (this.now() - fixture.kickoffMs) / 1000,
-      );
+      const now = this.now();
+      const nextLifecycle = lifecycleAt(fixture, now);
+      const nextVersion = oddsVersionAt(fixture, now);
+
+      if (nextLifecycle !== lifecycle) {
+        lifecycle = nextLifecycle;
+
+        const signal = LIFECYCLE_SIGNALS[lifecycle];
+
+        if (signal !== undefined) handlers.onSignal?.(signal);
+      }
+
+      if (nextVersion !== oddsVersion) {
+        oddsVersion = nextVersion;
+
+        if (lifecycle === "BETTING_OPEN") handlers.onSignal?.("ODDS_UPDATED");
+      }
+
+      const released = releasedEvents(script, (now - fixture.kickoffMs) / 1000);
 
       while (delivered < released.length) {
         const event = released[delivered] as ScriptEvent;
 
-        onEvent(toEventView(event, delivered, fixture));
+        handlers.onEvent(toEventView(event, delivered, fixture));
         delivered += 1;
       }
 
-      if (delivered >= script.events.length) clearInterval(timer);
+      if (lifecycle === "SETTLEMENT_COMPLETED") clearInterval(timer);
     }, 250);
 
     return () => {
@@ -303,6 +415,7 @@ export class MockPlatform {
           createdAt: new Date(this.now() - 86_400_000).toISOString(),
         },
       ],
+      placements: {},
       bets: [],
       notifications: [],
       preferences: {
@@ -347,14 +460,87 @@ export class MockPlatform {
       balance: this.account.balance,
       reserved: this.account.reserved,
       available: this.account.balance - this.account.reserved,
-      currency: "NGN",
+      pending: this.pendingTransactions().reduce(
+        (total, t) => total + Math.abs(t.amount),
+        0,
+      ),
+      currency: CURRENCY,
       simulated: true,
     };
   }
 
+  private statusOf(transaction: TransactionView): TransactionStatus {
+    return transaction.type === "WITHDRAWAL" &&
+      this.now() - Date.parse(transaction.createdAt) < WITHDRAWAL_PENDING_MS
+      ? "PENDING"
+      : "COMPLETED";
+  }
+
+  private pendingTransactions(): readonly TransactionView[] {
+    return this.account.transactions.filter(
+      (t) => this.statusOf(t) === "PENDING",
+    );
+  }
+
   /** @endpoint GET /api/v1/wallets/:userId/transactions → { items: Transaction[] } */
   public transactions(): readonly TransactionView[] {
-    return [...this.account.transactions].reverse();
+    return this.account.transactions
+      .map(
+        (t): TransactionView => ({
+          ...t,
+          status: this.statusOf(t),
+          currency: CURRENCY,
+          ...(t.type.startsWith("BET_") && t.reference !== undefined
+            ? { betId: t.reference }
+            : {}),
+        }),
+      )
+      .reverse();
+  }
+
+  /** @endpoint GET /api/v1/wallets/:userId/transactions?page=&pageSize=&types=&statuses=&from=&to=&search=&sort=&direction= → Page<Transaction> */
+  public queryTransactions(
+    query: TransactionQuery,
+  ): PageView<TransactionView> {
+    const page = Math.max(1, Math.trunc(query.page ?? 1));
+    const pageSize = Math.min(100, Math.max(1, Math.trunc(query.pageSize ?? 20)));
+    const from = query.from === undefined ? undefined : Date.parse(query.from);
+    const to = query.to === undefined ? undefined : upperBound(query.to);
+    const needle = query.search?.trim().toLowerCase() ?? "";
+
+    const matched = this.transactions().filter((t) => {
+      const at = Date.parse(t.createdAt);
+
+      return (
+        (query.types === undefined ||
+          query.types.length === 0 ||
+          query.types.includes(t.type)) &&
+        (query.statuses === undefined ||
+          query.statuses.length === 0 ||
+          (t.status !== undefined && query.statuses.includes(t.status))) &&
+        (from === undefined || Number.isNaN(from) || at >= from) &&
+        (to === undefined || Number.isNaN(to) || at <= to) &&
+        (needle === "" ||
+          `${t.description} ${t.reference ?? ""} ${t.id} ${t.type}`
+            .toLowerCase()
+            .includes(needle))
+      );
+    });
+
+    const compare =
+      TRANSACTION_SORTS[
+        (query.sort ?? "createdAt") as keyof typeof TRANSACTION_SORTS
+      ] ?? TRANSACTION_SORTS.createdAt;
+    const sign = query.direction === "asc" ? 1 : -1;
+
+    matched.sort((a, b) => sign * compare(a, b));
+
+    return {
+      items: matched.slice((page - 1) * pageSize, page * pageSize),
+      page,
+      pageSize,
+      total: matched.length,
+    };
   }
 
   private ledger(
@@ -407,66 +593,179 @@ export class MockPlatform {
     return this.wallet();
   }
 
-  /** @endpoint POST /api/v1/bets PlaceBetRequest → Bet */
-  public placeBet(input: PlaceBetInput): BetView {
+  /**
+   * Business refusals are returned as a REJECTED placement; only a malformed request throws.
+   *
+   * @endpoint POST /api/v1/bets PlaceBetRequest → BetPlacement (the client reference travels in the `idempotency-key` header)
+   */
+  public placeBet(input: PlaceBetInput): BetPlacementView {
+    const clientReference = input.clientReference.trim();
+
+    if (clientReference === "" || clientReference.length > 128) {
+      throw new DataSourceError(
+        "VALIDATION",
+        "A bet needs a client reference so it is never placed twice.",
+      );
+    }
+
+    const earlier = this.account.placements[clientReference];
+
+    if (earlier !== undefined) return earlier;
+
+    const refuse = (
+      reason: BetRejectionReason,
+      message: string,
+      extra: Pick<BetPlacementView, "maxStake" | "rejectedSelectionIds"> = {},
+    ): BetPlacementView => ({
+      outcome: "REJECTED",
+      clientReference,
+      reason,
+      message,
+      ...extra,
+    });
+
+    const { selections, stake } = input;
+    const now = this.now();
     const problem = validateSlip(
-      input.selections,
-      input.stake,
+      selections,
+      stake,
       this.account.balance - this.account.reserved,
     );
 
-    if (problem === "EMPTY")
-      throw new DataSourceError("VALIDATION", "Add a selection first.");
-    if (problem === "BELOW_MIN")
-      throw new DataSourceError("VALIDATION", "The minimum stake is ₦50.");
-    if (problem === "ABOVE_MAX")
-      throw new DataSourceError("VALIDATION", "The maximum stake is ₦500,000.");
+    if (problem === "EMPTY") return refuse("INVALID_BET", "Add a selection first.");
+    if (!Number.isInteger(stake) || problem === "BELOW_MIN") {
+      return refuse(
+        "INVALID_BET",
+        `The minimum stake is ${formatMoney(STAKE_LIMITS.min)}.`,
+      );
+    }
+    if (problem === "ABOVE_MAX") {
+      return refuse(
+        "STAKE_LIMITED",
+        `The maximum stake is ${formatMoney(STAKE_LIMITS.max)}.`,
+        { maxStake: STAKE_LIMITS.max },
+      );
+    }
+    if (
+      selections.length > MAX_SELECTIONS ||
+      new Set(selections.map((s) => s.matchId)).size !== selections.length
+    ) {
+      return refuse(
+        "INVALID_BET",
+        `A bet takes up to ${String(MAX_SELECTIONS)} selections, one per match.`,
+      );
+    }
+
+    const closed: SelectionId[] = [];
+    const unknown: SelectionId[] = [];
+    const moved: SelectionId[] = [];
+    const legs: BetLegView[] = [];
+
+    for (const leg of selections) {
+      const fixture = this.fixture(leg.matchId);
+
+      if (fixture === undefined || statusAt(fixture, now) !== "BETTING_OPEN") {
+        closed.push(leg.selectionId);
+        continue;
+      }
+
+      const market = marketsFor(fixture, now).markets.find(
+        (m) => m.id === leg.marketId,
+      );
+      const priced = market?.selections.find((s) => s.id === leg.selectionId);
+
+      if (market === undefined || priced === undefined) {
+        unknown.push(leg.selectionId);
+        continue;
+      }
+
+      if (Math.abs(priced.odds - leg.odds) > ODDS_TOLERANCE) {
+        moved.push(leg.selectionId);
+        continue;
+      }
+
+      // The price and the labels on the bet are the platform's, never the client's.
+      legs.push({
+        ...leg,
+        marketKind: market.kind,
+        marketName: market.name,
+        selectionLabel: priced.label,
+        odds: priced.odds,
+        kickoffAt: new Date(fixture.kickoffMs).toISOString(),
+        oddsVersion: oddsVersionAt(fixture, now),
+        outcome: "PENDING",
+      });
+    }
+
+    const labelOf = (id: SelectionId): string =>
+      selections.find((s) => s.selectionId === id)?.matchLabel ?? "a match";
+
+    if (closed.length > 0) {
+      return refuse(
+        "MARKET_CLOSED",
+        closed.length === 1
+          ? `Betting has closed on ${labelOf(closed[0] as SelectionId)}.`
+          : `Betting has closed on ${String(closed.length)} of your selections.`,
+        { rejectedSelectionIds: closed },
+      );
+    }
+    if (unknown.length > 0) {
+      return refuse("INVALID_BET", "A selection on this slip is no longer offered.", {
+        rejectedSelectionIds: unknown,
+      });
+    }
+    if (moved.length > 0) {
+      return refuse(
+        "ODDS_CHANGED",
+        moved.length === 1
+          ? `The odds changed on ${labelOf(moved[0] as SelectionId)}. Review the new price.`
+          : `The odds changed on ${String(moved.length)} of your selections. Review the new prices.`,
+        { rejectedSelectionIds: moved },
+      );
+    }
     if (problem === "INSUFFICIENT") {
-      throw new DataSourceError(
+      return refuse(
         "INSUFFICIENT_FUNDS",
         "Your simulated balance does not cover that stake.",
       );
     }
 
-    for (const leg of input.selections) {
-      const fixture = this.fixture(leg.matchId);
-
-      if (
-        fixture === undefined ||
-        statusAt(fixture, this.now()) !== "BETTING_OPEN"
-      ) {
-        throw new DataSourceError(
-          "BETTING_CLOSED",
-          `Betting has closed on ${leg.matchLabel}.`,
-        );
-      }
-    }
-
-    const totals = slipTotals(input.selections, input.stake);
-    const id = uuidFrom(
-      `bet:${String(this.account.bets.length)}:${String(this.now())}`,
-    ) as BetId;
+    const totals = slipTotals(legs, stake);
+    const id = uuidFrom(`bet:${clientReference}`) as BetId;
 
     const bet: BetView = {
       id,
-      legs: input.selections.map((s) => ({ ...s, outcome: "PENDING" })),
-      stake: input.stake,
+      legs,
+      stake,
       totalOdds: totals.totalOdds,
       potentialPayout: totals.potentialReturn,
       status: "PENDING",
-      placedAt: new Date(this.now()).toISOString(),
+      placedAt: new Date(now).toISOString(),
+      currency: CURRENCY,
+      reference: clientReference,
+    };
+    const placement: BetPlacementView = {
+      outcome: "ACCEPTED",
+      clientReference,
+      bet,
     };
 
     this.ledger(
       "BET_STAKE",
-      -input.stake,
-      `Stake · ${bet.legs.map((l) => l.matchLabel).join(", ")}`,
+      -stake,
+      `Stake · ${legs.map((l) => l.matchLabel).join(", ")}`,
       id,
     );
     this.account.bets.push(bet);
+    this.account.placements = Object.fromEntries(
+      [
+        ...Object.entries(this.account.placements),
+        [clientReference, placement] as const,
+      ].slice(-REMEMBERED_PLACEMENTS),
+    );
     this.persist();
 
-    return bet;
+    return placement;
   }
 
   /** @endpoint GET /api/v1/bets?userId= → { items: Bet[] } */
@@ -588,14 +887,14 @@ export class MockPlatform {
 
       if (status === "IN_PLAY" && prefs.goals && watched.has(matchId)) {
         const goals = this.view(fixture, now).events.filter(
-          (e) => e.kind === "GOAL",
+          (e) => scoringSide(e) !== undefined,
         );
 
         for (const goal of goals) {
           changed =
             this.raise(`goal:${goal.id}`, {
               kind: "MATCH_EVENT",
-              title: `Goal · ${goal.side === "HOME" ? s.home.name : s.away.name}`,
+              title: `Goal · ${scoringSide(goal) === "HOME" ? s.home.name : s.away.name}`,
               body: `${goal.player ?? ""} · ${formatScore(goal.score.home, goal.score.away)} · ${String(goal.minute)}'`,
               matchId: matchId as MatchId,
             }) || changed;
@@ -611,10 +910,7 @@ export class MockPlatform {
 
         if (fixture === undefined) return { ...leg, outcome: "VOID" as const };
 
-        const seconds = (now - fixture.kickoffMs) / 1000;
-
-        if (seconds < FULL_TIME_SECONDS + VIRTUAL_TIMING.settlementDelaySeconds)
-          return leg;
+        if (now < settledMs(fixture)) return leg;
 
         const score = scriptFor(fixture).finalScore;
 
@@ -674,6 +970,12 @@ export class MockPlatform {
 
       changed = true;
     }
+
+    const pending = this.pendingTransactions().length;
+
+    if (pending < this.pendingWithdrawals) changed = true;
+
+    this.pendingWithdrawals = pending;
 
     if (changed) this.persist();
   }

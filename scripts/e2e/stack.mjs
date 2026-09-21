@@ -48,6 +48,7 @@ export function stackEnv(overrides = {}) {
     INTERNAL_SERVICE_TOKEN: "e2e-internal-service-token-0123456789",
     SIMULATION_SEED_SECRET: "e2e-simulation-seed-secret-0123456789abcdef",
     DEV_VERIFICATION_CODE: "246810",
+    SEED_DEMO_DATA: "true",
     CORS_ORIGINS: "http://localhost:4200",
     LOGIN_RATE_LIMIT: "1000",
     SERVICE_TIMEOUT_MS: "8000",

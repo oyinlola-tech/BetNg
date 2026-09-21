@@ -14,6 +14,18 @@ describe("translateApiError", () => {
     [api(429, "RATE_LIMITED"), "RATE_LIMITED"],
     [api(400, "VALIDATION_FAILED"), "VALIDATION"],
     [api(500, "INTERNAL_ERROR"), "SERVER"],
+    [api(422, "VALIDATION_FAILED"), "VALIDATION"],
+    [api(502, "UPSTREAM_UNAVAILABLE"), "UNAVAILABLE"],
+    [api(503, "SERVICE_UNAVAILABLE"), "UNAVAILABLE"],
+    [api(504, "INTERNAL_ERROR"), "TIMEOUT"],
+    [api(501, "NOT_IMPLEMENTED"), "NOT_IMPLEMENTED"],
+    [api(409, "MARKET_CLOSED"), "BETTING_CLOSED"],
+    [api(409, "ODDS_CHANGED"), "ODDS_CHANGED"],
+    [api(422, "STAKE_LIMITED"), "STAKE_LIMITED"],
+    [api(422, "RISK_REJECTED"), "BET_REJECTED"],
+    [api(402, "INSUFFICIENT_FUNDS"), "INSUFFICIENT_FUNDS"],
+    [new BetNgApiError(0, { code: "UPSTREAM_UNAVAILABLE", message: "m", requestId: "r" }, { kind: "offline" }), "OFFLINE"],
+    [new BetNgApiError(0, { code: "SERVICE_UNAVAILABLE", message: "m", requestId: "r" }, { kind: "timeout" }), "TIMEOUT"],
   ])("maps %o to %s", (cause, code) => {
     expect(translateApiError(cause).code).toBe(code);
   });
@@ -34,5 +46,25 @@ describe("translateApiError", () => {
 
   it("treats anything unknown as a server failure", () => {
     expect(translateApiError("boom").code).toBe("SERVER");
+  });
+
+  it("never shows a server's own words for a 5xx", () => {
+    const cause = new BetNgApiError(500, { code: "INTERNAL_ERROR", message: "TypeError: x is undefined at /srv/app.js:10", requestId: "req-1" });
+    const error = translateApiError(cause);
+
+    expect(error.message).not.toContain("TypeError");
+    expect(error.detail.requestId).toBe("req-1");
+  });
+
+  it("carries field errors and the retry delay", () => {
+    const cause = new BetNgApiError(
+      429,
+      { code: "RATE_LIMITED", message: "slow down", requestId: "r", details: [{ path: "stake", message: "Too small" }, { path: "stake", message: "second" }] },
+      { retryAfterSeconds: 30 },
+    );
+    const error = translateApiError(cause);
+
+    expect(error.detail.fields).toEqual({ stake: "Too small" });
+    expect(error.detail.retryAfterSeconds).toBe(30);
   });
 });

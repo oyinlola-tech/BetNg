@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { runMatchRequestSchema } from "@betng/contracts";
 import { createRedisConnection } from "@betng/service-kit";
 import { createSchedulerJob } from "../src/jobs/index.js";
@@ -29,6 +29,8 @@ const FULL_WALK = [
 ];
 
 let harness: Harness;
+
+vi.setConfig({ testTimeout: 30_000, hookTimeout: 30_000 });
 
 const silentLogger = {
   info: () => undefined,
@@ -460,6 +462,7 @@ describe("match lifecycle", () => {
         ),
       ).toBe(true);
     } finally {
+      await harness.retire({ leagueId: league.id });
       await harness.prisma.league.update({
         where: { id: league.id },
         data: { status: "ARCHIVED" },

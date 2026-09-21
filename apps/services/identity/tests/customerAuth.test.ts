@@ -182,7 +182,12 @@ describe("e-mail verification", () => {
   });
 
   it("honours DEV_VERIFICATION_CODE only outside production and never logs codes in production", async () => {
-    const base = { IDENTITY_DATABASE_URL: "postgresql://u:p@localhost:5432/db?schema=identity", DEV_VERIFICATION_CODE: "123456" };
+    const base = {
+      IDENTITY_DATABASE_URL: "postgresql://u:p@localhost:5432/db?schema=identity",
+      DEV_VERIFICATION_CODE: "123456",
+      LOG_VERIFICATION_CODES: "true",
+      SEED_DEMO_DATA: "true",
+    };
     const development = await loadIdentityConfig({ ...base, NODE_ENV: "development" });
     const production = await loadIdentityConfig({ ...base, NODE_ENV: "production" });
     const unset = await loadIdentityConfig({ IDENTITY_DATABASE_URL: base.IDENTITY_DATABASE_URL, NODE_ENV: "test" });
@@ -191,6 +196,10 @@ describe("e-mail verification", () => {
     expect(development.security.logVerificationCodes).toBe(true);
     expect(production.security.devVerificationCode).toBeUndefined();
     expect(production.security.logVerificationCodes).toBe(false);
+    expect(development.security.seedDemoData).toBe(true);
+    expect(production.security.seedDemoData).toBe(false);
+    expect(unset.security.seedDemoData).toBe(false);
+    expect(unset.security.logVerificationCodes).toBe(false);
     expect(unset.security.devVerificationCode).toBeUndefined();
     expect(unset.security).toMatchObject({ customerSessionTtlHours: 168, cashierSessionTtlHours: 12, adminSessionTtlHours: 8 });
   });

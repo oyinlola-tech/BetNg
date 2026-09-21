@@ -75,7 +75,7 @@ export interface DemoSeedOptions {
 export async function runDemoSeed(options: DemoSeedOptions): Promise<boolean> {
   const { config, store, hasher, logger } = options;
 
-  if (config.service.environment === "production" || (await store.admins.count()) > 0) {
+  if (!config.security.seedDemoData || (await store.admins.count()) > 0) {
     return false;
   }
 

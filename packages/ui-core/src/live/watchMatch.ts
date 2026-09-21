@@ -117,7 +117,11 @@ export function watchMatch(
     const known = current.events.some(
       (e) =>
         e.id === event.id ||
-        (e.kind === event.kind && e.minute === event.minute && e.side === event.side),
+        (e.kind === event.kind &&
+          e.minute === event.minute &&
+          e.side === event.side &&
+          e.score.home === event.score.home &&
+          e.score.away === event.score.away),
     );
 
     if (known) return;

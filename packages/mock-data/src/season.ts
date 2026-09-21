@@ -1,7 +1,7 @@
-import type { FixtureId, MatchId } from "@betng/contracts";
-import { FULL_TIME_SECONDS, VIRTUAL_TIMING } from "@betng/ui-core";
+import type { FixtureId, MatchId, MatchLifecycle } from "@betng/contracts";
 import type { Club, Competition } from "./clubs.js";
 import { rng, uuidFrom } from "./prng.js";
+import { FULL_TIME_SECONDS, VIRTUAL_TIMING } from "./timing.js";
 
 export const CYCLE_SECONDS = 240;
 
@@ -118,6 +118,14 @@ export function currentRound(competition: Competition, now: number): number {
   return Math.floor((now - kickoffMs(competition, 0)) / (CYCLE_SECONDS * 1000));
 }
 
+export function bettingOpensMs(fixture: FixtureRef): number {
+  return fixture.kickoffMs - CYCLE_SECONDS * 1000;
+}
+
+export function bettingClosesMs(fixture: FixtureRef): number {
+  return fixture.kickoffMs - VIRTUAL_TIMING.bettingCloseLeadSeconds * 1000;
+}
+
 export function statusAt(
   fixture: FixtureRef,
   now: number,
@@ -129,6 +137,33 @@ export function statusAt(
   if (seconds < 0) return "BETTING_CLOSED";
   if (seconds < FULL_TIME_SECONDS) return "IN_PLAY";
   return "COMPLETED";
+}
+
+export function fullTimeMs(fixture: FixtureRef): number {
+  return fixture.kickoffMs + FULL_TIME_SECONDS * 1000;
+}
+
+export function settledMs(fixture: FixtureRef): number {
+  return fullTimeMs(fixture) + VIRTUAL_TIMING.settlementDelaySeconds * 1000;
+}
+
+export function lifecycleAt(fixture: FixtureRef, now: number): MatchLifecycle {
+  switch (statusAt(fixture, now)) {
+    case "SCHEDULED":
+      return "FIXTURE_CREATED";
+    case "BETTING_OPEN":
+      return "BETTING_OPEN";
+    case "BETTING_CLOSED":
+      return "BETTING_CLOSED";
+    case "IN_PLAY":
+      return now - fixture.kickoffMs < VIRTUAL_TIMING.secondsPerMinute * 1000
+        ? "SIMULATION_STARTED"
+        : "EVENTS_PUBLISHED";
+    case "COMPLETED":
+      return now < settledMs(fixture)
+        ? "MATCH_FINISHED"
+        : "SETTLEMENT_COMPLETED";
+  }
 }
 
 export function findFixture(

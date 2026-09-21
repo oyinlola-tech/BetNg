@@ -17,6 +17,8 @@ export interface SecurityConfig {
   /** There is no mail server; issued codes are logged in development and test, never in production. */
   readonly logVerificationCodes: boolean;
   readonly seedAdminTotpSecret: string | undefined;
+  /** Opt-in and never in production: an unset NODE_ENV must not create accounts with known passwords. */
+  readonly seedDemoData: boolean;
 }
 
 export interface IdentityConfig {
@@ -38,6 +40,8 @@ const securityEnvSchema = z.object({
     blankAsUnset,
     z.string().regex(/^\d{6}$/, "must be six digits").optional(),
   ),
+  SEED_DEMO_DATA: z.preprocess(blankAsUnset, z.enum(["true", "false"]).default("false")),
+  LOG_VERIFICATION_CODES: z.preprocess(blankAsUnset, z.enum(["true", "false"]).default("false")),
   SEED_ADMIN_TOTP_SECRET: z.preprocess(
     blankAsUnset,
     z.string().regex(/^[A-Z2-7]{16,64}$/, "must be 16-64 base32 characters").optional(),
@@ -74,7 +78,8 @@ export async function loadIdentityConfig(
       cashierSessionTtlHours: parsed.data.CASHIER_SESSION_TTL_HOURS,
       adminSessionTtlHours: parsed.data.ADMIN_SESSION_TTL_HOURS,
       devVerificationCode: production ? undefined : parsed.data.DEV_VERIFICATION_CODE,
-      logVerificationCodes: !production,
+      logVerificationCodes: !production && parsed.data.LOG_VERIFICATION_CODES === "true",
+      seedDemoData: !production && parsed.data.SEED_DEMO_DATA === "true",
       seedAdminTotpSecret: production ? undefined : parsed.data.SEED_ADMIN_TOTP_SECRET,
     }),
   });

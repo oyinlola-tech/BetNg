@@ -98,17 +98,18 @@ export function parseMoney(
   return value > BigInt(Number.MAX_SAFE_INTEGER) ? undefined : Number(value);
 }
 
-const ODDS_SCALE = 100n;
+/** Prices are carried to four places so a three-decimal price multiplies exactly. */
+const ODDS_SCALE = 10_000n;
 
 function scaledOdds(odds: number): bigint {
-  return BigInt(Math.round(odds * 100));
+  return BigInt(Math.round(odds * 10_000));
 }
 
 export function multiplyOdds(odds: readonly number[]): number {
   if (odds.length === 0) return 0;
 
   const product = odds.reduce((acc, o) => acc * scaledOdds(o), 1n);
-  const divisor = ODDS_SCALE ** BigInt(odds.length - 1);
+  const divisor = ODDS_SCALE ** BigInt(odds.length) / 100n;
 
   return Number((product + divisor / 2n) / divisor) / 100;
 }

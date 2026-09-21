@@ -9,12 +9,13 @@ import type {
   RiskState,
   ServiceHealth,
 } from "@betng/contracts";
-import { FULL_TIME_SECONDS, VIRTUAL_TIMING, toLocalDateKey } from "@betng/ui-core";
+import { estimateReturn, toLocalDateKey } from "@betng/ui-core";
 import { COMPETITIONS } from "../clubs.js";
 import { marketsFor } from "../markets.js";
 import { hash, rng } from "../prng.js";
 import { CYCLE_SECONDS, currentRound, fixturesForRound, statusAt, type FixtureRef } from "../season.js";
 import { releasedEvents, scriptFor } from "../simulate.js";
+import { FULL_TIME_SECONDS, VIRTUAL_TIMING } from "../timing.js";
 import { SERVICES } from "./seed.js";
 
 export interface MatchOverride {
@@ -138,7 +139,7 @@ export function marketOddsFor(f: FixtureRef, now: number, overrides: Overrides):
         openingOdds: opening.markets[index]?.selections[i]?.odds ?? s.odds,
         modelProbability: s.probability,
         stake,
-        liability: Math.max(0, Math.round(stake * s.odds) - marketStake),
+        liability: Math.max(0, estimateReturn(stake, [s.odds]) - marketStake),
       };
     });
     const suspended = overrides.markets[market.id] === "SUSPENDED" || matchOverride.betting === "CLOSED" || matchOverride.voided === true;
@@ -195,7 +196,7 @@ export function riskOverview(now: number, overrides: Overrides, exposureLimit: n
       byMarket.set(market.marketType, group);
       stake += marketStake;
       matchExposure += market.exposure;
-      potentialPayout += Math.max(0, ...market.selections.map((s) => Math.round(s.stake * s.currentOdds)));
+      potentialPayout += Math.max(0, ...market.selections.map((s) => estimateReturn(s.stake, [s.currentOdds])));
     }
 
     totalStake += stake;

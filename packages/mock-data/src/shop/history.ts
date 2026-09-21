@@ -1,10 +1,11 @@
 import type { Cashier, MarketId, MatchId, SelectionId, Ticket, TicketId, TicketSelection } from "@betng/contracts";
-import { FULL_TIME_SECONDS, VIRTUAL_TIMING, formatScore, toLocalDateKey, type MarketKind } from "@betng/ui-core";
+import { estimateReturn, formatScore, multiplyOdds, toLocalDateKey, type MarketKind } from "@betng/ui-core";
 import { COMPETITIONS } from "../clubs.js";
 import { marketsFor, settleSelection } from "../markets.js";
 import { rng, uuidFrom, type Rng } from "../prng.js";
 import { currentRound, fixturesForRound, type FixtureRef } from "../season.js";
 import { scriptFor } from "../simulate.js";
+import { FULL_TIME_SECONDS, VIRTUAL_TIMING } from "../timing.js";
 import { COUNTER_STAFF, CUSTOMERS, SHOP, SHOP_ID, TICKET_EXPIRY_DAYS } from "./directory.js";
 
 const DAY_MS = 86_400_000;
@@ -88,7 +89,7 @@ export function pastDayTickets(dateKey: string, now: number): readonly Ticket[] 
     const seller = random.pick(COUNTER_STAFF);
     const stake = random.pick(STAKES);
     const totalOdds = combinedOddsOf(legs);
-    const potentialPayout = Math.round(stake * totalOdds);
+    const potentialPayout = payoutOf(stake, legs);
     const result = statusOf(legs);
     const settledAtMs = placedAtMs + 180_000 + (FULL_TIME_SECONDS + VIRTUAL_TIMING.settlementDelaySeconds) * 1000;
     const collected = result === "WON" && random.chance(0.9);
@@ -190,7 +191,7 @@ export function todaySeedTickets(now: number): readonly Ticket[] {
     const settledAtMs = lastKickoff + settleLead;
     const seller = COUNTER_STAFF[index % COUNTER_STAFF.length] as Cashier;
     const totalOdds = combinedOddsOf(legs);
-    const potentialPayout = Math.round(plan.stake * totalOdds);
+    const potentialPayout = payoutOf(plan.stake, legs);
     const result = statusOf(legs);
     const customer = plan.customer === undefined ? undefined : CUSTOMERS[plan.customer];
     const base = {
@@ -230,5 +231,9 @@ export function todaySeedTickets(now: number): readonly Ticket[] {
 }
 
 export function combinedOddsOf(legs: readonly { readonly odds: number }[]): number {
-  return Math.round(legs.reduce((acc, l) => acc * l.odds, 1) * 100) / 100;
+  return multiplyOdds(legs.map((l) => l.odds));
+}
+
+export function payoutOf(stake: number, legs: readonly { readonly odds: number }[]): number {
+  return estimateReturn(stake, legs.map((l) => l.odds));
 }

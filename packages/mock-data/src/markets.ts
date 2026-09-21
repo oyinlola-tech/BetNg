@@ -1,5 +1,6 @@
 import type { MarketId, SelectionId } from "@betng/contracts";
 import type {
+  MarketGroupKey,
   MarketKind,
   MarketView,
   MatchMarketsView,
@@ -8,7 +9,7 @@ import type {
 } from "@betng/ui-core";
 import { expectedGoals } from "./simulate.js";
 import { hash, uuidFrom } from "./prng.js";
-import { statusAt, type FixtureRef } from "./season.js";
+import { bettingClosesMs, statusAt, type FixtureRef } from "./season.js";
 
 const OVERROUND = 1.07;
 const MAX_GOALS = 8;
@@ -224,12 +225,37 @@ function price(probability: number, marketTotal: number): number {
   return Math.min(250, Math.max(1.01, Math.round(odds * 100) / 100));
 }
 
+const REPRICE_MS = 45_000;
+
 /** A small, slow, deterministic drift so prices move between refreshes. */
 function driftAt(matchId: string, now: number): number {
-  const bucket = Math.floor(now / 45_000);
+  const bucket = Math.floor(now / REPRICE_MS);
 
   return ((hash(`${matchId}:${String(bucket)}`) % 1000) / 1000 - 0.5) * 0.06;
 }
+
+/** The instant prices are read at: they stop moving once betting closes. */
+function pricedAt(fixture: FixtureRef, now: number): number {
+  return Math.min(now, bettingClosesMs(fixture));
+}
+
+/** Increments each time the book is repriced; a slip carries it so a stale price is detectable. */
+export function oddsVersionAt(fixture: FixtureRef, now: number): number {
+  return Math.floor(pricedAt(fixture, now) / REPRICE_MS);
+}
+
+export function repricedAtMs(fixture: FixtureRef, now: number): number {
+  return oddsVersionAt(fixture, now) * REPRICE_MS;
+}
+
+const GROUPS: Readonly<Record<MarketKind, MarketGroupKey>> = {
+  MATCH_RESULT: "MAIN",
+  DOUBLE_CHANCE: "MAIN",
+  OVER_UNDER: "GOALS",
+  BOTH_TEAMS_TO_SCORE: "GOALS",
+  CORRECT_SCORE: "SCORE",
+  GOAL_SPREAD: "HANDICAP",
+};
 
 /**
  * Every market for a fixture, priced at `now`.
@@ -245,8 +271,21 @@ export function marketsFor(fixture: FixtureRef, now: number): MatchMarketsView {
         ? "SETTLED"
         : "SUSPENDED";
 
-  const current = specs(fixture, driftAt(fixture.matchId, now));
-  const previous = specs(fixture, driftAt(fixture.matchId, now - 45_000));
+  const at = pricedAt(fixture, now);
+  const oddsVersion = oddsVersionAt(fixture, now);
+  const updatedAt = new Date(
+    status === "BETTING_OPEN" || status === "SCHEDULED"
+      ? repricedAtMs(fixture, now)
+      : bettingClosesMs(fixture),
+  ).toISOString();
+  const selectionStatus =
+    marketStatus === "OPEN"
+      ? "OPEN"
+      : marketStatus === "SETTLED"
+        ? "UNAVAILABLE"
+        : "SUSPENDED";
+  const current = specs(fixture, driftAt(fixture.matchId, at));
+  const previous = specs(fixture, driftAt(fixture.matchId, at - REPRICE_MS));
 
   const markets = current.map((spec, index): MarketView => {
     const marketId = uuidFrom(
@@ -288,8 +327,20 @@ export function marketsFor(fixture: FixtureRef, now: number): MatchMarketsView {
           odds,
           probability: Math.round((o.probability / total) * 1000) / 1000,
           trend,
+          status: selectionStatus,
         };
       }),
+      group: GROUPS[spec.kind],
+      oddsVersion,
+      ...(marketStatus === "SUSPENDED"
+        ? {
+            suspensionReason:
+              status === "SCHEDULED"
+                ? "Betting has not opened"
+                : "Betting has closed",
+          }
+        : {}),
+      updatedAt,
     };
   });
 

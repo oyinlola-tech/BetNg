@@ -86,7 +86,6 @@ export interface CatalogueRepository {
   listTeams(leagueId?: string): Promise<readonly TeamRecord[]>;
   findTeam(id: string): Promise<TeamRecord | undefined>;
   createTeam(team: NewTeam): Promise<TeamRecord>;
-  /** `afterUpdate` runs inside the update's transaction: if it throws, the change is rolled back. */
   updateTeam(
     id: string,
     patch: TeamPatch,

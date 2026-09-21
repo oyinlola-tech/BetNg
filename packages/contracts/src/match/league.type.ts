@@ -69,7 +69,7 @@ export const teamSchema = z.object({
   id: brandedIdSchema<"TeamId">(),
   leagueId: brandedIdSchema<"LeagueId">(),
   name: z.string().min(1).max(120),
-  shortName: z.string().min(2).max(8),
+  shortName: z.string().min(2).max(12),
   strength: z.number().min(0).max(100),
   city: z.string().max(60).optional(),
   stadium: z.string().max(80).optional(),

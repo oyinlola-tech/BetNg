@@ -33,6 +33,7 @@
     "dev:ts": "node scripts/dev.mjs --ts-only",
     "dev:tv": "pnpm --filter @betng/tv dev",
     "dev:web": "pnpm --filter @betng/web dev",
+    "e2e": "node scripts/e2e/scenario.mjs",
     "format": "prettier --write \"**/*.{ts,tsx,json,md,yml,yaml}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,json,md,yml,yaml}\"",
     "infra:down": "docker compose --env-file .env -f infrastructure/docker/docker-compose.yml down",

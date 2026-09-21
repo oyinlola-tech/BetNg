@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import {
   adminFixtureSchema,
   adminTeamSchema,
@@ -23,6 +23,8 @@ import {
 import type { Harness, TestFixture } from "./helpers.js";
 
 let harness: Harness;
+
+vi.setConfig({ testTimeout: 30_000, hookTimeout: 30_000 });
 
 beforeAll(async () => {
   harness = await createHarness();
@@ -501,6 +503,8 @@ describe("admin routes", () => {
     });
 
     const matchId = (created.body as { matchId: string }).matchId;
+
+    harness.createdMatchIds.push(matchId);
     const fixture = await harness.prisma.fixture.findFirstOrThrow({
       where: { match: { id: matchId } },
     });

@@ -133,6 +133,8 @@ export async function startHarness(): Promise<Harness> {
     IDENTITY_PORT: String(TEST_PORT),
     IDENTITY_DATABASE_URL: url,
     LOG_LEVEL: "info",
+    LOG_VERIFICATION_CODES: "true",
+    SEED_DEMO_DATA: "true",
   });
 
   const app: IdentityApp = createApp(config);

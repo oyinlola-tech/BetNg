@@ -74,3 +74,16 @@ export function instantAtMinute(kickoffAt: string, minute: number): number {
 
   return start + (SECOND_HALF_START_SECONDS + (minute - 45) * spm) * 1000;
 }
+
+/** When the minute a clock reports began. Minute 45 begins twice: once before the break and once after it. */
+export function minuteStartedAt(kickoffAt: string, clock: MatchClock): number {
+  const start = Date.parse(kickoffAt);
+
+  if (clock.period === "SECOND_HALF" || clock.period === "FULL_TIME") {
+    const into = (clock.minute - 45) * VIRTUAL_TIMING.secondsPerMinute;
+
+    return start + (SECOND_HALF_START_SECONDS + into) * 1000;
+  }
+
+  return instantAtMinute(kickoffAt, Math.min(clock.minute, 45));
+}

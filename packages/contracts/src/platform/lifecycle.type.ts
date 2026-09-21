@@ -90,7 +90,7 @@ export type ProbabilityMatrix = z.infer<typeof probabilityMatrixSchema>;
 export const simulationTeamInputSchema = z.object({
   teamId: brandedIdSchema<"TeamId">(),
   name: z.string().min(1).max(120),
-  shortName: z.string().min(2).max(8),
+  shortName: z.string().min(2).max(12),
   strength: teamStrengthSchema,
 });
 
