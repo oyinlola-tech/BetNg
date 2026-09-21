@@ -1,67 +1,55 @@
 import { useState } from "react";
-import { Link, useParams, useSearchParams } from "react-router";
-import { ChevronLeft, Pencil, Plus } from "lucide-react";
-import { formatMoney, formatRelative } from "@betng/ui-core";
-import { ErrorState, KpiCard, LoadingState, Panel, RankedBars, Tabs } from "@betng/ui-web";
-import { Field, Meter, Mono, Status } from "../components/Bits";
-import { CashierTable, CreateCashierDrawer } from "../components/CashierTable";
+import { useParams, useSearchParams } from "react-router";
+import { Pencil, Plus } from "lucide-react";
+import { formatMoney, formatRelative, formatShortDate } from "@betng/ui-core";
+import { AdminSkeleton, EmptyState, ErrorState, KpiCard, Panel, RankedBars, SkeletonRows, Tabs } from "@betng/ui-web";
+import { AccountAnalysisPanel } from "../components/AccountAnalysisPanel";
+import { DetailItem, Mono, Status } from "../components/Bits";
+import { CashierList, CreateCashierDrawer } from "../components/CashierList";
 import { GuardedButton } from "../components/Guard";
 import { PageHeader } from "../components/PageHeader";
 import { useReasonAction } from "../components/ReasonAction";
 import { ShopFormDrawer } from "../components/ShopFormDrawer";
-import { useCashiers, useShop } from "../hooks/queries";
-import { formatDate } from "../lib/format";
-import { useShopStatusAction } from "./ShopsPage";
+import { useAccountAnalysis, useShop, useTopCashiers } from "../hooks/queries";
+import { useAdmin } from "../hooks/useAdmin";
+import { formatCount } from "../lib/format";
+import { shopStatusPrompt, useShopStatusAction } from "./ShopsPage";
 
-type Tab = "overview" | "cashiers" | "reports";
+const TABS = ["overview", "cashiers", "reports"] as const;
+
+type Tab = (typeof TABS)[number];
 
 export function ShopDetailPage(): React.JSX.Element {
   const { shopId } = useParams();
+  const { can } = useAdmin();
   const [params, setParams] = useSearchParams();
-  const tab = (["overview", "cashiers", "reports"] as const).find((t) => t === params.get("tab")) ?? "overview";
+  const tab: Tab = TABS.find((t) => t === params.get("tab")) ?? "overview";
   const shop = useShop(shopId);
-  const cashiers = useCashiers(shopId);
+  const reportsGranted = can("reports:read");
+  const analysis = useAccountAnalysis(tab === "reports" && reportsGranted ? "shops" : undefined, shopId, {});
+  const topCashiers = useTopCashiers(shopId, tab === "reports");
   const [editing, setEditing] = useState(false);
   const [creating, setCreating] = useState(false);
   const { ask, dialog } = useReasonAction();
   const setStatus = useShopStatusAction();
 
-  if (shop.data === undefined) return shop.error !== null ? <ErrorState error={shop.error} onRetry={() => void shop.refetch()} /> : <LoadingState label="Loading shop" />;
+  if (shop.data === undefined) return shop.error !== null ? <ErrorState error={shop.error} onRetry={() => void shop.refetch()} /> : <AdminSkeleton kpis={2} rows={4} />;
 
   const s = shop.data;
-  const suspended = s.status === "SUSPENDED";
 
   return (
     <>
       <PageHeader
-        eyebrow={
-          <Link to="/shops" className="inline-flex items-center gap-1 rounded-xs hover:text-text-primary focus-ring">
-            <ChevronLeft className="size-3.5" /> Shops
-          </Link>
-        }
         title={s.name}
         description={s.address}
         actions={
           <>
             <Status value={s.status} />
-            <GuardedButton permission="shops:write" variant="secondary" size="sm" icon={<Pencil className="size-3.5" />} onClick={() => setEditing(true)}>
+            <GuardedButton permission="shops:write" variant="secondary" size="sm" leadingIcon={<Pencil className="size-3.5" aria-hidden />} onClick={() => setEditing(true)}>
               Edit
             </GuardedButton>
-            <GuardedButton
-              permission="shops:write"
-              variant={suspended ? "primary" : "danger"}
-              size="sm"
-              onClick={() =>
-                ask({
-                  title: suspended ? `Activate ${s.code}?` : `Suspend ${s.code}?`,
-                  description: suspended ? "Cashiers will be able to sign in and sell tickets again." : "All cashier sessions end and the shop cannot sell or pay out until reactivated. Open tickets still settle.",
-                  confirmLabel: suspended ? "Activate shop" : "Suspend shop",
-                  tone: suspended ? "primary" : "danger",
-                  run: (reason) => setStatus.mutateAsync({ id: s.id, status: suspended ? "ACTIVE" : "SUSPENDED", reason }),
-                })
-              }
-            >
-              {suspended ? "Activate" : "Suspend"}
+            <GuardedButton permission="shops:write" variant={s.status === "SUSPENDED" ? "primary" : "danger"} size="sm" onClick={() => ask(shopStatusPrompt(s, (status, reason) => setStatus.mutateAsync({ id: s.id, status, reason })))}>
+              {s.status === "SUSPENDED" ? "Activate" : "Suspend"}
             </GuardedButton>
           </>
         }
@@ -82,21 +70,21 @@ export function ShopDetailPage(): React.JSX.Element {
         <div className="grid gap-4 lg:grid-cols-3">
           <Panel title="Shop details" className="lg:col-span-2">
             <dl className="grid grid-cols-2 gap-x-6 gap-y-4 md:grid-cols-3">
-              <Field label="Shop code">
+              <DetailItem label="Shop code">
                 <Mono className="text-text-primary">{s.code}</Mono>
-              </Field>
-              <Field label="Owner">{s.ownerName}</Field>
-              <Field label="Phone">{s.phone}</Field>
-              <Field label="Email">
+              </DetailItem>
+              <DetailItem label="Owner">{s.ownerName}</DetailItem>
+              <DetailItem label="Phone">{s.phone}</DetailItem>
+              <DetailItem label="Email">
                 <span className="break-all">{s.email}</span>
-              </Field>
-              <Field label="Opened">{formatDate(s.createdAt)}</Field>
-              <Field label="Last active">{s.lastActiveAt === undefined ? "Never" : formatRelative(s.lastActiveAt)}</Field>
+              </DetailItem>
+              <DetailItem label="Opened">{formatShortDate(s.createdAt)}</DetailItem>
+              <DetailItem label="Last active">{s.lastActiveAt === undefined ? "Never" : formatRelative(s.lastActiveAt)}</DetailItem>
             </dl>
           </Panel>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
-            <KpiCard label="Float" value={formatMoney(s.balance)} hint="held for payouts" />
-            <KpiCard label="Open tickets" value={s.openTickets.toLocaleString()} hint="awaiting results" />
+            <KpiCard label="Float" value={formatMoney(s.balance)} hint="Shop ledger balance" />
+            <KpiCard label="Open tickets" value={formatCount(s.openTickets)} hint="Awaiting results" />
           </div>
         </div>
       )}
@@ -106,46 +94,40 @@ export function ShopDetailPage(): React.JSX.Element {
           title="Cashiers"
           flush
           actions={
-            <GuardedButton permission="cashiers:write" size="sm" icon={<Plus className="size-3.5" />} onClick={() => setCreating(true)}>
+            <GuardedButton permission="cashiers:write" size="sm" leadingIcon={<Plus className="size-3.5" aria-hidden />} onClick={() => setCreating(true)}>
               New cashier
             </GuardedButton>
           }
         >
-          <CashierTable rows={cashiers.data} loading={cashiers.isLoading} error={cashiers.error} onRetry={() => void cashiers.refetch()} />
+          <CashierList shopId={s.id} />
         </Panel>
       )}
 
       {tab === "reports" && (
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <KpiCard label="Today's sales" value={formatMoney(s.todaySales)} hint={`${String(s.cashierCount)} cashiers`} />
-            <KpiCard label="Today's payouts" value={formatMoney(s.todayPayouts)} hint={s.todaySales === 0 ? "no sales yet" : `${((s.todayPayouts / s.todaySales) * 100).toFixed(1)}% of sales`} />
-            <KpiCard label="Net position" value={formatMoney(s.todaySales - s.todayPayouts)} hint="sales minus payouts" emphasis />
-            <KpiCard label="Open tickets" value={s.openTickets.toLocaleString()} hint="awaiting results" />
+            <KpiCard label="Sales today" value={formatMoney(s.todaySales)} hint="Reported by the platform" />
+            <KpiCard label="Payouts today" value={formatMoney(s.todayPayouts)} hint="Reported by the platform" />
+            <KpiCard label="Float" value={formatMoney(s.balance)} hint="Shop ledger balance" />
+            <KpiCard label="Open tickets" value={formatCount(s.openTickets)} hint="Awaiting results" />
           </div>
           <div className="grid items-start gap-4 lg:grid-cols-3">
-          <Panel title="Sales by cashier" description="Today, simulated naira" className="lg:col-span-2">
-            <RankedBars
-              title="Sales by cashier today"
-              formatValue={formatMoney}
-              items={[...(cashiers.data ?? [])].sort((a, b) => b.todaySales - a.todaySales).map((c) => ({ key: c.id, label: c.displayName, detail: `${String(c.todayTransactions)} transactions`, value: c.todaySales }))}
-            />
-          </Panel>
-          <Panel title="Float cover" description="Can the float meet today's payouts?">
-            <div className="mb-2 flex items-baseline justify-between text-sm">
-              <span className="font-display text-lg font-semibold tabular text-text-primary">{formatMoney(s.todayPayouts)}</span>
-              <span className="tabular text-text-muted">float {formatMoney(s.balance)}</span>
-            </div>
-            <Meter value={s.todayPayouts} limit={s.balance} label="Today's payouts against the shop float" />
-            <dl className="mt-4 grid grid-cols-2 gap-3">
-              <Field label="Payout ratio">
-                <span className="tabular">{s.todaySales === 0 ? "—" : `${((s.todayPayouts / s.todaySales) * 100).toFixed(1)}%`}</span>
-              </Field>
-              <Field label="Sales per cashier">
-                <span className="tabular">{s.cashierCount === 0 ? "—" : formatMoney(Math.round(s.todaySales / s.cashierCount))}</span>
-              </Field>
-            </dl>
-          </Panel>
+            <Panel title="Shop analysis" description="The platform's view over all bets taken at this shop" className="lg:col-span-2">
+              {reportsGranted ? <AccountAnalysisPanel query={analysis} /> : <EmptyState compact title="Not included in your role" description="Shop analysis needs the “reports:read” permission." />}
+            </Panel>
+            <Panel title="Sales by cashier" description="Today, highest first">
+              {topCashiers.data === undefined ? (
+                topCashiers.error !== null ? (
+                  <ErrorState error={topCashiers.error} compact onRetry={() => void topCashiers.refetch()} />
+                ) : (
+                  <SkeletonRows rows={4} />
+                )
+              ) : topCashiers.data.length === 0 ? (
+                <EmptyState compact title="No cashiers" description="This shop has no terminal accounts yet." />
+              ) : (
+                <RankedBars title="Sales by cashier today" formatValue={formatMoney} items={topCashiers.data.map((c) => ({ key: c.id, label: c.displayName, detail: `${formatCount(c.todayTransactions)} transactions`, value: c.todaySales }))} />
+              )}
+            </Panel>
           </div>
         </div>
       )}

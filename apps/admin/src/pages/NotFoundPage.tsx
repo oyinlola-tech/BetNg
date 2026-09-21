@@ -1,20 +1,19 @@
 import { Link } from "react-router";
-import { Compass } from "lucide-react";
-import { Button, EmptyState } from "@betng/ui-web";
+import { NotFoundState } from "@betng/ui-web";
 
 export function NotFoundPage(): React.JSX.Element {
   return (
-    <EmptyState
-      icon={<Compass className="size-5" />}
-      title="No such screen"
-      description="The address does not match anything in the console."
-      action={
-        <Link to="/">
-          <Button variant="secondary" size="sm">
+    <>
+      <h1 className="sr-only">Page not found</h1>
+      <NotFoundState
+        title="No such screen"
+        description="The address does not match anything in the console."
+        action={
+          <Link to="/" className="inline-flex h-8 items-center rounded-sm border border-border-strong bg-surface px-3 text-sm font-semibold text-text-primary hover:bg-surface-hover focus-ring">
             Back to the dashboard
-          </Button>
-        </Link>
-      }
-    />
+          </Link>
+        }
+      />
+    </>
   );
 }

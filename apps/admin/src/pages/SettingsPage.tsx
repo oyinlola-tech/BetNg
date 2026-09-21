@@ -2,36 +2,39 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { PlatformSettings } from "@betng/contracts";
-import { formatMoney } from "@betng/ui-core";
-import { Button, ConfirmDialog, ErrorState, Input, Panel, SkeletonRows, Switch, ThemeSwitcher } from "@betng/ui-web";
+import { ConfirmationDialog, ErrorState, FormActions, FormError, Panel, SkeletonRows, Switch, ThemeSwitcher, applyFieldErrors } from "@betng/ui-web";
+import { MoneyField, TextField } from "../components/form/TextField";
+import { GuardedButton } from "../components/Guard";
 import { PageHeader } from "../components/PageHeader";
+import { UnsavedChangesDialog } from "../components/UnsavedChangesDialog";
 import { useAdminAction, useSettings } from "../hooks/queries";
 import { useAdmin } from "../hooks/useAdmin";
-import { settingsSchema, type SettingsValues } from "../lib/schemas";
-import { adminSource } from "../services/sources";
+import { keys } from "../lib/queryKeys";
+import { settingsSchema, toMinor, toMoneyText, type SettingsValues } from "../lib/schemas";
+import { adminSource } from "../services/runtime";
 
-const hint = (text: string | undefined): { readonly hint?: string } => (text === undefined ? {} : { hint: text });
-
-const MONEY = ["minStake", "maxStake", "maxPayout", "exposureLimit"] as const;
+const FIELDS = ["minStake", "maxStake", "maxPayout", "exposureLimit", "maxSelections", "bettingCloseSeconds", "ticketExpiryDays", "maintenanceMode"] as const;
 
 function toForm(s: PlatformSettings): SettingsValues {
-  return { ...s, minStake: s.minStake / 100, maxStake: s.maxStake / 100, maxPayout: s.maxPayout / 100, exposureLimit: s.exposureLimit / 100 };
+  return { ...s, minStake: toMoneyText(s.minStake), maxStake: toMoneyText(s.maxStake), maxPayout: toMoneyText(s.maxPayout), exposureLimit: toMoneyText(s.exposureLimit) };
 }
 
 function toPlatform(v: SettingsValues): PlatformSettings {
-  return { ...v, ...Object.fromEntries(MONEY.map((key) => [key, Math.round(v[key] * 100)])) };
+  return { ...v, minStake: toMinor(v.minStake), maxStake: toMinor(v.maxStake), maxPayout: toMinor(v.maxPayout), exposureLimit: toMinor(v.exposureLimit) };
 }
 
-export function SettingsPage(): React.JSX.Element {
+function SettingsForm({ settings }: { readonly settings: PlatformSettings }): React.JSX.Element {
   const { can } = useAdmin();
   const editable = can("settings:write");
-  const settings = useSettings();
   const [pending, setPending] = useState<SettingsValues | undefined>();
-  const form = useForm<SettingsValues>({ resolver: zodResolver(settingsSchema), mode: "onTouched" });
+  const [failure, setFailure] = useState<unknown>();
+  const form = useForm<SettingsValues>({ resolver: zodResolver(settingsSchema), defaultValues: toForm(settings), mode: "onTouched" });
   const { errors, isDirty } = form.formState;
   const save = useAdminAction({
     run: (input: { readonly values: SettingsValues; readonly reason: string }) => adminSource.updateSettings(toPlatform(input.values), input.reason),
     success: () => "Platform settings updated",
+    invalidate: [keys.settings],
+    silentError: true,
     onDone: (saved) => {
       setPending(undefined);
       form.reset(toForm(saved));
@@ -39,74 +42,93 @@ export function SettingsPage(): React.JSX.Element {
   });
 
   useEffect(() => {
-    if (settings.data !== undefined && !isDirty) form.reset(toForm(settings.data));
+    if (!isDirty) form.reset(toForm(settings));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settings.data]);
+  }, [settings]);
 
-  const number = { valueAsNumber: true } as const;
-  const watched = form.watch();
-  const asMoney = (value: number | undefined): string | undefined => (value === undefined || !Number.isFinite(value) ? undefined : formatMoney(Math.round(value * 100)));
+  const whole = { valueAsNumber: true } as const;
 
   return (
     <>
-      <PageHeader title="Settings" description="Platform-wide limits and this console's appearance." />
-      <div className="grid items-start gap-4 xl:grid-cols-3">
-        <Panel title="Platform limits" description={editable ? "Changes apply to new bets at once and are audited as critical." : "Read-only for your role."} className="xl:col-span-2">
-          {settings.data === undefined ? (
-            settings.error !== null ? (
-              <ErrorState error={settings.error} compact onRetry={() => void settings.refetch()} />
-            ) : (
-              <SkeletonRows rows={5} />
-            )
+      <form
+        noValidate
+        aria-label="Platform limits"
+        onSubmit={(event) => {
+          void form.handleSubmit((values) => {
+            setFailure(undefined);
+            setPending(values);
+          })(event);
+        }}
+        onReset={(event) => {
+          event.preventDefault();
+        }}
+      >
+        <FormError error={failure} className="mb-4" />
+        <fieldset disabled={!editable} className="grid gap-4 sm:grid-cols-2">
+          <MoneyField label="Minimum stake" required error={errors.minStake?.message} {...form.register("minStake")} />
+          <MoneyField label="Maximum stake" required error={errors.maxStake?.message} {...form.register("maxStake")} />
+          <MoneyField label="Maximum payout per bet" required error={errors.maxPayout?.message} {...form.register("maxPayout")} />
+          <MoneyField label="Platform exposure limit" required hint="The risk service judges exposure against it." error={errors.exposureLimit?.message} {...form.register("exposureLimit")} />
+          <TextField label="Maximum selections per bet" type="number" inputMode="numeric" required error={errors.maxSelections?.message} {...form.register("maxSelections", whole)} />
+          <TextField label="Betting closes before kick-off" type="number" inputMode="numeric" required hint="Seconds" error={errors.bettingCloseSeconds?.message} {...form.register("bettingCloseSeconds", whole)} />
+          <TextField label="Shop ticket expiry" type="number" inputMode="numeric" required hint="Days a winning ticket can be claimed" error={errors.ticketExpiryDays?.message} {...form.register("ticketExpiryDays", whole)} />
+          <div className="sm:col-span-2">
+            <Switch checked={form.watch("maintenanceMode")} onChange={(checked) => form.setValue("maintenanceMode", checked, { shouldDirty: true })} disabled={!editable} label="Maintenance mode" description="Stops new bets on every channel. Live matches play out and settle as normal." />
+          </div>
+        </fieldset>
+        <div className="mt-5 border-t border-border pt-4">
+          {editable ? (
+            <FormActions submitLabel="Review changes" dirty={isDirty} loading={save.isPending} onReset={() => form.reset(toForm(settings))} />
           ) : (
-            <form
-              noValidate
-              onSubmit={(event) => {
-                void form.handleSubmit((values) => setPending(values))(event);
-              }}
-            >
-              <fieldset disabled={!editable} className="grid gap-4 sm:grid-cols-2">
-                <Input label="Minimum stake" prefix="₦" type="number" inputMode="decimal" {...hint(asMoney(watched.minStake))} error={errors.minStake?.message} {...form.register("minStake", number)} />
-                <Input label="Maximum stake" prefix="₦" type="number" inputMode="decimal" {...hint(asMoney(watched.maxStake))} error={errors.maxStake?.message} {...form.register("maxStake", number)} />
-                <Input label="Maximum payout per bet" prefix="₦" type="number" inputMode="decimal" {...hint(asMoney(watched.maxPayout))} error={errors.maxPayout?.message} {...form.register("maxPayout", number)} />
-                <Input label="Platform exposure limit" prefix="₦" type="number" inputMode="decimal" hint={`${asMoney(watched.exposureLimit) ?? ""} · elevated at 55%, critical at 85%`} error={errors.exposureLimit?.message} {...form.register("exposureLimit", number)} />
-                <Input label="Maximum selections per bet" type="number" inputMode="numeric" error={errors.maxSelections?.message} {...form.register("maxSelections", number)} />
-                <Input label="Betting closes before kick-off" type="number" inputMode="numeric" hint="Seconds" error={errors.bettingCloseSeconds?.message} {...form.register("bettingCloseSeconds", number)} />
-                <Input label="Shop ticket expiry" type="number" inputMode="numeric" hint="Days a winning ticket can be claimed" error={errors.ticketExpiryDays?.message} {...form.register("ticketExpiryDays", number)} />
-                <div className="sm:col-span-2">
-                  <Switch checked={form.watch("maintenanceMode") ?? false} onChange={(checked) => form.setValue("maintenanceMode", checked, { shouldDirty: true })} disabled={!editable} label="Maintenance mode" description="Stops new bets on every channel. Live matches play out and settle as normal." />
-                </div>
-              </fieldset>
-              {editable && (
-                <div className="mt-5 flex justify-end gap-2 border-t border-border pt-4">
-                  <Button variant="ghost" disabled={!isDirty} onClick={() => settings.data !== undefined && form.reset(toForm(settings.data))}>
-                    Discard
-                  </Button>
-                  <Button type="submit" disabled={!isDirty}>
-                    Review changes
-                  </Button>
-                </div>
-              )}
-            </form>
+            <div className="flex justify-end">
+              <GuardedButton permission="settings:write">Review changes</GuardedButton>
+            </div>
           )}
-        </Panel>
-        <Panel title="Appearance" description="Stored on this device only.">
-          <ThemeSwitcher showLabels />
-        </Panel>
-      </div>
-      <ConfirmDialog
+        </div>
+      </form>
+      <ConfirmationDialog
         open={pending !== undefined}
-        onClose={() => !save.isPending && setPending(undefined)}
+        onClose={() => {
+          if (!save.isPending) setPending(undefined);
+        }}
         title="Apply platform settings?"
         description="These limits take effect for every customer and shop immediately."
         confirmLabel="Apply settings"
         tone="danger"
         requireReason
         loading={save.isPending}
-        onConfirm={(reason) => {
-          if (pending !== undefined) save.mutate({ values: pending, reason });
+        onConfirm={async (reason) => {
+          if (pending === undefined) return;
+
+          try {
+            await save.mutateAsync({ values: pending, reason });
+          } catch (error) {
+            applyFieldErrors(error, form.setError, FIELDS);
+            setFailure(error);
+            setPending(undefined);
+          }
         }}
       />
+      <UnsavedChangesDialog dirty={isDirty} />
+    </>
+  );
+}
+
+export function SettingsPage(): React.JSX.Element {
+  const { can } = useAdmin();
+  const settings = useSettings();
+
+  return (
+    <>
+      <PageHeader title="Settings" description="Platform-wide limits and this console's appearance." />
+      <div className="grid items-start gap-4 xl:grid-cols-3">
+        <Panel title="Platform limits" description={can("settings:write") ? "Changes apply to new bets at once and are audited as critical." : "Read-only for your role."} className="xl:col-span-2">
+          {settings.data === undefined ? settings.error !== null ? <ErrorState error={settings.error} compact onRetry={() => void settings.refetch()} /> : <SkeletonRows rows={6} /> : <SettingsForm settings={settings.data} />}
+        </Panel>
+        <Panel title="Appearance" description="Stored on this device only.">
+          <ThemeSwitcher showLabels />
+        </Panel>
+      </div>
     </>
   );
 }
