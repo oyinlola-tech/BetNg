@@ -1,5 +1,3 @@
-"""Admin routes at the gateway's path; none sets a score or re-runs a result."""
-
 from __future__ import annotations
 
 from typing import Annotated

@@ -1,7 +1,6 @@
 import { LEAGUE_BADGE_PATH, LEAGUE_MARK_VIEWBOX, leagueMarkFor } from "@betng/brand";
 
 export interface LeagueMarkProps {
-  /** The league's slug from the platform. An unknown slug falls back to a neutral badge with the code. */
   readonly slug: string | undefined;
   readonly code: string;
   readonly size?: number;

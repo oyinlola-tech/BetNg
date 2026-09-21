@@ -1,5 +1,3 @@
-"""Service errors."""
-
 from .risk_error import (
     DATABASE_UNAVAILABLE,
     FORBIDDEN,

@@ -1,11 +1,3 @@
-/**
- * The match service's data-access contracts.
- *
- * Handlers and the lifecycle are written against these interfaces. The PostgreSQL implementations live in
- * `repositories/`; rows of the service's own schema are Prisma's generated types, rows read from another
- * service's schema are declared here column by column, as `docs/architecture.md` §8 publishes them.
- */
-
 import type { MatchEventType, MatchLifecycle, MatchSide, MatchStatus } from "@betng/contracts";
 import type { League, Prisma, Team } from "../generated/prisma/client.js";
 
@@ -13,7 +5,6 @@ export const MATCH_INCLUDE = {
   fixture: { include: { league: true, homeTeam: true, awayTeam: true } },
 } satisfies Prisma.MatchInclude;
 
-/** A match with its fixture, league and both teams. */
 export type MatchRecord = Prisma.MatchGetPayload<{ include: typeof MATCH_INCLUDE }>;
 
 export type FixtureRecord = Prisma.FixtureGetPayload<{ include: { match: true } }>;
@@ -35,7 +26,6 @@ export interface FixtureFilter {
 
 export interface MatchFilter extends FixtureFilter {
   readonly status?: MatchStatus;
-  /** Newest kick-off first; the default is soonest first. */
   readonly newestFirst?: boolean;
 }
 
@@ -112,7 +102,6 @@ export interface MatchRepository {
 export interface TransitionInput {
   readonly matchId: string;
   readonly from: MatchLifecycle;
-  /** The states passed through, in order; the match ends in the last one. */
   readonly path: readonly MatchLifecycle[];
   readonly actor: string;
   readonly reason?: string;
@@ -121,7 +110,6 @@ export interface TransitionInput {
 }
 
 export interface LifecycleRepository {
-  /** Matches in one of `states` whose next attempt is due, soonest kick-off first. */
   listDue(query: {
     readonly states: readonly MatchLifecycle[];
     readonly now: Date;
@@ -139,11 +127,8 @@ export interface LifecycleRepository {
   transition(input: TransitionInput): Promise<boolean>;
   /** Takes the right to work on a match in `state` until `until`. `false` when it is not due or has moved on. */
   claim(matchId: string, state: MatchLifecycle, now: Date, until: Date): Promise<boolean>;
-  /** Records a failed attempt without changing state. */
   recordFailure(matchId: string, state: MatchLifecycle, reason: string, nextAttemptAt: Date): Promise<void>;
-  /** Makes a failed match due now with a clean attempt count. */
   resetAttempts(matchId: string, state: MatchLifecycle, now: Date): Promise<boolean>;
-  /** Advances the revealed score, only from the sequence the caller read. */
   reveal(
     matchId: string,
     fromSequence: number,
@@ -188,15 +173,12 @@ export interface SimulationReader {
   findResult(matchId: string): Promise<SimulationResultRow | undefined>;
   listEvents(matchId: string, range: { readonly after: number; readonly upTo?: number; readonly limit: number }): Promise<readonly SimulationEventRow[]>;
   countEventsAfter(matchId: string, sequence: number): Promise<number>;
-  /** Goals and assists from events already revealed, for one league season. */
   listScorers(leagueId: string, season: number, limit: number): Promise<readonly ScorerRow[]>;
   /** Of `matchIds`, those the simulation has a committed result for. */
   matchesWithResult(matchIds: readonly string[]): Promise<readonly string[]>;
 }
 
-/** Read-only access to the betting service's schema. */
 export interface BettingReader {
-  /** Of `matchIds`, those with at least one bet placed on them. */
   matchesWithBets(matchIds: readonly string[]): Promise<readonly string[]>;
 }
 

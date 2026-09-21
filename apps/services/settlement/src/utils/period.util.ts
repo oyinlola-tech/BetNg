@@ -1,5 +1,3 @@
-/** Reporting period identifiers: `SESSION-YYYYMMDD-NNNN`, numbered within the UTC day. */
-
 const PERIOD_ID = /^SESSION-(\d{8})-(\d{4})$/;
 
 export const PERIOD_ID_PATTERN = PERIOD_ID;

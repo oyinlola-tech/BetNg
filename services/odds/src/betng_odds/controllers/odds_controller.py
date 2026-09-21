@@ -1,5 +1,3 @@
-"""Odds HTTP handlers."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -33,23 +31,18 @@ from ..validators import parse_match_ids
 
 @dataclass(frozen=True)
 class OddsController:
-    """REST entry points, dispatching onto the same buses RPC uses."""
-
     command_bus: CommandBus
     query_bus: QueryBus
 
     async def get_match_odds(self, match_id: UUID) -> MatchOdds:
-        """Return one match's markets."""
         return await self.query_bus.execute(GetMatchOddsQuery(str(match_id)))
 
     async def get_bulk_odds(self, raw_match_ids: str) -> MatchOddsList:
-        """Return the markets of several matches."""
         return await self.query_bus.execute(
             GetBulkOddsQuery(parse_match_ids(raw_match_ids))
         )
 
     async def list_admin_odds(self, match_id: UUID | None) -> AdminMarketOddsList:
-        """Return the admin trading view."""
         return await self.query_bus.execute(
             ListAdminOddsQuery(None if match_id is None else str(match_id))
         )
@@ -61,13 +54,11 @@ class OddsController:
         actor: Actor,
         request_id: str,
     ) -> AdminMarketOdds:
-        """Suspend or resume one market."""
         return await self.command_bus.execute(
             ApplyMarketActionCommand(str(market_id), request, actor, request_id)
         )
 
     async def get_pricing_configuration(self) -> PricingConfigurationView:
-        """Return the active pricing configuration."""
         return await self.query_bus.execute(GetPricingConfigurationQuery())
 
     async def update_pricing_configuration(
@@ -76,11 +67,9 @@ class OddsController:
         actor: Actor,
         request_id: str,
     ) -> PricingConfigurationView:
-        """Store a new pricing configuration version."""
         return await self.command_bus.execute(
             UpdatePricingConfigurationCommand(request, actor, request_id)
         )
 
     async def list_market_snapshots(self, market_id: UUID) -> OddsSnapshotList:
-        """Return a market's snapshot history."""
         return await self.query_bus.execute(ListMarketSnapshotsQuery(str(market_id)))

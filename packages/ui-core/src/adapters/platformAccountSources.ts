@@ -1,5 +1,3 @@
-/** Auth, shop and admin against the gateway. Thin by design: the platform owns every rule, these only carry sessions and translate errors. */
-
 import type { BetNgRestClient } from "@betng/client-sdk";
 import type { AdminSession, CustomerSession, ShopSession } from "@betng/contracts";
 import type { AdminDataSource } from "../adminDataSource.type.js";
@@ -24,7 +22,6 @@ function guarded<S extends SessionLike>(session: SessionStore<S>) {
   };
 }
 
-/** Signing out always succeeds locally; the platform call is best effort. */
 async function signOut<S extends SessionLike>(session: SessionStore<S>, call: () => Promise<void>): Promise<void> {
   try {
     await call();

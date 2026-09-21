@@ -1,11 +1,3 @@
-/**
- * Match statistics, owned by the match service.
- *
- * Produced by the simulation alongside the timeline and served over
- * `GET /matches/:id/stats`. While a match is in play the figures are those
- * as of the most recent event, so a client can show them live.
- */
-
 import { z } from "@zudojs/validation";
 import { brandedIdSchema, type MatchId } from "../common/index.js";
 

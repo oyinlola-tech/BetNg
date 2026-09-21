@@ -1,5 +1,3 @@
-"""Connection handling shared by the PostgreSQL-backed classes."""
-
 from __future__ import annotations
 
 from collections.abc import AsyncIterator

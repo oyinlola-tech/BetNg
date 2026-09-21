@@ -108,7 +108,6 @@ export interface TimeRange {
 
 export interface WalletRepository {
   getOrOpenAccount(ownerType: OwnerType, ownerId: string): Promise<AccountRecord>;
-  /** The only way a balance moves. */
   postEntry(input: PostEntryInput): Promise<PostEntryResult>;
   listEntries(accountId: string, limit: number): Promise<readonly EntryRecord[]>;
   listShopEntries(

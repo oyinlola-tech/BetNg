@@ -23,10 +23,8 @@ import { fixtureWindow, ledgerEntries, marketOddsFor, reportDays, riskOverview, 
 import { ADMINS, ADMIN_PASSWORD, ADMIN_TOTP, DEFAULT_SETTINGS, ratingsFor, seedCashiers, seedCustomers, seedShops } from "./seed.js";
 
 export interface MockAdminOptions {
-  /** The virtual season the control plane observes. */
   readonly platform: MockPlatform;
   readonly storage?: KeyValueStorage & { remove?(key: string): void };
-  /** Where the admin session lives; defaults to `storage`. */
   readonly sessionStorage?: SessionStorage;
   readonly latencyMs?: number;
 }

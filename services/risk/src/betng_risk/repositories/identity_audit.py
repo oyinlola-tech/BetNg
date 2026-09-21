@@ -1,5 +1,3 @@
-"""Audit entries, written through the identity service's RPC."""
-
 from __future__ import annotations
 
 import logging
@@ -17,7 +15,6 @@ class IdentityAuditRecorder(AuditRecorder):
     """Calls ``identity.recordAudit``; any failure refuses the change."""
 
     def __init__(self, client: RpcClient, logger: logging.Logger) -> None:
-        """Bind the recorder to the identity RPC client."""
         self._client = client
         self._logger = logger
 

@@ -30,7 +30,6 @@ function startOfLocalDay(dateKey: string): number {
 
 const STAKES = [10_000, 20_000, 20_000, 50_000, 50_000, 100_000, 100_000, 200_000, 500_000, 1_000_000];
 
-/* Each pick carries its rough chance under the score model below, so generated prices hold a bookmaker's margin. */
 const PAST_MARKETS: readonly { readonly kind: MarketKind; readonly label: string; readonly picks: readonly (readonly [code: string, label: string, chance: number])[] }[] = [
   { kind: "MATCH_RESULT", label: "Match Result", picks: [["HOME", "Home", 0.43], ["DRAW", "Draw", 0.26], ["AWAY", "Away", 0.31]] },
   { kind: "DOUBLE_CHANCE", label: "Double Chance", picks: [["HOME_DRAW", "Home or Draw", 0.69], ["HOME_AWAY", "Home or Away", 0.74], ["DRAW_AWAY", "Draw or Away", 0.57]] },
@@ -40,7 +39,6 @@ const PAST_MARKETS: readonly { readonly kind: MarketKind; readonly label: string
 
 const PAST_MARGIN = 0.9;
 
-/** A settled leg for a day before the virtual season's epoch, where no fixture exists to read. */
 function pastLeg(random: Rng, key: string, kickoffMs: number): TicketSelection {
   const competition = random.pick(COMPETITIONS);
   const [home, away] = random.shuffle(competition.clubs) as [(typeof competition.clubs)[number], (typeof competition.clubs)[number]];
@@ -72,7 +70,6 @@ function statusOf(legs: readonly TicketSelection[]): "WON" | "LOST" {
 
 const pastCache = new Map<string, readonly Ticket[]>();
 
-/** A deterministic day of trading for a date before today, so reports and the ledger have history. */
 export function pastDayTickets(dateKey: string, now: number): readonly Ticket[] {
   const cached = pastCache.get(dateKey);
 
@@ -168,7 +165,6 @@ const TODAY_PLAN: readonly SeedPlan[] = [
   { legs: ["WON", "WON", "WON"], stake: 10_000, end: "PAID" },
 ];
 
-/** Settled tickets on matches that really finished in the virtual season, so Check Ticket and Payout have work on first run. */
 export function todaySeedTickets(now: number): readonly Ticket[] {
   const random = rng(`shop:today:${toLocalDateKey(new Date(now))}`);
   const settleLead = (FULL_TIME_SECONDS + VIRTUAL_TIMING.settlementDelaySeconds) * 1000;

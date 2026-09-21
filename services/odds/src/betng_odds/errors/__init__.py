@@ -1,5 +1,3 @@
-"""Domain errors."""
-
 from .odds_error import (
     DATABASE_UNAVAILABLE,
     FORBIDDEN,

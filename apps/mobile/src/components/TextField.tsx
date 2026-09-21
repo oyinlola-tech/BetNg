@@ -9,7 +9,6 @@ export interface TextFieldProps extends Omit<TextInputProps, "style"> {
   readonly label: string;
   readonly error?: string | undefined;
   readonly hint?: string;
-  /** Adds a show/hide toggle and hides the text by default. */
   readonly secure?: boolean;
 }
 

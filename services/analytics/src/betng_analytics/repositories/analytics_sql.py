@@ -1,5 +1,3 @@
-"""Statement text comes only from constants here; caller values are always bound."""
-
 from __future__ import annotations
 
 import json
@@ -152,7 +150,6 @@ def scoped_cte(scope: BetScope, params: Params) -> str:
 
 
 def leg_conditions(scope: BetScope) -> str:
-    """Reuse the parameters :func:`scoped_cte` already bound."""
     conditions = ""
 
     if scope.league_id is not None:
@@ -351,7 +348,6 @@ _SOURCE_FIGURES: Final = """
 
 
 def operator_sql(scope: BetScope, params: Params) -> str:
-    """One population of bets, summed from three independent sources."""
     bets = _SOURCE_FIGURES.format(o="s.status", a="s", p="bets")
     settlements = _SOURCE_FIGURES.format(o="t.outcome", a="t", p="settlements")
     ledger = _SOURCE_FIGURES.format(o="e.outcome::text", a="e", p="ledger")
@@ -621,7 +617,6 @@ def exposure_totals_sql(scope: BetScope, params: Params) -> str:
 def exposure_level_sql(
     level: str, scope: BetScope, params: Params, *, within_matches: bool
 ) -> str:
-    """Pending liability at one level, each bet counted once per key."""
     columns, label_expressions = _EXPOSURE_LEVELS[level]
     group = ", ".join(f"l.{column}" for column in columns)
     keys = ", ".join(f"k.{column}" for column in columns)

@@ -1,5 +1,3 @@
-"""Markets with their opening prices, measured margin and pending exposure."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -15,8 +13,6 @@ from .list_admin_odds_query import ListAdminOddsQuery
 
 @dataclass(frozen=True)
 class ListAdminOddsHandler(QueryHandler[ListAdminOddsQuery, AdminMarketOddsList]):
-    """Join the odds rows with the match and betting read models."""
-
     repository: OddsRepository
     match_directory: MatchDirectory
     exposure_reader: ExposureReader
@@ -24,7 +20,6 @@ class ListAdminOddsHandler(QueryHandler[ListAdminOddsQuery, AdminMarketOddsList]
     message_type = OddsQuery.LIST_ADMIN_ODDS
 
     async def execute(self, message: ListAdminOddsQuery) -> AdminMarketOddsList:
-        """Return the admin view of the selected markets."""
         if message.match_id is None:
             records = await self.repository.list_trading_markets(
                 ADMIN_TRADING_MARKET_LIMIT

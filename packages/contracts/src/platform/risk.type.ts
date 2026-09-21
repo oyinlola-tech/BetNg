@@ -45,7 +45,6 @@ export const riskDecisionSchema = z.object({
   decisionId: z.uuid(),
   decision: riskDecisionKindSchema,
   reason: riskReasonSchema,
-  /** The largest stake risk would accept on this slip right now; 0 on REJECT. */
   maxStake: minorUnitsSchema.min(0),
 });
 

@@ -1,5 +1,3 @@
-"""Expected goals and the score matrix that is both priced and sampled."""
-
 from __future__ import annotations
 
 import math
@@ -17,7 +15,6 @@ def _weighted_mean(pairs: tuple[tuple[float, float], ...]) -> float:
 
 
 def offensive_rating(team: TeamStrength, configuration: ModelConfiguration) -> float:
-    """Return the weighted attacking rating."""
     return _weighted_mean(
         (
             (team.attack, configuration.attack_weight),
@@ -30,7 +27,6 @@ def offensive_rating(team: TeamStrength, configuration: ModelConfiguration) -> f
 
 
 def defensive_rating(team: TeamStrength, configuration: ModelConfiguration) -> float:
-    """Return the weighted defensive rating."""
     return _weighted_mean(
         (
             (team.defence, configuration.defence_weight),
@@ -67,7 +63,6 @@ def _side_expected_goals(
 def expected_goals(
     home: TeamStrength, away: TeamStrength, configuration: ModelConfiguration
 ) -> tuple[float, float]:
-    """Return each side's expected goals: its attack against the other's defence."""
     home_venue = 1.0 + (
         configuration.home_advantage_weight
         * home.home_advantage
@@ -138,7 +133,6 @@ def score_matrix(
 def calculate_probabilities(
     home: TeamStrength, away: TeamStrength, configuration: ModelConfiguration
 ) -> ProbabilityMatrix:
-    """Build the score matrix the odds are priced from."""
     home_xg, away_xg = expected_goals(home, away, configuration)
 
     return ProbabilityMatrix(
@@ -150,7 +144,6 @@ def calculate_probabilities(
 
 
 def outcome_probabilities(matrix: ProbabilityMatrix) -> tuple[float, float, float]:
-    """Return ``(home win, draw, away win)`` summed from the matrix."""
     home = draw = away = 0.0
 
     for home_goals, row in enumerate(matrix.cells):

@@ -1,5 +1,3 @@
-"""The peers the odds service calls, over the platform's RPC transport."""
-
 from __future__ import annotations
 
 import logging
@@ -18,8 +16,6 @@ from ..types import AuditEntry
 
 @dataclass(frozen=True)
 class RpcProbabilityModel(ProbabilityModel):
-    """``simulation.calculateProbabilities``."""
-
     client: RpcClient
     health_url: str
     timeout_seconds: float
@@ -28,7 +24,6 @@ class RpcProbabilityModel(ProbabilityModel):
     async def calculate(
         self, home: TeamStrength, away: TeamStrength, request_id: str | None
     ) -> ProbabilityMatrix:
-        """Return the score matrix for a pairing, or raise ``ODDS_UNAVAILABLE``."""
         payload = {
             "home": home.model_dump(by_alias=True),
             "away": away.model_dump(by_alias=True),
@@ -58,7 +53,6 @@ class RpcProbabilityModel(ProbabilityModel):
             ) from error
 
     async def ping(self) -> None:
-        """Raise unless the simulation service is reachable."""
         try:
             async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
                 response = await client.get(self.health_url)
@@ -72,14 +66,11 @@ class RpcProbabilityModel(ProbabilityModel):
 
 @dataclass(frozen=True)
 class RpcEventPublisher(EventPublisher):
-    """``event.publish``."""
-
     client: RpcClient
 
     async def publish_odds_updated(
         self, match_id: str, description: str, request_id: str | None
     ) -> None:
-        """Announce that a match's odds changed."""
         await self.client.call(
             PeerProcedure.PUBLISH_EVENT,
             {

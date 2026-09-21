@@ -15,7 +15,6 @@ export interface TicketFilter {
   readonly date?: string;
 }
 
-/** The cashier terminal's view of the platform. Matches and markets still come from `BetNgDataSource`. */
 export interface ShopDataSource {
   readonly session: SessionStore<ShopSession>;
   login(request: ShopLoginRequest): Promise<ShopSession>;

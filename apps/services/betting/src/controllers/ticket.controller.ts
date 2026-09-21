@@ -57,7 +57,6 @@ export interface TicketControllerOptions {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-/** A code that cannot be a ticket code names no ticket. */
 function readTicketCode(context: HttpRouterContext): string {
   const code = validate(
     ticketCodeValidator,

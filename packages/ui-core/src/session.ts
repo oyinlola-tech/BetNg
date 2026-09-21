@@ -1,5 +1,3 @@
-/** One signed-in identity per app (customer, cashier or admin), persisted through the app's storage and observable by the UI. */
-
 export type SessionStatus = "ANONYMOUS" | "AUTHENTICATED" | "EXPIRED";
 
 export interface SessionLike {
@@ -23,7 +21,6 @@ export interface SessionStore<S extends SessionLike> {
   readonly snapshot: () => SessionSnapshot<S>;
   readonly token: () => string | undefined;
   readonly set: (session: S) => void;
-  /** The user signed out. */
   readonly clear: () => void;
   /** The platform rejected the token or it ran out; the UI asks the user to sign in again and keeps their place. */
   readonly expire: () => void;

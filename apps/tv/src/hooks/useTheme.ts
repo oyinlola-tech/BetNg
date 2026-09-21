@@ -31,7 +31,6 @@ export function useTvTheme(): readonly [TvTheme, () => void] {
     try {
       localStorage.setItem(KEY, next);
     } catch {
-      /* ignore */
     }
     document.documentElement.dataset["theme"] = next;
     for (const l of listeners) l();

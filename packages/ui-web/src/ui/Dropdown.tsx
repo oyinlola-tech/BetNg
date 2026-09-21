@@ -20,7 +20,6 @@ export interface DropdownProps {
   readonly className?: string;
 }
 
-/** An action menu: arrow keys move, Enter selects, Escape or an outside click closes. */
 export function Dropdown({ label, trigger, items, align = "end", className }: DropdownProps): React.JSX.Element {
   const [open, setOpen] = useState(false);
   const [position, setPosition] = useState<React.CSSProperties>({});

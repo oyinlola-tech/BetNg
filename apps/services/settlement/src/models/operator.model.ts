@@ -19,7 +19,6 @@ export interface OperatorSummaryRecord {
   readonly grossStakes: bigint;
   readonly grossPayouts: bigint;
   readonly operatorResult: bigint;
-  /** NUMERIC(9,6) as text, computed by PostgreSQL. */
   readonly operatorResultRate: string;
   readonly settledBets: number;
   readonly voidBets: number;
@@ -35,7 +34,6 @@ export interface ClosedPeriodResult {
 export interface CommissionConfigRecord {
   readonly id: string;
   readonly shopId: string | null;
-  /** NUMERIC(5,2) as text. */
   readonly shopSharePercent: string;
   readonly effectiveFrom: Date;
   readonly createdBy: string;

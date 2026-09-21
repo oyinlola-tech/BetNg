@@ -36,7 +36,7 @@ const contains = (needle: string): { contains: string; mode: "insensitive" } => 
 });
 
 function jsonOrNull(value: unknown): Prisma.InputJsonValue | typeof Prisma.DbNull {
-  return value === undefined || value === null ? Prisma.DbNull : (value as Prisma.InputJsonValue);
+  return value === undefined || value === null ? Prisma.DbNull : value;
 }
 
 function customers(db: Db): CustomerRepository {

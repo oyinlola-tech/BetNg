@@ -1,5 +1,3 @@
-"""Run match handler."""
-
 from __future__ import annotations
 
 import logging
@@ -51,17 +49,18 @@ class RunMatchHandler(CommandHandler[RunMatchCommand, RunMatchResponse]):
         self,
         repository: SimulationRepository,
         simulate: Simulate,
+        seed_secret: str | None,
         auditor: BackgroundAuditor,
         logger: logging.Logger,
     ) -> None:
-        """Store the collaborators."""
         self._repository = repository
         self._simulate = simulate
+        # Never logged, stored or put in an audit entry.
+        self._seed_secret = seed_secret
         self._auditor = auditor
         self._logger = logger
 
     async def execute(self, message: RunMatchCommand) -> RunMatchResponse:
-        """Execute the message."""
         request = message.request
         match_id = str(request.match_id)
         home = request.home.to_engine()
@@ -80,7 +79,10 @@ class RunMatchHandler(CommandHandler[RunMatchCommand, RunMatchResponse]):
                     away=away,
                     configuration=configuration,
                     seed=derive_seed(
-                        match_id, configuration.model_version, configuration.version
+                        match_id,
+                        configuration.model_version,
+                        configuration.version,
+                        self._seed_secret,
                     ),
                 )
 
@@ -103,7 +105,11 @@ class RunMatchHandler(CommandHandler[RunMatchCommand, RunMatchResponse]):
                     extra=self._log_context(attempt, SimulationAuditAction.STARTED),
                 )
 
-                output = self._simulate(match_id, home, away, configuration)
+                output = self._simulate(
+                    match_id, home, away, configuration, self._seed_secret
+                )
+                if output.result.seed != attempt.seed:
+                    raise ValueError("The engine's seed differs from the claimed seed.")
                 await self._repository.store_output(connection, attempt.run_id, output)
         except ServiceError:
             raise

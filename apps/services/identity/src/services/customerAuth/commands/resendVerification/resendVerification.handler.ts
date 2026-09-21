@@ -7,10 +7,6 @@ import type { ResendVerificationCommand } from "./resendVerification.command.js"
 
 type Dependencies = Pick<HandlerDependencies, "store" | "verifications">;
 
-/**
- * Issues a fresh code for a pending registration and spends the previous one.
- * An address with nothing pending is answered the same 204, without a code.
- */
 export class ResendVerificationHandler extends CommandHandler<ResendVerificationCommand> {
   public readonly commandType = IDENTITY_COMMAND.RESEND_VERIFICATION;
 

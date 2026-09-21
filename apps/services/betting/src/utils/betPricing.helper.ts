@@ -1,16 +1,8 @@
-/**
- * Slip pricing in integers (`docs/architecture.md` §3).
- *
- * Odds are integer hundredths and money is integer kobo, multiplied as
- * `BigInt`, so a price such as 2.15 — which binary floating point cannot
- * represent — never passes through a float on its way to a payout.
- */
-
 import { MAX_TOTAL_ODDS_HUNDREDTHS } from "../constants/index.js";
 
 const DECIMAL_TEXT = /^(\d{1,9})(?:\.(\d{1,2}))?$/;
 
-/** Reads a `numeric(n,2)` rendered as text ("2.15", "3.4", "11") as hundredths. */
+// Decimal text to integer hundredths: odds never pass through a float on the way to a payout.
 export function parseHundredths(text: string): number {
   const match = DECIMAL_TEXT.exec(text.trim());
 
@@ -21,7 +13,6 @@ export function parseHundredths(text: string): number {
   return Number(match[1]) * 100 + Number((match[2] ?? "").padEnd(2, "0"));
 }
 
-/** Renders hundredths as the decimal text PostgreSQL stores. */
 export function formatHundredths(hundredths: number): string {
   const whole = Math.trunc(hundredths / 100);
   const fraction = String(hundredths % 100).padStart(2, "0");
@@ -29,10 +20,7 @@ export function formatHundredths(hundredths: number): string {
   return `${String(whole)}.${fraction}`;
 }
 
-/**
- * A price a client submitted, as hundredths; `undefined` when it is not a
- * two-decimal number, which can never equal a published price.
- */
+// Undefined when the submitted price is not a two-decimal number; it can then never equal a published price.
 export function submittedHundredths(odds: number): number | undefined {
   const scaled = odds * 100;
   const rounded = Math.round(scaled);
@@ -41,16 +29,11 @@ export function submittedHundredths(odds: number): number | undefined {
 }
 
 export interface SlipPrice {
-  /** Π odds, rounded down to two decimals. For display. */
   readonly totalOddsHundredths: number;
-  /** `floor(stake × Π h / 100ⁿ)`, in kobo. */
   readonly potentialPayout: number;
 }
 
-/**
- * Prices a slip. Returns `undefined` when the product is larger than the
- * columns — or a JSON number — can carry exactly.
- */
+// Architecture §3: payout = floor(stake × Π h / 100ⁿ), in BigInt. Undefined when the result exceeds the columns or a safe integer.
 export function priceSlip(
   stake: number,
   legHundredths: readonly number[],

@@ -1,5 +1,3 @@
-/** The virtual match clock: a pure function of kick-off time and now, shared by every client. */
-
 export const VIRTUAL_TIMING = Object.freeze({
   secondsPerMinute: 2,
   halfTimeSeconds: 15,

@@ -1,5 +1,3 @@
-"""Internal routes for peers and the gateway-proxied admin routes."""
-
 from __future__ import annotations
 
 from typing import Annotated
@@ -29,7 +27,6 @@ _write = require_admin(frozenset({RiskPermission.WRITE}))
 
 
 def create_internal_router(controller: RiskController) -> APIRouter:
-    """Build the routes peers call directly."""
     router = APIRouter(
         prefix=INTERNAL_PREFIX,
         tags=["risk-internal"],
@@ -58,7 +55,6 @@ def create_internal_router(controller: RiskController) -> APIRouter:
 
 
 def create_admin_router(controller: RiskController) -> APIRouter:
-    """Build the gateway-proxied admin routes."""
     router = APIRouter(prefix=ADMIN_PREFIX, tags=["risk-admin"])
 
     @router.get(

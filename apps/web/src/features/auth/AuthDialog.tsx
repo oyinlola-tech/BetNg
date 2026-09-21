@@ -4,7 +4,6 @@ import { authSource } from "../../services/dataSource";
 import { useAuthDialog } from "./auth.store";
 import { AUTH_TITLES, AuthFlow } from "./AuthFlow";
 
-/** The one sign-in surface. Mounted once in the shell; opened by `requireAuth`, the header, or a session expiring. */
 export function AuthDialog(): React.JSX.Element {
   const { open, view, intent, pendingEmail, show, setView, setPendingEmail, close, complete } = useAuthDialog();
   const compact = useIsCompact();

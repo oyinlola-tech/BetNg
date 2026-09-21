@@ -1,5 +1,3 @@
-/** BetNG's semantic colour system. */
-
 export interface ColorTheme {
   readonly background: string;
   readonly surface: string;
@@ -15,7 +13,6 @@ export interface ColorTheme {
 
   readonly border: string;
   readonly borderStrong: string;
-  /** Distinct from brand so it reads even on a brand button. */
   readonly focusRing: string;
 
   readonly brand: string;
@@ -29,7 +26,6 @@ export interface ColorTheme {
   readonly dangerSubtle: string;
   readonly warning: string;
   readonly warningSubtle: string;
-  /** Reserved for in-play state and nothing else. */
   readonly live: string;
   readonly liveSubtle: string;
 

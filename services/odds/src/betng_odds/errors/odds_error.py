@@ -1,5 +1,3 @@
-"""The failures the odds service can describe, with the platform's codes."""
-
 from __future__ import annotations
 
 from betng_service_kit import CONFLICT, NOT_FOUND, UPSTREAM_UNAVAILABLE, ServiceError
@@ -12,10 +10,7 @@ DATABASE_UNAVAILABLE = "DATABASE_UNAVAILABLE"
 
 
 class UnauthenticatedError(ServiceError):
-    """No gateway-asserted actor accompanied the request."""
-
     def __init__(self) -> None:
-        """Build the 401."""
         super().__init__(
             "Authentication is required.", code=UNAUTHENTICATED, status_code=401
         )
@@ -34,10 +29,7 @@ class ForbiddenError(ServiceError):
 
 
 class MarketNotFoundError(ServiceError):
-    """No market has the requested id."""
-
     def __init__(self, market_id: str) -> None:
-        """Build the 404."""
         super().__init__(
             f"Market {market_id} does not exist.", code=NOT_FOUND, status_code=404
         )
@@ -47,17 +39,13 @@ class MatchNotFoundError(ServiceError):
     """The ``match`` schema has no such match, so it cannot be priced."""
 
     def __init__(self, match_id: str) -> None:
-        """Build the 404."""
         super().__init__(
             f"Match {match_id} does not exist.", code=NOT_FOUND, status_code=404
         )
 
 
 class MarketClosedError(ServiceError):
-    """The market's match is no longer open for betting."""
-
     def __init__(self, market_id: str) -> None:
-        """Build the 409."""
         super().__init__(
             f"Market {market_id} belongs to a match that is no longer open "
             "for betting.",
@@ -67,18 +55,12 @@ class MarketClosedError(ServiceError):
 
 
 class MarketStateConflictError(ServiceError):
-    """The action does not apply to the market's current status."""
-
     def __init__(self, message: str) -> None:
-        """Build the 409."""
         super().__init__(message, code=CONFLICT, status_code=409)
 
 
 class OddsUnavailableError(ServiceError):
-    """Prices could not be produced because the probability model did not answer."""
-
     def __init__(self, message: str) -> None:
-        """Build the 503."""
         super().__init__(message, code=ODDS_UNAVAILABLE, status_code=503)
 
 
@@ -86,7 +68,6 @@ class AuditUnavailableError(ServiceError):
     """The audit entry could not be written, so the change was not made."""
 
     def __init__(self) -> None:
-        """Build the 503."""
         super().__init__(
             "The audit entry could not be written, so the change was not applied.",
             code=UPSTREAM_UNAVAILABLE,
@@ -95,10 +76,7 @@ class AuditUnavailableError(ServiceError):
 
 
 class DatabaseUnavailableError(ServiceError):
-    """PostgreSQL could not serve the request."""
-
     def __init__(self) -> None:
-        """Build the 503."""
         super().__init__(
             "The database is unavailable.",
             code=DATABASE_UNAVAILABLE,

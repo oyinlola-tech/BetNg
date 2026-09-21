@@ -19,7 +19,6 @@ export interface TicketServiceConfig {
   readonly queryBus: QueryBus;
 }
 
-/** Selling a ticket is a placement, so it lives with the betting service. */
 export function registerTicketService(config: TicketServiceConfig): void {
   const { container, commandBus, queryBus } = config;
 

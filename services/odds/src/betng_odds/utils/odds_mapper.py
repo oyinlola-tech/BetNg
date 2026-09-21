@@ -1,5 +1,3 @@
-"""Stored records to wire shapes."""
-
 from __future__ import annotations
 
 from datetime import datetime
@@ -29,7 +27,6 @@ _NO_EXPOSURE = SelectionExposure(stake=0, liability=0)
 
 
 def to_market(record: MarketRecord) -> Market:
-    """Render one market as ``marketSchema``."""
     return Market(
         id=record.id,
         match_id=record.match_id,
@@ -55,7 +52,6 @@ def to_market(record: MarketRecord) -> Market:
 def to_match_odds(
     match_id: str, records: list[MarketRecord], generated_at: datetime
 ) -> MatchOdds:
-    """Render a match's markets as ``matchOddsSchema``."""
     return MatchOdds(
         match_id=match_id,
         markets=[to_market(record) for record in records],
@@ -64,7 +60,6 @@ def to_match_odds(
 
 
 def to_snapshot(record: SnapshotRecord) -> OddsSnapshot:
-    """Render one snapshot as ``oddsSnapshotSchema``."""
     return OddsSnapshot(
         id=record.id,
         market_id=record.market_id,
@@ -85,7 +80,6 @@ def to_snapshot(record: SnapshotRecord) -> OddsSnapshot:
 
 
 def to_configuration_view(record: ConfigurationRecord) -> PricingConfigurationView:
-    """Render one pricing configuration version."""
     return PricingConfigurationView(
         version=record.pricing.version,
         margins={
@@ -107,7 +101,6 @@ def to_admin_market(
     opening: dict[str, Decimal],
     exposure: dict[str, SelectionExposure],
 ) -> AdminMarketOdds:
-    """Render one market as ``adminMarketOddsSchema``."""
     selections = [
         AdminSelectionOdds(
             selection_id=selection.id,

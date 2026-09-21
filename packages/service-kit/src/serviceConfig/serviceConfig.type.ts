@@ -1,12 +1,3 @@
-/**
- * The shape of a BetNG service's configuration.
- *
- * Every value a service needs is read once, at startup, into a frozen
- * object. Application code reads that object; it never touches
- * `process.env` directly and never hard-codes a host or port, so the same
- * build runs unchanged in docker-compose and on a developer's machine.
- */
-
 export const SERVICE_NAMES = Object.freeze([
   "gateway",
   "match",

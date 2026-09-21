@@ -114,7 +114,6 @@ export interface RemoteHandlers {
   readonly onSelect?: (element: HTMLElement) => void;
 }
 
-/** Maps the keyboard the TV platform exposes (arrows, Enter, Escape/Backspace) to the remote. */
 export function installRemote(handlers: RemoteHandlers): () => void {
   const onKeyDown = (event: KeyboardEvent): void => {
     const direction = KEY_TO_DIRECTION[event.key];
@@ -163,7 +162,6 @@ export function installRemote(handlers: RemoteHandlers): () => void {
   };
 }
 
-/** Focuses the first focusable inside a container, or the one marked `data-tv-autofocus`. */
 export function focusInitial(root: ParentNode = document): void {
   const preferred = root.querySelector<HTMLElement>("[data-tv-autofocus]");
   const target = preferred ?? candidates(root)[0]?.element;

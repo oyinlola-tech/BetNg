@@ -1,13 +1,3 @@
-"""The BetNG error envelope.
-
-Every BetNG service, TypeScript and Python alike, answers a failure with::
-
-    {"error": {"code": "...", "message": "...", "requestId": "..."}}
-
-so a client can branch on the presence of an ``error`` key alone and needs no
-knowledge of which half of the platform answered it.
-"""
-
 from __future__ import annotations
 
 from typing import Any
@@ -43,13 +33,6 @@ _STATUS_CODES = {
 
 
 class ServiceError(Exception):
-    """A failure the service can describe to the client.
-
-    Carrying the status, the machine-readable code and the message together
-    means a handler raises one object and the HTTP layer needs no knowledge of
-    the domain.
-    """
-
     def __init__(
         self,
         message: str,

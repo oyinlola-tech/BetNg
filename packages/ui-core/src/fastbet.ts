@@ -1,5 +1,3 @@
-/** Fastbet: a cashier types "<event> <code>" (e.g. `3 1`, `7X`, `10 GG`, `4 O2.5`) instead of clicking a cell. Several bets separate with commas. */
-
 import type { MarketKind } from "./types/index.js";
 
 export interface FastbetPick {

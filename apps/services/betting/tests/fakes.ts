@@ -1,12 +1,12 @@
 import type { RiskDecision, RiskEvaluateRequest } from "@betng/contracts";
-import { PeerRefusedError, PeerUnavailableError } from "../../src/errors/index.js";
+import { PeerRefusedError, PeerUnavailableError } from "../src/errors/index.js";
 import type {
   AuditEntry,
   IdentityPeer,
   RiskPeer,
   WalletMovement,
   WalletPeer,
-} from "../../src/interfaces/index.js";
+} from "../src/interfaces/index.js";
 
 export class FakeRisk implements RiskPeer {
   public readonly calls: RiskEvaluateRequest[] = [];

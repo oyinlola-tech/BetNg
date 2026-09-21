@@ -1,5 +1,3 @@
-"""The authenticated actor asserted by the gateway; honoured only with the internal token."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -21,8 +19,6 @@ ACTOR_HEADERS = {
 
 @dataclass(frozen=True)
 class Actor:
-    """Who is calling: ``CUSTOMER``, ``CASHIER``, ``ADMIN`` or ``SYSTEM``."""
-
     kind: str
     id: str
     role: str
@@ -32,7 +28,6 @@ class Actor:
 
 
 def read_actor(request: Request) -> Actor | None:
-    """Read the gateway-asserted actor, or ``None`` for an anonymous call."""
     if not is_internal_request(request):
         return None
 

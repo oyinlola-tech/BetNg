@@ -66,7 +66,6 @@ export const AUDIT_ENTITY = Object.freeze({
 
 export const SYSTEM_ACTOR = Object.freeze({ id: "system", role: "SYSTEM", name: "System" });
 
-/** Who a failed admin sign-in is attributed to when the address matches no admin. */
 export const UNKNOWN_ACTOR = Object.freeze({ id: "unknown", role: "UNKNOWN", name: "Unknown" });
 
 export const SECURITY = Object.freeze({
@@ -78,7 +77,6 @@ export const SECURITY = Object.freeze({
   MAX_VERIFICATION_ATTEMPTS: 5,
   VERIFICATION_RESEND_INTERVAL_MS: 60_000,
   PASSWORD_RESET_TTL_MS: 30 * 60_000,
-  /** Every forgot-password answer takes this long, so timing says nothing about the address. */
   PASSWORD_RESET_RESPONSE_MS: 400,
   SESSION_TOUCH_INTERVAL_MS: 60_000,
   TEMPORARY_CREDENTIALS_TTL_MS: 24 * 3_600_000,

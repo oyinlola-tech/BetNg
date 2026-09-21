@@ -1,18 +1,6 @@
-// BetNG betting service schema: the `betting` schema of the `betng` database.
-//
-// This service is the only writer of these tables; every other service reads
-// them (risk for exposure, settlement for the accepted price, analytics for
-// aggregates), so the column names and types are the contract in
-// `docs/architecture.md` §8.
-//
-// Identifiers owned by another service are plain columns rather than foreign
-// keys: the owning schema belongs to another login. What a bet needs from
-// those rows is copied onto it at acceptance, so a bet stays readable and
-// payable whatever later happens to the match or the market.
-//
-// Migrations read the URL from `prisma.config.ts`; the client is built with a
-// driver adapter. Constraints and triggers Prisma cannot express live in the
-// hand-written `bet_integrity` migration.
+// The `betting` schema. Column names and types are the cross-service contract in docs/architecture.md §8.
+// Ids owned by other services are plain columns: their tables belong to another login.
+// Constraints and triggers Prisma cannot express are in the `bet_integrity` migration.
 
 generator client {
   provider = "prisma-client-js"
@@ -61,31 +49,25 @@ enum TicketStatus {
   @@map("ticket_status")
 }
 
-/// One accepted slip. Written once; afterwards only its resolution changes.
 model Bet {
   id      String     @id @db.Uuid
-  /// The customer, for an online bet. Null for a shop ticket.
   userId  String?    @map("user_id") @db.Uuid
   channel BetChannel
   shopId    String?  @map("shop_id") @db.Uuid
   cashierId String?  @map("cashier_id") @db.Uuid
 
-  /// Kobo.
   stake    BigInt
   currency String  @default("NGN") @db.Char(3)
 
-  /// Product of the accepted leg odds, rounded down to 2 dp. Display only:
-  /// the payout is computed from the legs' integer hundredths.
+  /// Display only: the payout is computed from the legs' integer hundredths.
   totalOdds       Decimal @map("total_odds") @db.Decimal(12, 2)
-  /// What a win pays, fixed at acceptance.
   potentialPayout BigInt  @map("potential_payout")
 
   status BetStatus @default(PENDING)
-  /// What settlement actually paid. Null until resolved.
   payout BigInt?
 
   riskDecisionId String? @map("risk_decision_id") @db.Uuid
-  /// Scoped to the actor, so one caller's key can never collide with another's.
+  /// Stored scoped to the actor, so one caller's key cannot collide with another's.
   idempotencyKey String  @unique @map("idempotency_key") @db.VarChar(200)
 
   placedAt    DateTime  @map("placed_at") @db.Timestamptz(3)
@@ -101,7 +83,6 @@ model Bet {
   @@map("bets")
 }
 
-/// One leg, at the price and market version the platform accepted it at.
 model BetSelection {
   id          String @id @default(uuid()) @db.Uuid
   betId       String @map("bet_id") @db.Uuid
@@ -135,11 +116,9 @@ model BetSelection {
   @@map("bet_selections")
 }
 
-/// The over-the-counter face of a shop bet. One per shop bet.
 model Ticket {
   id    String @id @default(uuid()) @db.Uuid
   betId String @unique @map("bet_id") @db.Uuid
-  /// What is printed on the slip and typed back in at the counter.
   code  String @unique @db.VarChar(16)
 
   shopId      String @map("shop_id") @db.Uuid
@@ -152,7 +131,6 @@ model Ticket {
 
   status TicketStatus @default(OPEN)
   paidAt DateTime?    @map("paid_at") @db.Timestamptz(3)
-  /// The cashier who paid it out.
   paidBy String?      @map("paid_by") @db.Uuid
 
   expiresAt    DateTime @map("expires_at") @db.Timestamptz(3)

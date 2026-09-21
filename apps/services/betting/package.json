@@ -10,7 +10,7 @@
     ]
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && cp -r src/generated dist/generated",
     "clean": "rm -rf dist *.tsbuildinfo",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",
@@ -18,7 +18,8 @@
     "db:studio": "prisma studio",
     "dev": "tsx watch src/server.ts",
     "start": "node dist/server.js",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "cd ../../.. && vitest run apps/services/betting/tests"
   },
   "dependencies": {
     "@betng/contracts": "workspace:*",

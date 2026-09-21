@@ -1,10 +1,6 @@
 /**
- * Prisma configuration for the betting service.
- *
- * Prisma 7 reads the connection URL for `migrate` and `db` commands from
- * here rather than from `schema.prisma`, and the runtime client is built
- * with a driver adapter instead of a URL. The service still learns where
- * its database is from one environment variable, so nothing is hard-coded.
+ * Prisma 7 reads the `migrate`/`db` connection URL from here rather than
+ * from `schema.prisma`; the runtime client uses a driver adapter.
  */
 
 import { existsSync } from "node:fs";

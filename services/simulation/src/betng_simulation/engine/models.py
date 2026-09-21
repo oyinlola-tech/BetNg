@@ -1,5 +1,3 @@
-"""Engine value types; none has a field for bet data, by design."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -30,8 +28,6 @@ EventType = Literal[
 
 @dataclass(frozen=True)
 class TeamStrength:
-    """Ratings 0-100, except ``form`` which runs -10 to +10."""
-
     attack: float
     defence: float
     midfield: float
@@ -45,8 +41,6 @@ class TeamStrength:
 
 @dataclass(frozen=True)
 class SimulationTeam:
-    """A team as the engine sees it."""
-
     team_id: str
     name: str
     short_name: str
@@ -55,8 +49,6 @@ class SimulationTeam:
 
 @dataclass(frozen=True)
 class ModelConfiguration:
-    """One version of the model's parameters."""
-
     version: int = 1
     model_version: str = MODEL_VERSION
 
@@ -109,8 +101,6 @@ class ModelConfiguration:
 
 @dataclass(frozen=True)
 class MatchResult:
-    """The authoritative result of a match."""
-
     match_id: str
     home_goals: int
     away_goals: int
@@ -124,8 +114,6 @@ class MatchResult:
 
 @dataclass(frozen=True)
 class MatchEventDraft:
-    """One timeline event before it is stored."""
-
     sequence: int
     minute: int
     type: EventType
@@ -139,8 +127,6 @@ class MatchEventDraft:
 
 @dataclass(frozen=True)
 class SideStats:
-    """Final statistics of one side."""
-
     possession: int
     shots: int
     shots_on_target: int
@@ -153,8 +139,6 @@ class SideStats:
 
 @dataclass(frozen=True)
 class MatchStats:
-    """Final statistics of a match."""
-
     as_of_minute: int
     home: SideStats
     away: SideStats
@@ -162,8 +146,6 @@ class MatchStats:
 
 @dataclass(frozen=True)
 class ProbabilityMatrix:
-    """Expected goals and the score matrix."""
-
     home_xg: float
     away_xg: float
     max_goals: int
@@ -173,8 +155,6 @@ class ProbabilityMatrix:
 
 @dataclass(frozen=True)
 class SimulationOutput:
-    """Everything one simulation produces."""
-
     result: MatchResult
     probabilities: ProbabilityMatrix
     events: tuple[MatchEventDraft, ...]

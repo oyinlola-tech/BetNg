@@ -1,5 +1,3 @@
-"""The contracts the odds handlers are written against."""
-
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
@@ -27,10 +25,7 @@ ConfigurationCommitGuard = Callable[
 
 
 class OddsRepository(Protocol):
-    """Reads and writes of the ``odds`` schema."""
-
     async def get_active_configuration(self) -> ConfigurationRecord:
-        """Return the pricing configuration new markets are priced under."""
         ...
 
     async def insert_configuration(
@@ -42,11 +37,9 @@ class OddsRepository(Protocol):
         reason: str,
         before_commit: ConfigurationCommitGuard,
     ) -> ConfigurationRecord:
-        """Store the next configuration version and make it the active one."""
         ...
 
     async def find_publication(self, match_id: str) -> PublishOutcome | None:
-        """Return what is already published for a match, if anything."""
         ...
 
     async def publish_markets(
@@ -57,13 +50,11 @@ class OddsRepository(Protocol):
         model_version: str,
         model_configuration_version: int,
     ) -> PublishOutcome:
-        """Create a match's markets, selections and INITIAL snapshots once."""
         ...
 
     async def set_match_markets_status(
         self, match_id: str, status: str, allowed_from: frozenset[str]
     ) -> int:
-        """Move a match's markets to ``status``; return how many moved."""
         ...
 
     async def change_market_status(
@@ -76,15 +67,12 @@ class OddsRepository(Protocol):
         ...
 
     async def get_market(self, market_id: str) -> MarketRecord | None:
-        """Return one market with its selections."""
         ...
 
     async def list_markets(self, match_ids: list[str]) -> list[MarketRecord]:
-        """Return every market of the given matches, in display order."""
         ...
 
     async def list_trading_markets(self, limit: int) -> list[MarketRecord]:
-        """Return markets that are not yet settled or void, newest match first."""
         ...
 
     async def list_snapshots(self, market_id: str, limit: int) -> list[SnapshotRecord]:
@@ -92,31 +80,23 @@ class OddsRepository(Protocol):
         ...
 
     async def opening_odds(self, market_ids: list[str]) -> dict[str, Decimal]:
-        """Return each selection's version-1 price, keyed by selection id."""
         ...
 
 
 class ProbabilityModel(Protocol):
-    """The simulation service, as the odds service sees it."""
-
     async def calculate(
         self, home: TeamStrength, away: TeamStrength, request_id: str | None
     ) -> ProbabilityMatrix:
-        """Return the score matrix for a pairing, or raise ``ODDS_UNAVAILABLE``."""
         ...
 
     async def ping(self) -> None:
-        """Raise unless the simulation service is reachable."""
         ...
 
 
 class EventPublisher(Protocol):
-    """The event service's ``event.publish``."""
-
     async def publish_odds_updated(
         self, match_id: str, description: str, request_id: str | None
     ) -> None:
-        """Announce that a match's odds changed."""
         ...
 
 
@@ -129,16 +109,10 @@ class AuditRecorder(Protocol):
 
 
 class MatchDirectory(Protocol):
-    """Read-only view of the ``match`` schema."""
-
     async def find(self, match_ids: list[str]) -> dict[str, MatchInfo]:
-        """Return the known matches among ``match_ids``, keyed by id."""
         ...
 
 
 class ExposureReader(Protocol):
-    """Read-only view of pending bets in the ``betting`` schema."""
-
     async def by_selection(self, market_ids: list[str]) -> dict[str, SelectionExposure]:
-        """Return pending stake and liability per selection id."""
         ...

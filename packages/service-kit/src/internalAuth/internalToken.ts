@@ -1,5 +1,3 @@
-// `/rpc` and the actor headers are honoured only with this token. Mandatory in production; unset elsewhere means no check.
-
 import { timingSafeEqual } from "node:crypto";
 import type { HttpRequestContext } from "@zudojs/http";
 

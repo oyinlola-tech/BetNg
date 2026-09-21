@@ -1,15 +1,3 @@
-/**
- * Wallet contracts, owned by the wallet service.
- *
- * SIMULATED FUNCTIONALITY ONLY.
- *
- * This wallet holds play-money balances for a portfolio demonstration. It
- * does not connect to a payment provider, hold customer funds, or represent
- * any real-world obligation. A deposit moves a number in a database; no
- * money changes hands. Do not repurpose these contracts for a system that
- * handles real funds without a full compliance review.
- */
-
 import { z } from "@zudojs/validation";
 import {
   brandedIdSchema,

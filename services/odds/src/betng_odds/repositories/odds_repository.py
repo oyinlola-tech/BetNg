@@ -1,5 +1,3 @@
-"""PostgreSQL implementation of :class:`OddsRepository`."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -110,12 +108,9 @@ def _market(row: dict[str, Any], selections: list[SelectionRecord]) -> MarketRec
 
 @dataclass(frozen=True)
 class PostgresOddsRepository(OddsRepository):
-    """The ``odds`` schema, through the service's own login."""
-
     pool: Pool
 
     async def get_active_configuration(self) -> ConfigurationRecord:
-        """Return the pricing configuration new markets are priced under."""
         async with transaction(self.pool) as connection:
             return await self._active_configuration(connection)
 
@@ -128,7 +123,6 @@ class PostgresOddsRepository(OddsRepository):
         reason: str,
         before_commit: ConfigurationCommitGuard,
     ) -> ConfigurationRecord:
-        """Store the next configuration version and make it the active one."""
         async with transaction(self.pool) as connection:
             await connection.execute(
                 "SELECT pg_advisory_xact_lock(hashtext('odds:configuration'))"
@@ -163,7 +157,6 @@ class PostgresOddsRepository(OddsRepository):
             return after
 
     async def find_publication(self, match_id: str) -> PublishOutcome | None:
-        """Return what is already published for a match, if anything."""
         async with transaction(self.pool) as connection:
             return await self._publication(connection, match_id)
 
@@ -175,7 +168,6 @@ class PostgresOddsRepository(OddsRepository):
         model_version: str,
         model_configuration_version: int,
     ) -> PublishOutcome:
-        """Create a match's markets, selections and INITIAL snapshots once."""
         async with transaction(self.pool) as connection:
             # Racing publishers serialise here; the loser returns the winner's rows.
             await connection.execute(
@@ -252,7 +244,6 @@ class PostgresOddsRepository(OddsRepository):
     async def set_match_markets_status(
         self, match_id: str, status: str, allowed_from: frozenset[str]
     ) -> int:
-        """Move a match's markets to ``status``; return how many moved."""
         async with transaction(self.pool) as connection:
             cursor = await connection.execute(
                 """
@@ -316,7 +307,6 @@ class PostgresOddsRepository(OddsRepository):
             return after
 
     async def get_market(self, market_id: str) -> MarketRecord | None:
-        """Return one market with its selections."""
         async with transaction(self.pool) as connection:
             cursor = await connection.execute(
                 f"SELECT {_MARKET_COLUMNS} FROM odds.markets WHERE id = %s",
@@ -327,7 +317,6 @@ class PostgresOddsRepository(OddsRepository):
             return markets[0] if markets else None
 
     async def list_markets(self, match_ids: list[str]) -> list[MarketRecord]:
-        """Return every market of the given matches, in display order."""
         if not match_ids:
             return []
 
@@ -341,7 +330,6 @@ class PostgresOddsRepository(OddsRepository):
             return await self._with_selections(connection, await cursor.fetchall())
 
     async def list_trading_markets(self, limit: int) -> list[MarketRecord]:
-        """Return markets that are not yet settled or void, newest match first."""
         async with transaction(self.pool) as connection:
             cursor = await connection.execute(
                 f"SELECT {_MARKET_COLUMNS} FROM odds.markets "
@@ -376,7 +364,6 @@ class PostgresOddsRepository(OddsRepository):
             ]
 
     async def opening_odds(self, market_ids: list[str]) -> dict[str, Decimal]:
-        """Return each selection's version-1 price, keyed by selection id."""
         if not market_ids:
             return {}
 

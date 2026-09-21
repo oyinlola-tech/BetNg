@@ -1,5 +1,3 @@
-"""Conversion between stored parameters and the engine's configuration."""
-
 from __future__ import annotations
 
 import dataclasses
@@ -22,14 +20,12 @@ TUNABLE_FIELDS: frozenset[str] = frozenset(
 
 
 def parameters_of(configuration: ModelConfiguration) -> ModelParametersDto:
-    """Return the configuration's tunables as a DTO."""
     return ModelParametersDto.model_validate(
         {name: getattr(configuration, name) for name in TUNABLE_FIELDS}
     )
 
 
 def parameters_to_json(configuration: ModelConfiguration) -> dict[str, Any]:
-    """Return the tunables as stored camelCase JSON."""
     return parameters_of(configuration).model_dump(by_alias=True, mode="json")
 
 
@@ -51,7 +47,6 @@ def build_configuration(
     parameters: Mapping[str, Any],
     base: ModelConfiguration | None = None,
 ) -> ModelConfiguration:
-    """Overlay ``parameters`` on ``base`` (the defaults when omitted)."""
     try:
         validated = ModelParametersDto.model_validate(dict(parameters))
     except ValidationError as error:

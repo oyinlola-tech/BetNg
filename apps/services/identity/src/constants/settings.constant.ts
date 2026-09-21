@@ -1,6 +1,5 @@
 import type { PlatformSettings } from "@betng/contracts";
 
-/** The settings document written once, the first time the service starts on an empty table. */
 export const DEFAULT_PLATFORM_SETTINGS: PlatformSettings = Object.freeze({
   minStake: 5_000,
   maxStake: 50_000_000,

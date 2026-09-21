@@ -4,7 +4,6 @@ import { buildQuery, type ListResponse, type Requester } from "./request.js";
 
 export interface TicketQuery {
   readonly status?: string;
-  /** Matches ticket code, customer name or phone. */
   readonly q?: string;
   readonly date?: string;
 }

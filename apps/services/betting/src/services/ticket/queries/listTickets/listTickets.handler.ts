@@ -6,7 +6,6 @@ import type {
 } from "../../../../interfaces/index.js";
 import type { ListTicketsQuery } from "./listTickets.query.js";
 
-/** One shop's tickets, newest first. */
 export class ListTicketsHandler extends QueryHandler<
   ListTicketsQuery,
   readonly TicketRecord[]

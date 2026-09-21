@@ -1,13 +1,3 @@
-/**
- * The Redis boundary.
- *
- * Redis is configured now because the platform will need it: caching, the
- * short-lived state of a match in play, and coordination between services.
- * None of that exists yet, so this module is exactly a connection and a
- * probe. Building an event bus or a distributed lock on top of it before
- * there is a caller would be guessing at requirements.
- */
-
 import { createClient } from "redis";
 import type { RedisClientType } from "redis";
 import type { DependencyProbe } from "../healthProbe/index.js";

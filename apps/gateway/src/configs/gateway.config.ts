@@ -1,6 +1,5 @@
 export interface GatewaySettings {
   readonly corsOrigins: readonly string[];
-  /** Also the longest a revoked session keeps working. */
   readonly actorCacheSeconds: number;
   readonly loginRateLimit: { readonly limit: number; readonly windowSeconds: number };
 }

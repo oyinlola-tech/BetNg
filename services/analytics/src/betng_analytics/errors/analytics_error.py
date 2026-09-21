@@ -39,8 +39,6 @@ class InvalidQueryError(ServiceError):
 
 
 class DatabaseUnavailableError(ServiceError):
-    """Answered instead of a partial or remembered figure."""
-
     def __init__(self) -> None:
         super().__init__(
             "The analytics database could not be read.",

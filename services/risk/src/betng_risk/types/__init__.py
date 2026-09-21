@@ -1,5 +1,3 @@
-"""Service-local row and record types."""
-
 from .risk_type import (
     AuditEntry,
     BookRows,

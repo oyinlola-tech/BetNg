@@ -1,5 +1,3 @@
-"""Bus wiring."""
-
 from __future__ import annotations
 
 from betng_service_kit import CommandBus, Container, QueryBus
@@ -9,7 +7,6 @@ from ..services import register_simulation_service
 
 
 def load_services(container: Container) -> tuple[CommandBus, QueryBus]:
-    """Create the buses and register every handler."""
     command_bus = CommandBus()
     query_bus = QueryBus()
 

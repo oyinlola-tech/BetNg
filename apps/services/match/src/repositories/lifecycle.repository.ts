@@ -69,8 +69,7 @@ export function createLifecycleRepository(prisma: PrismaClient): LifecycleReposi
             matchId: input.matchId,
             fromState: previous,
             toState: state,
-            // A millisecond apart, so a chain committed at one instant still reads back in order.
-            at: new Date(input.at.getTime() + rows.length),
+            at: input.at,
             actor: input.actor,
             ...(input.reason === undefined ? {} : { reason: input.reason.slice(0, 240) }),
           });

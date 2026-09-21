@@ -1,5 +1,3 @@
-"""The pure stake decision: ACCEPT, LIMIT or REJECT with a maximum stake."""
-
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
@@ -28,7 +26,6 @@ def _reject(reason: RiskReason) -> EngineDecision:
 def _known_state(
     leg: SlipLeg, states: Mapping[str, SelectionState]
 ) -> SelectionState | None:
-    """Return the leg's state, or ``None`` when the leg names no real rows."""
     state = states.get(leg.selection_id)
 
     if (
@@ -76,8 +73,6 @@ def _state_rejection(
 
 @dataclass(frozen=True)
 class _TouchedMarket:
-    """One market the slip backs, reduced to what a new stake can move."""
-
     backed_nets: tuple[int, ...]
     #: Worst case of the unbacked selections. Their relief from a new stake is
     #: ignored: that keeps the match figure monotone and errs towards the book.
@@ -149,7 +144,6 @@ def decide(
     book: ExposureBook,
     now: datetime,
 ) -> EngineDecision:
-    """Decide one slip against the limits and the global pending book."""
     rejection = _state_rejection(legs, states, now)
     if rejection is not None:
         return _reject(rejection)

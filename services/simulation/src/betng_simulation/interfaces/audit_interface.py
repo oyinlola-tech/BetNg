@@ -1,5 +1,3 @@
-"""The audit trail, as the simulation service sees it."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -30,6 +28,4 @@ class AuditEntry:
 class AuditRecorder(Protocol):
     """Writes audit entries; injected so tests need no network."""
 
-    async def record(self, entry: AuditEntry) -> None:
-        """Write one entry, or raise when it could not be written."""
-        ...
+    async def record(self, entry: AuditEntry) -> None: ...

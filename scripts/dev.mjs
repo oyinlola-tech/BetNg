@@ -1,10 +1,4 @@
 #!/usr/bin/env node
-// Runs the platform's services together for local development, with prefixed logs and one Ctrl+C to stop them all.
-//   node scripts/dev.mjs            every service
-//   node scripts/dev.mjs --ts-only  gateway + TypeScript services
-//   node scripts/dev.mjs --py-only  Python services
-// The client apps have their own commands (pnpm dev:web, dev:tv, dev:shop, dev:admin, dev:mobile).
-
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { dirname, resolve } from "node:path";

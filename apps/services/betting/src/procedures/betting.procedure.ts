@@ -1,12 +1,3 @@
-/**
- * The betting service's RPC procedures.
- *
- * `betting.applySettlement` is how the settlement service records what it
- * decided. It is internal: the gateway forwards nothing to `/rpc`, so no
- * client frame reaches this handler. The payload is validated here, and the
- * repository re-checks the payout against the bet it was promised on.
- */
-
 import {
   createRPCError,
   createRPCProcedure,

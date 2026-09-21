@@ -7,11 +7,7 @@ import type {
 } from "../controllers/index.js";
 import { withDatabaseFailure } from "../middlewares/index.js";
 
-/**
- * Every route reads the gateway's actor and re-checks what it needs; none is
- * public. Placement answers 201 for a new bet and 200 for an idempotent
- * replay, so those two handlers build their own response.
- */
+// No route is public: each controller re-checks the gateway's actor.
 export function registerBettingRoutes(
   router: HttpRouter,
   bets: BettingController,

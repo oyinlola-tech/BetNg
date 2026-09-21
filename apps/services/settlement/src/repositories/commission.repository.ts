@@ -5,8 +5,8 @@
  * The ledger is written only by closing a period (see the operator repository).
  */
 
-import { Prisma } from "../generated/prisma/client.js";
-import type { PrismaClient } from "../generated/prisma/client.js";
+import { sql } from "../databases/index.js";
+import type { Prisma, PrismaClient } from "../databases/index.js";
 import type { CommissionRepository } from "../interfaces/index.js";
 import type { CommissionConfigRecord, CommissionLedgerRecord } from "../models/index.js";
 import { basisPointsToPercentText } from "../utils/index.js";
@@ -34,7 +34,7 @@ export interface CommissionLedgerRow {
   readonly created_at: Date;
 }
 
-const CONFIG_COLUMNS = Prisma.sql`
+const CONFIG_COLUMNS = sql`
   id, shop_id, shop_share_percent::text AS shop_share_percent, effective_from, created_by, reason`;
 
 /** Serialises configuration writers so "before" is the version the new row really replaces. */
@@ -154,7 +154,7 @@ export function createCommissionRepository(prisma: PrismaClient): CommissionRepo
                shop_share_percent::text AS shop_share_percent, shop_share_amount,
                platform_share_percent::text AS platform_share_percent, platform_share_amount, created_at
         FROM settlement.commission_ledger
-        WHERE ${filter.periodId === undefined ? Prisma.sql`TRUE` : Prisma.sql`period_id = ${filter.periodId}`}
+        WHERE ${filter.periodId === undefined ? sql`TRUE` : sql`period_id = ${filter.periodId}`}
         ORDER BY created_at DESC, shop_id
         LIMIT ${filter.limit}`;
 

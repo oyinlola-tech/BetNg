@@ -50,7 +50,6 @@ export function localDateKey(offsetDays = 0): string {
   return `${String(d.getFullYear())}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-/** Axis ticks have about six characters of room: ₦0, ₦125k, ₦1.2m. */
 export function formatAxisMoney(minorUnits: number): string {
   const naira = minorUnits / 100;
   const abs = Math.abs(naira);

@@ -3,14 +3,15 @@ import type {
   TransactionType,
   WalletId,
 } from "@betng/contracts";
+import type { TransactionStatus } from "./page.type.js";
 
 export interface WalletView {
   readonly id: WalletId;
   readonly balance: number;
   readonly reserved: number;
   readonly available: number;
-  readonly currency: "NGN";
-  /** Always true. Surfaces in the UI so nobody mistakes this for money. */
+  readonly pending?: number;
+  readonly currency: string;
   readonly simulated: true;
 }
 
@@ -22,4 +23,7 @@ export interface TransactionView {
   readonly reference?: string;
   readonly description: string;
   readonly createdAt: string;
+  readonly status?: TransactionStatus;
+  readonly currency?: string;
+  readonly betId?: string;
 }

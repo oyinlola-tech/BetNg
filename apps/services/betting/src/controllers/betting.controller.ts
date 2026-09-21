@@ -53,8 +53,7 @@ export function createBettingController(
 
   return {
     placeBet: async (context) => {
-      /* Customers only: an admin is the operator, and the operator is never
-       * a bettor. Any `userId` in the body is ignored. */
+      // Invariant 9: the operator is never a bettor. Any `userId` in the body is ignored.
       const actor = requireValidActor(context.request, { kind: "CUSTOMER" });
 
       assertLegCount(context.request);

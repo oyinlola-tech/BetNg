@@ -1,13 +1,3 @@
-/**
- * Request body decoding and validation.
- *
- * The Node adapter hands a handler the raw request body as bytes. These
- * helpers decode it, then run it through the contract's schema using
- * `@zudojs/validation`. A failure becomes a 422 carrying
- * `VALIDATION_FAILED` and the offending field paths, so a client learns
- * what to fix rather than only that something was wrong.
- */
-
 import { ErrorCodes } from "@betng/contracts";
 import { badRequest, unprocessableEntity } from "@zudojs/http";
 import type { HttpRequestContext } from "@zudojs/http";

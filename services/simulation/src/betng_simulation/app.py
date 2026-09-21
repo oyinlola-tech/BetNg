@@ -1,5 +1,3 @@
-"""Application factory."""
-
 from __future__ import annotations
 
 import logging
@@ -21,6 +19,8 @@ from .configs import (
     DATABASE_SCHEMA,
     IDENTITY_PEER,
     MIGRATIONS_DIRECTORY,
+    SEED_SECRET_VARIABLE,
+    load_seed_secret,
     load_simulation_settings,
     require_database_url,
 )
@@ -53,9 +53,9 @@ def create_app(
     match_read_model: MatchReadModel | None = None,
     simulate_match: Simulate = simulate,
 ) -> FastAPI:
-    """Assemble the service."""
     resolved = settings or load_simulation_settings()
     logger = logging.getLogger(resolved.service_name)
+    seed_secret = load_seed_secret(resolved.environment)
 
     pool = create_pool(require_database_url(resolved))
     repository = SimulationRepository(pool)
@@ -71,6 +71,7 @@ def create_app(
             )
         ),
         simulate_match,
+        seed_secret,
         logger,
     )
     command_bus, query_bus = load_services(container)
@@ -78,6 +79,11 @@ def create_app(
     @asynccontextmanager
     async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
         await pool.open()
+        if seed_secret is None:
+            logger.warning(
+                "Seeds are not keyed: results are derivable from public inputs",
+                extra={"event": "seed_secret_missing", "variable": SEED_SECRET_VARIABLE},
+            )
         try:
             await apply_migrations(pool, DATABASE_SCHEMA, MIGRATIONS_DIRECTORY, logger)
             await repository.ensure_default_configuration(ModelConfiguration())

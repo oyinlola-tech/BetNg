@@ -1,9 +1,3 @@
-/**
- * Every inbound shape, as a schema. The contract schemas are used as they
- * are; what the contract does not describe (headers, path parameters, list
- * bounds, the settlement RPC payload) is described here, bounded.
- */
-
 import {
   betStatusSchema,
   cancelTicketRequestSchema,
@@ -40,7 +34,6 @@ export const idempotencyKeyValidator = z
   .string()
   .regex(/^[A-Za-z0-9_.:-]{8,120}$/);
 
-/** Codes are typed from paper, so lower case is accepted and folded. */
 export const ticketCodeValidator = z
   .string()
   .max(16)
@@ -71,7 +64,6 @@ function isCalendarDate(value: string): boolean {
 
 export const listTicketsQueryValidator = z.object({
   status: ticketStatusSchema.optional(),
-  /** Letters, digits and what a name or phone number contains; no LIKE wildcards. */
   q: z
     .string()
     .trim()

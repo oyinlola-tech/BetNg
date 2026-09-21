@@ -1,11 +1,3 @@
-/**
- * The `/health` and `/ready` endpoints every BetNG service exposes.
- *
- * They sit outside `/api/v1` on purpose: they describe the process, not the
- * domain, and an orchestrator probing them should not be coupled to an API
- * version.
- */
-
 import { createResponseContext } from "@zudojs/http";
 import type { HttpRouter } from "@zudojs/http";
 import type { HealthResponse, ReadinessResponse } from "@betng/contracts";

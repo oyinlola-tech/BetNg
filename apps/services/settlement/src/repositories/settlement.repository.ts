@@ -5,8 +5,8 @@
  * `simulation` and `identity` with schema-qualified names; it writes none of them.
  */
 
-import { Prisma } from "../databases/index.js";
-import type { PrismaClient } from "../databases/index.js";
+import { join, sql } from "../databases/index.js";
+import type { PrismaClient, Sql } from "../databases/index.js";
 import type { MatchSettlementKind } from "../constants/index.js";
 import type {
   AdminSettlementFilter,
@@ -81,11 +81,11 @@ interface AdminRow {
 /** How far back the admin list looks for completed match settlements; unfinished ones are always listed. */
 const ADMIN_WINDOW_HOURS = 48;
 
-const SETTLEMENT_COLUMNS = Prisma.sql`
+const SETTLEMENT_COLUMNS = sql`
   s.id, s.bet_id, s.revision, s.outcome, s.stake, s.payout, s.channel, s.user_id, s.shop_id, s.cashier_id,
   s.period_id, s.effects_applied_at, s.settled_at`;
 
-const MATCH_SETTLEMENT_COLUMNS = Prisma.sql`
+const MATCH_SETTLEMENT_COLUMNS = sql`
   match_id, kind, status, bets_total, bets_settled, attempts, failure_reason, started_at, completed_at`;
 
 function toMatchSettlement(row: MatchSettlementRow): MatchSettlementRecord {
@@ -190,7 +190,7 @@ export function createSettlementRepository(prisma: PrismaClient): SettlementRepo
    * anything else is still PENDING. A leg's score is shown only once its match is COMPLETED.
    */
   const adminRows = async (
-    scope: Prisma.Sql,
+    scope: Sql,
     status: AdminSettlementStatus | undefined,
     limit: number,
   ): Promise<AdminSettlementRecord[]> => {
@@ -245,7 +245,7 @@ export function createSettlementRepository(prisma: PrismaClient): SettlementRepo
         WHERE b.status::text <> 'CANCELLED'
       )
       SELECT * FROM listed
-      WHERE ${status === undefined ? Prisma.sql`TRUE` : Prisma.sql`status = ${status}`}
+      WHERE ${status === undefined ? sql`TRUE` : sql`status = ${status}`}
       ORDER BY occurred_at DESC, bet_id
       LIMIT ${limit}`;
 
@@ -348,12 +348,12 @@ export function createSettlementRepository(prisma: PrismaClient): SettlementRepo
 
         const legs = settlement.legs.map(
           (leg) =>
-            Prisma.sql`(${row.id}::uuid, ${leg.selectionId}::uuid, ${leg.matchId}::uuid, ${leg.outcome}, ${leg.result})`,
+            sql`(${row.id}::uuid, ${leg.selectionId}::uuid, ${leg.matchId}::uuid, ${leg.outcome}, ${leg.result})`,
         );
 
         await tx.$executeRaw`
           INSERT INTO settlement.settled_selections (settlement_id, selection_id, match_id, outcome, result)
-          VALUES ${Prisma.join(legs)}`;
+          VALUES ${join(legs)}`;
 
         await tx.$executeRaw`
           INSERT INTO settlement.operator_ledger_entries
@@ -405,7 +405,7 @@ export function createSettlementRepository(prisma: PrismaClient): SettlementRepo
         SELECT ${SETTLEMENT_COLUMNS}
         FROM settlement.settlements s
         WHERE s.bet_id = ${betId}::uuid
-          AND ${userId === undefined ? Prisma.sql`TRUE` : Prisma.sql`s.user_id = ${userId}::uuid`}
+          AND ${userId === undefined ? sql`TRUE` : sql`s.user_id = ${userId}::uuid`}
         ORDER BY s.revision DESC
         LIMIT 1`;
 
@@ -413,22 +413,22 @@ export function createSettlementRepository(prisma: PrismaClient): SettlementRepo
     },
 
     list: async (filter: SettlementFilter) => {
-      const conditions: Prisma.Sql[] = [
-        Prisma.sql`NOT EXISTS (
+      const conditions: Sql[] = [
+        sql`NOT EXISTS (
           SELECT 1 FROM settlement.settlements newer
           WHERE newer.bet_id = s.bet_id AND newer.revision > s.revision)`,
       ];
 
       if (filter.userId !== undefined) {
-        conditions.push(Prisma.sql`s.user_id = ${filter.userId}::uuid`);
+        conditions.push(sql`s.user_id = ${filter.userId}::uuid`);
       }
 
       if (filter.outcome !== undefined) {
-        conditions.push(Prisma.sql`s.outcome = ${filter.outcome}`);
+        conditions.push(sql`s.outcome = ${filter.outcome}`);
       }
 
       if (filter.matchId !== undefined) {
-        conditions.push(Prisma.sql`EXISTS (
+        conditions.push(sql`EXISTS (
           SELECT 1 FROM settlement.settled_selections ss
           WHERE ss.settlement_id = s.id AND ss.match_id = ${filter.matchId}::uuid)`);
       }
@@ -436,7 +436,7 @@ export function createSettlementRepository(prisma: PrismaClient): SettlementRepo
       const rows = await prisma.$queryRaw<SettlementRow[]>`
         SELECT ${SETTLEMENT_COLUMNS}
         FROM settlement.settlements s
-        WHERE ${Prisma.join(conditions, " AND ")}
+        WHERE ${join(conditions, " AND ")}
         ORDER BY s.settled_at DESC, s.id
         LIMIT ${filter.limit}`;
 
@@ -445,7 +445,7 @@ export function createSettlementRepository(prisma: PrismaClient): SettlementRepo
 
     listAdmin: async (filter: AdminSettlementFilter) =>
       adminRows(
-        Prisma.sql`
+        sql`
           SELECT DISTINCT bs.bet_id
           FROM settlement.match_settlements ms
           JOIN betting.bet_selections bs ON bs.match_id = ms.match_id
@@ -458,7 +458,7 @@ export function createSettlementRepository(prisma: PrismaClient): SettlementRepo
     findAdminByBet: async (betId) =>
       (
         await adminRows(
-          Prisma.sql`SELECT b.id AS bet_id FROM betting.bets b WHERE b.id = ${betId}::uuid`,
+          sql`SELECT b.id AS bet_id FROM betting.bets b WHERE b.id = ${betId}::uuid`,
           undefined,
           1,
         )

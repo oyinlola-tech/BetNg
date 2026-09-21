@@ -1,5 +1,3 @@
-"""Process entry point."""
-
 from __future__ import annotations
 
 import uvicorn
@@ -9,7 +7,6 @@ from .configs import load_odds_settings
 
 
 def main() -> None:
-    """Serve the odds service on the configured host and port."""
     settings = load_odds_settings()
 
     uvicorn.run(

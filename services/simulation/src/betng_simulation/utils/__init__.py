@@ -1,5 +1,3 @@
-"""Service helpers."""
-
 from .admin_run_util import to_admin_run
 from .audit_util import BackgroundAuditor
 from .configuration_util import (

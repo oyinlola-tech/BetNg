@@ -37,11 +37,11 @@ import {
 import { parseParam, toAuditActor } from "./request.helper.js";
 
 export interface SettlementController {
-  getSettlement(context: HttpRouterContext): Promise<Settlement>;
-  listSettlements(context: HttpRouterContext): Promise<SettlementListDto>;
-  listAdminSettlements(context: HttpRouterContext): Promise<AdminSettlementListDto>;
-  retrySettlement(context: HttpRouterContext): Promise<AdminSettlement>;
-  settleMatchInternally(context: HttpRouterContext): Promise<MatchSettlement>;
+  readonly getSettlement: (context: HttpRouterContext) => Promise<Settlement>;
+  readonly listSettlements: (context: HttpRouterContext) => Promise<SettlementListDto>;
+  readonly listAdminSettlements: (context: HttpRouterContext) => Promise<AdminSettlementListDto>;
+  readonly retrySettlement: (context: HttpRouterContext) => Promise<AdminSettlement>;
+  readonly settleMatchInternally: (context: HttpRouterContext) => Promise<MatchSettlement>;
 }
 
 /** A customer is scoped to their own bets; an admin needs `settlement:read`; nobody else may read. */

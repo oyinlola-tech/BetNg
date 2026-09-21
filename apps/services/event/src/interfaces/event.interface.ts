@@ -1,15 +1,3 @@
-/**
- * The event service's subscription contract.
- *
- * A channel is a match: `match:{matchId}`. A registry tracks who is listening
- * to what, and what the last published sequence on each channel was.
- *
- * The registry is in-process, which bounds the service to one instance
- * serving a given subscriber. Fanning out across instances means putting a
- * shared channel behind this interface — Redis pub/sub is why `REDIS_URL` is
- * already configured. Nothing above this file changes when that lands.
- */
-
 import type { LiveEvent, WebSocketSession } from "./event.types.js";
 
 export interface ChannelState {

@@ -1,5 +1,3 @@
-"""Evaluates a slip against the limits and the global pending book."""
-
 from __future__ import annotations
 
 import logging
@@ -25,8 +23,6 @@ TWO_PLACES = Decimal("0.01")
 
 
 class EvaluateStakeHandler(CommandHandler[EvaluateStakeCommand, RiskDecision]):
-    """Decides one slip and stores the decision."""
-
     message_type = RiskCommand.EVALUATE_STAKE
 
     def __init__(
@@ -35,7 +31,6 @@ class EvaluateStakeHandler(CommandHandler[EvaluateStakeCommand, RiskDecision]):
         clock: Callable[[], datetime],
         logger: logging.Logger,
     ) -> None:
-        """Bind the handler to its collaborators."""
         self._repository = repository
         self._clock = clock
         self._logger = logger

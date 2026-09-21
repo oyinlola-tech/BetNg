@@ -167,7 +167,6 @@ export function evaluateLeg(terms: LegTerms, score: FinalScore): LegEvaluation {
   }
 }
 
-/** The `result` string stored on a settled leg: "h-a". */
 export function formatResult(score: FinalScore): string {
   return `${String(score.homeGoals)}-${String(score.awayGoals)}`;
 }

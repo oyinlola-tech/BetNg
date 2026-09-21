@@ -14,7 +14,6 @@ import type { IdentityRepositories, IdentityStore, NewAuditLog } from "./reposit
 export interface PasswordHasher {
   hash(secret: string): Promise<string>;
   verify(secret: string, encoded: string): Promise<boolean>;
-  /** Burns the same work as a real verification when there is no account to check against. */
   verifyAgainstNothing(secret: string): Promise<void>;
 }
 
@@ -46,7 +45,6 @@ export interface AuditWriter {
   write(repositories: IdentityRepositories, entry: AuditEntryInput): Promise<string>;
 }
 
-/** The admin performing a mutating route, as the gateway asserted it. */
 export interface AdminActor {
   readonly id: string;
   readonly role: string;

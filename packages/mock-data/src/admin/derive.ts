@@ -1,5 +1,3 @@
-/** Everything the control plane derives from the virtual season. Scores and events only ever come from the match script. */
-
 import type {
   AdminFixture,
   AdminMarketOdds,

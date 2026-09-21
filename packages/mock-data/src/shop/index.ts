@@ -22,7 +22,6 @@ import { CASHIERS, DEMO_PASSWORD, DEMO_PIN, OPENING_FLOAT, ROLE_PERMISSIONS, SHO
 import { combinedOddsOf, expiryFor, pastDateKeys, pastDayTickets, ticketCode, todaySeedTickets } from "./history.js";
 
 export interface MockShopOptions {
-  /** The virtual season tickets are sold and settled against. */
   readonly platform: MockPlatform;
   readonly storage?: KeyValueStorage & { remove?(key: string): void };
   /** Where the cashier session lives; a terminal should not stay signed in across browser restarts. */
@@ -57,7 +56,6 @@ export function createMockShopSource(options: MockShopOptions): ShopDataSource {
 
       if (typeof raw === "string" && raw !== "") return JSON.parse(raw) as ShopState;
     } catch {
-      /* fall through to a fresh shop */
     }
 
     return { float: OPENING_FLOAT, tickets: [], transactions: [], seededFor: "", sequence: 0 };
@@ -102,7 +100,6 @@ export function createMockShopSource(options: MockShopOptions): ShopDataSource {
 
     if (recent.length === 0) return;
 
-    /* The day so far: generated trade up to a quarter of an hour ago, then tickets on matches that really finished. */
     const cutoff = now() - 15 * 60_000;
     const earlier = pastDayTickets(today, now()).filter((t) => Date.parse(t.settledAt ?? t.placedAt) < cutoff && (t.paidAt === undefined || Date.parse(t.paidAt) < cutoff));
     const seeded = [...earlier, ...recent];
@@ -161,7 +158,6 @@ export function createMockShopSource(options: MockShopOptions): ShopDataSource {
     return ticket;
   }
 
-  /** Adopts a generated past ticket into the persisted store the first time it changes. */
   function replace(next: Ticket): void {
     const index = state.tickets.findIndex((t) => t.code === next.code);
 
@@ -279,7 +275,6 @@ export function createMockShopSource(options: MockShopOptions): ShopDataSource {
     };
   }
 
-  /** Past days have no persisted ledger, so theirs is rebuilt from that day's tickets. */
   function pastLedger(date: string): readonly ShopTransaction[] {
     const base = OPENING_FLOAT + rng(`shop:float:${date}`).int(-40, 60) * 100_000;
     const events = pastDayTickets(date, now())
@@ -410,7 +405,6 @@ export function createMockShopSource(options: MockShopOptions): ShopDataSource {
         if (filter.date !== undefined && toLocalDateKey(new Date(t.placedAt)) !== filter.date) return false;
         if (q !== "") return t.code.toLowerCase().includes(q) || (t.customerName?.toLowerCase().includes(q) ?? false) || (t.customerPhone?.replaceAll(" ", "").includes(q.replaceAll(" ", "")) ?? false);
 
-        /* Without a date or a search the list is the working set: today plus anything still actionable. */
         return filter.date !== undefined || toLocalDateKey(new Date(t.placedAt)) === today || t.status === "OPEN" || t.status === "WON";
       });
     },

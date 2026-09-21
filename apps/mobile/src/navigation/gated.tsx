@@ -6,7 +6,6 @@ interface Gate {
   readonly title: string;
   readonly description: string;
   readonly reason: string;
-  /** A tab has no native header, so the gate draws the screen's heading itself. */
   readonly heading?: string;
 }
 

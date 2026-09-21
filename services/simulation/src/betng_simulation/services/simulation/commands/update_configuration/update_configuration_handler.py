@@ -1,5 +1,3 @@
-"""Update configuration handler."""
-
 from __future__ import annotations
 
 import logging
@@ -32,7 +30,6 @@ class UpdateConfigurationHandler(
         recorder: AuditRecorder,
         logger: logging.Logger,
     ) -> None:
-        """Store the collaborators."""
         self._repository = repository
         self._recorder = recorder
         self._logger = logger
@@ -40,7 +37,6 @@ class UpdateConfigurationHandler(
     async def execute(
         self, message: UpdateConfigurationCommand
     ) -> ModelConfigurationView:
-        """Execute the message."""
         request = message.request
         changes = {
             name: getattr(request, name)
@@ -86,7 +82,6 @@ class UpdateConfigurationHandler(
             except ServiceError:
                 raise
             except Exception as error:
-                # Raising here rolls the new version back.
                 self._logger.error(
                     "Configuration change refused: audit entry not written",
                     extra={

@@ -15,9 +15,9 @@ import { closePeriodBodySchema, listLimitQuerySchema } from "../validators/index
 import { toAuditActor } from "./request.helper.js";
 
 export interface OperatorController {
-  getOverview(context: HttpRouterContext): Promise<OperatorOverviewDto>;
-  listPeriods(context: HttpRouterContext): Promise<OperatorPeriodListDto>;
-  closePeriod(context: HttpRouterContext): Promise<ClosePeriodDto>;
+  readonly getOverview: (context: HttpRouterContext) => Promise<OperatorOverviewDto>;
+  readonly listPeriods: (context: HttpRouterContext) => Promise<OperatorPeriodListDto>;
+  readonly closePeriod: (context: HttpRouterContext) => Promise<ClosePeriodDto>;
 }
 
 export function createOperatorController(commandBus: CommandBus, queryBus: QueryBus): OperatorController {

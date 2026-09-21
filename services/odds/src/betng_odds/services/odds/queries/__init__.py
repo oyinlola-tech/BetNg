@@ -1,5 +1,3 @@
-"""Reads."""
-
 from .get_bulk_odds import GetBulkOddsHandler, GetBulkOddsQuery
 from .get_match_odds import GetMatchOddsHandler, GetMatchOddsQuery
 from .get_pricing_configuration import (

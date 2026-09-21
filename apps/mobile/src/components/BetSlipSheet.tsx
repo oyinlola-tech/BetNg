@@ -96,7 +96,6 @@ export function BetSlipSheet({
   const place = (): void => {
     if (isAuthenticated) return void submit();
 
-    /* The sheet is a native modal, so it steps aside for sign-in and reopens to finish the bet. */
     setOpen(false);
     requireAuth({
       reason: "Log in to place this bet. Your slip stays as it is.",

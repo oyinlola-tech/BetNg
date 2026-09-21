@@ -18,10 +18,7 @@ import {
 import type { CounterActor } from "../services/ticket/commands/index.js";
 import { idempotencyKeyValidator, uuidValidator } from "../validators/index.js";
 
-/**
- * The gateway's actor, with the ids checked to be ids: they are about to be
- * bound into queries and sent to peers.
- */
+// Actor ids are bound into SQL and sent to peers, so they must be UUIDs.
 export function requireValidActor(
   request: HttpRequestContext,
   requirement: ActorRequirement,
@@ -38,7 +35,6 @@ export function requireValidActor(
   return actor;
 }
 
-/** A cashier acting at their own shop's counter. */
 export function requireCounter(
   request: HttpRequestContext,
   permission: string,
@@ -52,7 +48,6 @@ export function requireCounter(
   return { cashierId: actor.id, role: actor.role, shopId: actor.shopId };
 }
 
-/** The caller's key, or a fresh one: a request without a key is simply not retry-safe. */
 export function readIdempotencyKey(request: HttpRequestContext): string {
   const supplied = request.getHeader(IDEMPOTENCY_KEY_HEADER);
 
@@ -71,7 +66,7 @@ export function readIdempotencyKey(request: HttpRequestContext): string {
   return key.data;
 }
 
-/** An oversized slip is a bad bet, not a malformed request. */
+// More than MAX_LEGS answers INVALID_BET rather than the schema's VALIDATION_FAILED.
 export function assertLegCount(request: HttpRequestContext): void {
   const body = readJsonBody(request);
   const selections =

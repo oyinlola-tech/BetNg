@@ -1,5 +1,3 @@
-"""The pure pricing pipeline: score matrix, market probabilities, margin, odds."""
-
 from .margin import (
     MissingMarginError,
     overround,

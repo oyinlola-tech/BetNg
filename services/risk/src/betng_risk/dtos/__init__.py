@@ -1,5 +1,3 @@
-"""Wire shapes."""
-
 from .risk_dto import (
     MAX_KOBO,
     MAX_LEGS,

@@ -1,5 +1,3 @@
-"""The tunable parameters of the model, as they travel and as they are stored."""
-
 from __future__ import annotations
 
 from typing import Annotated, Any, Self
@@ -23,8 +21,6 @@ NULLABLE_PARAMETERS = frozenset({"rho"})
 
 
 class ModelParametersDto(ContractModel):
-    """Bounded model parameters; every field optional for partial updates."""
-
     base_goals: Annotated[float | None, _number(0.1, 5)] = None
     rating_scale: Annotated[float | None, _number(1, 1000)] = None
     strength_sensitivity: Annotated[float | None, _number(0, 10)] = None

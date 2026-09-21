@@ -1,8 +1,3 @@
-/**
- * `settlement.settleMatch` and `settlement.voidMatch` (`docs/architecture.md` §6). A failure answers with
- * the platform error code (`CONFLICT`, `NOT_FOUND`, `SETTLEMENT_FAILED`), never with a success frame.
- */
-
 import { createRPCProcedure, RPCError, RPCServer, RPCValidationError } from "@zudojs/rpc";
 import type { RPCContext } from "@zudojs/rpc";
 import type { CommandBus } from "@zudojs/cqrs";

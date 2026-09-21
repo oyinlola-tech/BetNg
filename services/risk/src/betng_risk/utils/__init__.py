@@ -1,5 +1,3 @@
-"""Service-local helpers."""
-
 from .exposure_view import (
     build_match_exposure,
     frozen_match_exposure,

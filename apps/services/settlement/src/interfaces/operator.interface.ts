@@ -15,9 +15,7 @@ export interface ClosePeriodInput {
 }
 
 export interface OperatorRepository {
-  /** The OPEN period, opened as a DAY period when there is none. */
   ensureOpenPeriod(now: Date): Promise<OperatorPeriodRecord>;
-  /** The live aggregate of a period's `operator_ledger_entries`. */
   summarise(period: OperatorPeriodRecord): Promise<OperatorSummaryRecord>;
   listClosed(limit: number): Promise<readonly OperatorSummaryRecord[]>;
   listPeriods(limit: number): Promise<readonly OperatorPeriodRecord[]>;
@@ -51,9 +49,7 @@ export interface CommissionLedgerFilter {
 }
 
 export interface CommissionRepository {
-  /** Inserts the platform default once; a database that already has one is left alone. */
   seedDefault(shopShareBasisPoints: number): Promise<boolean>;
-  /** The values in force now: the default and each shop's latest override. */
   current(): Promise<CommissionConfigSnapshot>;
   /**
    * Appends a configuration version. `confirm` runs inside the transaction with the before/after pair; when

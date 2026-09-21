@@ -6,8 +6,7 @@
  * where payouts exceeded stakes closes with a negative result, and nothing anywhere is debited to cover it.
  */
 
-import { Prisma } from "../databases/index.js";
-import type { PrismaClient } from "../databases/index.js";
+import type { Prisma, PrismaClient } from "../databases/index.js";
 import type { OperatorRepository } from "../interfaces/index.js";
 import type {
   CommissionLedgerRecord,

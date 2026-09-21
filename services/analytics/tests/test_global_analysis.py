@@ -17,7 +17,6 @@ def overview(client: TestClient, book: Book) -> dict[str, Any]:
 
 
 def six_bets_on_one_match(book: Book) -> tuple[Match, list[Bet]]:
-    """Four customers and two shops back the same match; HOME wins 2-1."""
     match = book.match(book.league(), status="COMPLETED", result=(2, 1))
     shop_1, shop_2 = book.shop("Ikeja"), book.shop("Surulere")
     till_1, till_2 = book.cashier(shop_1), book.cashier(shop_2, "Till Two")

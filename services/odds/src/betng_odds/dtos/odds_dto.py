@@ -1,5 +1,3 @@
-"""The wire shapes of the odds service."""
-
 from __future__ import annotations
 
 from decimal import Decimal
@@ -57,8 +55,6 @@ class TeamStrength(RequestModel):
 
 
 class ProbabilityMatrix(WireModel):
-    """The result of ``simulation.calculateProbabilities``."""
-
     home_xg: Annotated[float, Field(ge=0)]
     away_xg: Annotated[float, Field(ge=0)]
     max_goals: Annotated[int, Field(ge=1)]
@@ -68,8 +64,6 @@ class ProbabilityMatrix(WireModel):
 
 
 class Selection(WireModel):
-    """``selectionSchema``."""
-
     id: str
     market_id: str
     code: str
@@ -79,8 +73,6 @@ class Selection(WireModel):
 
 
 class Market(WireModel):
-    """``marketSchema``."""
-
     id: str
     match_id: str
     type: MarketType
@@ -92,22 +84,16 @@ class Market(WireModel):
 
 
 class MatchOdds(WireModel):
-    """``matchOddsSchema``."""
-
     match_id: str
     markets: list[Market]
     generated_at: str
 
 
 class MatchOddsList(WireModel):
-    """The answer of the bulk odds route."""
-
     items: list[MatchOdds]
 
 
 class SnapshotPrice(WireModel):
-    """One selection's price inside a snapshot."""
-
     selection_id: str
     code: str
     odds: float
@@ -115,8 +101,6 @@ class SnapshotPrice(WireModel):
 
 
 class OddsSnapshot(WireModel):
-    """``oddsSnapshotSchema``."""
-
     id: str
     market_id: str
     match_id: str
@@ -133,37 +117,27 @@ class OddsSnapshotList(WireModel):
 
 
 class PublishMarketsRequest(RequestModel):
-    """``odds.publishMarkets`` payload."""
-
     match_id: UUID
     home: TeamStrength
     away: TeamStrength
 
 
 class PublishMarketsResult(WireModel):
-    """``odds.publishMarkets`` result."""
-
     match_id: str
     markets: int
     odds_version: int
 
 
 class SetMatchMarketsStatusRequest(RequestModel):
-    """``odds.setMatchMarketsStatus`` payload."""
-
     match_id: UUID
     status: MatchMarketsStatus
 
 
 class SetMatchMarketsStatusResult(WireModel):
-    """``odds.setMatchMarketsStatus`` result."""
-
     updated: int
 
 
 class AdminSelectionOdds(WireModel):
-    """``adminSelectionOddsSchema``."""
-
     selection_id: str
     label: str
     current_odds: float
@@ -174,8 +148,6 @@ class AdminSelectionOdds(WireModel):
 
 
 class AdminMarketOdds(WireModel):
-    """``adminMarketOddsSchema``."""
-
     market_id: str
     match_id: str
     match_label: str
@@ -196,15 +168,11 @@ class AdminMarketOddsList(WireModel):
 
 
 class MarketAdminActionRequest(RequestModel):
-    """``marketAdminActionRequestSchema``."""
-
     action: MarketAdminAction
     reason: Annotated[str, Field(min_length=4, max_length=240)]
 
 
 class PricingConfigurationView(WireModel):
-    """One pricing configuration version."""
-
     version: int
     margins: dict[MarketType, float]
     min_odds: float

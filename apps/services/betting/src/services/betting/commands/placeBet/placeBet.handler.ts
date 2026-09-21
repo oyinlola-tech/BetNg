@@ -53,7 +53,6 @@ import type { PlaceBetCommand, SubmittedLeg } from "./placeBet.command.js";
 export interface PlacementResult {
   readonly bet: BetRecord;
   readonly ticket: TicketRecord | undefined;
-  /** True when the idempotency key had already placed this bet. */
   readonly replayed: boolean;
 }
 
@@ -82,26 +81,14 @@ const RISK_REJECTION_MESSAGE: Readonly<Record<RiskReason, string>> =
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-/** How the stake moves, and how that is undone if the bet cannot be written. */
 interface StakePlan {
   readonly take: "debit" | "credit";
   readonly movement: WalletMovement;
   readonly undo: WalletMovement;
 }
 
-/**
- * Accepts a slip, online or over the counter.
- *
- * The order is the integrity rule in code. Under the matches' locks the slip
- * is priced from the database — the client's odds are only compared, and a
- * mismatch is `ODDS_CHANGED` — then risk decides, then the stake moves, then
- * the bet is written with the server's odds, versions and payout. Risk being
- * unreachable refuses the bet: nothing is accepted unassessed. If the write
- * fails after the stake moved, the stake is moved back.
- *
- * Nothing here can reach a result: this service holds no client for the
- * simulation and the simulation has no path to a bet.
- */
+// Order is the integrity rule: lock → price from the database → risk (fail closed) → stake → insert (stake returned on failure).
+// The client's odds are only compared; stored odds, versions and payout are the server's.
 export class PlaceBetHandler extends CommandHandler<
   PlaceBetCommand,
   PlacementResult
@@ -168,8 +155,7 @@ export class PlaceBetHandler extends CommandHandler<
     key: string,
     staff: CounterStaff | undefined,
   ): Promise<PlacementResult> {
-    /* A retry that raced the first attempt waited on the lock; by now the
-     * first attempt has committed. */
+    // A concurrent retry waited on the lock; the first attempt has committed by now.
     const earlier = await this.deps.bets.findByIdempotencyKey(key);
 
     if (earlier !== undefined) {
@@ -261,8 +247,7 @@ export class PlaceBetHandler extends CommandHandler<
 
       await this.returnStake(plan, command, bet.id);
 
-      /* The one benign cause: a concurrent request with the same key won the
-       * unique index. Its bet is this caller's bet. */
+      // A concurrent request with the same key won the unique index: its bet is this caller's bet.
       const winner = await this.deps.bets
         .findByIdempotencyKey(bet.idempotencyKey)
         .catch(() => undefined);
@@ -275,7 +260,6 @@ export class PlaceBetHandler extends CommandHandler<
     }
   }
 
-  /** Replaces what the client sent with what the database says, or refuses. */
   private async priceLegs(
     submitted: readonly SubmittedLeg[],
     now: Date,
@@ -446,8 +430,7 @@ export class PlaceBetHandler extends CommandHandler<
       }
     }
 
-    /* The outcome of the first call is unknown. The movement is idempotent
-     * on its key, so asking once more is safe and usually settles it. */
+    // Outcome unknown. The movement is idempotent on its key, so one retry is safe.
     try {
       await attempt();
     } catch (error) {
@@ -507,7 +490,7 @@ function assertSlipShape(legs: readonly SubmittedLeg[]): void {
   }
 }
 
-/** Scoped to the actor: one caller's key can never return another's bet. */
+// Scoped to the actor so one caller's key can never return another's bet.
 function scopedKey(command: PlaceBetCommand): string {
   return `${command.actor.kind}:${command.actor.id}:${command.idempotencyKey}`;
 }
@@ -534,11 +517,7 @@ function acceptedLeg(snapshot: LegSnapshot, oddsHundredths: number): NewBetLeg {
   };
 }
 
-/**
- * Online, the stake leaves the customer's wallet. Over the counter the
- * customer paid cash, so the sale adds to the shop's float — the float is
- * the cash drawer.
- */
+// Online the stake leaves the customer's wallet; at the counter cash came in, so the sale credits the shop float.
 function stakePlan(bet: NewBet): StakePlan {
   if (bet.ticket === undefined) {
     const owner = {

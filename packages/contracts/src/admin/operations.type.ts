@@ -86,7 +86,6 @@ export const teamRatingsSchema = z.object({
   goalkeeper: rating,
   pace: rating,
   finishing: rating,
-  /** Recent form, -10 (poor) to +10 (excellent), applied as a small modifier. */
   form: z.int().min(-10).max(10),
 });
 
@@ -300,7 +299,6 @@ export const auditLogQuerySchema = z.object({
 
 export type AuditLogQuery = z.infer<typeof auditLogQuerySchema>;
 
-/** A page of a server-paginated list. */
 export interface Page<T> {
   readonly items: readonly T[];
   readonly total: number;

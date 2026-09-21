@@ -1,5 +1,3 @@
-/** Markets as a client lays them out. */
-
 import type {
   MarketId,
   MarketStatus,

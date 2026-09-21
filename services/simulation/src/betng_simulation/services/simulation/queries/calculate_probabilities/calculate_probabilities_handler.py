@@ -1,5 +1,3 @@
-"""Calculate probabilities handler."""
-
 from __future__ import annotations
 
 from betng_service_kit import QueryHandler
@@ -14,18 +12,14 @@ from .calculate_probabilities_query import CalculateProbabilitiesQuery
 class CalculateProbabilitiesHandler(
     QueryHandler[CalculateProbabilitiesQuery, ProbabilityMatrixResponse]
 ):
-    """Builds the score matrix under the active configuration."""
-
     message_type = SimulationQuery.CALCULATE_PROBABILITIES
 
     def __init__(self, repository: SimulationRepository) -> None:
-        """Store the collaborators."""
         self._repository = repository
 
     async def execute(
         self, message: CalculateProbabilitiesQuery
     ) -> ProbabilityMatrixResponse:
-        """Execute the message."""
         async with self._repository.transaction() as connection:
             stored = await self._repository.get_active_configuration(connection)
 

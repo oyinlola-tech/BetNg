@@ -123,7 +123,7 @@ Admin: `GET/POST /admin/leagues`, `GET/POST /admin/teams`, `PATCH /admin/teams/:
 
 ### simulation (`simulation` schema)
 Tables: `model_configurations` (versioned parameters, one active), `simulation_runs`, `match_results` (immutable), `match_events` (immutable), all keyed by `match_id`. A unique index on `simulation_runs(match_id)` for non-failed runs is the lock: the run row, the result and the events commit in one transaction, so a concurrent second worker blocks on the index and then reads the committed run.
-Seed: `seed = sha256(f"{match_id}:{model_version}:{configuration_version}")`; the PRNG is seeded from it, so the same three inputs reproduce the same result and timeline.
+Seed: `seed = HMAC-SHA256(SIMULATION_SEED_SECRET, f"{match_id}:{model_version}:{configuration_version}")`; the PRNG is seeded from it, so the same inputs reproduce the same result and timeline, and the stored seed replays its run. The secret exists because every other input is public: without it anyone with the source could compute a result before betting closes. A run row, and therefore a seed, is only written at kick-off.
 Internal: `POST /internal/simulation/matches/{id}/run`, `GET /internal/simulation/matches/{id}`, `GET /internal/simulation/matches/{id}/events`. Admin: `GET /admin/simulations`, `POST /admin/simulations/:id/actions`, `GET/PUT /admin/simulation/config`.
 
 ### odds (`odds` schema)

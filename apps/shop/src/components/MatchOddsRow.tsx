@@ -7,14 +7,12 @@ export interface MatchOddsRowProps {
   readonly match: MatchSummary;
   readonly markets: MatchMarketsView | undefined;
   readonly expanded: boolean;
-  /** Names the competition on the row, for lists that are not grouped by league. */
   readonly showLeague?: boolean;
   readonly onExpand: (matchId: string) => void;
   readonly isSelected: (selectionId: string) => boolean;
   readonly onToggle: (match: MatchSummary, market: MarketView, selection: SelectionView) => void;
 }
 
-/* Markets whose selection labels carry team names need the full row to stay readable. */
 const WIDE: ReadonlySet<MarketKind> = new Set(["DOUBLE_CHANCE", "GOAL_SPREAD", "CORRECT_SCORE"]);
 
 function LiveMinute({ kickoffAt }: { readonly kickoffAt: string }): React.JSX.Element {

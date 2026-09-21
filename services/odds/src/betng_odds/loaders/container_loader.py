@@ -1,5 +1,3 @@
-"""Container wiring."""
-
 from __future__ import annotations
 
 import logging
@@ -28,8 +26,6 @@ from ..interfaces import (
 
 @dataclass(frozen=True)
 class OddsDependencies:
-    """Everything with an application-long lifetime. A test swaps any of them."""
-
     repository: OddsRepository
     probability_model: ProbabilityModel
     event_publisher: EventPublisher

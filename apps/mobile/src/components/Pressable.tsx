@@ -11,7 +11,6 @@ export interface PressableProps extends Omit<RNPressableProps, "style"> {
   readonly pressedStyle?: StyleProp<ViewStyle>;
 }
 
-/* Every touch target is at least 44dp and dims on press, so feedback is consistent across the app. */
 export function Pressable({
   style,
   pressedStyle,

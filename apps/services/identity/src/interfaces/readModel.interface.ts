@@ -1,8 +1,3 @@
-/**
- * Figures the admin screens show beside identity's own rows. They belong to
- * the wallet and betting services and are read across schemas, never stored here.
- */
-
 export interface CustomerFigures {
   readonly balance: number;
   readonly openBets: number;

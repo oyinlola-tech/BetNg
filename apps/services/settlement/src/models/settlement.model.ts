@@ -64,7 +64,6 @@ export interface MatchState {
   readonly lifecycle: string;
 }
 
-/** A bet as settlement needs it, read from `betting.bets`. */
 export interface BetRecord {
   readonly id: string;
   readonly userId: string | null;
@@ -75,7 +74,6 @@ export interface BetRecord {
   readonly status: string;
 }
 
-/** A leg with the state of the match it is on, read across `betting`, `match`, `simulation` and `settlement`. */
 export interface BetLegRecord {
   readonly betId: string;
   readonly selectionId: string;
@@ -94,7 +92,6 @@ export interface BetLegRecord {
 
 export type AdminSettlementStatus = "PENDING" | "COMPLETED" | "FAILED" | "VOIDED";
 
-/** One bet on a match that settlement has been asked to settle, as the admin console lists it. */
 export interface AdminSettlementRecord {
   readonly betId: string;
   readonly settlementId: string | null;

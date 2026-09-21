@@ -1,5 +1,3 @@
-/** Renders the tokens as CSS custom properties. */
-
 import { darkTheme, lightTheme, type ColorTheme } from "./color.js";
 import { radius, shadow, spacing, zIndex } from "./layout.js";
 import { duration, easing } from "./motion.js";

@@ -4,14 +4,6 @@ import { validate } from "@zudojs/validation";
 import type { ValidationSchema } from "@zudojs/validation";
 import { toErrorDetails } from "../httpError/index.js";
 
-/**
- * Validates query parameters against a contract schema.
- *
- * A repeated parameter arrives as an array; the first value is taken, since
- * no BetNG endpoint currently accepts a repeated parameter.
- *
- * @throws A 422 listing every parameter that failed.
- */
 export function parseQuery<T>(
   query: Readonly<Record<string, string | string[]>>,
   schema: ValidationSchema<T>,
@@ -38,13 +30,6 @@ export function parseQuery<T>(
   });
 }
 
-/**
- * Reads a required path parameter.
- *
- * A missing parameter means the route pattern and its handler disagree, so
- * this raises a plain error and becomes a 500 rather than blaming a client
- * for a wiring mistake.
- */
 export function requireParam(
   params: Readonly<Record<string, string>>,
   name: string,

@@ -1,5 +1,3 @@
-/** What a live board shows per market: the selection that would win if the match ended on the current score, and its price. */
-
 import type { MarketKind, MatchMarketsView, Score } from "./types/index.js";
 
 export interface LeadingCell {

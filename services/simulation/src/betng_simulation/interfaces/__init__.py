@@ -1,5 +1,3 @@
-"""Records and protocols."""
-
 from .audit_interface import (
     SYSTEM_ACTOR_ID,
     SYSTEM_ACTOR_ROLE,

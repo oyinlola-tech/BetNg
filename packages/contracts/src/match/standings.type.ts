@@ -1,10 +1,3 @@
-/**
- * League tables and scorer charts, owned by the match service.
- *
- * A projection of completed results, served over
- * `GET /leagues/:id/standings?season=` and `GET /leagues/:id/scorers`.
- */
-
 import { z } from "@zudojs/validation";
 import {
   brandedIdSchema,

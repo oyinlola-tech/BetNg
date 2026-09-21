@@ -1,12 +1,3 @@
-/**
- * The RPC client for the identity service.
- *
- * Identity holds the cashier's PIN hash, so verifying a PIN is its job; the
- * PIN travels in the payload and is never logged here. Audit entries for the
- * money-moving ticket actions are best effort: a missing entry is logged and
- * does not undo a payout that already happened.
- */
-
 import type { Logger } from "@betng/service-kit";
 import { createRPCMetadata } from "@zudojs/rpc";
 import type { RPCClient } from "@zudojs/rpc";

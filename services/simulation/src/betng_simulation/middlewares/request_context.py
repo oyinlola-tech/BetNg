@@ -1,5 +1,3 @@
-"""The current request's correlation id, for code below the HTTP layer."""
-
 from __future__ import annotations
 
 from contextvars import ContextVar
@@ -15,10 +13,8 @@ _request_id: ContextVar[str] = ContextVar(
 
 
 async def bind_request_context(request: Request) -> None:
-    """Bind the request id for code below the HTTP layer."""
     _request_id.set(get_request_id(request))
 
 
 def current_request_id() -> str:
-    """Return the bound request id."""
     return _request_id.get()

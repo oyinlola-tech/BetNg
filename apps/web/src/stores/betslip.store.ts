@@ -14,7 +14,6 @@ interface BetSlipState {
   toggle: (selection: SlipSelection) => void;
   remove: (selectionId: string) => void;
   removeMany: (selectionIds: readonly string[]) => void;
-  /** Takes the platform's current prices onto the slip once the user accepts them. */
   acceptOdds: (changes: readonly { readonly selectionId: string; readonly odds: number }[]) => void;
   clear: () => void;
   setStake: (stake: number) => void;

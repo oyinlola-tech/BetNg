@@ -10,7 +10,7 @@ export interface CounterActor {
 export class PayoutTicketCommand extends Command<"betting.payoutTicket"> {
   public readonly code: string;
 
-  /** Forwarded to identity for verification; never stored or logged. */
+  // Forwarded to identity; never stored or logged.
   public readonly pin: string;
 
   public readonly counter: CounterActor;

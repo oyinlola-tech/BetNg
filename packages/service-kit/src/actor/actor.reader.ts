@@ -1,5 +1,3 @@
-// The gateway asserts the actor in these headers; they are honoured only with the internal token.
-
 import { forbidden, unauthorized } from "@zudojs/http";
 import type { HttpRequestContext } from "@zudojs/http";
 import { ErrorCodes } from "@betng/contracts";
@@ -92,7 +90,6 @@ export function requireActor(
   return actor;
 }
 
-/** The display name is URI-encoded: header values are ASCII. */
 export function actorHeaders(actor: Actor): Record<string, string> {
   return {
     [ACTOR_HEADERS.kind]: actor.kind,

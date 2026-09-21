@@ -1,5 +1,3 @@
-/** League table arithmetic. */
-
 import type { LeagueId } from "@betng/contracts";
 import type {
   FormResult,

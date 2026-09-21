@@ -1,21 +1,15 @@
-"""Names the simulation service agrees on with itself and with its peers."""
-
 from __future__ import annotations
 
 from typing import Final
 
 
 class SimulationCommand:
-    """Command bus discriminators."""
-
     RUN_MATCH: Final = "simulation.runMatch"
     APPLY_RUN_ACTION: Final = "simulation.applyRunAction"
     UPDATE_CONFIGURATION: Final = "simulation.updateConfiguration"
 
 
 class SimulationQuery:
-    """Query bus discriminators."""
-
     CALCULATE_PROBABILITIES: Final = "simulation.calculateProbabilities"
     GET_MATCH_RUN: Final = "simulation.getMatchRun"
     LIST_MATCH_EVENTS: Final = "simulation.listMatchEvents"

@@ -1,5 +1,3 @@
-/** A match as a client renders it. */
-
 import type {
   FixtureId,
   LeagueId,
@@ -16,13 +14,23 @@ export type MatchPhase =
   | "HALFTIME"
   | "FINISHED"
   | "SETTLED"
-  | "CANCELLED";
+  | "CANCELLED"
+  | "POSTPONED"
+  | "SUSPENDED"
+  | "DELAYED";
 
 export type MatchSide = "HOME" | "AWAY";
 
 export type MatchEventKind =
   | "KICK_OFF"
   | "GOAL"
+  | "OWN_GOAL"
+  | "PENALTY_GOAL"
+  | "PENALTY_MISSED"
+  | "VAR"
+  | "OFFSIDE"
+  | "FOUL"
+  | "FREE_KICK"
   | "YELLOW_CARD"
   | "RED_CARD"
   | "SUBSTITUTION"
@@ -32,6 +40,19 @@ export type MatchEventKind =
   | "SECOND_HALF"
   | "FULL_TIME";
 
+export type ClockPeriod =
+  "PRE" | "FIRST_HALF" | "HALF_TIME" | "SECOND_HALF" | "FULL_TIME";
+
+/** The match clock as the platform last reported it. */
+export interface MatchClockView {
+  readonly period: ClockPeriod;
+  readonly minute: number;
+  readonly addedMinutes?: number;
+  readonly asOf: string;
+  /** Real milliseconds per match minute. When present a client may advance the displayed minute between reports, within the period. */
+  readonly minuteLengthMs?: number;
+}
+
 export interface Score {
   readonly home: number;
   readonly away: number;
@@ -40,17 +61,16 @@ export interface Score {
 export interface MatchEventView {
   readonly id: string;
   readonly matchId: MatchId;
-  /** Per match, strictly increasing from 1. */
   readonly sequence: number;
   readonly kind: MatchEventKind;
   readonly minute: number;
   readonly side?: MatchSide;
   readonly player?: string;
   readonly secondaryPlayer?: string;
-  /** Running score after this event. */
   readonly score: Score;
   readonly description: string;
   readonly occurredAt: string;
+  readonly detail?: Readonly<Record<string, string | number | boolean>>;
 }
 
 export interface SideStats {
@@ -62,6 +82,15 @@ export interface SideStats {
   readonly offsides: number;
   readonly yellowCards: number;
   readonly redCards: number;
+  readonly expectedGoals?: number;
+  readonly extra?: readonly ExtraStat[];
+}
+
+export interface ExtraStat {
+  readonly key: string;
+  readonly label: string;
+  readonly value: number;
+  readonly unit?: "PERCENT" | "COUNT";
 }
 
 export interface MatchStats {
@@ -83,10 +112,14 @@ export interface MatchView {
   readonly bettingClosesAt: string;
   readonly status: MatchStatus;
   readonly phase: MatchPhase;
+  readonly clock?: MatchClockView;
+  readonly lifecycle?: string;
+  readonly statusReason?: string;
   readonly score: Score;
   readonly events: readonly MatchEventView[];
   readonly stats?: MatchStats;
   readonly openMarkets: number;
+  readonly updatedAt?: string;
 }
 
 export type MatchSummary = Omit<MatchView, "events" | "stats">;

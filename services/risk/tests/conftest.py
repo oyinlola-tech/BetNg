@@ -1,5 +1,3 @@
-"""Fixtures; tests run in ``betng_test_risk`` and remove only own rows."""
-
 from __future__ import annotations
 
 import os
@@ -160,8 +158,6 @@ class Match:
 
 @dataclass
 class Book:
-    """Inserts catalogue and bet rows as the superuser and removes them after."""
-
     connection: psycopg.Connection[Any]
     _created: list[tuple[str, str]] = field(default_factory=list)
 
@@ -397,7 +393,6 @@ def client(
 
 
 def force_limits(connection: psycopg.Connection[Any], **overrides: int) -> None:
-    """Put a limits version in force directly, bypassing the admin route."""
     amounts = {**DEFAULT_LIMITS, **overrides}
     connection.execute("UPDATE risk.risk_limits SET active = false WHERE active")
     connection.execute(
@@ -417,7 +412,6 @@ def force_limits(connection: psycopg.Connection[Any], **overrides: int) -> None:
 
 @pytest.fixture(autouse=True)
 def default_limits(request: pytest.FixtureRequest) -> Iterator[None]:
-    """Leave the default limits in force after a test that changed them."""
     yield
 
     if "superuser" not in request.fixturenames:

@@ -1,5 +1,3 @@
-"""Builds the service's container."""
-
 from __future__ import annotations
 
 import logging
@@ -13,7 +11,6 @@ from ..interfaces import AuditRecorder, RiskRepository
 def load_container(
     repository: RiskRepository, audit: AuditRecorder, logger: logging.Logger
 ) -> Container:
-    """Register everything with an application-long lifetime."""
     container = Container()
 
     container.register_value(RISK_REPOSITORY_TOKEN, repository)

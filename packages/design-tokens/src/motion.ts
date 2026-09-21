@@ -1,5 +1,3 @@
-/** Motion. */
-
 export const duration = Object.freeze({
   instant: 0,
   fast: 120,

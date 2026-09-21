@@ -1,5 +1,3 @@
-"""Bets cannot reach the engine, so they cannot change a result."""
-
 from __future__ import annotations
 
 import inspect

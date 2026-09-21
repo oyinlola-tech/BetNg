@@ -1,12 +1,3 @@
-/**
- * Primitive contract types shared by every BetNG domain.
- *
- * Identifiers are UUID strings on the wire and branded in TypeScript, so a
- * `MatchId` cannot silently be passed where a `BetId` is expected. The brand
- * is a compile-time device only; the JSON representation stays a plain
- * string, which keeps the contract language independent.
- */
-
 import { z } from "@zudojs/validation";
 import { CURRENCY } from "../runtime.js";
 

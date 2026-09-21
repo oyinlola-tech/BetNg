@@ -1,17 +1,7 @@
 /**
- * The BetNG error handler.
- *
- * BetNG introduces no error hierarchy of its own. Handlers throw the
- * `HttpError` values `@zudojs/http` provides and the `DomainError`
- * subclasses in each service's `errors/` folder; both come from
- * `@zudojs/errors`, and both already carry the status, the machine-readable
- * code and the `expose` flag that decides whether the message may be shown.
- * All this module adds is the `{ error: { code, message, requestId } }`
- * shape and the correlation identifier.
- *
- * A thrown value carrying no status is a bug, not a client problem: it
- * becomes a 500 whose message is a constant, so an internal detail cannot
- * escape in a response body.
+ * Handlers throw `HttpError` or a `DomainError`; both already carry the
+ * status, the code and the `expose` flag. A thrown value with no status
+ * becomes a 500 with a constant message, so no internal detail escapes.
  */
 
 import { createResponseContext } from "@zudojs/http";

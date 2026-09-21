@@ -1,5 +1,3 @@
-"""Container wiring."""
-
 from __future__ import annotations
 
 import logging
@@ -11,6 +9,7 @@ from ..constants import (
     BACKGROUND_AUDITOR_TOKEN,
     LOGGER_TOKEN,
     MATCH_READ_MODEL_TOKEN,
+    SEED_SECRET_TOKEN,
     SIMULATE_TOKEN,
     SIMULATION_REPOSITORY_TOKEN,
 )
@@ -24,9 +23,9 @@ def load_container(
     match_read_model: MatchReadModel,
     audit_recorder: AuditRecorder,
     simulate: Simulate,
+    seed_secret: str | None,
     logger: logging.Logger,
 ) -> Container:
-    """Register the service's collaborators."""
     container = Container()
 
     container.register_value(SIMULATION_REPOSITORY_TOKEN, repository)
@@ -36,6 +35,7 @@ def load_container(
         BACKGROUND_AUDITOR_TOKEN, BackgroundAuditor(audit_recorder, logger)
     )
     container.register_value(SIMULATE_TOKEN, simulate)
+    container.register_value(SEED_SECRET_TOKEN, seed_secret)
     container.register_value(LOGGER_TOKEN, logger)
 
     return container

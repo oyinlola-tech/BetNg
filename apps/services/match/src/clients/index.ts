@@ -1,9 +1,3 @@
-/**
- * The RPC clients the match service drives the lifecycle with.
- *
- * All six peers are internal and reached over `POST /rpc`; their addresses come from `config.services`.
- */
-
 import type { ServiceConfig } from "@betng/service-kit";
 import type { Peers } from "../interfaces/index.js";
 import { createEventClient } from "./event.client.js";

@@ -1,5 +1,3 @@
-"""Wire shapes."""
-
 from .admin_dto import (
     AdminRunScore,
     AdminRunStatus,

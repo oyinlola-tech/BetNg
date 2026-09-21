@@ -1,5 +1,3 @@
-"""Reads match exposure: live from the pending book, or frozen at close."""
-
 from __future__ import annotations
 
 from collections.abc import Sequence
@@ -15,7 +13,6 @@ class ExposureReader:
     """Builds ``MatchExposure`` for a set of matches."""
 
     def __init__(self, repository: RiskRepository) -> None:
-        """Bind the reader to the repository."""
         self._repository = repository
 
     async def live(
@@ -40,7 +37,6 @@ class ExposureReader:
     async def current(
         self, matches: Sequence[MatchRow], limits: Limits
     ) -> list[MatchExposure]:
-        """Return the frozen snapshot of a frozen match, live figures otherwise."""
         frozen_ids = [
             match.match_id for match in matches if match.frozen_at is not None
         ]

@@ -1,5 +1,3 @@
-"""Failures the risk service describes to its callers."""
-
 from __future__ import annotations
 
 from betng_service_kit import (
@@ -15,8 +13,6 @@ DATABASE_UNAVAILABLE = "DATABASE_UNAVAILABLE"
 
 
 class UnauthenticatedError(ServiceError):
-    """No gateway-asserted admin is attached to the request."""
-
     def __init__(self) -> None:
         """Build the refusal."""
         super().__init__(
@@ -35,16 +31,12 @@ class ForbiddenError(ServiceError):
 
 
 class MatchNotFoundError(ServiceError):
-    """No match has this id."""
-
     def __init__(self) -> None:
         """Build the refusal."""
         super().__init__("Match not found.", code=NOT_FOUND, status_code=404)
 
 
 class InvalidLimitsError(ServiceError):
-    """The requested limits contradict each other."""
-
     def __init__(self, message: str) -> None:
         """Build the refusal with the contradiction spelled out."""
         super().__init__(message, code=VALIDATION_FAILED, status_code=422)

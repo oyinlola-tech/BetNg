@@ -6,7 +6,7 @@
  * period whose ledger row has already been written.
  */
 
-import { Prisma } from "../databases/index.js";
+import type { Prisma } from "../databases/index.js";
 import type { OperatorPeriodKind, OperatorPeriodRecord } from "../models/index.js";
 import { periodPrefix, utcDateKey } from "../utils/index.js";
 

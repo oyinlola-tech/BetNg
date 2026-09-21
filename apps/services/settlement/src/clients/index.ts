@@ -1,8 +1,3 @@
-/**
- * The RPC peers settlement reaches: betting (bet status), wallet (customer payouts and refunds) and identity
- * (audit). Addresses come from configuration; tests inject fakes of the same interfaces.
- */
-
 export { BETTING_PROCEDURE, createBettingClient } from "./betting.client.js";
 export type { BettingClient } from "./betting.client.js";
 

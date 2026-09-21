@@ -1,5 +1,3 @@
-"""Cross-schema reads of the ``match`` schema."""
-
 from __future__ import annotations
 
 from collections.abc import Sequence
@@ -13,10 +11,7 @@ from ..interfaces import MatchReadModel, MatchView
 
 
 class PostgresMatchReadModel(MatchReadModel):
-    """Reads ``match.matches`` with the service's read-only grant."""
-
     def __init__(self, pool: Pool) -> None:
-        """Store the collaborators."""
         self._pool = pool
 
     async def get_matches(self, match_ids: Sequence[str]) -> dict[str, MatchView]:

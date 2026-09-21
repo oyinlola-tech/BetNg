@@ -5,7 +5,6 @@ import { useTheme } from "../theme";
 import { Button } from "./Button";
 import { EmptyState } from "./States";
 
-/** What an account-only screen shows while signed out: what is behind the door, and the two ways in. */
 export function SignInPrompt({ title, description, reason }: { readonly title: string; readonly description: string; readonly reason: string }): React.JSX.Element {
   const t = useTheme();
   const { status, openAuth } = useAuth();

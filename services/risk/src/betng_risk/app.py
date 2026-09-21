@@ -1,5 +1,3 @@
-"""Assembles the risk service."""
-
 from __future__ import annotations
 
 import logging

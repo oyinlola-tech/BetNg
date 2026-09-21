@@ -1,5 +1,3 @@
-"""Update configuration command."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -12,8 +10,6 @@ from .....dtos import ModelConfigurationUpdate, ModelConfigurationView
 
 @dataclass(frozen=True)
 class UpdateConfigurationCommand(Command[ModelConfigurationView]):
-    """A partial parameter change by an admin."""
-
     request: ModelConfigurationUpdate
     actor: Actor
 

@@ -1,17 +1,3 @@
-/**
- * Health and readiness contracts.
- *
- * Every BetNG service, TypeScript and Python alike, exposes `GET /health`
- * and `GET /ready` with these shapes.
- *
- * `/health` is liveness: the process is up and serving. It inspects no
- * dependency, so it can never report one as healthy.
- *
- * `/ready` is readiness: every dependency the service is actually configured
- * to use has been probed just now. A service with no configured dependency
- * reports an empty list rather than inventing one.
- */
-
 import { z } from "@zudojs/validation";
 
 export const healthStatusSchema = z.enum(["ok", "degraded", "unavailable"]);

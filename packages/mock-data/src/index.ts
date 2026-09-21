@@ -1,7 +1,3 @@
-/**
- * A stand-in platform: a deterministic virtual season that runs on the wall clock, behind the same `BetNgDataSource` the clients use against the real gateway.
- */
-
 export { createMockDataSource } from "./mockDataSource.js";
 export type { MockDataSource } from "./mockDataSource.js";
 

@@ -6,16 +6,13 @@ export interface KpiCardProps {
   readonly label: string;
   readonly value: string | undefined;
   readonly hint?: string | undefined;
-  /** Change against the comparison period, as a fraction (0.12 = +12%). */
   readonly delta?: number | undefined;
-  /** Whether a rise is good news. Payouts rising is not. */
   readonly positiveIsGood?: boolean;
   readonly icon?: React.ReactNode;
   readonly emphasis?: boolean;
   readonly className?: string;
 }
 
-/** A headline number. No chart: the figure is the message. */
 export function KpiCard({ label, value, hint, delta, positiveIsGood = true, icon, emphasis = false, className }: KpiCardProps): React.JSX.Element {
   const rising = delta !== undefined && delta > 0;
   const flat = delta === undefined || Math.abs(delta) < 0.0005;

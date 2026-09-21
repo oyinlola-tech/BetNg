@@ -46,23 +46,23 @@ import {
 import { requireAdmin, uuidParam } from "./request.helper.js";
 
 export interface AdminController {
-  login(context: HttpRouterContext): Promise<AdminSession>;
-  logout(context: HttpRouterContext): Promise<void>;
-  session(context: HttpRouterContext): Promise<AdminSession>;
-  listCustomers(context: HttpRouterContext): Promise<ListDto<AdminCustomer>>;
-  setCustomerStatus(context: HttpRouterContext): Promise<AdminCustomer>;
-  listShops(context: HttpRouterContext): Promise<ListDto<AdminShopSummary>>;
-  getShop(context: HttpRouterContext): Promise<AdminShopSummary>;
-  createShop(context: HttpRouterContext): Promise<AdminShopSummary>;
-  updateShop(context: HttpRouterContext): Promise<AdminShopSummary>;
-  setShopStatus(context: HttpRouterContext): Promise<AdminShopSummary>;
-  listCashiers(context: HttpRouterContext): Promise<ListDto<AdminCashierSummary>>;
-  createCashier(context: HttpRouterContext): Promise<CashierCredentials>;
-  setCashierStatus(context: HttpRouterContext): Promise<AdminCashierSummary>;
-  resetCashierCredentials(context: HttpRouterContext): Promise<CashierCredentials>;
-  listAuditLogs(context: HttpRouterContext): Promise<Page<AuditLogEntry>>;
-  getSettings(context: HttpRouterContext): Promise<PlatformSettings>;
-  updateSettings(context: HttpRouterContext): Promise<PlatformSettings>;
+  readonly login: (context: HttpRouterContext) => Promise<AdminSession>;
+  readonly logout: (context: HttpRouterContext) => Promise<void>;
+  readonly session: (context: HttpRouterContext) => Promise<AdminSession>;
+  readonly listCustomers: (context: HttpRouterContext) => Promise<ListDto<AdminCustomer>>;
+  readonly setCustomerStatus: (context: HttpRouterContext) => Promise<AdminCustomer>;
+  readonly listShops: (context: HttpRouterContext) => Promise<ListDto<AdminShopSummary>>;
+  readonly getShop: (context: HttpRouterContext) => Promise<AdminShopSummary>;
+  readonly createShop: (context: HttpRouterContext) => Promise<AdminShopSummary>;
+  readonly updateShop: (context: HttpRouterContext) => Promise<AdminShopSummary>;
+  readonly setShopStatus: (context: HttpRouterContext) => Promise<AdminShopSummary>;
+  readonly listCashiers: (context: HttpRouterContext) => Promise<ListDto<AdminCashierSummary>>;
+  readonly createCashier: (context: HttpRouterContext) => Promise<CashierCredentials>;
+  readonly setCashierStatus: (context: HttpRouterContext) => Promise<AdminCashierSummary>;
+  readonly resetCashierCredentials: (context: HttpRouterContext) => Promise<CashierCredentials>;
+  readonly listAuditLogs: (context: HttpRouterContext) => Promise<Page<AuditLogEntry>>;
+  readonly getSettings: (context: HttpRouterContext) => Promise<PlatformSettings>;
+  readonly updateSettings: (context: HttpRouterContext) => Promise<PlatformSettings>;
 }
 
 export function createAdminController(buses: IdentityBuses): AdminController {

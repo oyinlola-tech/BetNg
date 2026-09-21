@@ -1,5 +1,3 @@
-"""Service-local HTTP middleware."""
-
 from .actor_guard import require_permission
 from .request_context import RequestContextMiddleware, current_request_id
 

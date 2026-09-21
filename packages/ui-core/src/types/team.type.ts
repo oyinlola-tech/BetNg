@@ -6,6 +6,14 @@ export interface TeamColors {
   readonly onPrimary: string;
 }
 
+export interface TeamCrestView {
+  readonly assetUrl?: string;
+  readonly shape?: string;
+  readonly pattern?: string;
+  readonly emblem?: string;
+  readonly accent?: string;
+}
+
 export interface TeamView {
   readonly id: TeamId;
   readonly leagueId: LeagueId;
@@ -15,6 +23,7 @@ export interface TeamView {
   readonly city: string;
   readonly stadium: string;
   readonly colors: TeamColors;
+  readonly crest?: TeamCrestView;
   /** Simulated strength, 0 to 100. Shown on a team page, never on odds. */
   readonly strength: number;
 }

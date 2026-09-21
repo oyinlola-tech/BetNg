@@ -172,7 +172,9 @@ export function toAuditLogEntry(row: AuditLogRow): AuditLogEntry {
 
   // The audit screen has no separate column for the reason; it reads it from `after`.
   const after =
-    row.reason !== null && mergeable ? { ...(row.after ?? {}), reason: row.reason } : row.after;
+    row.reason !== null && mergeable
+      ? { ...((row.after ?? {}) as Record<string, unknown>), reason: row.reason }
+      : row.after;
 
   return {
     id: row.id,

@@ -136,8 +136,10 @@ export interface SimulationRun {
   readonly startedAt?: string | undefined;
   readonly completedAt?: string | undefined;
   readonly events: number;
-  readonly score: { readonly home: number; readonly away: number };
-  readonly seed: string;
+  /** Null until the match is COMPLETED: a result is never shown early, to anyone. */
+  readonly score: { readonly home: number; readonly away: number } | null;
+  /** Null until the match is COMPLETED: with the source code, a seed is a result. */
+  readonly seed: string | null;
 }
 
 export const simulationRunSchema = z.object({
@@ -147,6 +149,6 @@ export const simulationRunSchema = z.object({
   startedAt: isoTimestampSchema.optional(),
   completedAt: isoTimestampSchema.optional(),
   events: z.int().min(0),
-  score: z.object({ home: z.int().min(0), away: z.int().min(0) }),
-  seed: z.string().max(80),
+  score: z.object({ home: z.int().min(0), away: z.int().min(0) }).nullable(),
+  seed: z.string().max(80).nullable(),
 });

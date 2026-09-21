@@ -1,12 +1,3 @@
-/**
- * Process lifecycle for a BetNG service.
- *
- * Wraps startup and shutdown so every service behaves the same way at the
- * edges: a configuration mistake fails loudly before the port is bound, and
- * SIGINT or SIGTERM closes the listener before releasing pools, so
- * in-flight requests finish instead of seeing a dropped connection.
- */
-
 import type { Logger } from "@zudojs/logger";
 import type { ServiceServer } from "../httpServer/index.js";
 
@@ -64,12 +55,6 @@ function installShutdown(service: RunnableService): void {
   process.once("SIGTERM", shutdown);
 }
 
-/**
- * Starts a service and keeps it running until the process is signalled.
- *
- * A `bootstrap` that throws exits with code 1 before anything is bound,
- * which is what makes a bad `.env` obvious.
- */
 export async function runService(
   bootstrap: () => Promise<RunnableService>,
 ): Promise<void> {

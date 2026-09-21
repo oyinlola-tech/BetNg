@@ -1,5 +1,3 @@
-"""Handlers for the gateway-proxied admin routes."""
-
 from __future__ import annotations
 
 from uuid import UUID
@@ -22,17 +20,13 @@ from ..services.simulation.queries import GetConfigurationQuery, ListAdminRunsQu
 
 
 class AdminSimulationController:
-    """Admin route handlers; the routes authorise the actor first."""
-
     def __init__(self, command_bus: CommandBus, query_bus: QueryBus) -> None:
-        """Store the collaborators."""
         self._command_bus = command_bus
         self._query_bus = query_bus
 
     async def list_runs(
         self, status: AdminRunStatus | None, limit: int
     ) -> AdminSimulationRunList:
-        """List runs."""
         return await self._query_bus.execute(ListAdminRunsQuery(status, limit))
 
     async def apply_action(
@@ -44,11 +38,9 @@ class AdminSimulationController:
         )
 
     async def get_configuration(self) -> ModelConfigurationView:
-        """Return the active configuration."""
         return await self._query_bus.execute(GetConfigurationQuery())
 
     async def update_configuration(
         self, actor: Actor, body: ModelConfigurationUpdate
     ) -> ModelConfigurationView:
-        """Store and activate a new configuration version."""
         return await self._command_bus.execute(UpdateConfigurationCommand(body, actor))

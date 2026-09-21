@@ -1,5 +1,3 @@
-"""The active margins and bounds."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -17,8 +15,6 @@ from .get_pricing_configuration_query import GetPricingConfigurationQuery
 class GetPricingConfigurationHandler(
     QueryHandler[GetPricingConfigurationQuery, PricingConfigurationView]
 ):
-    """Return the active configuration version."""
-
     repository: OddsRepository
 
     message_type = OddsQuery.GET_PRICING_CONFIGURATION
@@ -26,5 +22,4 @@ class GetPricingConfigurationHandler(
     async def execute(
         self, message: GetPricingConfigurationQuery
     ) -> PricingConfigurationView:
-        """Read the active version."""
         return to_configuration_view(await self.repository.get_active_configuration())

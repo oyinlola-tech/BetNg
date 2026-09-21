@@ -1,5 +1,3 @@
-"""The odds service's RPC procedures."""
-
 from __future__ import annotations
 
 from typing import Any
@@ -16,7 +14,6 @@ from ..services.odds.commands import (
 
 
 def create_odds_rpc_server(command_bus: CommandBus) -> RpcServer:
-    """Register ``odds.publishMarkets`` and ``odds.setMatchMarketsStatus``."""
     server = RpcServer()
 
     async def publish_markets(payload: PublishMarketsRequest) -> dict[str, Any]:

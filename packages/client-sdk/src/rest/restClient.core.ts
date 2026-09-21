@@ -1,14 +1,3 @@
-/**
- * The REST client every BetNG client app uses.
- *
- * Web, mobile and TV all call the same gateway endpoints. Sharing one
- * implementation is what keeps that true: there is no mobile-only backend
- * path, because there is no mobile-only client code that could ask for one.
- *
- * Built on `fetch`, which React Native and every browser provide, so the
- * same module runs unchanged in all three.
- */
-
 import { API_PREFIX } from "@betng/contracts/runtime";
 import type {
   Bet,
@@ -69,7 +58,6 @@ export interface BetNgRestClient {
     readonly leagueId?: string;
     readonly limit?: number;
   }): Promise<readonly CompletedMatch[]>;
-  /** Prices for several matches in one call (at most 60 ids). */
   listMatchOdds(matchIds: readonly string[]): Promise<readonly MatchOdds[]>;
   getMatch(matchId: string): Promise<Match>;
   /** The timeline so far, oldest first. */

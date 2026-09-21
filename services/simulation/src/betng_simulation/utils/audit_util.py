@@ -1,5 +1,3 @@
-"""Best-effort audit delivery for lifecycle events."""
-
 from __future__ import annotations
 
 import asyncio
@@ -12,7 +10,6 @@ class BackgroundAuditor:
     """Delivers lifecycle audit entries without blocking or failing the caller."""
 
     def __init__(self, recorder: AuditRecorder, logger: logging.Logger) -> None:
-        """Store the collaborators."""
         self._recorder = recorder
         self._logger = logger
         # Strong references: the loop alone would let a pending task be collected.
@@ -25,7 +22,6 @@ class BackgroundAuditor:
         task.add_done_callback(self._pending.discard)
 
     async def drain(self) -> None:
-        """Wait for pending deliveries."""
         if self._pending:
             await asyncio.gather(*self._pending, return_exceptions=True)
 

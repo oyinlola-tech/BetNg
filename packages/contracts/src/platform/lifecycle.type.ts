@@ -1,7 +1,6 @@
 import { z } from "@zudojs/validation";
 import { brandedIdSchema, isoTimestampSchema } from "../common/index.js";
 
-/** The canonical match lifecycle. `Match.status` is its public projection; see docs/architecture.md §5. */
 export const matchLifecycleSchema = z.enum([
   "FIXTURE_CREATED",
   "MARKETS_CREATED",

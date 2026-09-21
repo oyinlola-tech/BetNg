@@ -1,12 +1,3 @@
-/**
- * Access logging.
- *
- * One line when a request arrives and one when it completes, both carrying
- * the correlation identifier, so a slow or failing request can be found by
- * identifier alone. Health probes are logged at debug: a readiness check
- * every few seconds would otherwise bury everything else.
- */
-
 import type { HttpMiddleware } from "@zudojs/http";
 import type { Logger } from "@zudojs/logger";
 import { getRequestId } from "./requestId.middleware.js";

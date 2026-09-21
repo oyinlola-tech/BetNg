@@ -3,7 +3,6 @@ import { Check, Copy } from "lucide-react";
 import { StatusBadge, cn } from "@betng/ui-web";
 import { statusView } from "../lib/format";
 
-/** `quiet` renders a routine "completed" without colour, so a finished schedule is not a wall of green. */
 export function Status({ value, pulse, quiet = false }: { readonly value: string; readonly pulse?: boolean; readonly quiet?: boolean }): React.JSX.Element {
   const base = statusView(value);
   const view = quiet && value === "COMPLETED" ? { ...base, tone: "neutral" as const } : base;

@@ -40,7 +40,6 @@ export interface Match {
   readonly status: MatchStatus;
   readonly score?: MatchScore;
   readonly completedAt?: string;
-  /** The canonical lifecycle state; see `matchLifecycleSchema`. */
   readonly lifecycle?: string | undefined;
   readonly createdAt: string;
   readonly updatedAt: string;

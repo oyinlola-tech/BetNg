@@ -30,7 +30,6 @@ export class MatchNotFoundError extends DomainError {
   }
 }
 
-/** The match, or its settlement, is not in a state that allows the requested operation. */
 export class SettlementConflictError extends DomainError {
   public constructor(message: string, metadata: Readonly<Record<string, string>> = {}) {
     super(message, {

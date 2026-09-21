@@ -17,14 +17,12 @@ function webStorage(pick: () => Storage): SessionStorage {
       try {
         pick().setItem(key, value);
       } catch {
-        /* Private mode or quota: the console still runs, without persistence. */
       }
     },
     remove: (key) => {
       try {
         pick().removeItem(key);
       } catch {
-        /* ignore */
       }
     },
   };

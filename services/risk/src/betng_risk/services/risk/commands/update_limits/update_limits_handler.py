@@ -1,5 +1,3 @@
-"""Writes a new limits version together with its audit entry."""
-
 from __future__ import annotations
 
 import logging
@@ -31,7 +29,6 @@ class UpdateLimitsHandler(CommandHandler[UpdateLimitsCommand, RiskLimits]):
         audit: AuditRecorder,
         logger: logging.Logger,
     ) -> None:
-        """Bind the handler to its collaborators."""
         self._repository = repository
         self._audit = audit
         self._logger = logger

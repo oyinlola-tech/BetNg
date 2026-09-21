@@ -75,7 +75,6 @@ export interface AuditActor {
 }
 
 export interface AuditRecorder {
-  /** Lifecycle entries: a failure is logged and swallowed. */
   recordBestEffort(entry: AuditEntry): Promise<void>;
   /** Configuration entries: a failure throws `AuditUnavailableError`, and the change is abandoned. */
   recordRequired(entry: AuditEntry): Promise<void>;

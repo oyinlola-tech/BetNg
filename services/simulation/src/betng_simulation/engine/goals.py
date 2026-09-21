@@ -1,5 +1,3 @@
-"""Score sampling."""
-
 from __future__ import annotations
 
 import random
@@ -8,7 +6,6 @@ from .models import ProbabilityMatrix
 
 
 def sample_score(rng: random.Random, matrix: ProbabilityMatrix) -> tuple[int, int]:
-    """Draw ``(home_goals, away_goals)`` from the matrix by inverse CDF."""
     target = rng.random()
     cumulative = 0.0
     last_possible: tuple[int, int] | None = None

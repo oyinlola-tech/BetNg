@@ -1,5 +1,3 @@
-"""Builds the admin view of a run, applying result secrecy."""
-
 from __future__ import annotations
 
 from uuid import UUID
@@ -12,7 +10,6 @@ CANCELLED_NOTE = "Cancelled by an operator."
 
 
 def to_admin_run(record: AdminRunRecord, match: MatchView | None) -> AdminSimulationRun:
-    """Project a run for an admin; the score only once the match is COMPLETED."""
     run = record.run
     revealed = match is not None and match.result_revealed
     score = (

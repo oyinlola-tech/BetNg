@@ -1,11 +1,3 @@
-/**
- * Match service configuration.
- *
- * `MATCH_DATABASE_URL` and `REDIS_URL` are required: the catalogue and the lifecycle live in PostgreSQL and the
- * scheduler refuses to tick without its Redis lock. The virtual-clock constants default to the values in
- * `docs/architecture.md` §5, which are the ones `packages/ui-core/src/timing.ts` draws the match clock with.
- */
-
 import process from "node:process";
 import { loadServiceConfig } from "@betng/service-kit";
 import type { ServiceConfig } from "@betng/service-kit";

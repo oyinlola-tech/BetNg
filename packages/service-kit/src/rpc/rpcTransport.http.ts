@@ -1,16 +1,6 @@
 /**
- * The HTTP transport for `@zudojs/rpc`.
- *
- * `@zudojs/rpc` is transport-agnostic and ships no transport of its own —
- * its documentation is explicit that writing one is a dozen lines and that
- * keeping the network out of the RPC layer is the point. This is that dozen
- * lines for BetNG: one `RPCRequest` envelope posted to the peer's `/rpc`
- * endpoint, one `RPCResponse` back.
- *
- * HTTP was chosen over a raw socket because every BetNG service already
- * serves HTTP, so RPC needs no second listener, no second port and no second
- * thing to health-check — and the Python services can speak the same
- * envelope without a protobuf toolchain.
+ * `@zudojs/rpc` is transport-agnostic and ships no transport: one
+ * `RPCRequest` posted to the peer's `/rpc`, one `RPCResponse` back.
  */
 
 import { internalHeaders } from "../internalAuth/index.js";

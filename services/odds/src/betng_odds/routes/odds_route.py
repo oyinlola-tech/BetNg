@@ -1,5 +1,3 @@
-"""Odds service routes."""
-
 from __future__ import annotations
 
 from typing import Annotated
@@ -25,7 +23,6 @@ from ..middlewares import require_permission
 API_PREFIX = "/api/v1"
 INTERNAL_PREFIX = "/internal/odds"
 
-#: A UUID is 36 characters; the comma makes 37.
 _MATCH_IDS_MAX_LENGTH = MAX_BULK_MATCH_IDS * 37 + 64
 
 OddsReader = Annotated[Actor, Depends(require_permission(OddsPermission.READ))]
@@ -33,7 +30,6 @@ OddsWriter = Annotated[Actor, Depends(require_permission(OddsPermission.WRITE))]
 
 
 def create_odds_router(controller: OddsController) -> APIRouter:
-    """Build the public, admin and internal routes."""
     router = APIRouter()
     public = APIRouter(prefix=API_PREFIX, tags=["odds"])
     admin = APIRouter(prefix=f"{API_PREFIX}/admin", tags=["admin"])

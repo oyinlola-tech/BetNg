@@ -1,11 +1,3 @@
-/**
- * The identity service's PostgreSQL connection.
- *
- * The service connects with `IDENTITY_DATABASE_URL`, a login that may write
- * the `identity` schema and only read the others. Customers, admin users,
- * cashiers and their sessions live here; their wallets and bets do not.
- */
-
 import { PrismaPg } from "@prisma/adapter-pg";
 import { createServiceDatabase, databaseProbe, databaseSchema } from "@betng/service-kit";
 import type { DependencyProbe, ServiceDatabase } from "@betng/service-kit";

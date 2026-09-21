@@ -82,9 +82,7 @@ export const LIST_LIMIT = Object.freeze({
 });
 
 export const SETTLEMENT_BATCH = Object.freeze({
-  /** Bets whose legs are loaded in one cross-schema read. */
   LEG_CHUNK: 500,
-  /** Bets settled side by side; each is its own transaction followed by its effects. */
   CONCURRENCY: 4,
   /** Un-stamped settlements the retry loop picks up per tick. */
   RETRY_LIMIT: 100,

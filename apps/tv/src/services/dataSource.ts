@@ -19,7 +19,6 @@ const storage: KeyValueStorage = {
     try {
       localStorage.setItem(key, value);
     } catch {
-      /* no persistence available */
     }
   },
 };

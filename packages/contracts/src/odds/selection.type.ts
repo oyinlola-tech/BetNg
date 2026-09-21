@@ -12,12 +12,6 @@ export interface Selection {
   readonly code: string;
   readonly label: string;
   readonly odds: number;
-  /**
-   * The simulation's probability for this outcome, 0 to 1.
-   *
-   * Carried alongside the price so the risk service can reason about the
-   * margin without recomputing it.
-   */
   readonly probability: number;
 }
 

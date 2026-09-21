@@ -1,5 +1,3 @@
-"""Reads one match's exposure."""
-
 from __future__ import annotations
 
 from betng_service_kit import QueryHandler
@@ -13,12 +11,9 @@ from .get_match_exposure_query import GetMatchExposureQuery
 
 
 class GetMatchExposureHandler(QueryHandler[GetMatchExposureQuery, MatchExposure]):
-    """Answers with live figures, or the snapshot once the match is frozen."""
-
     message_type = RiskQuery.GET_MATCH_EXPOSURE
 
     def __init__(self, repository: RiskRepository, reader: ExposureReader) -> None:
-        """Bind the handler to its collaborators."""
         self._repository = repository
         self._reader = reader
 

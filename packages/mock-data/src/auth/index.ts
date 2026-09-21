@@ -7,7 +7,6 @@ export interface MockAuthOptions {
   readonly storage?: KeyValueStorage & { remove?(key: string): void };
   readonly latencyMs?: number;
   readonly now?: () => number;
-  /** Answering `false` fails every call with `NETWORK`, so the offline state can be shown. */
   readonly isOnline?: () => boolean;
 }
 

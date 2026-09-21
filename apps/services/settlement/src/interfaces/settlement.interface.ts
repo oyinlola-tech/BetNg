@@ -21,7 +21,6 @@ import type {
 import type { BetOutcome, FinalScore } from "../utils/index.js";
 
 export interface BeginMatchSettlementResult {
-  /** False when the match settlement was already COMPLETED and nothing was changed. */
   readonly started: boolean;
   readonly record: MatchSettlementRecord;
 }
@@ -35,13 +34,11 @@ export interface FinishMatchSettlement {
 }
 
 export interface RecordSettlementResult {
-  /** False when the bet already had a settlement; `record` is then the one that exists. */
   readonly created: boolean;
   readonly record: SettlementRecord;
 }
 
 export interface SettlementFilter {
-  /** Restricts the read to one customer's bets. Absent only for an admin. */
   readonly userId?: string;
   readonly outcome?: BetOutcome;
   readonly matchId?: string;
@@ -59,7 +56,6 @@ export interface SettlementRepository {
   findMatchSettlement(matchId: string): Promise<MatchSettlementRecord | undefined>;
 
   recordSettlement(settlement: NewSettlement): Promise<RecordSettlementResult>;
-  /** Sets `effects_applied_at` once. Returns false when it was already set. */
   stampEffects(settlementId: string): Promise<boolean>;
   findByBetIds(betIds: readonly string[]): Promise<readonly SettlementRecord[]>;
   listUnstamped(limit: number): Promise<readonly SettlementRecord[]>;
@@ -77,9 +73,7 @@ export interface SettlementRepository {
  */
 export interface PlatformReader {
   findMatch(matchId: string): Promise<MatchState | undefined>;
-  /** The authoritative result from `simulation.match_results`. */
   findResult(matchId: string): Promise<FinalScore | undefined>;
-  /** Every bet with a leg on the match, cancelled bets excluded. */
   listBetsOnMatch(matchId: string): Promise<readonly BetRecord[]>;
   listLegs(betIds: readonly string[]): Promise<readonly BetLegRecord[]>;
   findShopNames(shopIds: readonly string[]): Promise<ReadonlyMap<string, string>>;

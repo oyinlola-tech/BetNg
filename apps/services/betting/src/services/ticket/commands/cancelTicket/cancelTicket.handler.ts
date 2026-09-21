@@ -33,14 +33,8 @@ export interface CancelTicketDependencies {
   readonly now: () => Date;
 }
 
-/**
- * Cancels a ticket at the counter and hands the stake back.
- *
- * Only while every match on it still takes bets: once betting has closed the
- * result may exist, and a cancellation would be a way to withdraw a losing
- * bet. The stake comes back out of the float, inside the transaction that
- * cancels the bet, so neither happens without the other.
- */
+// Only while every leg still takes bets: after close a result may exist, and cancelling would withdraw a losing bet.
+// The float debit runs inside the cancelling transaction, so neither happens alone.
 export class CancelTicketHandler extends CommandHandler<
   CancelTicketCommand,
   TicketRecord

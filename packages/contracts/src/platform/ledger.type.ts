@@ -33,7 +33,6 @@ export const operatorSummarySchema = z.object({
 export type OperatorSummary = z.infer<typeof operatorSummarySchema>;
 
 export const commissionConfigSchema = z.object({
-  /** Absent for the platform-wide default. */
   shopId: z.uuid().optional(),
   shopSharePercent: z.number().min(0).max(100),
   effectiveFrom: isoTimestampSchema,
@@ -71,7 +70,6 @@ export const matchSettlementSchema = z.object({
   status: z.enum(["STARTED", "COMPLETED", "FAILED"]),
   betsTotal: z.int().min(0),
   betsSettled: z.int().min(0),
-  /** True when the match had already been settled and nothing was paid again. */
   duplicate: z.boolean(),
 });
 

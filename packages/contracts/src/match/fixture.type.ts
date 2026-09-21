@@ -10,7 +10,6 @@ import {
 export interface Fixture {
   readonly id: FixtureId;
   readonly leagueId: LeagueId;
-  /** One-based season number. Optional until the match service tracks seasons. */
   readonly season?: number | undefined;
   readonly matchday: number;
   readonly homeTeamId: TeamId;

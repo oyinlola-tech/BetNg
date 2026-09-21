@@ -47,7 +47,6 @@ export interface MatchController {
   readonly listScorers: (context: HttpRouterContext) => Promise<ItemsDto<TopScorer>>;
 }
 
-/** A path id that is not a UUID names nothing, so it is answered as an unknown resource. */
 export function idParam(context: HttpRouterContext, resource: "league" | "team" | "match"): string {
   const id = requireParam(context.params, "id");
 

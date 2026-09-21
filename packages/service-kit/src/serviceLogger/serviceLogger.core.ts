@@ -4,13 +4,6 @@ import type { ServiceConfig } from "../serviceConfig/index.js";
 import { parseLogLevel } from "./serviceLogger.level.js";
 import { createStdoutTransport } from "./serviceLogger.transport.js";
 
-/**
- * Creates the root logger for a service.
- *
- * Development pretty-prints each entry across several lines, which is
- * readable in a terminal. Every other environment emits one line per entry,
- * which is what a log collector expects.
- */
 export function createServiceLogger(config: ServiceConfig): Logger {
   return createLogger({
     name: config.serviceName,

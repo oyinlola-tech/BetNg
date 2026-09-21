@@ -1,5 +1,3 @@
-"""The decision engine's inputs and output; it is never handed a bettor."""
-
 from __future__ import annotations
 
 from collections.abc import Mapping
@@ -24,8 +22,6 @@ RiskReason = Literal[
 
 @dataclass(frozen=True)
 class SlipLeg:
-    """One leg of the slip at the odds the bet would store."""
-
     match_id: str
     market_id: str
     selection_id: str
@@ -47,8 +43,6 @@ class Limits:
 
 @dataclass(frozen=True)
 class SelectionState:
-    """Database state of a selection; match fields are None if no match."""
-
     selection_id: str
     market_id: str
     match_id: str
@@ -60,8 +54,6 @@ class SelectionState:
 
 @dataclass(frozen=True)
 class MarketBook:
-    """The pending book on one market, over every account and channel."""
-
     market_id: str
     match_id: str
     #: Each pending bet's stake counted once, however many legs it has here.
@@ -69,7 +61,6 @@ class MarketBook:
     payouts: Mapping[str, int] = field(default_factory=dict)
 
     def net(self, selection_id: str) -> int:
-        """Return what the book loses on this market if the selection wins."""
         return self.payouts.get(selection_id, 0) - self.stake
 
     def worst_case(self) -> int:
@@ -91,8 +82,6 @@ class ExposureBook:
 
 @dataclass(frozen=True)
 class EngineDecision:
-    """The engine's answer; ``max_stake`` is 0 on a reject."""
-
     decision: DecisionKind
     reason: RiskReason
     max_stake: int

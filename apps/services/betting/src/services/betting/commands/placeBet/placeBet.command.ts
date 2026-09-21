@@ -3,7 +3,7 @@ import type { Actor } from "@betng/service-kit";
 import { BETTING_COMMAND } from "../../../../constants/index.js";
 import type { BetChannel } from "../../../../interfaces/index.js";
 
-/** A leg as the client submitted it. The odds are what it was shown, to be checked, never stored. */
+// `odds` is what the client was shown: compared, never stored.
 export interface SubmittedLeg {
   readonly matchId: string;
   readonly marketId: string;
@@ -13,7 +13,6 @@ export interface SubmittedLeg {
 
 export interface PlaceBetPayload {
   readonly channel: BetChannel;
-  /** The bettor (online) or the selling cashier (shop), from the gateway's headers. */
   readonly actor: Actor;
   readonly legs: readonly SubmittedLeg[];
   readonly stake: number;

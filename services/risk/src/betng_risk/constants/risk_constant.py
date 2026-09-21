@@ -1,5 +1,3 @@
-"""Names the risk service routes, registers and checks against."""
-
 from __future__ import annotations
 
 from typing import Final
@@ -8,16 +6,12 @@ SCHEMA: Final = "risk"
 
 
 class RiskCommand:
-    """Command types. Each writes only to the ``risk`` schema."""
-
     EVALUATE_STAKE: Final = "risk.evaluateStake"
     FREEZE_EXPOSURE: Final = "risk.freezeExposure"
     UPDATE_LIMITS: Final = "risk.updateLimits"
 
 
 class RiskQuery:
-    """Query types."""
-
     GET_MATCH_EXPOSURE: Final = "risk.getMatchExposure"
     LIST_EXPOSURE: Final = "risk.listExposure"
     GET_OVERVIEW: Final = "risk.getOverview"
@@ -25,8 +19,6 @@ class RiskQuery:
 
 
 class RiskProcedure:
-    """RPC procedure names, as in the architecture's procedure table."""
-
     EVALUATE: Final = "risk.evaluate"
     FREEZE_EXPOSURE: Final = "risk.freezeExposure"
 

@@ -1,5 +1,3 @@
-"""``odds.setMatchMarketsStatus`` as a command."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -12,8 +10,6 @@ from .....dtos import SetMatchMarketsStatusRequest, SetMatchMarketsStatusResult
 
 @dataclass(frozen=True)
 class SetMatchMarketsStatusCommand(Command[SetMatchMarketsStatusResult]):
-    """Move every market of a match to one status."""
-
     request: SetMatchMarketsStatusRequest
     request_id: str | None
 

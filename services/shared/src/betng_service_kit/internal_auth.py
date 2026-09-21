@@ -1,8 +1,3 @@
-"""Service-to-service trust: `/rpc`, `/internal` and actor headers require this token.
-
-Mandatory in production; unset in development and test means no check.
-"""
-
 from __future__ import annotations
 
 import hmac
@@ -42,14 +37,12 @@ def assert_internal_token_configured() -> None:
 
 
 def internal_headers() -> dict[str, str]:
-    """Headers a service-to-service call carries."""
     token = internal_token()
 
     return {} if token is None else {INTERNAL_TOKEN_HEADER: token}
 
 
 def is_internal_request(request: Request) -> bool:
-    """Whether the request proved it came from inside the platform."""
     expected = internal_token()
 
     if expected is None:

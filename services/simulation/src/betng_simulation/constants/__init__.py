@@ -1,5 +1,3 @@
-"""Service constants."""
-
 from .simulation_constant import (
     ADMIN_ACTOR_KIND,
     ADMIN_RUNS_DEFAULT_LIMIT,
@@ -15,6 +13,7 @@ from .simulation_token import (
     BACKGROUND_AUDITOR_TOKEN,
     LOGGER_TOKEN,
     MATCH_READ_MODEL_TOKEN,
+    SEED_SECRET_TOKEN,
     SIMULATE_TOKEN,
     SIMULATION_REPOSITORY_TOKEN,
 )
@@ -27,6 +26,7 @@ __all__ = [
     "BACKGROUND_AUDITOR_TOKEN",
     "LOGGER_TOKEN",
     "MATCH_READ_MODEL_TOKEN",
+    "SEED_SECRET_TOKEN",
     "SIMULATE_TOKEN",
     "SIMULATION_REPOSITORY_TOKEN",
     "AuditEntity",

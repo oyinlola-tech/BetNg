@@ -18,7 +18,6 @@ export interface BetSelection {
    * settlement time, so a later re-price cannot change what was agreed.
    */
   readonly odds: number;
-  /** The market version the price was accepted at. Set by the platform. */
   readonly oddsVersion?: number | undefined;
   readonly selectionCode?: string | undefined;
   readonly line?: number | undefined;
@@ -31,7 +30,6 @@ export interface BetSelection {
   readonly marketType?: string | undefined;
   readonly marketLabel?: string | undefined;
   readonly selectionLabel?: string | undefined;
-  /** Set by settlement. */
   readonly outcome?: "PENDING" | "WON" | "LOST" | "VOID" | undefined;
 }
 

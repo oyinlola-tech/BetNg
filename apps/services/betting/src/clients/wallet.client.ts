@@ -1,11 +1,3 @@
-/**
- * The RPC client for the wallet service.
- *
- * Betting never writes a balance: it asks the wallet to move money and the
- * wallet's ledger is the record. Every movement carries an idempotency key
- * derived from the bet or ticket, so a repeated call moves nothing twice.
- */
-
 import { createRPCMetadata } from "@zudojs/rpc";
 import type { RPCClient } from "@zudojs/rpc";
 import { classifyPeerFailure } from "../errors/index.js";

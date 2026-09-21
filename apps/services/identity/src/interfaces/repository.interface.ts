@@ -46,7 +46,6 @@ export interface VerificationRepository {
   findLatest(customerId: string): Promise<EmailVerification | undefined>;
   /** Counts one guess against the code. `false` when the cap was already reached or the code is spent. */
   claimAttempt(id: string, maxAttempts: number): Promise<boolean>;
-  /** Spends the code. `false` when another request spent it first. */
   consume(id: string, at: Date): Promise<boolean>;
   invalidateOutstanding(customerId: string, at: Date): Promise<void>;
   purgeOlderThan(before: Date): Promise<number>;
@@ -184,7 +183,6 @@ export interface StoredSettings {
 export interface SettingsRepository {
   find(): Promise<StoredSettings | undefined>;
   createIfMissing(value: PlatformSettings, updatedBy: string): Promise<void>;
-  /** Writes the next version. `false` when the stored version is no longer `expectedVersion`. */
   replace(expectedVersion: number, value: PlatformSettings, updatedBy: string, at: Date): Promise<boolean>;
 }
 
@@ -201,7 +199,6 @@ export interface IdentityRepositories {
   readonly settings: SettingsRepository;
 }
 
-/** The repositories, and a way to run several of their writes as one transaction. */
 export interface IdentityStore extends IdentityRepositories {
   transaction<T>(work: (repositories: IdentityRepositories) => Promise<T>): Promise<T>;
 }

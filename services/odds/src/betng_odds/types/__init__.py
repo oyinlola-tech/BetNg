@@ -1,5 +1,3 @@
-"""Service-local records."""
-
 from .odds_type import (
     AuditEntry,
     ConfigurationRecord,

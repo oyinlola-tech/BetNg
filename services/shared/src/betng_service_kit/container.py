@@ -1,11 +1,3 @@
-"""A token-based dependency-injection container.
-
-Mirrors what ``@zudojs/container`` does for the TypeScript services:
-everything with an application-long lifetime is registered once, at startup,
-and handlers resolve their collaborators rather than constructing them. A test
-swaps any one of them by registering a different value.
-"""
-
 from __future__ import annotations
 
 from typing import Any, Generic, TypeVar

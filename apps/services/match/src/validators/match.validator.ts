@@ -1,11 +1,3 @@
-/**
- * Request validation for the match service.
- *
- * Every query string, path id and body is checked against a schema before a handler sees it. This module names
- * which schema guards which endpoint and annotates each one, so the service's declaration files do not depend on
- * Zod's internal types. Bodies are strict: an unknown field is a rejected request, not an ignored one.
- */
-
 import {
   listMatchesQuerySchema,
   listTeamsQuerySchema,

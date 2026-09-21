@@ -46,7 +46,6 @@ export function revealInstantMs(
   return instantAtMinuteMs(kickoffMs, event.minute, timing);
 }
 
-/** The match minute showing at `nowMs`, 0 before kick-off and 90 from full time. */
 export function minuteAtMs(kickoffMs: number, nowMs: number, timing: MatchTiming): number {
   const spmMs = timing.secondsPerMinute * 1000;
 

@@ -1,18 +1,3 @@
-"""Command and query buses.
-
-The Python services mirror the TypeScript ones: a read goes through a query
-and its handler, a write through a command and its handler, and the HTTP layer
-holds no domain logic of its own.
-
-``@zudojs/cqrs`` is a TypeScript package, so this is a small independent
-implementation of the same pattern rather than a port of it. It is deliberately
-minimal — register a handler against a type, dispatch by type — because the
-value is the separation, not the machinery.
-
-A message is generic in its result, so ``await bus.execute(query)`` is typed
-without a cast at the call site.
-"""
-
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -79,12 +64,6 @@ class _Bus:
         self._handlers: dict[str, Handler[Any, Any]] = {}
 
     def register(self, handler: Handler[Any, Any]) -> None:
-        """Register a handler against its declared message type.
-
-        Raises:
-            DuplicateHandlerError: When the type is already registered, which
-                is a wiring mistake rather than something to resolve silently.
-        """
         message_type = handler.message_type
 
         if message_type in self._handlers:

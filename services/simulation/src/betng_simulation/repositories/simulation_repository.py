@@ -1,5 +1,3 @@
-"""Data access for the ``simulation`` schema."""
-
 from __future__ import annotations
 
 import uuid
@@ -21,6 +19,7 @@ from ..engine import (
     SideStats,
     SimulationOutput,
     SimulationTeam,
+    seed_material,
 )
 from ..errors import DatabaseUnavailableError
 from ..interfaces import (
@@ -133,7 +132,6 @@ def _side_stats_json(stats: SideStats) -> dict[str, int]:
 
 
 def stats_to_json(match_id: str, stats: MatchStats) -> dict[str, Any]:
-    """Return the ``matchStatsSchema`` JSON shape."""
     return {
         "matchId": match_id,
         "asOfMinute": stats.as_of_minute,
@@ -143,10 +141,7 @@ def stats_to_json(match_id: str, stats: MatchStats) -> dict[str, Any]:
 
 
 class SimulationRepository:
-    """Data access for the ``simulation`` schema; values are always bound."""
-
     def __init__(self, pool: Pool) -> None:
-        """Store the collaborators."""
         self._pool = pool
 
     @asynccontextmanager
@@ -159,7 +154,6 @@ class SimulationRepository:
             raise DatabaseUnavailableError from error
 
     async def ensure_default_configuration(self, defaults: ModelConfiguration) -> None:
-        """Store the engine's defaults as the first version of an empty table."""
         async with self.transaction() as connection:
             await connection.execute(
                 "SELECT pg_advisory_xact_lock(hashtext(%s))",
@@ -183,7 +177,6 @@ class SimulationRepository:
     async def get_active_configuration(
         self, connection: Connection
     ) -> StoredConfiguration:
-        """Return the active configuration."""
         cursor = await connection.execute(
             "SELECT version, model_version, params, active, created_at, "
             "created_by, reason FROM simulation.model_configurations WHERE active"
@@ -219,7 +212,6 @@ class SimulationRepository:
         created_by: str,
         reason: str,
     ) -> StoredConfiguration:
-        """Insert a new version and make it the active one."""
         await connection.execute(
             "UPDATE simulation.model_configurations SET active = false WHERE active"
         )
@@ -256,10 +248,12 @@ class SimulationRepository:
         cursor = await connection.execute(
             "INSERT INTO simulation.simulation_runs "
             "(id, match_id, status, model_version, configuration_version, seed, "
+            "seed_material, "
             "attempt, home_team_id, home_team_name, away_team_id, away_team_name) "
             "SELECT %(id)s::uuid, %(match_id)s::uuid, 'RUNNING', "
             "%(model_version)s::text, %(configuration_version)s::integer, "
-            "%(seed)s::text, COALESCE(MAX(attempt), 0) + 1, %(home_id)s::uuid, "
+            "%(seed)s::text, %(seed_material)s::text, "
+            "COALESCE(MAX(attempt), 0) + 1, %(home_id)s::uuid, "
             "%(home_name)s::text, %(away_id)s::uuid, %(away_name)s::text "
             "FROM simulation.simulation_runs WHERE match_id = %(match_id)s::uuid "
             "ON CONFLICT (match_id) WHERE status IN ('RUNNING', 'COMPLETED') "
@@ -270,6 +264,9 @@ class SimulationRepository:
                 "model_version": configuration.model_version,
                 "configuration_version": configuration.version,
                 "seed": seed,
+                "seed_material": seed_material(
+                    match_id, configuration.model_version, configuration.version
+                ),
                 "home_id": home.team_id,
                 "home_name": home.name,
                 "away_id": away.team_id,
@@ -282,7 +279,6 @@ class SimulationRepository:
     async def store_output(
         self, connection: Connection, run_id: str, output: SimulationOutput
     ) -> None:
-        """Insert the result and events and complete the run."""
         result = output.result
 
         await connection.execute(
@@ -363,11 +359,13 @@ class SimulationRepository:
         await connection.execute(
             "INSERT INTO simulation.simulation_runs "
             "(id, match_id, status, model_version, configuration_version, seed, "
+            "seed_material, "
             "attempt, completed_at, failure_reason, home_team_id, home_team_name, "
             "away_team_id, away_team_name) "
             "SELECT %(id)s::uuid, %(match_id)s::uuid, 'FAILED', "
             "%(model_version)s::text, %(configuration_version)s::integer, "
-            "%(seed)s::text, COALESCE(MAX(attempt), 0) + 1, now(), "
+            "%(seed)s::text, %(seed_material)s::text, "
+            "COALESCE(MAX(attempt), 0) + 1, now(), "
             "%(failure_reason)s::text, %(home_id)s::uuid, %(home_name)s::text, "
             "%(away_id)s::uuid, %(away_name)s::text "
             "FROM simulation.simulation_runs WHERE match_id = %(match_id)s::uuid",
@@ -377,6 +375,9 @@ class SimulationRepository:
                 "model_version": configuration.model_version,
                 "configuration_version": configuration.version,
                 "seed": seed,
+                "seed_material": seed_material(
+                    match_id, configuration.model_version, configuration.version
+                ),
                 "failure_reason": failure_reason,
                 "home_id": home.team_id,
                 "home_name": home.name,
@@ -388,7 +389,6 @@ class SimulationRepository:
     async def get_live_run(
         self, connection: Connection, match_id: str
     ) -> RunRecord | None:
-        """Return the RUNNING or COMPLETED run of a match."""
         cursor = await connection.execute(
             f"SELECT {_RUN_COLUMNS} FROM simulation.simulation_runs "
             "WHERE match_id = %s AND status IN ('RUNNING', 'COMPLETED')",
@@ -401,7 +401,6 @@ class SimulationRepository:
     async def get_latest_run(
         self, connection: Connection, match_id: str
     ) -> RunRecord | None:
-        """Return the live run when there is one, otherwise the latest attempt."""
         cursor = await connection.execute(
             f"SELECT {_RUN_COLUMNS} FROM simulation.simulation_runs "
             "WHERE match_id = %s "
@@ -427,7 +426,6 @@ class SimulationRepository:
     async def get_result(
         self, connection: Connection, match_id: str
     ) -> ResultRecord | None:
-        """Return the stored result of a match."""
         cursor = await connection.execute(
             "SELECT match_id::text AS match_id, simulation_id::text AS simulation_id, "
             "home_goals, away_goals, winner, winning_gap, home_xg, away_xg, seed, "
@@ -457,7 +455,6 @@ class SimulationRepository:
         )
 
     async def count_events(self, connection: Connection, match_id: str) -> int:
-        """Count a match's stored events."""
         cursor = await connection.execute(
             "SELECT count(*) AS total FROM simulation.match_events WHERE match_id = %s",
             (match_id,),
@@ -470,7 +467,6 @@ class SimulationRepository:
     async def list_events(
         self, connection: Connection, match_id: str
     ) -> list[EventRecord]:
-        """Return a match's events in sequence order."""
         cursor = await connection.execute(
             "SELECT id::text AS id, match_id::text AS match_id, sequence, minute, "
             "type, side, player, secondary_player, score_home, score_away, "
@@ -497,7 +493,6 @@ class SimulationRepository:
     async def get_admin_run(
         self, connection: Connection, run_id: str
     ) -> AdminRunRecord | None:
-        """Return one run in its admin projection."""
         cursor = await connection.execute(
             _ADMIN_RUN_QUERY + "WHERE id = %(id)s", {"id": run_id}
         )
@@ -522,7 +517,6 @@ class SimulationRepository:
     async def cancel_run(
         self, connection: Connection, run_id: str, reason: str
     ) -> bool:
-        """Cancel a FAILED run; false when it no longer qualifies."""
         cursor = await connection.execute(
             "UPDATE simulation.simulation_runs "
             "SET status = 'CANCELLED', retry_requested_at = NULL, "

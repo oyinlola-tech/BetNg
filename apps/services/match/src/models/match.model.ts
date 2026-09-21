@@ -92,7 +92,6 @@ export function toMatch(row: MatchColumns): Match {
   };
 }
 
-/** Only for rows the caller has already limited to the revealed part of the timeline. */
 export function toMatchEvent(row: SimulationEventRow): MatchEvent | undefined {
   const type = matchEventTypeSchema.safeParse(row.type);
 

@@ -17,7 +17,6 @@ const RATING_FIELDS: readonly { readonly key: Exclude<keyof TeamRatings, "form">
   { key: "finishing", label: "Finishing", help: "Raises the share of the team's own shots on target that become goals." },
 ];
 
-/** Black or white, whichever reads on the kit colour. */
 function inkOn(hex: string): string {
   const n = Number.parseInt(hex.slice(1), 16);
   const luminance = (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;

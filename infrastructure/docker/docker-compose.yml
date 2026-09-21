@@ -74,6 +74,7 @@ services:
       LOG_LEVEL: ${LOG_LEVEL:-info}
       HOST: 0.0.0.0
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:?set INTERNAL_SERVICE_TOKEN in .env}
+      SIMULATION_SEED_SECRET: ${SIMULATION_SEED_SECRET:?set SIMULATION_SEED_SECRET in .env}
       CORS_ORIGINS: ${CORS_ORIGINS:-}
       REDIS_URL: redis://redis:6379
       MATCH_DATABASE_URL: postgresql://betng_match:betng_match_local@postgres:5432/betng?schema=match

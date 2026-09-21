@@ -30,11 +30,8 @@ export interface MatchEvent {
   readonly type: MatchEventType;
   readonly minute: number;
   readonly side?: MatchSide;
-  /** The player the event is about: scorer, booked player, player coming on. */
   readonly player?: string | undefined;
-  /** The assist for a goal, or the player going off for a substitution. */
   readonly secondaryPlayer?: string | undefined;
-  /** The running score after this event, so a timeline reads without adding up. */
   readonly score?: MatchScore | undefined;
   readonly description: string;
 }

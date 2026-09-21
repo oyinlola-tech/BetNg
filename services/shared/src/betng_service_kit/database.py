@@ -1,5 +1,3 @@
-"""PostgreSQL pool, readiness probe and SQL-file migrations for the Python services."""
-
 from __future__ import annotations
 
 import hashlib
@@ -16,7 +14,6 @@ Pool = AsyncConnectionPool[AsyncConnection[DictRow]]
 
 
 def create_pool(database_url: str, *, max_size: int = 10) -> Pool:
-    """Build a connection pool. Call ``await pool.open()`` before first use."""
     return AsyncConnectionPool(
         conninfo=database_url,
         min_size=1,
@@ -28,8 +25,6 @@ def create_pool(database_url: str, *, max_size: int = 10) -> Pool:
 
 
 def database_probe(pool: Pool) -> DependencyProbe:
-    """Readiness probe that issues a real query."""
-
     async def check() -> None:
         async with pool.connection(timeout=2) as connection:
             await connection.execute("SELECT 1")

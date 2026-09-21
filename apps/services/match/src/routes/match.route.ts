@@ -16,7 +16,6 @@ export function registerMatchRoutes(router: HttpRouter, controller: MatchControl
   router.get(`${API_PREFIX}/results`, json(controller.listResults));
 }
 
-/** No admin route sets a score, picks a winner or re-simulates a match that has a result. */
 export function registerAdminRoutes(router: HttpRouter, controller: AdminController): void {
   router.get(`${API_PREFIX}/admin/leagues`, json(controller.listLeagues));
   router.post(`${API_PREFIX}/admin/leagues`, created(controller.createLeague));

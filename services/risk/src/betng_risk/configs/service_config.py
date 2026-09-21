@@ -1,5 +1,3 @@
-"""Risk service configuration; deliberately holds no simulation URL."""
-
 from __future__ import annotations
 
 from betng_service_kit import ServiceSettings, load_settings
@@ -10,7 +8,6 @@ DEFAULT_PORT = 3007
 
 
 def load_risk_settings() -> ServiceSettings:
-    """Read the service's settings from the environment."""
     return load_settings(SERVICE_NAME, SERVICE_VERSION)
 
 

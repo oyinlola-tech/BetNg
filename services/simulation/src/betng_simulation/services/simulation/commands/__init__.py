@@ -1,5 +1,3 @@
-"""Simulation commands."""
-
 from .apply_run_action import ApplyRunActionCommand, ApplyRunActionHandler
 from .run_match import RunMatchCommand, RunMatchHandler
 from .update_configuration import (

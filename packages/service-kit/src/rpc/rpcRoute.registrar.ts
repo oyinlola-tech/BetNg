@@ -1,16 +1,3 @@
-/**
- * Mounts an `RPCServer` on a service's HTTP router.
- *
- * Every BetNG service serves its RPC procedures at `POST /rpc`, on the same
- * listener as its REST API. One process, one port, one thing to health-check.
- *
- * The endpoint is internal. It sits outside `/api/v1` precisely because it is
- * not part of the public API: the gateway does not forward to it, and
- * `docs/api/rpc.md` records which services may call which procedures. A
- * deployment keeps it off the public network the same way it keeps the
- * services themselves off it.
- */
-
 import { createResponseContext } from "@zudojs/http";
 import type { HttpRouter } from "@zudojs/http";
 import type { Logger } from "@zudojs/logger";

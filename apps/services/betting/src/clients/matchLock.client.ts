@@ -1,11 +1,3 @@
-/**
- * The per-match placement lock, on Redis.
- *
- * Locks are taken in sorted order so two multi-match slips can never hold one
- * lock each and wait for the other's. Redis is coordination only: losing it
- * stops placement, it never loses a bet.
- */
-
 import { withRedisLock } from "@betng/service-kit";
 import type { Logger, RedisConnection } from "@betng/service-kit";
 import { MATCH_LOCK } from "../constants/index.js";

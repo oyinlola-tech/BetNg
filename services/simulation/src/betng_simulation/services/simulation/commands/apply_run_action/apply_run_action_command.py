@@ -1,5 +1,3 @@
-"""Apply run action command."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass

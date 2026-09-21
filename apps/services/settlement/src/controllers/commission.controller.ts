@@ -19,9 +19,9 @@ import { listCommissionQuerySchema, updateCommissionConfigBodySchema } from "../
 import { toAuditActor } from "./request.helper.js";
 
 export interface CommissionController {
-  listCommission(context: HttpRouterContext): Promise<CommissionListDto>;
-  getConfig(context: HttpRouterContext): Promise<CommissionConfigDto>;
-  updateConfig(context: HttpRouterContext): Promise<CommissionConfig>;
+  readonly listCommission: (context: HttpRouterContext) => Promise<CommissionListDto>;
+  readonly getConfig: (context: HttpRouterContext) => Promise<CommissionConfigDto>;
+  readonly updateConfig: (context: HttpRouterContext) => Promise<CommissionConfig>;
 }
 
 export function createCommissionController(

@@ -29,7 +29,6 @@ export interface EffectsApplierDependencies {
   readonly logger: Logger;
 }
 
-/** The customer credit a settlement calls for, or undefined when no money moves. */
 export function customerCreditFor(settlement: SettlementRecord): WalletCreditRequest | undefined {
   if (settlement.channel !== "ONLINE" || settlement.outcome === "LOST" || settlement.payout <= 0n) {
     return undefined;

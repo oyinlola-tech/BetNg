@@ -1,9 +1,3 @@
-/**
- * The live match controller every client wraps. Rules: read the authoritative
- * match first; apply an event only when its sequence is the next expected
- * (a gap triggers a re-read); re-read after a reconnect; never store the clock.
- */
-
 import type { MatchId } from "@betng/contracts";
 import type { BetNgDataSource } from "../dataSource.type.js";
 import { derivePhase } from "../phase.js";

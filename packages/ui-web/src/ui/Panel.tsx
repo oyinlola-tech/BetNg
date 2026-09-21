@@ -4,7 +4,6 @@ export interface PanelProps extends React.HTMLAttributes<HTMLElement> {
   readonly title?: string;
   readonly description?: string;
   readonly actions?: React.ReactNode;
-  /** Removes body padding, for a table or list that runs edge to edge. */
   readonly flush?: boolean;
 }
 

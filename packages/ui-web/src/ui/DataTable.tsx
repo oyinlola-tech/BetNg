@@ -9,13 +9,11 @@ export interface Column<T> {
   readonly key: string;
   readonly header: string;
   readonly cell: (row: T) => React.ReactNode;
-  /** Returning a value makes the column sortable. */
   readonly sortValue?: (row: T) => string | number;
   readonly align?: "left" | "right" | "center";
   /** Tabular figures and no wrapping, for money, odds and counts. */
   readonly numeric?: boolean;
   readonly width?: string;
-  /** Hidden below this breakpoint so narrow screens keep the essential columns. */
   readonly hideBelow?: "md" | "lg" | "xl";
 }
 
@@ -31,7 +29,6 @@ export interface DataTableProps<T> {
   readonly onRowClick?: (row: T) => void;
   readonly selectedKey?: string | undefined;
   readonly density?: "compact" | "comfortable";
-  /** Client-side page size. Omit when the server paginates and pass `pagination` instead. */
   readonly pageSize?: number;
   readonly pagination?: { readonly page: number; readonly pageSize: number; readonly total: number; readonly onPage: (page: number) => void };
   readonly initialSort?: { readonly key: string; readonly direction: "asc" | "desc" };

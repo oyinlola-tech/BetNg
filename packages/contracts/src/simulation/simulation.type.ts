@@ -1,16 +1,3 @@
-/**
- * Simulation contracts, implemented by the Python simulation service.
- *
- * The simulation engine is the sole source of a match result. It runs only
- * after betting has closed, and its inputs are team properties and the
- * fixture — never the book's position or any bettor's exposure. Keeping bet
- * data out of the request shape is what makes that guarantee checkable
- * rather than merely stated.
- *
- * These types describe the wire format. The Python service implements them
- * from `docs/api.md`; it does not import this package.
- */
-
 import { z } from "@zudojs/validation";
 import { brandedIdSchema, isoTimestampSchema } from "../common/index.js";
 import {
@@ -37,10 +24,6 @@ export const simulationRequestSchema = z.object({
   matchId: brandedIdSchema<"MatchId">(),
   homeTeam: simulationTeamSchema,
   awayTeam: simulationTeamSchema,
-  /**
-   * Optional seed for a reproducible run. Supplying one makes a simulation
-   * repeatable for testing; omitting it draws fresh randomness.
-   */
   seed: z.int().optional(),
 });
 

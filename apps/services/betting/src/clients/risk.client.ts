@@ -1,12 +1,3 @@
-/**
- * The RPC client for the risk service.
- *
- * Risk answers one question before a stake is accepted: accept, limit or
- * reject. It cannot touch a price, a match or a result, and betting never
- * accepts a slip risk has not assessed — an unusable answer is a failure,
- * not an acceptance.
- */
-
 import { riskDecisionSchema } from "@betng/contracts";
 import type { RiskDecision, RiskEvaluateRequest } from "@betng/contracts";
 import { createRPCMetadata } from "@zudojs/rpc";

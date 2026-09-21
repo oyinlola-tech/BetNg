@@ -1,5 +1,3 @@
-// Resolved actors are cached in Redis under the token's SHA-256, never the token.
-
 import { createHash } from "node:crypto";
 import { ErrorCodes } from "@betng/contracts";
 import { createRpcClient, serviceUnavailable, unauthorized } from "@betng/service-kit";
@@ -77,7 +75,6 @@ export function createActorResolver(options: ActorResolverOptions): ActorResolve
     try {
       await redis.client.set(key, JSON.stringify(actor), { expiration: { type: "EX", value: ttl } });
     } catch {
-      /* cache only */
     }
   }
 

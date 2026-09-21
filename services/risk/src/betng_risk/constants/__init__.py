@@ -1,5 +1,3 @@
-"""Constants and container tokens."""
-
 from .risk_constant import (
     ADMIN_ACTOR_KIND,
     AUDIT_ACTION_LIMITS_CHANGED,

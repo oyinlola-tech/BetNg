@@ -30,15 +30,6 @@ _LEVELS = {
 
 
 def parse_log_level(name: str) -> int:
-    """Parse ``LOG_LEVEL``.
-
-    An unrecognised level is a configuration mistake, not something to paper
-    over with a default: silently logging at ``info`` when someone asked for
-    ``debug`` wastes a debugging session.
-
-    Raises:
-        ValueError: When the name is not a level.
-    """
     level = _LEVELS.get(name.strip().lower())
 
     if level is None:

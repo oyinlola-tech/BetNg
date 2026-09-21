@@ -1,17 +1,3 @@
-/**
- * Request correlation.
- *
- * A request entering the platform is given an identifier: reused from an
- * inbound `x-request-id` when the caller supplied one, freshly generated
- * otherwise. The identifier is stored on the request context, echoed on the
- * response, attached to every log line, and forwarded on outbound calls, so
- * one identifier follows a request across service boundaries.
- *
- * That is deliberately all this is. Spans, sampling and a trace backend are
- * a later concern; the identifier has to exist first for any of them to be
- * useful.
- */
-
 import { REQUEST_ID_HEADER } from "@betng/contracts";
 import type { HttpMiddleware, HttpRequestContext } from "@zudojs/http";
 
@@ -28,12 +14,6 @@ export function getRequestId(request: HttpRequestContext): string {
   return request.getState<string>(REQUEST_ID_STATE) ?? request.id;
 }
 
-/**
- * Assigns the correlation identifier and echoes it on the response.
- *
- * Registered first in the pipeline so every later stage — logging, the
- * error handler, the router — can rely on the identifier being present.
- */
 export function createRequestIdMiddleware(): HttpMiddleware {
   return async (context, next) => {
     const inbound = context.request.getHeader(REQUEST_ID_HEADER);

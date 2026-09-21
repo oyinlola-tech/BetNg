@@ -1,11 +1,3 @@
-/**
- * The peers betting calls, as the placement and ticket paths see them.
- *
- * Each rejects with `PeerRefusedError` when the peer answered with a refusal
- * and `PeerUnavailableError` when the outcome is unknown. They are interfaces
- * so the paths can be exercised against fakes without a network.
- */
-
 import type { RiskDecision, RiskEvaluateRequest } from "@betng/contracts";
 
 export interface RiskPeer {
@@ -27,7 +19,7 @@ export type WalletMovementType =
 export interface WalletMovement {
   readonly ownerType: WalletOwnerType;
   readonly ownerId: string;
-  /** Kobo, always positive: the procedure names the direction. */
+  // Always positive; the procedure (debit/credit) names the direction.
   readonly amount: number;
   readonly type: WalletMovementType;
   readonly idempotencyKey: string;
@@ -60,6 +52,6 @@ export interface IdentityPeer {
     pin: string,
     requestId: string,
   ): Promise<boolean>;
-  /** Best effort: resolves whether or not the entry was written. */
+  // Best effort: never rejects.
   recordAudit(entry: AuditEntry): Promise<void>;
 }

@@ -1,5 +1,3 @@
-"""Simulation entry point: pure, and its signature admits no bet data."""
-
 from __future__ import annotations
 
 from .events import generate_timeline
@@ -16,7 +14,6 @@ from .seeds import create_prng, derive_seed
 
 
 def derive_winner(home_goals: int, away_goals: int) -> Winner:
-    """Derive the winner from the score."""
     if home_goals > away_goals:
         return "HOME"
     if away_goals > home_goals:
@@ -30,9 +27,11 @@ def simulate(
     home: SimulationTeam,
     away: SimulationTeam,
     configuration: ModelConfiguration,
+    seed_secret: str | None = None,
 ) -> SimulationOutput:
-    """Simulate one match; the signature admits no bet data."""
-    seed = derive_seed(match_id, configuration.model_version, configuration.version)
+    seed = derive_seed(
+        match_id, configuration.model_version, configuration.version, seed_secret
+    )
     rng = create_prng(seed)
 
     probabilities = calculate_probabilities(home.strength, away.strength, configuration)

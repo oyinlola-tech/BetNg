@@ -1,5 +1,3 @@
-"""The §8 tables analytics reads, created for the dedicated test database."""
-
 from __future__ import annotations
 
 TABLES: dict[str, str] = {

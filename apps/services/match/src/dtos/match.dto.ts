@@ -1,11 +1,3 @@
-/**
- * Request and response shapes that are this service's own.
- *
- * Everything a client can depend on comes from `@betng/contracts`. What is declared here is either a request the
- * contracts do not name (the admin catalogue writes, the list filters) or a documented superset of a contract
- * shape, which stays wire-compatible with it.
- */
-
 import {
   brandedIdSchema,
   isoTimestampSchema,

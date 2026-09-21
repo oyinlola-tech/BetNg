@@ -1,17 +1,3 @@
-"""The ``/health`` and ``/ready`` endpoints every BetNG service exposes.
-
-They sit outside ``/api/v1`` on purpose: they describe the process, not the
-domain, and an orchestrator probing them should not be coupled to an API
-version.
-
-``/health`` is liveness: the process is up and serving. It inspects no
-dependency, so it can never report one as healthy.
-
-``/ready`` is readiness: every dependency the service actually declared is
-probed right now. A service with no configured dependency reports an empty
-list rather than inventing one.
-"""
-
 from __future__ import annotations
 
 import asyncio

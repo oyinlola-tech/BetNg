@@ -1,5 +1,3 @@
-"""Odds service configuration."""
-
 from __future__ import annotations
 
 from pathlib import Path
@@ -16,12 +14,10 @@ MIGRATIONS_DIRECTORY: Final = Path(__file__).resolve().parent.parent / "migratio
 
 
 def load_odds_settings() -> ServiceSettings:
-    """Read the service's settings from the environment."""
     return load_settings(SERVICE_NAME, SERVICE_VERSION)
 
 
 def require_database_url(settings: ServiceSettings) -> str:
-    """Return ``ODDS_DATABASE_URL`` or stop the service before it binds a port."""
     if settings.database_url is None:
         raise ValueError("ODDS_DATABASE_URL is required.")
 

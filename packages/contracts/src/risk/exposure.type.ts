@@ -1,12 +1,3 @@
-/**
- * Risk contracts, implemented by the Python risk service.
- *
- * The risk service analyses exposure while a market is still open, so the
- * platform can suspend a market or move a price *before* betting closes. It
- * has no channel to the simulation and cannot influence a result; that
- * separation is the point. See `docs/architecture.md`.
- */
-
 import { z } from "@zudojs/validation";
 import {
   brandedIdSchema,

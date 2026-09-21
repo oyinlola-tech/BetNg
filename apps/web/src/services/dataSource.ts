@@ -23,14 +23,12 @@ const storage: Required<SessionStorage> = {
     try {
       localStorage.setItem(key, value);
     } catch {
-      /* Private mode or quota: the app still runs, just without persistence. */
     }
   },
   remove: (key) => {
     try {
       localStorage.removeItem(key);
     } catch {
-      /* ignore */
     }
   },
 };

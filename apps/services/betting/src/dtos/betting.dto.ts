@@ -1,10 +1,3 @@
-/**
- * Maps the stored records onto the wire contracts.
- *
- * Odds leave as decimal numbers because the contract says so; they are
- * produced from integer hundredths here, at the edge, and never computed with.
- */
-
 import { asId, CURRENCY } from "@betng/contracts";
 import type {
   Bet,
@@ -47,7 +40,6 @@ function toSelectionDto(leg: BetLegRecord): BetSelection {
   };
 }
 
-/** Only an online bet has the bettor the `Bet` contract requires. */
 export function toBetDto(record: BetRecord): Bet {
   if (record.userId === undefined) {
     throw new Error(`Bet ${record.id} has no customer; it is a shop ticket.`);
@@ -71,7 +63,7 @@ export function toBetDto(record: BetRecord): Bet {
   };
 }
 
-/** A won or void ticket nobody collected in time reads as `EXPIRED`. */
+// An uncollected WON/VOID ticket past expires_at reads as EXPIRED.
 export function effectiveTicketStatus(
   record: TicketRecord,
   now: Date,

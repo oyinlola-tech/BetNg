@@ -1,5 +1,3 @@
-"""The simulation engine: pure functions, no I/O."""
-
 from .engine import derive_winner, simulate
 from .goals import sample_score
 from .models import (
@@ -24,7 +22,7 @@ from .probabilities import (
     outcome_probabilities,
     score_matrix,
 )
-from .seeds import create_prng, derive_seed
+from .seeds import create_prng, derive_seed, seed_material
 
 __all__ = [
     "MODEL_VERSION",
@@ -50,6 +48,7 @@ __all__ = [
     "outcome_probabilities",
     "sample_score",
     "score_matrix",
+    "seed_material",
     "simulate",
     "squad_for",
 ]

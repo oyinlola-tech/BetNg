@@ -1,5 +1,3 @@
-"""Service configuration."""
-
 from .service_config import (
     DATABASE_SCHEMA,
     DEFAULT_PORT,

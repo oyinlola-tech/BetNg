@@ -1,5 +1,3 @@
-/** Plays a virtual match. */
-
 import type { MatchId } from "@betng/contracts";
 import {
   FIRST_HALF_SECONDS,
@@ -26,7 +24,6 @@ export interface ScriptEvent {
   readonly secondaryPlayer?: string;
   readonly description: string;
   readonly score: Score;
-  /** Real seconds after kick-off at which the event is released. */
   readonly releaseSeconds: number;
 }
 
@@ -191,7 +188,6 @@ export function scriptFor(fixture: FixtureRef): MatchScript {
     }
   }
 
-  /* Substitutions: between two and three a side, second half. */
   for (const side of ["HOME", "AWAY"] as const) {
     const squad = clubFor(side).squad;
     const starters = squad.slice(0, 11);
@@ -248,7 +244,6 @@ export function scriptFor(fixture: FixtureRef): MatchScript {
 
   drafts.sort((a, b) => a.release - b.release);
 
-  /* Hidden statistics ticks. */
   const ticks: StatTick[] = [];
   const goalsFor = (side: MatchSide): number =>
     drafts.filter((d) => d.kind === "GOAL" && d.side === side).length;

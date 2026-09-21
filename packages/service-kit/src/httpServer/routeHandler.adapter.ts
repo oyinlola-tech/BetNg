@@ -1,11 +1,6 @@
 /**
- * Adapters between a domain handler and a ZudoJS route handler.
- *
- * `HttpRouter` requires a handler to return a response context, not bare
- * data. Rather than have every controller build one, a controller returns
- * the value it wants to send and is wrapped here. That keeps the status
- * code visible in the route table — `json` for a read, `created` for a
- * write that makes something — instead of buried in a handler body.
+ * `HttpRouter` requires a response context, not bare data; a controller
+ * returns the value and is wrapped here.
  */
 
 import { createResponseContext } from "@zudojs/http";

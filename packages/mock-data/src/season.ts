@@ -1,14 +1,10 @@
-/** The calendar of the virtual season. */
-
 import type { FixtureId, MatchId } from "@betng/contracts";
 import { FULL_TIME_SECONDS, VIRTUAL_TIMING } from "@betng/ui-core";
 import type { Club, Competition } from "./clubs.js";
 import { rng, uuidFrom } from "./prng.js";
 
-/** Seconds from one matchday's kick-off to the next, per league. */
 export const CYCLE_SECONDS = 240;
 
-/** When season 1, matchday 1 of the offset-zero league kicked off. */
 export const SEASON_EPOCH_MS = Date.UTC(2026, 8, 20, 0, 0, 0);
 
 export interface FixtureRef {

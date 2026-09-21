@@ -1,5 +1,3 @@
-"""Score matrix to market probabilities."""
-
 from __future__ import annotations
 
 import math
@@ -68,7 +66,6 @@ def _market_probabilities(
 def derive_market_probabilities(
     score_matrix: list[list[float]], home: str, away: str
 ) -> tuple[MarketProbabilities, ...]:
-    """Return the probability of every selection of every market."""
     total = _validated_total(score_matrix)
 
     return tuple(

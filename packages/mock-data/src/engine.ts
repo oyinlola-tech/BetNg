@@ -1,5 +1,3 @@
-/** The in-process platform. */
-
 import type { BetId, MatchId, TransactionId, WalletId } from "@betng/contracts";
 import {
   DataSourceError,
@@ -56,7 +54,6 @@ interface AccountState {
   notifications: NotificationView[];
   preferences: NotificationPreferences;
   viewed: string[];
-  /** Notification keys already raised, so a reload does not repeat them. */
   raised: string[];
 }
 
@@ -227,7 +224,6 @@ export class MockPlatform {
     for (const l of this.connectionListeners) l(state);
   }
 
-  /** Drops the connection for a while, then recovers. For demonstrating the reconnect path. */
   public simulateOutage(ms = 6000): void {
     if (this.outageTimer !== undefined) clearTimeout(this.outageTimer);
 
@@ -552,7 +548,6 @@ export class MockPlatform {
       return fixtureCache.get(matchId);
     };
 
-    /* Matches the user cares about: those with a pending bet, and those recently watched. */
     const betMatches = new Set<string>(
       this.account.bets
         .filter((b) => b.status === "PENDING")

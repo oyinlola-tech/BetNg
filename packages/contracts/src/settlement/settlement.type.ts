@@ -1,11 +1,3 @@
-/**
- * Settlement contracts, owned by the settlement service.
- *
- * Settlement reads a completed match result and resolves the bets that
- * reference it. It is strictly downstream of the simulation: it never asks
- * for a result, it only reacts to one that already exists.
- */
-
 import { z } from "@zudojs/validation";
 import {
   brandedIdSchema,

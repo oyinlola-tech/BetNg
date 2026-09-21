@@ -1,5 +1,3 @@
-"""HTTP routes."""
-
 from .risk_route import (
     ADMIN_PREFIX,
     INTERNAL_PREFIX,

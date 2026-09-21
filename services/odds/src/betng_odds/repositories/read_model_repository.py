@@ -1,5 +1,3 @@
-"""Cross-schema reads of the shared read model (docs/architecture.md §8)."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -13,12 +11,9 @@ from ..utils import transaction
 
 @dataclass(frozen=True)
 class PostgresMatchDirectory(MatchDirectory):
-    """Matches, their teams and league, from the ``match`` schema."""
-
     pool: Pool
 
     async def find(self, match_ids: list[str]) -> dict[str, MatchInfo]:
-        """Return the known matches among ``match_ids``, keyed by id."""
         if not match_ids:
             return {}
 
@@ -57,12 +52,9 @@ class PostgresMatchDirectory(MatchDirectory):
 
 @dataclass(frozen=True)
 class PostgresExposureReader(ExposureReader):
-    """Pending stake and liability per selection, from the ``betting`` schema."""
-
     pool: Pool
 
     async def by_selection(self, market_ids: list[str]) -> dict[str, SelectionExposure]:
-        """Return pending stake and liability per selection id."""
         if not market_ids:
             return {}
 

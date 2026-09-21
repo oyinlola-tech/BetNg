@@ -1,5 +1,3 @@
-"""Constants and container tokens."""
-
 from .odds_constant import (
     ADMIN_TRADING_MARKET_LIMIT,
     BETTABLE_LIFECYCLES,

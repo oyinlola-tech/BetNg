@@ -1,14 +1,3 @@
-"""Service configuration, read from the environment.
-
-Every value a BetNG Python service needs is read once, at startup, into a
-frozen settings object. Application code reads that object; it never reaches
-for ``os.environ`` directly and never hard-codes a host or a port, so the same
-image runs unchanged in docker-compose and on a developer's machine.
-
-This mirrors what ``@betng/service-kit`` does on the TypeScript side, so the
-two halves of the platform are configured the same way.
-"""
-
 from __future__ import annotations
 
 from functools import cached_property

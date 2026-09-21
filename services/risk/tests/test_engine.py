@@ -228,7 +228,6 @@ class TestPayoutLimit:
         slip = [leg(odds="10.00"), leg(OVER, "10.00", MARKET_2, MATCH_2)]
         states = [state(), state(OVER, market_id=MARKET_2, match_id=MATCH_2)]
 
-        # 2,000,000,000 / 100.00 = 20,000,000.
         decision = run(30_000_000, slip, limits=ROOMY, states=states)
         assert decision == EngineDecision("LIMIT", "PAYOUT_LIMIT", 20_000_000)
 

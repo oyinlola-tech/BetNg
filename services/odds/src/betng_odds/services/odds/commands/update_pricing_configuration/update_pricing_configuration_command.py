@@ -1,5 +1,3 @@
-"""A new pricing configuration version."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -12,8 +10,6 @@ from .....dtos import PricingConfigurationView, UpdatePricingConfigurationReques
 
 @dataclass(frozen=True)
 class UpdatePricingConfigurationCommand(Command[PricingConfigurationView]):
-    """Replace the active margins and bounds, as the gateway-asserted admin."""
-
     request: UpdatePricingConfigurationRequest
     actor: Actor
     request_id: str

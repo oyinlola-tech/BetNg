@@ -20,13 +20,13 @@ import {
 } from "../validators/index.js";
 
 export interface CustomerAuthController {
-  register(context: HttpRouterContext): Promise<RegistrationPending>;
-  verify(context: HttpRouterContext): Promise<CustomerSession>;
-  resendVerification(context: HttpRouterContext): Promise<void>;
-  login(context: HttpRouterContext): Promise<CustomerSession>;
-  logout(context: HttpRouterContext): Promise<void>;
-  me(context: HttpRouterContext): Promise<CustomerProfile>;
-  forgotPassword(context: HttpRouterContext): Promise<void>;
+  readonly register: (context: HttpRouterContext) => Promise<RegistrationPending>;
+  readonly verify: (context: HttpRouterContext) => Promise<CustomerSession>;
+  readonly resendVerification: (context: HttpRouterContext) => Promise<void>;
+  readonly login: (context: HttpRouterContext) => Promise<CustomerSession>;
+  readonly logout: (context: HttpRouterContext) => Promise<void>;
+  readonly me: (context: HttpRouterContext) => Promise<CustomerProfile>;
+  readonly forgotPassword: (context: HttpRouterContext) => Promise<void>;
 }
 
 /** None of these handlers reads an `x-betng-*` header: the caller is whoever holds the bearer token. */

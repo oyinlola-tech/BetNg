@@ -1,5 +1,3 @@
-"""The rows and read-model records the service passes between its layers."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -12,8 +10,6 @@ from ..pricing import PricingConfiguration
 
 @dataclass(frozen=True)
 class ConfigurationRecord:
-    """A stored pricing configuration with its provenance."""
-
     pricing: PricingConfiguration
     active: bool
     created_at: datetime
@@ -23,8 +19,6 @@ class ConfigurationRecord:
 
 @dataclass(frozen=True)
 class SelectionRecord:
-    """One row of ``odds.market_selections``."""
-
     id: str
     market_id: str
     match_id: str
@@ -37,8 +31,6 @@ class SelectionRecord:
 
 @dataclass(frozen=True)
 class MarketRecord:
-    """One row of ``odds.markets`` with its selections in display order."""
-
     id: str
     match_id: str
     type: str
@@ -52,8 +44,6 @@ class MarketRecord:
 
 @dataclass(frozen=True)
 class SnapshotRecord:
-    """One row of ``odds.odds_snapshots``."""
-
     id: str
     market_id: str
     match_id: str
@@ -65,8 +55,6 @@ class SnapshotRecord:
 
 @dataclass(frozen=True)
 class PublishOutcome:
-    """What ``publish_markets`` found or created for a match."""
-
     match_id: str
     markets: int
     odds_version: int
@@ -75,8 +63,6 @@ class PublishOutcome:
 
 @dataclass(frozen=True)
 class MatchInfo:
-    """What the odds service reads about a match from the ``match`` schema."""
-
     match_id: str
     home_name: str
     away_name: str
@@ -88,7 +74,6 @@ class MatchInfo:
 
     @property
     def label(self) -> str:
-        """The match as the admin console titles it."""
         return f"{self.home_name} v {self.away_name}"
 
 

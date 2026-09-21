@@ -3,7 +3,6 @@ import { cn } from "../lib/cn";
 
 export interface BrandLogoProps {
   readonly size?: number;
-  /** A product suffix such as "Shop" or "Admin", set beside the wordmark. */
   readonly product?: string;
   readonly markOnly?: boolean;
   readonly className?: string;

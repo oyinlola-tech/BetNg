@@ -64,7 +64,6 @@ export const betSchema = z.object({
 });
 
 export const placeBetRequestSchema = z.object({
-  /** Ignored by the platform: the bettor is the authenticated actor. */
   userId: brandedIdSchema<"UserId">().optional(),
   selections: z.array(betSelectionSchema).min(1).max(20),
   stake: minorUnitsSchema.min(1),

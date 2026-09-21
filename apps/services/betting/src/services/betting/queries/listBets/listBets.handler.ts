@@ -6,7 +6,6 @@ import type {
 } from "../../../../interfaces/index.js";
 import type { ListBetsQuery } from "./listBets.query.js";
 
-/** One customer's bets, newest first. */
 export class ListBetsHandler extends QueryHandler<
   ListBetsQuery,
   readonly BetRecord[]

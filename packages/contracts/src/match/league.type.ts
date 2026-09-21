@@ -49,15 +49,12 @@ export interface Team {
    * a property of the team, never of an individual bettor's position.
    */
   readonly strength: number;
-  /** Home city, for a team page. */
   readonly city?: string | undefined;
   readonly stadium?: string | undefined;
-  /** Kit colours as CSS hex, for a generated badge. Optional until the match service carries them. */
   readonly colors?: TeamColors | undefined;
   readonly createdAt: string;
 }
 
-/** Kit colours a client draws a badge with. */
 export interface TeamColors {
   readonly primary: string;
   readonly secondary: string;

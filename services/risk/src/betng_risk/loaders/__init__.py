@@ -1,5 +1,3 @@
-"""Startup wiring."""
-
 from .container_loader import load_container
 from .services_loader import load_services
 

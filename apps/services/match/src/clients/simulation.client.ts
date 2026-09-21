@@ -16,7 +16,6 @@ import { callValidated } from "./rpc.client.js";
 
 export const SIMULATION_PROCEDURE = Object.freeze({ RUN_MATCH: "simulation.runMatch" });
 
-/** A run can take longer than a lookup; the scheduler's lease is sized to match. */
 const RUN_MATCH_TIMEOUT_MS = 10_000;
 
 const responseSchema: ValidationSchema<RunMatchResponse> = runMatchResponseSchema;

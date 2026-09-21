@@ -1,26 +1,28 @@
-/**
- * The boundary between a screen and the platform. Two implementations:
- * `createPlatformDataSource` (the gateway + event stream) and the in-process
- * season in `@betng/mock-data`. Screens cannot tell which they have.
- */
-
 import type { LeagueId, MatchId, TeamId } from "@betng/contracts";
 import type {
+  BetPlacementView,
   BetView,
   ConnectionState,
+  HeadToHeadView,
   LeagueView,
   MatchEventView,
+  MatchLineupsView,
   MatchMarketsView,
   MatchPhase,
   MatchSummary,
   MatchView,
   NotificationPreferences,
   NotificationView,
+  PageView,
   PlaceBetInput,
+  PlatformConfigView,
+  SearchQuery,
+  SearchResults,
   StandingsView,
   TeamDetailView,
   TeamView,
   TopScorer,
+  TransactionQuery,
   TransactionView,
   WalletView,
 } from "./types/index.js";
@@ -35,8 +37,20 @@ export interface MatchFilter {
   readonly limit?: number;
 }
 
+/** A lifecycle frame on a match's stream that is not a timeline event. The authoritative state is re-read when one arrives. */
+export type MatchSignal =
+  | "BETTING_OPENED"
+  | "BETTING_CLOSED"
+  | "ODDS_UPDATED"
+  | "MARKET_UPDATED"
+  | "SIMULATION_STARTED"
+  | "SETTLEMENT_STARTED"
+  | "SETTLEMENT_COMPLETED"
+  | "MATCH_UPDATED";
+
 export interface LiveMatchHandlers {
   readonly onEvent: (event: MatchEventView) => void;
+  readonly onSignal?: (signal: MatchSignal) => void;
   readonly onConnection: (state: ConnectionState) => void;
 }
 
@@ -58,6 +72,10 @@ export interface BetNgDataSource {
   listMatches(filter?: MatchFilter): Promise<readonly MatchSummary[]>;
   getMatch(matchId: MatchId): Promise<MatchView>;
   getMatchMarkets(matchId: MatchId): Promise<MatchMarketsView>;
+  getMatchLineups(matchId: MatchId): Promise<MatchLineupsView>;
+  getHeadToHead(matchId: MatchId): Promise<HeadToHeadView>;
+  search(query: SearchQuery): Promise<SearchResults>;
+  getPlatformConfig(): Promise<PlatformConfigView>;
   listCompletedMatchdays(
     leagueId: LeagueId,
     season?: number,
@@ -72,9 +90,10 @@ export interface BetNgDataSource {
 
   getWallet(): Promise<WalletView>;
   listTransactions(): Promise<readonly TransactionView[]>;
+  queryTransactions(query: TransactionQuery): Promise<PageView<TransactionView>>;
   deposit(amount: number): Promise<WalletView>;
   withdraw(amount: number): Promise<WalletView>;
-  placeBet(input: PlaceBetInput): Promise<BetView>;
+  placeBet(input: PlaceBetInput): Promise<BetPlacementView>;
   listBets(): Promise<readonly BetView[]>;
   getBet(betId: string): Promise<BetView>;
   listNotifications(): Promise<readonly NotificationView[]>;
@@ -89,22 +108,40 @@ export interface BetNgDataSource {
   subscribeAccount(listener: () => void): () => void;
 }
 
+export type DataSourceErrorCode =
+  | "NOT_FOUND"
+  | "NETWORK"
+  | "OFFLINE"
+  | "TIMEOUT"
+  | "SERVER"
+  | "UNAVAILABLE"
+  | "NOT_IMPLEMENTED"
+  | "BETTING_CLOSED"
+  | "MARKET_SUSPENDED"
+  | "ODDS_CHANGED"
+  | "STAKE_LIMITED"
+  | "BET_REJECTED"
+  | "INSUFFICIENT_FUNDS"
+  | "VALIDATION"
+  | "INVALID_CREDENTIALS"
+  | "UNAUTHENTICATED"
+  | "SESSION_EXPIRED"
+  | "FORBIDDEN"
+  | "CONFLICT"
+  | "RATE_LIMITED";
+
+export interface DataSourceErrorDetail {
+  readonly status?: number;
+  readonly requestId?: string;
+  readonly fields?: Readonly<Record<string, string>>;
+  readonly retryAfterSeconds?: number;
+}
+
 export class DataSourceError extends Error {
   public constructor(
-    public readonly code:
-      | "NOT_FOUND"
-      | "NETWORK"
-      | "SERVER"
-      | "BETTING_CLOSED"
-      | "INSUFFICIENT_FUNDS"
-      | "VALIDATION"
-      | "INVALID_CREDENTIALS"
-      | "UNAUTHENTICATED"
-      | "SESSION_EXPIRED"
-      | "FORBIDDEN"
-      | "CONFLICT"
-      | "RATE_LIMITED",
+    public readonly code: DataSourceErrorCode,
     message: string,
+    public readonly detail: DataSourceErrorDetail = {},
   ) {
     super(message);
     this.name = "DataSourceError";

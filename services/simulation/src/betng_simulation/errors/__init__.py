@@ -1,5 +1,3 @@
-"""Service errors."""
-
 from .simulation_error import (
     DATABASE_UNAVAILABLE,
     FORBIDDEN,

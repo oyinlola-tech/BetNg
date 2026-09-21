@@ -2,7 +2,6 @@ import { create } from "zustand";
 
 export type AuthView = "login" | "register" | "verify" | "forgot" | "expired";
 
-/** What the user was doing when sign-in was asked for; it runs once they are in. */
 export interface AuthIntent {
   readonly reason: string;
   readonly run?: () => void;
@@ -17,7 +16,6 @@ interface AuthDialogState {
   setView: (view: AuthView) => void;
   setPendingEmail: (email: string) => void;
   close: () => void;
-  /** Closes the dialog and hands back the intent to resume. */
   complete: () => AuthIntent | undefined;
 }
 

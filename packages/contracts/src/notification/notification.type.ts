@@ -1,12 +1,3 @@
-/**
- * Notification contracts.
- *
- * In-app notifications a client lists and marks read, served over
- * `GET /users/:id/notifications`. A push provider, when one is added,
- * delivers the same records over a different transport; the shape does
- * not change.
- */
-
 import { z } from "@zudojs/validation";
 import {
   brandedIdSchema,

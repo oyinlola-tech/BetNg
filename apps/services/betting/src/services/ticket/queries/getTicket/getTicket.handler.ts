@@ -7,7 +7,6 @@ import type {
 } from "../../../../interfaces/index.js";
 import type { GetTicketQuery } from "./getTicket.query.js";
 
-/** Reads a ticket of the caller's own shop; another shop's is a 404. */
 export class GetTicketHandler extends QueryHandler<GetTicketQuery, TicketRecord> {
   public readonly queryType = BETTING_QUERY.GET_TICKET;
 

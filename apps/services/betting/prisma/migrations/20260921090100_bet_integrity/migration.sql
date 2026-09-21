@@ -1,23 +1,15 @@
--- Invariants a bet must never violate, enforced by the database rather than
--- by the code that happens to be writing to it today.
-
--- Money ----------------------------------------------------------------------
+-- Money and immutability invariants of a bet, enforced by the database.
 
 ALTER TABLE "bets" ADD CONSTRAINT "bets_stake_positive" CHECK ("stake" > 0);
 
--- Odds at or below 1.00 can never return a profit, so a slip priced there is
--- a pricing bug rather than an offer.
 ALTER TABLE "bets"
   ADD CONSTRAINT "bets_total_odds_above_one" CHECK ("total_odds" > 1);
 
--- A winning slip returns at least the stake. This is what catches a payout
--- computed from the wrong odds before it is ever owed.
 ALTER TABLE "bets"
   ADD CONSTRAINT "bets_payout_covers_stake"
   CHECK ("potential_payout" >= "stake");
 
--- Settlement may pay less than the promise (a void leg) but never more, and
--- never a negative amount.
+-- Settlement may pay less than the promise (a void leg), never more.
 ALTER TABLE "bets"
   ADD CONSTRAINT "bets_payout_bounded"
   CHECK ("payout" IS NULL OR ("payout" >= 0 AND "payout" <= "potential_payout"));
@@ -31,10 +23,6 @@ ALTER TABLE "bet_selections"
 ALTER TABLE "bet_selections"
   ADD CONSTRAINT "bet_selections_odds_version_positive" CHECK ("odds_version" >= 1);
 
--- Resolution -----------------------------------------------------------------
-
--- The status and its timestamps cannot disagree about whether, and how, the
--- bet was resolved.
 ALTER TABLE "bets"
   ADD CONSTRAINT "bets_resolution_matches_status" CHECK (
     ("status" = 'PENDING'
@@ -45,8 +33,7 @@ ALTER TABLE "bets"
       AND "cancelled_at" IS NOT NULL AND "settled_at" IS NULL)
   );
 
--- An online bet belongs to a customer; a shop bet to a shop and the cashier
--- who sold it. The operator is never a bettor, so there is no third shape.
+-- Online bets belong to a customer, shop bets to a shop and cashier; there is no operator bettor.
 ALTER TABLE "bets"
   ADD CONSTRAINT "bets_owner_matches_channel" CHECK (
     ("channel" = 'ONLINE'
@@ -63,12 +50,7 @@ ALTER TABLE "tickets"
 ALTER TABLE "tickets"
   ADD CONSTRAINT "tickets_code_format" CHECK ("code" ~ '^[A-Z0-9]{10,12}$');
 
--- Immutability ---------------------------------------------------------------
-
--- A bet is written once. Afterwards the only thing that may happen to it is
--- its resolution: PENDING becomes WON, LOST, VOID or CANCELLED, exactly once.
--- The stake, the accepted price and the promised payout never change, which
--- is what makes "settlement pays on the odds stored on the bet" checkable.
+-- A bet is written once; only PENDING -> WON|LOST|VOID|CANCELLED may follow, exactly once.
 CREATE FUNCTION "bets_guard_update"() RETURNS trigger AS $$
 BEGIN
   IF OLD."status" <> 'PENDING' THEN
@@ -106,8 +88,7 @@ CREATE TRIGGER "bets_immutable_update"
   BEFORE UPDATE ON "bets"
   FOR EACH ROW EXECUTE FUNCTION "bets_guard_update"();
 
--- A leg records what was accepted. Settlement writes its outcome and result
--- once; nothing else about it ever changes.
+-- A leg changes only its outcome and result, once, from PENDING.
 CREATE FUNCTION "bet_selections_guard_update"() RETURNS trigger AS $$
 BEGIN
   IF OLD."outcome" <> 'PENDING' THEN
@@ -149,7 +130,7 @@ CREATE TRIGGER "bet_selections_immutable_update"
   BEFORE UPDATE ON "bet_selections"
   FOR EACH ROW EXECUTE FUNCTION "bet_selections_guard_update"();
 
--- Accepted bets are the book. They are resolved, never removed.
+-- Accepted bets are resolved, never deleted.
 CREATE FUNCTION "bets_reject_delete"() RETURNS trigger AS $$
 BEGIN
   RAISE EXCEPTION 'rows in %.% are never deleted', TG_TABLE_SCHEMA, TG_TABLE_NAME

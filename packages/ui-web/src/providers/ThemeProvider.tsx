@@ -72,7 +72,6 @@ export function ThemeProvider({
       if (next === "system") localStorage.removeItem(STORAGE_KEY);
       else localStorage.setItem(STORAGE_KEY, next);
     } catch {
-      /* ignore */
     }
   }, []);
 

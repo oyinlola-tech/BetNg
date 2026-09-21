@@ -3,12 +3,7 @@ import { serviceUnavailable } from "@betng/service-kit";
 import type { RouteHandler } from "@betng/service-kit";
 import { getDatabaseErrorKind } from "@zudojs/database";
 
-/**
- * Answers a lost database with `DATABASE_UNAVAILABLE` rather than a bare 500.
- *
- * Only connection and timeout failures are translated; anything else is a
- * fault and stays one. The client is told nothing about the database itself.
- */
+// Connection and timeout failures answer DATABASE_UNAVAILABLE; anything else stays a fault.
 export function withDatabaseFailure(handler: RouteHandler): RouteHandler {
   return async (context) => {
     try {

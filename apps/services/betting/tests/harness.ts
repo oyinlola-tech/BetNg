@@ -7,18 +7,18 @@ import {
   createServiceLogger,
   internalHeaders,
 } from "@betng/service-kit";
-import { createRedisMatchLock } from "../../src/clients/index.js";
-import { createApp, loadBettingConfig } from "../../src/index.js";
-import type { BettingApp } from "../../src/index.js";
-import { PrismaClient } from "../../src/generated/prisma/client.js";
-import type { BetRepository } from "../../src/interfaces/index.js";
+import { createRedisMatchLock } from "../src/clients/index.js";
+import { createApp, loadBettingConfig } from "../src/index.js";
+import type { BettingApp } from "../src/index.js";
+import { PrismaClient } from "../src/generated/prisma/client.js";
+import type { BetRepository } from "../src/interfaces/index.js";
 import { FakeIdentity, FakeRisk, FakeWallet } from "./fakes.js";
 import { FIXTURE_SCHEMA } from "./fixtureSchema.js";
 
 const TEST_DATABASE = "betng_test_betting";
 const TEST_PORT = 4102;
 
-const envFile = resolve(import.meta.dirname, "../../../../../.env");
+const envFile = resolve(import.meta.dirname, "../../../../.env");
 
 if (existsSync(envFile)) {
   process.loadEnvFile(envFile);

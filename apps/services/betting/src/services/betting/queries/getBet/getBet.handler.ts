@@ -7,12 +7,7 @@ import type {
 } from "../../../../interfaces/index.js";
 import type { GetBetQuery } from "./getBet.query.js";
 
-/**
- * Reads one of the caller's own bets.
- *
- * Someone else's bet answers exactly as a missing one does, so the route
- * cannot be used to learn which bet ids exist.
- */
+// Someone else's bet answers exactly like a missing one, so ids cannot be probed.
 export class GetBetHandler extends QueryHandler<GetBetQuery, BetRecord> {
   public readonly queryType = BETTING_QUERY.GET_BET;
 

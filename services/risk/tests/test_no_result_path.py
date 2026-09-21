@@ -1,5 +1,3 @@
-"""Risk has no code path to a match result."""
-
 from __future__ import annotations
 
 import re

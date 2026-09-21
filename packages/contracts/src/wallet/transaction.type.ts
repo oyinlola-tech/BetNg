@@ -1,10 +1,3 @@
-/**
- * Ledger contracts, owned by the wallet service.
- *
- * The ledger is append-only: a balance is the sum of its entries, so a
- * correction is a new compensating entry, never an edit.
- */
-
 import { z } from "@zudojs/validation";
 import {
   brandedIdSchema,
@@ -30,19 +23,9 @@ export interface Transaction {
   readonly id: TransactionId;
   readonly walletId: WalletId;
   readonly type: TransactionType;
-  /**
-   * Signed amount in minor units: positive credits the wallet, negative
-   * debits it. The sign is carried on the amount rather than implied by
-   * `type`, so summing the ledger needs no per-type branching.
-   */
   readonly amount: number;
   readonly currency: Currency;
   readonly balanceAfter: number;
-  /**
-   * The domain object that caused this entry: a bet identifier for
-   * `BET_STAKE`, a settlement identifier for `BET_PAYOUT`. Absent for a
-   * deposit or a withdrawal.
-   */
   readonly reference?: string;
   readonly createdAt: string;
 }

@@ -1,5 +1,3 @@
-"""The risk RPC procedures; none can change a bet, price, match or result."""
-
 from __future__ import annotations
 
 from typing import Any
@@ -30,7 +28,6 @@ def _wire(result: WireModel) -> dict[str, Any]:
 
 
 def create_risk_rpc_server(command_bus: CommandBus) -> RpcServer:
-    """Register the risk procedures."""
     server = RpcServer()
 
     async def evaluate(payload: RiskEvaluateRequest) -> dict[str, Any]:

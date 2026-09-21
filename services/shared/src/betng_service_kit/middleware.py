@@ -1,13 +1,3 @@
-"""Request correlation and access logging.
-
-A request entering a Python service is given an identifier: reused from an
-inbound ``x-request-id`` when the caller supplied one, freshly generated
-otherwise. It is stored on the request, echoed on the response and attached to
-every log line, so one identifier follows a request across the platform —
-including across the TypeScript/Python boundary, because both halves agree on
-the same header.
-"""
-
 from __future__ import annotations
 
 import logging

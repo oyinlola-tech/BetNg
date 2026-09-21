@@ -1,5 +1,3 @@
-"""Probability to price."""
-
 from __future__ import annotations
 
 from decimal import ROUND_HALF_UP, Decimal
@@ -22,7 +20,6 @@ class MissingMarginError(KeyError):
 def price_selection(
     probability: Decimal, margin: Decimal, min_odds: Decimal, max_odds: Decimal
 ) -> Decimal:
-    """Return the decimal odds for one probability under one margin."""
     implied = probability * (1 + margin)
 
     if implied <= 0:
@@ -36,7 +33,6 @@ def price_selection(
 def price_market(
     market: MarketProbabilities, configuration: PricingConfiguration
 ) -> PricedMarket:
-    """Apply the configured margin of a market's type to each selection."""
     try:
         margin = configuration.margins[market.type]
     except KeyError:
@@ -66,12 +62,10 @@ def price_market(
 def price_markets(
     markets: tuple[MarketProbabilities, ...], configuration: PricingConfiguration
 ) -> tuple[PricedMarket, ...]:
-    """Price every market of a match under one configuration."""
     return tuple(price_market(market, configuration) for market in markets)
 
 
 def overround(odds: list[Decimal], probabilities: list[Decimal]) -> Decimal:
-    """Return the book's margin actually present in a set of prices."""
     fair = sum(probabilities, Decimal(0))
 
     if fair <= 0:

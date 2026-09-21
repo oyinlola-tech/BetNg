@@ -362,7 +362,6 @@ class TestSetMatchMarketsStatus:
         assert {(m["status"], m["oddsVersion"]) for m in odds["markets"]} == {
             ("VOID", 4)
         }
-        # VOID is terminal.
         assert harness.rpc(
             "odds.setMatchMarketsStatus", {"matchId": match_id, "status": "OPEN"}
         )["result"] == {"updated": 0}

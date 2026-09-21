@@ -1,5 +1,3 @@
-"""Score matrix to stored markets."""
-
 from __future__ import annotations
 
 import logging
@@ -32,8 +30,6 @@ def _result(outcome: PublishOutcome) -> PublishMarketsResult:
 class PublishMarketsHandler(
     CommandHandler[PublishMarketsCommand, PublishMarketsResult]
 ):
-    """Run the pricing pipeline for one match and persist version 1."""
-
     repository: OddsRepository
     probability_model: ProbabilityModel
     match_directory: MatchDirectory
@@ -42,7 +38,6 @@ class PublishMarketsHandler(
     message_type = OddsCommand.PUBLISH_MARKETS
 
     async def execute(self, message: PublishMarketsCommand) -> PublishMarketsResult:
-        """Publish a match's markets, or return what is already published."""
         match_id = str(message.request.match_id)
         existing = await self.repository.find_publication(match_id)
 

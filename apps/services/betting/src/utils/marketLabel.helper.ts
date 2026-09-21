@@ -7,7 +7,6 @@ const MARKET_NAMES: Readonly<Record<string, string>> = Object.freeze({
   GOAL_SPREAD: "Goal Spread",
 });
 
-/** `odds.markets` has no label column; the label is its type and line. */
 export function marketLabel(type: string, lineTenths: number | undefined): string {
   const name = MARKET_NAMES[type] ?? type;
 
@@ -16,7 +15,6 @@ export function marketLabel(type: string, lineTenths: number | undefined): strin
     : `${name} ${formatTenths(lineTenths)}`;
 }
 
-/** Reads a `numeric(4,1)` rendered as text ("2.5", "-1.5") as tenths. */
 export function parseTenths(text: string): number {
   const match = /^(-?)(\d{1,3})(?:\.(\d))?$/.exec(text.trim());
 

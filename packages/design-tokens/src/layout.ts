@@ -17,11 +17,6 @@ export const spacing = Object.freeze({
   24: 96,
 });
 
-/**
- * Restrained rounding. Panels are `md`, controls are `sm`, only pills and
- * avatars are fully round. Nothing else is, which is what keeps the product
- * from looking like a consumer casino.
- */
 export const radius = Object.freeze({
   none: 0,
   xs: 3,

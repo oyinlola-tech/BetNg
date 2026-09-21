@@ -74,8 +74,6 @@ class DailyReportParams(QueryModel):
 
 
 class ShopQueryModel(QueryModel):
-    """Extras, any ``shopId`` included, are ignored: the shop is always the actor's."""
-
     model_config = ConfigDict(
         frozen=True,
         extra="ignore",

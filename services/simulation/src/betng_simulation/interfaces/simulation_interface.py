@@ -1,5 +1,3 @@
-"""The rows of the simulation schema, as the service handles them."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -11,8 +9,6 @@ from ..engine import ModelConfiguration, SimulationOutput, SimulationTeam
 
 @dataclass(frozen=True)
 class StoredConfiguration:
-    """A ``model_configurations`` row."""
-
     configuration: ModelConfiguration
     active: bool
     created_at: datetime
@@ -22,8 +18,6 @@ class StoredConfiguration:
 
 @dataclass(frozen=True)
 class RunRecord:
-    """A ``simulation_runs`` row."""
-
     id: str
     match_id: str
     status: str
@@ -41,8 +35,6 @@ class RunRecord:
 
 @dataclass(frozen=True)
 class ResultRecord:
-    """A ``match_results`` row."""
-
     match_id: str
     simulation_id: str
     home_goals: int
@@ -60,8 +52,6 @@ class ResultRecord:
 
 @dataclass(frozen=True)
 class EventRecord:
-    """A ``match_events`` row."""
-
     id: str
     match_id: str
     sequence: int
@@ -77,8 +67,6 @@ class EventRecord:
 
 @dataclass(frozen=True)
 class AdminRunRecord:
-    """A run with its admin status, event count and score."""
-
     run: RunRecord
     #: ``QUEUED`` when a failed run is waiting for the retry an admin asked for.
     admin_status: str
@@ -88,7 +76,7 @@ class AdminRunRecord:
 
 
 class Simulate(Protocol):
-    """The engine's signature. It has no parameter for any bet data."""
+    """The engine's signature: no bet data; the seed key is its only non-match input."""
 
     def __call__(
         self,
@@ -96,6 +84,7 @@ class Simulate(Protocol):
         home: SimulationTeam,
         away: SimulationTeam,
         configuration: ModelConfiguration,
+        seed_secret: str | None = None,
     ) -> SimulationOutput:
         """Simulate one match."""
         ...

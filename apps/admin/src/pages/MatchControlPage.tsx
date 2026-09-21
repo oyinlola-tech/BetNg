@@ -19,7 +19,6 @@ interface Operation {
   readonly icon: React.ReactNode;
   readonly tone: "primary" | "danger";
   readonly consequence: string;
-  /** Why the action does not apply in the fixture's current state. */
   readonly blocked: (f: AdminFixture) => string | undefined;
 }
 

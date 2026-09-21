@@ -1,9 +1,6 @@
 /**
- * Match domain errors.
- *
- * They extend `DomainError` from `@zudojs/errors` rather than `Error`, so each one already carries the status
- * code, the machine-readable code and the `expose` flag the service kit's error handler renders. Messages are
- * written for a client: they never carry a peer's error text, SQL or a stack.
+ * `DomainError` already carries the status, the code and the `expose` flag
+ * the service kit's error handler renders.
  */
 
 import { DomainError } from "@zudojs/errors";
@@ -61,7 +58,6 @@ export class ResultImmutableError extends DomainError {
 }
 
 export class InvalidRequestError extends DomainError {
-  /** Read by the service kit's error handler, which lists the offending fields to the client. */
   public readonly details: readonly { readonly path: string; readonly message: string }[];
 
   public constructor(message: string, path: string) {
@@ -79,7 +75,6 @@ const PEER_STATUS: Partial<Record<ErrorCode, number>> = {
   [ErrorCodes.SETTLEMENT_FAILED]: 502,
 };
 
-/** A peer the operation depends on failed, so the operation did not happen. */
 export class PeerFailedError extends DomainError {
   public constructor(code: ErrorCode, message: string) {
     super(message, { code, statusCode: PEER_STATUS[code] ?? 503 });

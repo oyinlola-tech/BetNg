@@ -1,12 +1,3 @@
-/**
- * What a BetNG client needs to know to reach the platform.
- *
- * Two addresses, because the two are genuinely different things: REST goes
- * through the gateway, and the live stream is a direct WebSocket to the
- * event service. A client is given both rather than deriving one from the
- * other, so a deployment can put them behind different hosts.
- */
-
 export interface BetNgClientConfig {
   readonly gatewayUrl: string;
   readonly liveUrl: string;
@@ -15,6 +6,22 @@ export interface BetNgClientConfig {
   readonly getToken?: () => string | undefined;
   /** Called when the platform rejects the token, so the app can show its session-expired state. */
   readonly onUnauthorized?: () => void;
+  /** Retries for idempotent reads that failed in transit or with 502/503/504. Defaults to 2. */
+  readonly retries?: number;
+  readonly realtimeTransport?: "websocket" | "sse";
+  /** Called for every failed request with no body or credential in it, for a client's logger. */
+  readonly onRequestError?: (failure: RequestFailure) => void;
+}
+
+export interface RequestFailure {
+  readonly method: string;
+  readonly path: string;
+  readonly status: number;
+  readonly code: string;
+  readonly kind: "http" | "network" | "timeout" | "offline" | "parse";
+  readonly requestId: string;
+  readonly durationMs: number;
+  readonly attempt: number;
 }
 
 export const DEFAULT_TIMEOUT_MS = 10_000;

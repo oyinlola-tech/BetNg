@@ -1,5 +1,3 @@
-"""Internal routes: never proxied, so they may return unrevealed results."""
-
 from __future__ import annotations
 
 from uuid import UUID

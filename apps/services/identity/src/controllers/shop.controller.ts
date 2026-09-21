@@ -15,10 +15,10 @@ import { readBearerToken } from "../utils/index.js";
 import { loginCashierValidator } from "../validators/index.js";
 
 export interface ShopController {
-  login(context: HttpRouterContext): Promise<ShopSession>;
-  logout(context: HttpRouterContext): Promise<void>;
-  session(context: HttpRouterContext): Promise<ShopSession>;
-  listCashiers(context: HttpRouterContext): Promise<ListDto<Cashier>>;
+  readonly login: (context: HttpRouterContext) => Promise<ShopSession>;
+  readonly logout: (context: HttpRouterContext) => Promise<void>;
+  readonly session: (context: HttpRouterContext) => Promise<ShopSession>;
+  readonly listCashiers: (context: HttpRouterContext) => Promise<ListDto<Cashier>>;
 }
 
 export function createShopController(buses: IdentityBuses): ShopController {

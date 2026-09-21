@@ -1,21 +1,8 @@
-/**
- * Typed reads over a loaded `@zudojs/config` manager.
- *
- * Each reader rejects a value it cannot use, so a misconfigured service
- * fails at startup rather than at the first request that needs the value.
- */
-
 import type { ConfigManager } from "@zudojs/config";
 import { ConfigurationError } from "@zudojs/errors";
 import type { Environment, ServiceName } from "./serviceConfig.type.js";
 import { DEFAULT_SERVICE_TIMEOUT_MS } from "./serviceConfig.type.js";
 
-/**
- * Maps an environment variable name to its configuration key.
- *
- * `createEnvironmentConfigSource` lowercases variable names, so `LOG_LEVEL`
- * arrives as the key `log_level`.
- */
 export function configKey(variable: string): string {
   return variable.toLowerCase();
 }

@@ -1,5 +1,3 @@
-"""Permission checks against the gateway-asserted actor."""
-
 from __future__ import annotations
 
 from collections.abc import Callable

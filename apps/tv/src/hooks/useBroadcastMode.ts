@@ -27,7 +27,6 @@ export function useBroadcastMode(): readonly [boolean, (on: boolean) => void] {
     try {
       localStorage.setItem(KEY, value ? "on" : "off");
     } catch {
-      /* ignore */
     }
     for (const l of listeners) l();
   }, []);

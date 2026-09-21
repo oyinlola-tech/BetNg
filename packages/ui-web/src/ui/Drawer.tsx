@@ -14,7 +14,6 @@ export interface DrawerProps {
   readonly footer?: React.ReactNode;
 }
 
-/** A side panel for detail and edit flows that should keep the list behind them in view. */
 export function Drawer({ open, onClose, title, description, side = "right", size = "md", children, footer }: DrawerProps): React.JSX.Element | null {
   const ref = useRef<HTMLDialogElement>(null);
 

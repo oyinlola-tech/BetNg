@@ -9,7 +9,6 @@ export interface LeagueMark {
   readonly code: string;
   readonly color: string;
   readonly ink: string;
-  /** Path data in a 0 0 48 48 box. */
   readonly glyph: string;
 }
 

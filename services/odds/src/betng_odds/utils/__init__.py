@@ -1,5 +1,3 @@
-"""Service-local helpers."""
-
 from .database import transaction
 from .odds_mapper import (
     to_admin_market,

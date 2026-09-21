@@ -28,15 +28,8 @@ export interface PayoutTicketDependencies {
   readonly now: () => Date;
 }
 
-/**
- * Pays a winning ticket — or refunds a void one — out of the shop's float.
- *
- * Cash leaves the drawer, so the cashier's PIN is checked first. The ticket
- * is claimed with a conditional update and the float is debited inside the
- * same transaction under one idempotency key: two cashiers presenting the
- * same slip pay it once, and a float that cannot cover it leaves the ticket
- * payable.
- */
+// PIN first, then a conditional claim and the float debit in one transaction under one idempotency key:
+// concurrent payouts pay once, and a short float leaves the ticket payable.
 export class PayoutTicketHandler extends CommandHandler<
   PayoutTicketCommand,
   TicketRecord

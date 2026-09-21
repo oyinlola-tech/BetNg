@@ -1,5 +1,3 @@
-"""Builds the buses and registers the handlers."""
-
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -14,7 +12,6 @@ from ..services import register_risk_service
 def load_services(
     container: Container, clock: Callable[[], datetime] | None = None
 ) -> tuple[CommandBus, QueryBus]:
-    """Return the command and query buses with every handler registered."""
     command_bus = CommandBus()
     query_bus = QueryBus()
 

@@ -1,5 +1,3 @@
-"""Get match run handler."""
-
 from __future__ import annotations
 
 from betng_service_kit import QueryHandler
@@ -12,16 +10,12 @@ from .get_match_run_query import GetMatchRunQuery
 
 
 class GetMatchRunHandler(QueryHandler[GetMatchRunQuery, MatchRunDetail]):
-    """Reads a match's run and result for internal callers."""
-
     message_type = SimulationQuery.GET_MATCH_RUN
 
     def __init__(self, repository: SimulationRepository) -> None:
-        """Store the collaborators."""
         self._repository = repository
 
     async def execute(self, message: GetMatchRunQuery) -> MatchRunDetail:
-        """Execute the message."""
         async with self._repository.transaction() as connection:
             run = await self._repository.get_latest_run(connection, message.match_id)
 

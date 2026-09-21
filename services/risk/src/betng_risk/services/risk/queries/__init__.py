@@ -1,5 +1,3 @@
-"""The read side of the risk service."""
-
 from .get_limits import GetLimitsHandler, GetLimitsQuery
 from .get_match_exposure import GetMatchExposureHandler, GetMatchExposureQuery
 from .get_overview import GetOverviewHandler, GetOverviewQuery

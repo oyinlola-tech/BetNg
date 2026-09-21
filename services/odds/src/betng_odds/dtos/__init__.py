@@ -1,5 +1,3 @@
-"""Wire shapes, mirrored from ``@betng/contracts``."""
-
 from .odds_dto import (
     AdminMarketOdds,
     AdminMarketOddsList,

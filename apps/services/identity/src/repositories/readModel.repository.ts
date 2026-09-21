@@ -14,7 +14,6 @@
  */
 
 import type { Logger } from "@betng/service-kit";
-import { Prisma } from "../generated/prisma/client.js";
 import type { PrismaClient } from "../generated/prisma/client.js";
 import type {
   CashierFigures,
@@ -76,9 +75,9 @@ function startOfUtcDay(now: Date): Date {
 export function createReadModelRepository(prisma: PrismaClient, logger: Logger): ReadModelRepository {
   const reportedMissing = new Set<Source>();
 
-  async function read<Row>(source: Source, query: Prisma.Sql): Promise<readonly Row[]> {
+  async function read<Row>(source: Source, query: () => Promise<Row[]>): Promise<readonly Row[]> {
     try {
-      return await prisma.$queryRaw<Row[]>(query);
+      return await query();
     } catch (error) {
       const code = originalCode(error);
 
@@ -102,9 +101,7 @@ export function createReadModelRepository(prisma: PrismaClient, logger: Logger):
     ownerType: "CUSTOMER" | "SHOP",
     ownerIds: readonly string[],
   ): Promise<ReadonlyMap<string, number>> => {
-    const rows = await read<BalanceRow>(
-      "wallet.wallet_accounts",
-      Prisma.sql`
+    const rows = await read<BalanceRow>("wallet.wallet_accounts", async () => prisma.$queryRaw<BalanceRow[]>`
         SELECT owner_id::text AS id, balance::bigint AS balance
         FROM wallet.wallet_accounts
         WHERE owner_type::text = ${ownerType} AND owner_id = ANY(${[...ownerIds]}::uuid[])`,
@@ -121,9 +118,7 @@ export function createReadModelRepository(prisma: PrismaClient, logger: Logger):
 
       const [wallets, bets] = await Promise.all([
         balances("CUSTOMER", customerIds),
-        read<CustomerBetRow>(
-          "betting.bets",
-          Prisma.sql`
+        read<CustomerBetRow>("betting.bets", async () => prisma.$queryRaw<CustomerBetRow[]>`
             SELECT user_id::text AS id,
                    (count(*) FILTER (WHERE status::text = 'PENDING'))::bigint AS open_bets,
                    coalesce(sum(stake) FILTER (WHERE status::text IN ('PENDING', 'WON', 'LOST')), 0)::bigint AS lifetime_stake,
@@ -162,18 +157,14 @@ export function createReadModelRepository(prisma: PrismaClient, logger: Logger):
 
       const [floats, bets, tickets] = await Promise.all([
         balances("SHOP", shopIds),
-        read<ShopBetRow>(
-          "betting.bets",
-          Prisma.sql`
+        read<ShopBetRow>("betting.bets", async () => prisma.$queryRaw<ShopBetRow[]>`
             SELECT shop_id::text AS id,
                    coalesce(sum(stake) FILTER (WHERE status::text <> 'CANCELLED'), 0)::bigint AS today_sales
             FROM betting.bets
             WHERE channel::text = 'SHOP' AND shop_id = ANY(${[...shopIds]}::uuid[]) AND placed_at >= ${dayStart}
             GROUP BY shop_id`,
         ),
-        read<ShopTicketRow>(
-          "betting.tickets",
-          Prisma.sql`
+        read<ShopTicketRow>("betting.tickets", async () => prisma.$queryRaw<ShopTicketRow[]>`
             SELECT t.shop_id::text AS id,
                    (count(*) FILTER (WHERE t.status::text = 'OPEN'))::bigint AS open_tickets,
                    coalesce(sum(b.payout) FILTER (WHERE t.paid_at >= ${dayStart}), 0)::bigint AS today_payouts
@@ -208,9 +199,7 @@ export function createReadModelRepository(prisma: PrismaClient, logger: Logger):
       const dayStart = startOfUtcDay(new Date());
 
       const [sold, paid] = await Promise.all([
-        read<CashierBetRow>(
-          "betting.bets",
-          Prisma.sql`
+        read<CashierBetRow>("betting.bets", async () => prisma.$queryRaw<CashierBetRow[]>`
             SELECT cashier_id::text AS id,
                    count(*)::bigint AS sold,
                    coalesce(sum(stake) FILTER (WHERE status::text <> 'CANCELLED'), 0)::bigint AS today_sales
@@ -218,9 +207,7 @@ export function createReadModelRepository(prisma: PrismaClient, logger: Logger):
             WHERE channel::text = 'SHOP' AND cashier_id = ANY(${[...cashierIds]}::uuid[]) AND placed_at >= ${dayStart}
             GROUP BY cashier_id`,
         ),
-        read<CashierPaidRow>(
-          "betting.tickets",
-          Prisma.sql`
+        read<CashierPaidRow>("betting.tickets", async () => prisma.$queryRaw<CashierPaidRow[]>`
             SELECT paid_by::text AS id, count(*)::bigint AS paid
             FROM betting.tickets
             WHERE paid_at >= ${dayStart} AND paid_by::text = ANY(${[...cashierIds]}::text[])

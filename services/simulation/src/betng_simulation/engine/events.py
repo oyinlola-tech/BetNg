@@ -1,5 +1,3 @@
-"""Timeline for an already-decided score; it never changes the goal count."""
-
 from __future__ import annotations
 
 import random
@@ -402,7 +400,6 @@ def generate_timeline(
     expected: tuple[float, float],
     configuration: ModelConfiguration,
 ) -> tuple[tuple[MatchEventDraft, ...], MatchStats]:
-    """Build the timeline and final statistics for an already-decided score."""
     home_goals, away_goals = score
     home_squad = squad_for(home.team_id)
     away_squad = squad_for(away.team_id)

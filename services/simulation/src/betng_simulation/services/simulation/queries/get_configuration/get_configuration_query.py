@@ -1,5 +1,3 @@
-"""Get configuration query."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -12,6 +10,4 @@ from .....dtos import ModelConfigurationView
 
 @dataclass(frozen=True)
 class GetConfigurationQuery(Query[ModelConfigurationView]):
-    """Asks for the active configuration."""
-
     type: str = SimulationQuery.GET_CONFIGURATION

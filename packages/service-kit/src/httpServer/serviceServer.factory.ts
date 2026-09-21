@@ -1,17 +1,7 @@
 /**
- * The HTTP bootstrap shared by every BetNG TypeScript service.
- *
- * A service supplies its configuration, its routes and its dependency
- * probes; this assembles the ZudoJS pieces around them:
- *
- *   `createNodeHttpAdapter` → `createHttpServer`
- *        handler      = middleware pipeline ending in `HttpRouter.dispatch`
- *        errorHandler = the BetNG error envelope
- *
- * The pipeline order matters. Correlation runs first so every later stage
- * can log the identifier; access logging runs next so it times the whole
- * request including routing; the router runs last, as the terminal stage
- * that produces the response.
+ * Pipeline order matters: correlation first so every later stage can log
+ * the identifier, access logging next so it times routing too, the router
+ * last as the terminal stage.
  */
 
 import {
@@ -62,7 +52,6 @@ export interface ServiceServerOptions {
    * alone.
    */
   readonly server?: Server;
-  /** Run after access logging and before the router. */
   readonly middlewares?: readonly {
     readonly name: string;
     readonly middleware: HttpMiddleware;

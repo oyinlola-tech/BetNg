@@ -13,7 +13,6 @@ export interface ChartSeries {
 
 interface BaseChartProps {
   readonly title: string;
-  /** One label per data point, shared by every series. */
   readonly labels: readonly string[];
   readonly series: readonly ChartSeries[];
   readonly formatValue: (value: number) => string;
@@ -139,7 +138,6 @@ function Axes({ width, scale, labels, xAt, formatTick }: { readonly width: numbe
   );
 }
 
-/** Change over time for up to three series on one shared axis. */
 export function TimeSeriesChart({ title, labels, series, formatValue, formatTick = formatValue, height = 220, area = false, className }: BaseChartProps & { readonly area?: boolean }): React.JSX.Element {
   const [ref, width] = useElementWidth<HTMLDivElement>();
   const [hover, setHover] = useState<number | undefined>();
@@ -195,7 +193,6 @@ export function TimeSeriesChart({ title, labels, series, formatValue, formatTick
   );
 }
 
-/** Magnitude per period. Series sit side by side, anchored to the baseline. */
 export function BarChart({ title, labels, series, formatValue, formatTick = formatValue, height = 220, className }: BaseChartProps): React.JSX.Element {
   const [ref, width] = useElementWidth<HTMLDivElement>();
   const [hover, setHover] = useState<number | undefined>();
@@ -254,7 +251,6 @@ export interface RankedBar {
   readonly detail?: string;
 }
 
-/** Ranked magnitudes with the value written on every row; one hue, because the rows differ in size, not kind. */
 export function RankedBars({ title, items, formatValue, limit, className }: { readonly title: string; readonly items: readonly RankedBar[]; readonly formatValue: (v: number) => string; readonly limit?: number; readonly className?: string }): React.JSX.Element {
   const max = Math.max(1, limit ?? 0, ...items.map((i) => i.value));
 
@@ -278,7 +274,6 @@ export function RankedBars({ title, items, formatValue, limit, className }: { re
   );
 }
 
-/** A trend at a glance beside a number. Decorative: the number next to it is the accessible value. */
 export function Sparkline({ values, width = 80, height = 24, className }: { readonly values: readonly number[]; readonly width?: number; readonly height?: number; readonly className?: string }): React.JSX.Element {
   const min = Math.min(...values);
   const max = Math.max(...values);

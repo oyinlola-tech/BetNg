@@ -11,7 +11,6 @@ function safeNext(raw: string | null): string {
   return raw !== null && raw.startsWith("/") && !raw.startsWith("//") ? raw : "/";
 }
 
-/** The deep-linkable form of the auth dialog: /login, /register, /forgot-password. */
 export function AuthPage({ initial }: { readonly initial: AuthView }): React.JSX.Element {
   const navigate = useNavigate();
   const [params] = useSearchParams();

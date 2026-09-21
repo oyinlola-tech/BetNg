@@ -15,7 +15,6 @@ export interface CodeFieldProps {
   readonly autoFocus?: boolean;
 }
 
-/** Boxes drawn over one real input, so paste and SMS autofill deliver the whole code at once. */
 export function CodeField({ label, length, value, onChange, onComplete, error, disabled = false, autoFocus = false }: CodeFieldProps): React.JSX.Element {
   const t = useTheme();
   const input = useRef<TextInput>(null);

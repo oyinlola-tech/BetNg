@@ -1,5 +1,3 @@
-"""PostgreSQL access: reads the whole pending book, writes only ``risk``."""
-
 from __future__ import annotations
 
 import logging
@@ -119,16 +117,12 @@ def _limits_record(row: DictRow) -> LimitsRecord:
 
 
 class PostgresRiskRepository(RiskRepository):
-    """The repository over the shared ``betng`` database."""
-
     def __init__(self, pool: Pool, logger: logging.Logger) -> None:
-        """Bind the repository to an opened pool."""
         self._pool = pool
         self._logger = logger
 
     @asynccontextmanager
     async def _connection(self) -> AsyncIterator[AsyncConnection[DictRow]]:
-        """Yield a transaction; a database failure becomes a typed 503."""
         try:
             async with self._pool.connection() as connection:
                 yield connection
@@ -139,7 +133,6 @@ class PostgresRiskRepository(RiskRepository):
             raise DatabaseUnavailableError from error
 
     async def load_limits(self) -> LimitsRecord:
-        """Return the limits version in force."""
         async with self._connection() as connection:
             return await self._read_limits(connection)
 
@@ -208,7 +201,6 @@ class PostgresRiskRepository(RiskRepository):
     async def load_selection_states(
         self, selection_ids: Sequence[str]
     ) -> dict[str, SelectionState]:
-        """Return market and match state for each selection that exists."""
         async with self._connection() as connection:
             cursor = await connection.execute(
                 """
@@ -242,7 +234,6 @@ class PostgresRiskRepository(RiskRepository):
         }
 
     async def load_book(self, match_ids: Sequence[str] | None) -> BookRows:
-        """Return the pending book at its three grains from one snapshot."""
         parameters = {
             "every": match_ids is None,
             "match_ids": list(match_ids or []),
@@ -295,7 +286,6 @@ class PostgresRiskRepository(RiskRepository):
         )
 
     async def load_book_totals(self) -> BookTotals:
-        """Return the platform-wide pending totals."""
         async with self._connection() as connection:
             cursor = await connection.execute(
                 """
@@ -314,7 +304,6 @@ class PostgresRiskRepository(RiskRepository):
         return BookTotals(bets=row["bets"], stake=row["stake"], payout=row["payout"])
 
     async def load_market_type_stakes(self) -> list[MarketTypeRow]:
-        """Return pending stake grouped by market type."""
         async with self._connection() as connection:
             cursor = await connection.execute(
                 r"""
@@ -352,7 +341,6 @@ class PostgresRiskRepository(RiskRepository):
         ]
 
     async def load_matches(self, match_ids: Sequence[str]) -> list[MatchRow]:
-        """Return the matches that exist, ordered by kick-off."""
         async with self._connection() as connection:
             cursor = await connection.execute(
                 """
@@ -386,7 +374,6 @@ class PostgresRiskRepository(RiskRepository):
         ]
 
     async def load_dashboard_match_ids(self) -> list[str]:
-        """Return open matches and closed, unsettled matches with pending bets."""
         async with self._connection() as connection:
             cursor = await connection.execute(
                 """
@@ -418,7 +405,6 @@ class PostgresRiskRepository(RiskRepository):
         return [str(row["match_id"]) for row in rows]
 
     async def load_markets(self, market_ids: Sequence[str]) -> list[MarketRow]:
-        """Return the markets that exist."""
         async with self._connection() as connection:
             cursor = await connection.execute(
                 """
@@ -442,7 +428,6 @@ class PostgresRiskRepository(RiskRepository):
         ]
 
     async def load_selections(self, market_ids: Sequence[str]) -> list[SelectionRow]:
-        """Return every selection of the markets, in display order."""
         async with self._connection() as connection:
             cursor = await connection.execute(
                 """
@@ -482,7 +467,6 @@ class PostgresRiskRepository(RiskRepository):
         return {str(row["match_id"]): row["snapshot"] for row in rows}
 
     async def insert_decision(self, record: DecisionRecord) -> None:
-        """Store one evaluation."""
         async with self._connection() as connection:
             await connection.execute(
                 """
@@ -510,7 +494,6 @@ class PostgresRiskRepository(RiskRepository):
             )
 
     async def insert_freeze(self, match_id: str, snapshot: dict[str, Any]) -> datetime:
-        """Store the snapshot unless one exists; return the winning instant."""
         async with self._connection() as connection:
             await connection.execute(
                 """
@@ -534,7 +517,6 @@ class PostgresRiskRepository(RiskRepository):
         return frozen_at
 
     async def count_decisions(self, since: datetime) -> DecisionTally:
-        """Count stored decisions by kind since an instant."""
         async with self._connection() as connection:
             cursor = await connection.execute(
                 """

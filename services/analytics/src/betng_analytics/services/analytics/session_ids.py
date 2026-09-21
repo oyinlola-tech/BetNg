@@ -1,5 +1,3 @@
-"""Session ids are derived from what a session covers; formats are in the README."""
-
 from __future__ import annotations
 
 import re

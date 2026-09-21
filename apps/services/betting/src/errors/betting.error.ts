@@ -1,12 +1,3 @@
-/**
- * The refusals the betting service can answer with.
- *
- * Each is an `HttpError` carrying the code and status `docs/architecture.md`
- * §4 names. The messages are written for a bettor or a cashier: they never
- * carry SQL, a peer's internals or another account's data. An object passed
- * as `details` reaches the client as `error.data`.
- */
-
 import { ErrorCodes } from "@betng/contracts";
 import type { Ticket } from "@betng/contracts";
 import {
@@ -76,7 +67,6 @@ export function insufficientFunds(message: string): HttpError {
   });
 }
 
-/** The wallet answered and declined for a reason other than the balance. */
 export function stakeNotTaken(): HttpError {
   return conflict("The wallet declined the stake. Nothing was charged.", {
     code: ErrorCodes.CONFLICT,

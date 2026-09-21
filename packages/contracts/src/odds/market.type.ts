@@ -33,7 +33,6 @@ export interface Market {
   readonly matchId: MatchId;
   readonly type: MarketType;
   readonly status: MarketStatus;
-  /** The line for a totals or spread market: 2.5, -1.5. */
   readonly line?: number | undefined;
   /** Increments whenever the market's prices or status change. The same for every reader. */
   readonly oddsVersion?: number | undefined;

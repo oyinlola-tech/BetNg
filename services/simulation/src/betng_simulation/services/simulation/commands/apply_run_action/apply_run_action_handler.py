@@ -1,5 +1,3 @@
-"""Apply run action handler."""
-
 from __future__ import annotations
 
 import logging
@@ -36,14 +34,12 @@ class ApplyRunActionHandler(CommandHandler[ApplyRunActionCommand, AdminSimulatio
         auditor: BackgroundAuditor,
         logger: logging.Logger,
     ) -> None:
-        """Store the collaborators."""
         self._repository = repository
         self._match_read_model = match_read_model
         self._auditor = auditor
         self._logger = logger
 
     async def execute(self, message: ApplyRunActionCommand) -> AdminSimulationRun:
-        """Execute the message."""
         action = message.request.action
         reason = message.request.reason
 

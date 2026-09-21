@@ -1,5 +1,3 @@
-/** Deterministic randomness. */
-
 /** FNV-1a, 32-bit. */
 export function hash(text: string): number {
   let h = 0x811c9dc5;
@@ -13,7 +11,6 @@ export function hash(text: string): number {
 }
 
 export interface Rng {
-  /** Uniform in [0, 1). */
   next(): number;
   int(minInclusive: number, maxInclusive: number): number;
   pick<T>(items: readonly T[]): T;

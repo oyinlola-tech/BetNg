@@ -1,15 +1,3 @@
-"""The FastAPI bootstrap shared by every BetNG Python service.
-
-A service supplies its settings, its routers and its dependency probes; this
-assembles the rest: structured logging, request correlation, access logging,
-the error envelope and the health endpoints.
-
-It plays the same role ``@betng/service-kit`` plays on the TypeScript side, so
-the two halves of the platform behave identically at their edges — same log
-shape, same correlation header, same error body, same health semantics — while
-each stays idiomatic in its own language.
-"""
-
 from __future__ import annotations
 
 from collections.abc import Callable

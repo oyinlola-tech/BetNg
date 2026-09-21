@@ -1,5 +1,3 @@
-"""Reads the risk overview."""
-
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -22,19 +20,15 @@ from .get_overview_query import GetOverviewQuery
 
 
 class GetOverviewHandler(QueryHandler[GetOverviewQuery, RiskOverview]):
-    """Aggregates every pending bet on the platform."""
-
     message_type = RiskQuery.GET_OVERVIEW
 
     def __init__(
         self, repository: RiskRepository, clock: Callable[[], datetime]
     ) -> None:
-        """Bind the handler to its collaborators."""
         self._repository = repository
         self._clock = clock
 
     async def execute(self, message: GetOverviewQuery) -> RiskOverview:
-        """Return the overview as of now."""
         now = self._clock()
         limits = (await self._repository.load_limits()).limits
         rows = await self._repository.load_book(None)

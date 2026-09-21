@@ -3,7 +3,6 @@ import { ErrorCodes } from "@betng/contracts";
 import { serviceUnavailable } from "@betng/service-kit";
 import type { RouteHandler } from "@betng/service-kit";
 
-/** A lost or timed-out database answers 503 `DATABASE_UNAVAILABLE`, not an opaque 500. */
 export function guardDatabase(handler: RouteHandler): RouteHandler {
   return async (context) => {
     try {

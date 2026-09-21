@@ -1,11 +1,3 @@
-/**
- * Cross-schema reads of the match, odds and identity tables.
- *
- * Every statement is a tagged template, so each value is a bound parameter;
- * the schema-qualified table names are literals in this file and nothing
- * from a request ever becomes SQL text.
- */
-
 import type { PrismaClient } from "../generated/prisma/client.js";
 import type {
   CounterStaff,

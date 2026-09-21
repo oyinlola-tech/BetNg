@@ -1,9 +1,3 @@
-/**
- * The real platform, through `@betng/client-sdk`. Endpoints the gateway does
- * not serve yet (events, stats, standings, scorers, notifications) degrade to
- * an empty value so the screen shows its empty state; see docs/frontend-api.md.
- */
-
 import {
   BetNgApiError,
   type BetNgRestClient,
@@ -52,7 +46,6 @@ import type {
   WalletView,
 } from "../types/index.js";
 
-/** Where a client keeps the few things the platform does not. */
 export interface KeyValueStorage {
   get(key: string): string | null | undefined;
   set(key: string, value: string): void;
@@ -63,7 +56,6 @@ export interface PlatformDataSourceOptions {
   readonly openLive: (handlers: LiveHandlers) => LiveClient;
   /** A fixed demo user, or a getter reading the signed-in customer; `undefined` means signed out. */
   readonly userId: string | (() => string | undefined);
-  /** Persists notification preferences and viewing history locally. */
   readonly storage?: KeyValueStorage;
 }
 
@@ -92,7 +84,6 @@ const MARKET_COLUMNS: Readonly<Record<MarketKind, number>> = {
   GOAL_SPREAD: 2,
 };
 
-/** A deterministic badge colour for a team the platform sends none for. */
 function fallbackColors(seed: string): TeamView["colors"] {
   let h = 0;
 
@@ -165,7 +156,6 @@ function translate(cause: unknown): DataSourceError {
   return translateApiError(cause);
 }
 
-/** Whether a failure means "the platform does not serve this yet". */
 function notServed(cause: unknown): boolean {
   return (
     cause instanceof BetNgApiError &&
@@ -175,7 +165,6 @@ function notServed(cause: unknown): boolean {
   );
 }
 
-/** Runs an optional read; answers `fallback` when the endpoint is not served. */
 async function optional<T>(read: () => Promise<T>, fallback: T): Promise<T> {
   try {
     return await read();
@@ -206,8 +195,6 @@ export function createPlatformDataSource(
     return id;
   };
 
-  /* ---- Reference data, cached for the session ------------------------ */
-
   let leaguesCache: Promise<readonly League[]> | undefined;
   let teamsCache: Promise<readonly Team[]> | undefined;
   let fixturesCache: Promise<readonly Fixture[]> | undefined;
@@ -219,8 +206,6 @@ export function createPlatformDataSource(
   const fixtures = (): Promise<readonly Fixture[]> =>
     (fixturesCache ??= required(() => rest.listFixtures()));
 
-  /** Fixtures are appended every matchday, so the cache is refreshed when a
-   *  match refers to one it does not know. */
   async function fixtureFor(match: Match): Promise<Fixture> {
     let found = (await fixtures()).find((f) => f.id === match.fixtureId);
 
@@ -371,8 +356,6 @@ export function createPlatformDataSource(
     return live;
   }
 
-  /* ---- Local state the platform does not hold ------------------------ */
-
   const accountListeners = new Set<() => void>();
   const notifyAccount = (): void => {
     for (const l of accountListeners) l();
@@ -399,8 +382,6 @@ export function createPlatformDataSource(
   );
   let viewed = readJson<string[]>(VIEWED_KEY, []);
 
-  /* ---- Bets ---------------------------------------------------------- */
-
   async function toBetView(bet: Bet): Promise<BetView> {
     const legs = await Promise.all(
       bet.selections.map(async (leg): Promise<BetLegView> => {
@@ -418,7 +399,6 @@ export function createPlatformDataSource(
           if (isFinished(summary.phase))
             result = formatScore(summary.score.home, summary.score.away);
         } catch {
-          /* A leg on a match the platform no longer serves still renders. */
         }
 
         const marketKind = (leg.marketType ?? "MATCH_RESULT") as MarketKind;

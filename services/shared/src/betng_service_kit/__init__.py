@@ -1,16 +1,3 @@
-"""betng_service_kit.
-
-The bootstrap every BetNG Python service is built from.
-
-It exists so the three Python services share one implementation of the things
-that must not drift between them — configuration loading, log shape, request
-correlation, the error envelope and health semantics — rather than three
-copies that slowly diverge, and so those things match what the TypeScript
-services do.
-
-Domain logic belongs in the services, never here.
-"""
-
 from .app import create_service_app
 from .config import DEFAULT_PORTS, ServiceSettings, load_settings
 from .actor import ACTOR_HEADERS, Actor, read_actor

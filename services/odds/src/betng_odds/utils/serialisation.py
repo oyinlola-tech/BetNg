@@ -1,5 +1,3 @@
-"""Conversions from stored values to their JSON forms."""
-
 from __future__ import annotations
 
 from datetime import UTC, datetime
@@ -14,5 +12,4 @@ def iso_timestamp(value: datetime) -> str:
 
 
 def to_number(value: Decimal) -> float:
-    """Render a stored ``NUMERIC`` as a JSON number."""
     return float(value)

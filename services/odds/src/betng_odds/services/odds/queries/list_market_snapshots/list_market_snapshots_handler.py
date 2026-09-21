@@ -1,5 +1,3 @@
-"""The append-only price history of one market."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -18,14 +16,11 @@ from .list_market_snapshots_query import ListMarketSnapshotsQuery
 class ListMarketSnapshotsHandler(
     QueryHandler[ListMarketSnapshotsQuery, OddsSnapshotList]
 ):
-    """Return the snapshots of a market that exists."""
-
     repository: OddsRepository
 
     message_type = OddsQuery.LIST_MARKET_SNAPSHOTS
 
     async def execute(self, message: ListMarketSnapshotsQuery) -> OddsSnapshotList:
-        """Read the history, or answer 404 for an unknown market."""
         snapshots = await self.repository.list_snapshots(
             message.market_id, SNAPSHOT_HISTORY_LIMIT
         )

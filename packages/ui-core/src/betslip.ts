@@ -1,6 +1,9 @@
-/** Bet-slip arithmetic, shared so web, mobile and TV agree on every number. */
-
-import type { SlipSelection, SlipTotals } from "./types/index.js";
+import { estimateReturn, multiplyOdds, parseMoney } from "./money.js";
+import type {
+  SlipSelection,
+  SlipTotals,
+  StakeLimits,
+} from "./types/index.js";
 
 export const STAKE_LIMITS = Object.freeze({
   min: 5_000,
@@ -46,26 +49,24 @@ export function isSelected(
 }
 
 export function combinedOdds(selections: readonly SlipSelection[]): number {
-  if (selections.length === 0) return 0;
-
-  const product = selections.reduce((acc, s) => acc * s.odds, 1);
-
-  return Math.round(product * 100) / 100;
+  return multiplyOdds(selections.map((s) => s.odds));
 }
 
 export function slipTotals(
   selections: readonly SlipSelection[],
   stake: number,
 ): SlipTotals {
-  const totalOdds = combinedOdds(selections);
-  const potentialReturn = Math.round(stake * totalOdds);
+  const potentialReturn = estimateReturn(
+    stake,
+    selections.map((s) => s.odds),
+  );
 
   return {
     selectionCount: selections.length,
-    totalOdds,
+    totalOdds: combinedOdds(selections),
     stake,
     potentialReturn,
-    potentialProfit: potentialReturn - stake,
+    potentialProfit: Math.max(0, potentialReturn - stake),
   };
 }
 
@@ -76,20 +77,20 @@ export function validateSlip(
   selections: readonly SlipSelection[],
   stake: number,
   available: number,
+  limits: Pick<StakeLimits, "min" | "max"> = STAKE_LIMITS,
 ): StakeProblem {
   if (selections.length === 0) return "EMPTY";
-  if (!Number.isFinite(stake) || stake < STAKE_LIMITS.min) return "BELOW_MIN";
-  if (stake > STAKE_LIMITS.max) return "ABOVE_MAX";
+  if (!Number.isFinite(stake) || stake < limits.min) return "BELOW_MIN";
+  if (stake > limits.max) return "ABOVE_MAX";
   if (stake > available) return "INSUFFICIENT";
   return undefined;
 }
 
 export function parseStakeInput(text: string): number {
-  const cleaned = text.replace(/[^\d.]/g, "");
+  return parseMoney(text.replace(/[^\d.,]/g, "")) ?? 0;
+}
 
-  if (cleaned === "" || cleaned === ".") return 0;
-
-  const value = Number.parseFloat(cleaned);
-
-  return Number.isFinite(value) ? Math.round(value * 100) : 0;
+/** A reference for one submission attempt. Reused on retry so the platform can deduplicate. */
+export function createClientReference(): string {
+  return globalThis.crypto.randomUUID();
 }

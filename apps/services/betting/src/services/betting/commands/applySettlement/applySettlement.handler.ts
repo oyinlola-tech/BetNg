@@ -7,14 +7,7 @@ import type {
 } from "../../../../interfaces/index.js";
 import type { ApplySettlementCommand } from "./applySettlement.command.js";
 
-/**
- * Records what the settlement service decided for one bet.
- *
- * Betting decides nothing here: the outcome and the payout arrive from
- * settlement, which computed them from the result and the odds stored on the
- * bet. This writes them once, from `PENDING`, together with the legs and the
- * ticket, and answers a repeat of the same decision without changing a row.
- */
+// Outcome and payout come from settlement; betting only records them, once, from PENDING.
 export class ApplySettlementHandler extends CommandHandler<
   ApplySettlementCommand,
   SettlementResult

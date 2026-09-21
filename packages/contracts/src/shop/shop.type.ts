@@ -28,7 +28,6 @@ export interface Shop {
   readonly email: string;
   readonly status: ShopStatus;
   readonly ownerName: string;
-  /** Float the shop holds for payouts, in minor units. Simulated. */
   readonly balance: number;
   readonly createdAt: string;
 }
@@ -90,7 +89,6 @@ export interface ShopSession {
   readonly expiresAt: string;
   readonly shop: Shop;
   readonly cashier: Cashier;
-  /** What this cashier may do, resolved by the platform from the role. */
   readonly permissions?: readonly string[] | undefined;
 }
 
@@ -140,7 +138,6 @@ export const ticketSelectionSchema = z.object({
   result: z.string().max(16).optional(),
 });
 
-/** A bet placed over the counter. Shop-first; the ticket code is what the customer keeps. */
 export interface Ticket {
   readonly id: TicketId;
   /** Human code printed on the slip, e.g. `BNG-82K91A`. */
@@ -236,7 +233,6 @@ export const shopTransactionSchema = z.object({
   createdAt: isoTimestampSchema,
 });
 
-/** One day of a shop's trading, as the reports screens show it. */
 export interface ShopDailyReport {
   readonly shopId: ShopId;
   readonly date: string;

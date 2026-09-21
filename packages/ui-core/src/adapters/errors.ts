@@ -1,7 +1,6 @@
 import { BetNgApiError } from "@betng/client-sdk";
 import { DataSourceError } from "../dataSource.type.js";
 
-/** Translates the SDK's error into the one screens branch on. A 401 without a session is a failed login; with one, the session has ended. */
 export function translateApiError(cause: unknown, hasSession = false): DataSourceError {
   if (cause instanceof DataSourceError) return cause;
 

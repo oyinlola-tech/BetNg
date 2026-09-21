@@ -52,7 +52,6 @@ function previewCells(markets: MatchMarketsView | undefined): readonly LeadingCe
   });
 }
 
-/* The shop-floor board: one league's whole week at once, with the outcome that is winning right now in every market. */
 export function BoardScreen(): React.JSX.Element {
   const [params] = useSearchParams();
   const now = useNow(1000);

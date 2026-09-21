@@ -57,7 +57,6 @@ const OddsCell = memo(function OddsCell({ odds, label, selected, disabled, onCli
   );
 });
 
-/** One matchday as a single table: numbered events down the side, one odds cell per selection across. */
 export function WeekGrid({ matches, marketsById, groups, bettable, expandedId, onExpand, isSelected, onToggle }: WeekGridProps): React.JSX.Element {
   const columnCount = groups.reduce((sum, g) => sum + g.columns.length, 0);
 

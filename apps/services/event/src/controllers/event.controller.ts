@@ -1,12 +1,3 @@
-/**
- * The event service's REST handlers.
- *
- * Read-only, and deliberately so. A channel's state is useful to a client
- * deciding whether it is behind, and to an operator checking whether anyone
- * is listening. Publishing is not here: it arrives by RPC from inside the
- * platform, so no HTTP caller — gateway included — can inject a match event.
- */
-
 import { requireParam } from "@betng/service-kit";
 import type { HttpRouterContext } from "@betng/service-kit";
 import type { QueryBus } from "@zudojs/cqrs";

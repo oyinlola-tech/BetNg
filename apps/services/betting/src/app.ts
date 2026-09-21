@@ -43,7 +43,6 @@ export interface BettingApp {
   readonly onShutdown: readonly (() => Promise<void>)[];
 }
 
-/** Substitutes for the network-facing collaborators, for tests. */
 export interface BettingAppOverrides {
   readonly risk?: RiskPeer;
   readonly wallet?: WalletPeer;

@@ -1,5 +1,3 @@
-/** The type system. */
-
 export const fontFamily = Object.freeze({
   sans: "'Inter Variable', Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
   display:
@@ -45,11 +43,4 @@ export const letterSpacing = Object.freeze({
   caps: "0.08em",
 });
 
-/**
- * How much larger the TV client draws everything.
- *
- * A television is read from three metres away; a 14px label is invisible.
- * TV keeps the same scale and multiplies it, so the hierarchy is identical
- * to the other clients and only the absolute size changes.
- */
 export const tvScale = 1.75;

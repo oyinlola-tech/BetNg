@@ -1,5 +1,3 @@
-"""The stake evaluation command."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -12,8 +10,6 @@ from .....dtos import RiskDecision, RiskEvaluateRequest
 
 @dataclass(frozen=True)
 class EvaluateStakeCommand(Command[RiskDecision]):
-    """Asks for a stake decision; a command because each one is stored."""
-
     request: RiskEvaluateRequest
     request_id: str
 

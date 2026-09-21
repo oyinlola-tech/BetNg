@@ -1,5 +1,3 @@
-"""The odds service's command and query handlers."""
-
 from __future__ import annotations
 
 from betng_service_kit import CommandBus, Container, QueryBus
@@ -31,7 +29,6 @@ from .queries import (
 def register_odds_service(
     container: Container, command_bus: CommandBus, query_bus: QueryBus
 ) -> None:
-    """Wire every handler to the collaborators registered in the container."""
     repository = container.resolve(ODDS_REPOSITORY_TOKEN)
     probability_model = container.resolve(PROBABILITY_MODEL_TOKEN)
     match_directory = container.resolve(MATCH_DIRECTORY_TOKEN)

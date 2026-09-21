@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { Bet } from "@betng/contracts";
-import { startHarness } from "./support/harness.js";
-import type { Harness } from "./support/harness.js";
+import { startHarness } from "./harness.js";
+import type { Harness } from "./harness.js";
 
 interface ErrorBody {
   readonly error: {

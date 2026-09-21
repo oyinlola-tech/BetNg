@@ -1,5 +1,3 @@
-"""The wire shapes of the simulation RPC procedures and internal routes."""
-
 from __future__ import annotations
 
 from typing import Annotated, Any, Literal
@@ -27,21 +25,15 @@ MatchSideDto = Literal["HOME", "AWAY"]
 
 
 class RunMatchBody(ContractModel):
-    """The body of the internal run route. The match id is the path's."""
-
     home: SimulationTeamDto
     away: SimulationTeamDto
 
 
 class RunMatchRequest(RunMatchBody):
-    """Mirrors ``runMatchRequestSchema``: the match and its two teams, only."""
-
     match_id: UUID
 
 
 class MatchScoreResult(ContractModel):
-    """Score, winner and gap."""
-
     home_goals: Annotated[int, Field(ge=0)]
     away_goals: Annotated[int, Field(ge=0)]
     winner: WinnerDto
@@ -49,8 +41,6 @@ class MatchScoreResult(ContractModel):
 
 
 class RunMatchResponse(ContractModel):
-    """Mirrors ``runMatchResponseSchema``."""
-
     simulation_id: UUID
     match_id: UUID
     status: Literal["COMPLETED", "FAILED"]
@@ -63,15 +53,11 @@ class RunMatchResponse(ContractModel):
 
 
 class CalculateProbabilitiesRequest(ContractModel):
-    """Payload of ``simulation.calculateProbabilities``."""
-
     home: TeamStrengthDto
     away: TeamStrengthDto
 
 
 class ProbabilityMatrixResponse(ContractModel):
-    """Mirrors ``probabilityMatrixSchema``."""
-
     home_xg: float
     away_xg: float
     max_goals: int
@@ -81,8 +67,6 @@ class ProbabilityMatrixResponse(ContractModel):
 
 
 class SimulationRunView(ContractModel):
-    """A ``simulation_runs`` row."""
-
     id: UUID
     match_id: UUID
     status: RunStatusDto
@@ -96,8 +80,6 @@ class SimulationRunView(ContractModel):
 
 
 class MatchResultView(ContractModel):
-    """A ``match_results`` row."""
-
     match_id: UUID
     simulation_id: UUID
     home_goals: int
@@ -114,22 +96,16 @@ class MatchResultView(ContractModel):
 
 
 class MatchRunDetail(ContractModel):
-    """A run and its result, if any."""
-
     run: SimulationRunView
     result: MatchResultView | None
 
 
 class EventScore(ContractModel):
-    """Running score after an event."""
-
     home: int
     away: int
 
 
 class MatchEventView(ContractModel):
-    """Mirrors ``matchEventSchema``, plus the event's ``sequence``."""
-
     id: UUID
     match_id: UUID
     sequence: int
@@ -143,6 +119,4 @@ class MatchEventView(ContractModel):
 
 
 class MatchEventList(ContractModel):
-    """List envelope."""
-
     items: list[MatchEventView]

@@ -9,7 +9,6 @@ import { adminSource, dataSource } from "../services/sources";
 const SEASON_MS = 8000;
 const keep = <T,>(previous: T | undefined): T | undefined => previous;
 
-/** Refetches whatever is on screen when the platform reports a change. */
 export function useAdminSync(): void {
   const client = useQueryClient();
 
@@ -51,7 +50,6 @@ export interface ActionOptions<TInput, TResult> {
   readonly onDone?: (result: TResult) => void;
 }
 
-/** An operator action: toasts the outcome and refreshes what it touched. Failures stay on screen long enough to read. */
 export function useAdminAction<TInput, TResult>({ run, success, invalidate, onDone }: ActionOptions<TInput, TResult>) {
   const client = useQueryClient();
   const { toast } = useToast();

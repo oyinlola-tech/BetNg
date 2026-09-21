@@ -3,7 +3,6 @@ import { isoTimestampSchema, minorUnitsSchema } from "../common/index.js";
 
 const count = z.int().min(0);
 
-/** Global bet analysis. Every field is an aggregate over database rows; formulas in docs/analytics.md. */
 export const analyticsOverviewSchema = z.object({
   from: isoTimestampSchema.optional(),
   to: isoTimestampSchema.optional(),
@@ -85,7 +84,6 @@ export const analyticsQuerySchema = z.object({
 
 export type AnalyticsQuery = z.infer<typeof analyticsQuerySchema>;
 
-/** One analysis period: an hour, a day, a matchday, a league round or a custom window over the same global bets. */
 export const sessionAnalysisSchema = z.object({
   sessionId: z.string().max(60),
   kind: z.enum(["HOUR", "DAY", "MATCHDAY", "ROUND", "CUSTOM"]),

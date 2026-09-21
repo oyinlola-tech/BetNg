@@ -1,10 +1,3 @@
-/**
- * The match service's CQRS type discriminators and lifecycle tables.
- *
- * A query or command and its handler must agree on one string. Naming them here means the bus registration and
- * the handler cannot drift apart without a compile error.
- */
-
 import type { MatchLifecycle, MatchStatus } from "@betng/contracts";
 
 export const MATCH_QUERY = Object.freeze({
@@ -35,7 +28,6 @@ export const MATCH_COMMAND = Object.freeze({
 
 export type MatchCommandType = (typeof MATCH_COMMAND)[keyof typeof MATCH_COMMAND];
 
-/** `Match.status` is a projection of `Match.lifecycle`; see docs/architecture.md §5. */
 export const LIFECYCLE_STATUS: Readonly<Record<MatchLifecycle, MatchStatus>> = Object.freeze({
   FIXTURE_CREATED: "SCHEDULED",
   MARKETS_CREATED: "SCHEDULED",
@@ -60,7 +52,6 @@ export const SCHEDULER = Object.freeze({
   TICK_MS: 1000,
   /** Most matches one step handles per tick, so a backlog cannot starve the later steps. */
   BATCH_SIZE: 200,
-  /** Most timeline events revealed for one match per tick. */
   REVEAL_BATCH_SIZE: 100,
   /** How long a worker owns a match while a peer call is in flight; a crashed worker's claim lapses after it. */
   LEASE_MS: 15_000,

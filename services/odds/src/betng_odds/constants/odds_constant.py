@@ -1,13 +1,9 @@
-"""Names and fixed values of the odds domain."""
-
 from __future__ import annotations
 
 from typing import Final
 
 
 class OddsCommand:
-    """Command bus message types."""
-
     PUBLISH_MARKETS: Final = "odds.publishMarkets"
     SET_MATCH_MARKETS_STATUS: Final = "odds.setMatchMarketsStatus"
     APPLY_MARKET_ACTION: Final = "odds.applyMarketAction"
@@ -15,8 +11,6 @@ class OddsCommand:
 
 
 class OddsQuery:
-    """Query bus message types."""
-
     GET_MATCH_ODDS: Final = "odds.getMatchOdds"
     GET_BULK_ODDS: Final = "odds.getBulkOdds"
     LIST_ADMIN_ODDS: Final = "odds.listAdminOdds"
@@ -25,15 +19,11 @@ class OddsQuery:
 
 
 class OddsProcedure:
-    """RPC procedures this service answers."""
-
     PUBLISH_MARKETS: Final = "odds.publishMarkets"
     SET_MATCH_MARKETS_STATUS: Final = "odds.setMatchMarketsStatus"
 
 
 class PeerProcedure:
-    """RPC procedures this service calls."""
-
     CALCULATE_PROBABILITIES: Final = "simulation.calculateProbabilities"
     PUBLISH_EVENT: Final = "event.publish"
     RECORD_AUDIT: Final = "identity.recordAudit"
@@ -47,8 +37,6 @@ class OddsPermission:
 
 
 class MarketStatusValue:
-    """``odds.markets.status``."""
-
     OPEN: Final = "OPEN"
     SUSPENDED: Final = "SUSPENDED"
     CLOSED: Final = "CLOSED"
@@ -57,8 +45,6 @@ class MarketStatusValue:
 
 
 class SnapshotReasonValue:
-    """``odds.odds_snapshots.reason``."""
-
     INITIAL: Final = "INITIAL"
     STATUS_CHANGE: Final = "STATUS_CHANGE"
 

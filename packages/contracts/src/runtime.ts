@@ -1,15 +1,7 @@
 /**
- * The framework-free half of the contracts.
- *
- * Everything here is a plain value: no zod, no `@zudojs/*`, nothing that
- * touches Node. That matters because a browser or React Native client needs
- * these constants but must not pull a validation library and `node:crypto`
- * into its bundle to get them.
- *
- * The package's main entry re-exports these, so a service importing from
- * `@betng/contracts` still sees one definition of each. A client imports
- * `@betng/contracts/runtime` instead and gets the same values without the
- * server-side machinery.
+ * Plain values only — no zod, no `@zudojs/*`, nothing touching Node — so a
+ * browser or React Native bundle can import these constants without
+ * pulling in a validation library and `node:crypto`.
  */
 
 export const REQUEST_ID_HEADER = "x-request-id";
@@ -20,12 +12,6 @@ export const CURRENCY = "NGN" as const;
 
 export type Currency = typeof CURRENCY;
 
-/**
- * The error codes BetNG services return in `error.code`.
- *
- * Part of the public contract: clients branch on them, so the list is added
- * to rather than renamed.
- */
 export const ErrorCodes = Object.freeze({
   VALIDATION_FAILED: "VALIDATION_FAILED",
   NOT_FOUND: "NOT_FOUND",

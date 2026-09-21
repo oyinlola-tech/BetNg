@@ -1,44 +1,44 @@
 import type { StateTone } from "@betng/design-tokens";
 import type { MatchStatus } from "@betng/contracts";
-import { matchClock, FULL_TIME_SECONDS, VIRTUAL_TIMING } from "./timing.js";
-import type { MatchPhase } from "./types/index.js";
+import type { ClockPeriod, MatchPhase } from "./types/index.js";
 
-/**
- * Derives the presentation phase.
- *
- * The contract status is authoritative for the betting window and the
- * outcome; the clock refines `IN_PLAY` into live or half-time and
- * `COMPLETED` into finished or settled.
- */
-export function derivePhase(
-  status: MatchStatus,
-  kickoffAt: string,
-  now: number,
+export interface PhaseSignals {
+  readonly lifecycle?: string | undefined;
+  readonly period?: ClockPeriod | undefined;
+}
+
+const SETTLED_LIFECYCLES = new Set(["SETTLEMENT_COMPLETED"]);
+const VOID_LIFECYCLES = new Set(["VOIDED"]);
+const HELD_LIFECYCLES = new Set(["SIMULATION_FAILED"]);
+
+/** The presentation phase, from platform state only: the status, the lifecycle and the reported clock period. Time is never an input. */
+export function resolvePhase(
+  status: MatchStatus | "POSTPONED" | "SUSPENDED" | "DELAYED",
+  signals: PhaseSignals = {},
 ): MatchPhase {
+  if (signals.lifecycle !== undefined) {
+    if (VOID_LIFECYCLES.has(signals.lifecycle)) return "CANCELLED";
+    if (HELD_LIFECYCLES.has(signals.lifecycle)) return "SUSPENDED";
+  }
+
   switch (status) {
     case "SCHEDULED":
-      return "SCHEDULED";
     case "BETTING_OPEN":
-      return "BETTING_OPEN";
     case "BETTING_CLOSED":
-      return "BETTING_CLOSED";
     case "CANCELLED":
-      return "CANCELLED";
-    case "IN_PLAY": {
-      const clock = matchClock(kickoffAt, now);
-
-      if (clock.period === "HALF_TIME") return "HALFTIME";
-      if (clock.period === "FULL_TIME") return "FINISHED";
+    case "POSTPONED":
+    case "SUSPENDED":
+    case "DELAYED":
+      return status;
+    case "IN_PLAY":
+      if (signals.period === "HALF_TIME") return "HALFTIME";
+      if (signals.period === "FULL_TIME") return "FINISHED";
       return "LIVE";
-    }
-    case "COMPLETED": {
-      const elapsed = (now - Date.parse(kickoffAt)) / 1000;
-
-      return elapsed >=
-        FULL_TIME_SECONDS + VIRTUAL_TIMING.settlementDelaySeconds
+    case "COMPLETED":
+      return signals.lifecycle !== undefined &&
+        SETTLED_LIFECYCLES.has(signals.lifecycle)
         ? "SETTLED"
         : "FINISHED";
-    }
   }
 }
 
@@ -54,7 +54,14 @@ export function isUpcoming(phase: MatchPhase): boolean {
   return (
     phase === "SCHEDULED" ||
     phase === "BETTING_OPEN" ||
-    phase === "BETTING_CLOSED"
+    phase === "BETTING_CLOSED" ||
+    phase === "DELAYED"
+  );
+}
+
+export function isInterrupted(phase: MatchPhase): boolean {
+  return (
+    phase === "POSTPONED" || phase === "SUSPENDED" || phase === "CANCELLED"
   );
 }
 
@@ -80,6 +87,10 @@ export function phaseTone(phase: MatchPhase): StateTone {
       return "muted";
     case "CANCELLED":
       return "muted";
+    case "POSTPONED":
+    case "DELAYED":
+    case "SUSPENDED":
+      return "warning";
   }
 }
 
@@ -101,6 +112,12 @@ export function phaseLabel(phase: MatchPhase): string {
       return "FT";
     case "CANCELLED":
       return "OFF";
+    case "POSTPONED":
+      return "PPD";
+    case "DELAYED":
+      return "DELAYED";
+    case "SUSPENDED":
+      return "SUSP";
   }
 }
 
@@ -122,5 +139,11 @@ export function phaseDescription(phase: MatchPhase): string {
       return "Full time";
     case "CANCELLED":
       return "Cancelled";
+    case "POSTPONED":
+      return "Postponed";
+    case "DELAYED":
+      return "Kick-off delayed";
+    case "SUSPENDED":
+      return "Suspended";
   }
 }

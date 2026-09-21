@@ -1,12 +1,3 @@
-/**
- * The REST envelope every BetNG service speaks.
- *
- * A successful response carries the resource as its body. A failure always
- * carries {@link ErrorResponse}, so a client can branch on the presence of an
- * `error` key alone. The TypeScript and Python services implement the same
- * shapes; `docs/api.md` describes them without reference to a language.
- */
-
 import { z } from "@zudojs/validation";
 
 export interface ErrorDetail {

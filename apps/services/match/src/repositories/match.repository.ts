@@ -43,7 +43,7 @@ export function createMatchRepository(prisma: PrismaClient): MatchRepository {
     findMatch: async (id) => (await prisma.match.findUnique({ where: { id }, include: MATCH_INCLUDE })) ?? undefined,
 
     listTransitions: async (matchId) =>
-      prisma.matchTransition.findMany({ where: { matchId }, orderBy: [{ at: "asc" }, { id: "asc" }], take: 200 }),
+      prisma.matchTransition.findMany({ where: { matchId }, orderBy: { sequence: "asc" }, take: 200 }),
 
     listCompleted: async (filter) =>
       prisma.match.findMany({

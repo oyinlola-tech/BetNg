@@ -1,4 +1,4 @@
-import type { CommandBus, QueryBus } from "@zudojs/cqrs";
+import type { Command, CommandBus, CommandHandler, Query, QueryBus, QueryHandler } from "@zudojs/cqrs";
 import type { HandlerDependencies } from "../interfaces/index.js";
 import { LoginAdminHandler, GetAdminSessionHandler } from "./adminAuth/index.js";
 import {
@@ -40,48 +40,44 @@ export interface IdentityServiceConfig {
 export function registerIdentityServices(config: IdentityServiceConfig): void {
   const { dependencies: deps, commandBus, queryBus } = config;
 
-  const commands = [
-    new RegisterCustomerHandler(deps),
-    new VerifyEmailHandler(deps),
-    new ResendVerificationHandler(deps),
-    new LoginCustomerHandler(deps),
-    new RequestPasswordResetHandler(deps),
-    new LoginCashierHandler(deps),
-    new VerifyCashierPinHandler(deps),
-    new LoginAdminHandler(deps),
-    new AuthenticateHandler(deps),
-    new LogoutHandler(deps),
-    new SetCustomerStatusHandler(deps),
-    new CreateShopHandler(deps),
-    new UpdateShopHandler(deps),
-    new SetShopStatusHandler(deps),
-    new CreateCashierHandler(deps),
-    new SetCashierStatusHandler(deps),
-    new ResetCashierCredentialsHandler(deps),
-    new RecordAuditHandler(deps),
-    new UpdateSettingsHandler(deps),
-  ];
-
-  const queries = [
-    new GetCustomerProfileHandler(deps),
-    new GetShopSessionHandler(deps),
-    new ListOwnShopCashiersHandler(deps),
-    new GetAdminSessionHandler(deps),
-    new ListCustomersHandler(deps),
-    new ListShopsHandler(deps),
-    new GetShopHandler(deps),
-    new ListShopCashiersHandler(deps),
-    new ListAuditLogsHandler(deps),
-    new GetSettingsHandler(deps),
-  ];
-
-  for (const handler of commands) {
+  const command = <C extends Command, R>(handler: CommandHandler<C, R>): void => {
     commandBus.register(handler.commandType, handler);
-  }
+  };
 
-  for (const handler of queries) {
+  const query = <Q extends Query, R>(handler: QueryHandler<Q, R>): void => {
     queryBus.register(handler.queryType, handler);
-  }
+  };
+
+  command(new RegisterCustomerHandler(deps));
+  command(new VerifyEmailHandler(deps));
+  command(new ResendVerificationHandler(deps));
+  command(new LoginCustomerHandler(deps));
+  command(new RequestPasswordResetHandler(deps));
+  command(new LoginCashierHandler(deps));
+  command(new VerifyCashierPinHandler(deps));
+  command(new LoginAdminHandler(deps));
+  command(new AuthenticateHandler(deps));
+  command(new LogoutHandler(deps));
+  command(new SetCustomerStatusHandler(deps));
+  command(new CreateShopHandler(deps));
+  command(new UpdateShopHandler(deps));
+  command(new SetShopStatusHandler(deps));
+  command(new CreateCashierHandler(deps));
+  command(new SetCashierStatusHandler(deps));
+  command(new ResetCashierCredentialsHandler(deps));
+  command(new RecordAuditHandler(deps));
+  command(new UpdateSettingsHandler(deps));
+
+  query(new GetCustomerProfileHandler(deps));
+  query(new GetShopSessionHandler(deps));
+  query(new ListOwnShopCashiersHandler(deps));
+  query(new GetAdminSessionHandler(deps));
+  query(new ListCustomersHandler(deps));
+  query(new ListShopsHandler(deps));
+  query(new GetShopHandler(deps));
+  query(new ListShopCashiersHandler(deps));
+  query(new ListAuditLogsHandler(deps));
+  query(new GetSettingsHandler(deps));
 }
 
 export * from "./adminAuth/index.js";

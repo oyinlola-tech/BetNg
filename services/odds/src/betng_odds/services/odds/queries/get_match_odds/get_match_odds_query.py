@@ -1,5 +1,3 @@
-"""Read one match's markets."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -12,8 +10,6 @@ from .....dtos import MatchOdds
 
 @dataclass(frozen=True)
 class GetMatchOddsQuery(Query[MatchOdds]):
-    """The stored markets of one match. Carries no reader identity."""
-
     match_id: str
 
     type: str = OddsQuery.GET_MATCH_ODDS

@@ -92,7 +92,6 @@ function pricedStrength(stored: unknown): TeamStrength | undefined {
 const CLOSE_RETRY_MS = 2000;
 
 export interface LifecycleService {
-  /** One scheduler pass over every step, in lifecycle order. */
   tick(): Promise<void>;
   openBetting(matchId: string, actor: LifecycleActor, reason: string, requestId: string): Promise<void>;
   closeBetting(matchId: string, actor: LifecycleActor, reason: string, requestId: string): Promise<void>;
@@ -436,7 +435,6 @@ export function createLifecycleService(deps: LifecycleDependencies): LifecycleSe
     }
   }
 
-  /** Runs a match that is in `SIMULATION_STARTED` and claimed by the caller. */
   async function runSimulation(match: MatchRecord, context: StepContext): Promise<void> {
     const { homeTeam, awayTeam } = match.fixture;
 
@@ -673,7 +671,6 @@ export function createLifecycleService(deps: LifecycleDependencies): LifecycleSe
     }
   }
 
-  /** Settles a match that is in `SETTLEMENT_STARTED` and claimed by the caller. */
   async function runSettlement(match: MatchRecord, context: StepContext): Promise<void> {
     await audit("settlement_started", match, context);
 

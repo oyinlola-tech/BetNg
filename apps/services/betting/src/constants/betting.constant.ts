@@ -34,7 +34,6 @@ export const IDEMPOTENCY_KEY_HEADER = "idempotency-key";
 
 export const MAX_LEGS = 20;
 
-/** Lifecycles in which a match still takes bets. */
 export const OPEN_LIFECYCLES: readonly string[] = Object.freeze([
   "BETTING_OPEN",
   "BETTING_ACTIVE",
@@ -42,11 +41,7 @@ export const OPEN_LIFECYCLES: readonly string[] = Object.freeze([
 
 export const OPEN_MARKET_STATUS = "OPEN";
 
-/**
- * The per-match placement lock. The peer deadline is short so that a whole
- * placement (risk, then the wallet and one retry of it) finishes inside the
- * lock's lifetime rather than outliving it.
- */
+// Peer deadlines are short so risk + wallet (+ one retry) finish inside the lock's TTL.
 export const MATCH_LOCK = Object.freeze({
   keyPrefix: "lock:bet:match:",
   ttlMs: 5000,
@@ -57,7 +52,6 @@ export const MATCH_LOCK = Object.freeze({
 export const PLACEMENT_PEER_TIMEOUT_MS = 1500;
 
 export const TICKET = Object.freeze({
-  /** No 0/O, 1/I: a code is read off paper and typed back in. */
   alphabet: "23456789ABCDEFGHJKLMNPQRSTUVWXYZ",
   codeLength: 10,
   codeAttempts: 5,
@@ -71,7 +65,6 @@ export const LIST_LIMIT = Object.freeze({
   ticketsMax: 200,
 });
 
-/** Upper bound of `total_odds numeric(12,2)`, in hundredths. */
 export const MAX_TOTAL_ODDS_HUNDREDTHS = 999_999_999_999n;
 
 export const AUDIT_ACTION = Object.freeze({
@@ -80,7 +73,7 @@ export const AUDIT_ACTION = Object.freeze({
   TICKET_CANCELLED: "ticket_cancelled",
 });
 
-/** Settlement and cancellation hold a row lock across one wallet call. */
+// Payout and cancellation hold a row lock across one wallet call.
 export const MONEY_TRANSACTION = Object.freeze({
   timeout: 15_000,
   maxWait: 5000,

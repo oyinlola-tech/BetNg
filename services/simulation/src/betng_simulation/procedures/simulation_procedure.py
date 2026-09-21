@@ -1,5 +1,3 @@
-"""The simulation service's RPC procedures."""
-
 from __future__ import annotations
 
 from typing import Any
@@ -12,8 +10,6 @@ from ..services.simulation.queries import CalculateProbabilitiesQuery
 
 
 class SimulationProcedure:
-    """RPC procedure names (architecture §6)."""
-
     RUN_MATCH = "simulation.runMatch"
     CALCULATE_PROBABILITIES = "simulation.calculateProbabilities"
 
@@ -21,7 +17,6 @@ class SimulationProcedure:
 def create_simulation_rpc_server(
     command_bus: CommandBus, query_bus: QueryBus
 ) -> RpcServer:
-    """Register the RPC procedures on the shared buses."""
     server = RpcServer()
 
     # Dumped by alias here: the kit would dump a model by field name.

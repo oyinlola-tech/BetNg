@@ -1,5 +1,3 @@
-"""Registers the risk handlers on the buses."""
-
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -28,7 +26,6 @@ def register_risk_service(
     query_bus: QueryBus,
     clock: Callable[[], datetime] = _utc_now,
 ) -> None:
-    """Register every risk handler."""
     repository = container.resolve(RISK_REPOSITORY_TOKEN)
     audit = container.resolve(AUDIT_RECORDER_TOKEN)
     logger = container.resolve(LOGGER_TOKEN)

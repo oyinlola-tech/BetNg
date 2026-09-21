@@ -1,5 +1,3 @@
-"""Turns pending-book rows into the engine's book and dashboard shapes."""
-
 from __future__ import annotations
 
 from collections.abc import Sequence
@@ -16,7 +14,6 @@ from ..types import BookRows, MarketRow, MatchRow, SelectionRow
 
 
 def to_exposure_book(rows: BookRows) -> ExposureBook:
-    """Shape the pending book the way the decision engine reads it."""
     payouts: dict[str, dict[str, int]] = {}
     for selection in rows.selections:
         payouts.setdefault(selection.market_id, {})[selection.selection_id] = (
@@ -41,7 +38,6 @@ def to_exposure_book(rows: BookRows) -> ExposureBook:
 
 
 def match_worst_case(match_id: str, book: ExposureBook) -> int:
-    """Sum of the positive worst cases of the match's markets."""
     return sum(
         max(0, market.worst_case())
         for market in book.markets.values()
@@ -140,7 +136,6 @@ def build_match_exposure(
 
 
 def frozen_match_exposure(match: MatchRow, snapshot: object) -> MatchExposure:
-    """Serve the book as it stood at close, under the match's current state."""
     frozen = MatchExposure.model_validate(snapshot)
 
     return frozen.model_copy(

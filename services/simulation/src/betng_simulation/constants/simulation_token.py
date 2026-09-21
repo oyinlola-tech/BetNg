@@ -1,5 +1,3 @@
-"""Container tokens."""
-
 from __future__ import annotations
 
 import logging
@@ -19,4 +17,5 @@ BACKGROUND_AUDITOR_TOKEN: Token[BackgroundAuditor] = Token(
     "simulation.backgroundAuditor"
 )
 SIMULATE_TOKEN: Token[Simulate] = Token("simulation.simulate")
+SEED_SECRET_TOKEN: Token[str | None] = Token("simulation.seedSecret")
 LOGGER_TOKEN: Token[logging.Logger] = Token("simulation.logger")

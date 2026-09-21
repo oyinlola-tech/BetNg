@@ -114,8 +114,6 @@ def new_id() -> str:
 
 @dataclass
 class Book:
-    """Fixture rows in one random past hour, deleted after the test."""
-
     connection: psycopg.Connection[Any]
     start: datetime
     _tracked: list[tuple[str, str, str]] = field(default_factory=list)

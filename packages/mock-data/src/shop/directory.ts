@@ -37,7 +37,6 @@ export const CASHIERS: readonly Cashier[] = [
   cashier("kunle", "Kunle Ojo", "CASHIER", "SUSPENDED"),
 ];
 
-/** Who sells at the counter, for seeded history. */
 export const COUNTER_STAFF: readonly Cashier[] = CASHIERS.filter((c) => c.status === "ACTIVE" && c.role !== "OWNER");
 
 const CASHIER_PERMISSIONS: readonly ShopPermission[] = ["tickets:sell", "tickets:check", "tickets:payout"];

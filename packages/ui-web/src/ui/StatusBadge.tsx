@@ -11,7 +11,6 @@ const DOT: Record<StatusTone, string> = {
   neutral: "bg-text-muted",
 };
 
-/** State as a dot plus a word: the label carries the meaning, the colour only reinforces it. */
 export function StatusBadge({ tone, children, pulse = false, className }: { readonly tone: StatusTone; readonly children: React.ReactNode; readonly pulse?: boolean; readonly className?: string }): React.JSX.Element {
   return (
     <span className={cn("inline-flex items-center gap-1.5 whitespace-nowrap text-sm font-medium text-text-primary", className)}>

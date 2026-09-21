@@ -1,5 +1,3 @@
-/** Prices a match. */
-
 import type { MarketId, SelectionId } from "@betng/contracts";
 import type {
   MarketKind,
@@ -302,7 +300,6 @@ export function marketsFor(fixture: FixtureRef, now: number): MatchMarketsView {
   };
 }
 
-/** Whether a selection won against a final score. Stands in for settlement. */
 export function settleSelection(
   kind: MarketKind,
   code: string,

@@ -12,7 +12,6 @@ export interface TicketLookupProps {
   readonly onSubmit: (code: string) => void;
 }
 
-/** The one oversized field a cashier types or scans a ticket ID into. */
 export function TicketLookup({ label, actionLabel, initial = "", busy = false, onSubmit }: TicketLookupProps): React.JSX.Element {
   const [value, setValue] = useState(initial);
   const [scanned, setScanned] = useState(false);

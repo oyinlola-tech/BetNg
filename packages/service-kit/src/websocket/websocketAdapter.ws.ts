@@ -1,15 +1,7 @@
 /**
- * A WebSocket adapter backed by the `ws` library.
- *
- * `@zudojs/adapters` defines the `WebSocketAdapter` and `WebSocketSession`
- * contracts but ships no implementation — the contract is the boundary, and
- * binding it to a provider is the application's job. This is BetNG's binding.
- *
- * It attaches to an existing `http.Server` through the `upgrade` event, and
- * that server is the same one `createNodeHttpAdapter({ server })` serves HTTP
- * on. One process, one port: a client reads a match over REST and subscribes
- * to its live stream on the same origin, with no second thing to deploy,
- * expose or health-check.
+ * `@zudojs/adapters` defines the `WebSocketAdapter` contract and ships no
+ * implementation; this binds it to `ws`, attached to the HTTP server the
+ * service already serves REST on.
  */
 
 import type { IncomingMessage, Server } from "node:http";

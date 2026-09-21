@@ -1,5 +1,3 @@
-"""Writes audit entries through the identity service's RPC."""
-
 from __future__ import annotations
 
 from typing import Any
@@ -15,11 +13,9 @@ class IdentityAuditRecorder(AuditRecorder):
     """Writes audit entries through ``identity.recordAudit``."""
 
     def __init__(self, client: RpcClient) -> None:
-        """Store the collaborators."""
         self._client = client
 
     async def record(self, entry: AuditEntry) -> None:
-        """Write one entry or raise."""
         payload: dict[str, Any] = {
             "actorId": entry.actor_id,
             "actorRole": entry.actor_role,

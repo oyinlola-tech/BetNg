@@ -1,23 +1,9 @@
-"""RPC over HTTP, speaking the ``@zudojs/rpc`` wire format.
-
-The Python services are RPC-primary: betting calls risk and odds, match calls
-simulation, and those calls want typed procedure names, typed errors and
-deadlines rather than resource URLs.
-
-``@zudojs/rpc`` is transport-agnostic and ships no transport, so BetNG defines
-one: an ``RPCRequest`` envelope posted to the peer's ``/rpc`` endpoint, an
-``RPCResponse`` back. This module implements the same envelope in Python, so a
-TypeScript service and a Python service can call each other without either
-side knowing which language answered.
-
-The envelope, mirrored from ``@zudojs/rpc``::
+"""RPC over HTTP, in the ``@zudojs/rpc`` wire format.
 
     request  {"id", "procedure", "payload", "metadata", "timestamp"}
-    response {"id", "success", "result"?, "error"? {"code","message","details"?}}
+    response {"id", "success", "result"?, "error"? {"code","message"}}
 
-``metadata.requestId`` carries the platform's correlation identifier, so one
-request stays followable across an RPC hop exactly as it does across a REST
-one.
+``metadata.requestId`` carries the correlation identifier across the hop.
 """
 
 from __future__ import annotations
@@ -56,7 +42,6 @@ _RPC_REQUEST_ID: ContextVar[str | None] = ContextVar("betng_rpc_request_id", def
 
 
 def get_rpc_request_id() -> str | None:
-    """The caller's request id for the RPC call being handled."""
     return _RPC_REQUEST_ID.get()
 
 
@@ -122,12 +107,6 @@ class RpcServer:
     procedures: dict[str, RpcProcedure] = field(default_factory=dict)
 
     def register(self, procedure: RpcProcedure) -> None:
-        """Register a procedure.
-
-        Raises:
-            ValueError: When the name is already registered, which is a wiring
-                mistake rather than something to resolve silently.
-        """
         if procedure.name in self.procedures:
             raise ValueError(
                 f"A procedure named {procedure.name!r} is already registered."

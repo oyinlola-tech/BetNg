@@ -25,7 +25,6 @@ const ODDS_TEXT = /^(\d{1,6})(?:\.(\d{1,2}))?$/;
 
 const HUNDRED = 100n;
 
-/** "2.5" → 250n. Rejects anything that is not a positive NUMERIC(8,2) rendered as text. */
 export function oddsToHundredths(odds: string): bigint {
   const match = ODDS_TEXT.exec(odds.trim());
 

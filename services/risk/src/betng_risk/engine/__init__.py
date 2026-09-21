@@ -1,5 +1,3 @@
-"""The pure stake-decision engine and its integer arithmetic."""
-
 from .decision_engine import OPEN_LIFECYCLES, decide
 from .engine_type import (
     DecisionKind,

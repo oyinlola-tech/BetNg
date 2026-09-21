@@ -74,12 +74,10 @@ export function downloadCsv(filename: string, header: readonly string[], rows: r
 
 const shortMoney = new Intl.NumberFormat("en-NG", { notation: "compact", maximumFractionDigits: 1 });
 
-/** `₦4.2M` for KPI tiles and chart ticks, where the full figure is available on hover or in the table. */
 export function formatMoneyShort(minorUnits: number): string {
   return `${minorUnits < 0 ? "-" : ""}₦${shortMoney.format(Math.abs(minorUnits) / 100)}`;
 }
 
-/** `20 Sep, 23:06:12` for operational tables, where the year is noise and the seconds matter. */
 export function formatStamp(iso: string): string {
   const d = new Date(iso);
 

@@ -9,7 +9,6 @@ export type SlipLineState = "OK" | "CHANGED" | "SUSPENDED";
 
 export interface SlipLine {
   readonly state: SlipLineState;
-  /** The platform's current price, when it differs from the one on the slip. */
   readonly currentOdds?: number;
 }
 
@@ -20,7 +19,6 @@ export interface SlipPrices {
   readonly suspended: readonly string[];
 }
 
-/** Compares every selection on the slip with the platform's live price and market status. */
 export function useSlipPrices(selections: readonly SlipSelection[]): SlipPrices {
   const matchIds = useMemo(() => [...new Set(selections.map((s) => s.matchId))], [selections]);
   const now = useNow(5000);

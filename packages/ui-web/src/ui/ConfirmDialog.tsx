@@ -17,7 +17,6 @@ export interface ConfirmDialogProps {
   readonly children?: React.ReactNode;
 }
 
-/** The second step for anything financial or destructive. Nothing of consequence is one click. */
 export function ConfirmDialog({ open, onClose, onConfirm, title, description, confirmLabel, tone = "primary", requireReason = false, loading = false, children }: ConfirmDialogProps): React.JSX.Element | null {
   const [reason, setReason] = useState("");
 

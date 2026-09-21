@@ -1,16 +1,3 @@
-/**
- * Live match event contracts.
- *
- * These describe what the event service pushes to subscribed clients over
- * WebSocket while a virtual match is being played.
- *
- * The stream is **not** the source of truth. It is a projection of what the
- * simulation already decided: a client that misses a frame re-reads the match
- * from the match service and is correct again. That is why every frame
- * carries a `sequence` and the match's running `score` — a consumer can tell
- * that it missed something, and can resynchronise without replaying.
- */
-
 import { z } from "@zudojs/validation";
 import {
   brandedIdSchema,
@@ -40,13 +27,6 @@ export const liveEventTypeSchema = z.enum([
 
 export type LiveEventType = z.infer<typeof liveEventTypeSchema>;
 
-/**
- * One frame on a match's live stream.
- *
- * `sequence` is per match and strictly increasing, so a client can detect a
- * gap. `score` is the running score *after* this event, so a late joiner is
- * correct from its first frame rather than having to add up goals.
- */
 export interface LiveEvent {
   readonly matchId: MatchId;
   readonly sequence: number;

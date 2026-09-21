@@ -1,5 +1,3 @@
-/** Bets and the slip they are built on. */
-
 import type {
   BetId,
   BetStatus,
@@ -20,6 +18,7 @@ export interface SlipSelection {
   readonly matchLabel: string;
   readonly leagueCode: string;
   readonly kickoffAt: string;
+  readonly oddsVersion?: number;
 }
 
 export interface SlipTotals {
@@ -30,7 +29,8 @@ export interface SlipTotals {
   readonly potentialProfit: number;
 }
 
-export type SelectionOutcome = "PENDING" | "WON" | "LOST" | "VOID";
+export type SelectionOutcome =
+  "PENDING" | "WON" | "LOST" | "VOID" | "CANCELLED";
 
 export interface BetLegView extends SlipSelection {
   readonly outcome: SelectionOutcome;
@@ -47,9 +47,48 @@ export interface BetView {
   readonly placedAt: string;
   readonly settledAt?: string;
   readonly payout?: number;
+  readonly currency?: string;
+  readonly reference?: string;
 }
 
 export interface PlaceBetInput {
   readonly selections: readonly SlipSelection[];
   readonly stake: number;
+  /** One per submission attempt, reused on retry so the platform can deduplicate. */
+  readonly clientReference: string;
 }
+
+export type BetPlacementOutcome =
+  "ACCEPTED" | "PARTIALLY_ACCEPTED" | "LIMITED" | "REJECTED" | "EXPIRED";
+
+export type BetRejectionReason =
+  | "MARKET_CLOSED"
+  | "MARKET_SUSPENDED"
+  | "ODDS_CHANGED"
+  | "STAKE_LIMITED"
+  | "RISK_REJECTED"
+  | "INSUFFICIENT_FUNDS"
+  | "INVALID_BET";
+
+/** What the platform decided about a submission. Business refusals arrive here; transport and session failures are thrown. */
+export interface BetPlacementView {
+  readonly outcome: BetPlacementOutcome;
+  readonly clientReference: string;
+  readonly bet?: BetView;
+  readonly reason?: BetRejectionReason;
+  readonly message?: string;
+  readonly maxStake?: number;
+  readonly rejectedSelectionIds?: readonly SelectionId[];
+}
+
+export type BetLifecycle =
+  | "DRAFT"
+  | "SUBMITTING"
+  | "ACCEPTED"
+  | "PARTIALLY_ACCEPTED"
+  | "LIMITED"
+  | "REJECTED"
+  | "CANCELLED"
+  | "SETTLED"
+  | "VOID"
+  | "EXPIRED";

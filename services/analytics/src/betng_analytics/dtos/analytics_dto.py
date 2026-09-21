@@ -1,5 +1,3 @@
-"""Mirrors packages/contracts; money is integer kobo, optional fields are omitted."""
-
 from __future__ import annotations
 
 from typing import Annotated, Literal
@@ -114,8 +112,6 @@ class MatchResult(WireModel):
 
 
 class MatchAnalysis(WireModel):
-    """``result`` is present only once the match is ``COMPLETED``."""
-
     match_id: str
     label: str
     league_id: str

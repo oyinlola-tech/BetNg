@@ -1,5 +1,3 @@
-"""Authorisation for admin routes, re-checked here and run before validation."""
-
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable

@@ -1,11 +1,15 @@
 export type {
   Player,
   TeamColors,
+  TeamCrestView,
   TeamDetailView,
   TeamView,
 } from "./team.type.js";
 export type { LeagueView } from "./league.type.js";
 export type {
+  ClockPeriod,
+  ExtraStat,
+  MatchClockView,
   MatchEventKind,
   MatchEventView,
   MatchPhase,
@@ -31,6 +35,10 @@ export type {
 } from "./standings.type.js";
 export type {
   BetLegView,
+  BetLifecycle,
+  BetPlacementOutcome,
+  BetPlacementView,
+  BetRejectionReason,
   BetView,
   PlaceBetInput,
   SelectionOutcome,
@@ -44,3 +52,30 @@ export type {
   NotificationView,
 } from "./notification.type.js";
 export type { ConnectionState } from "./connection.type.js";
+export type {
+  HeadToHeadMeeting,
+  HeadToHeadView,
+  LineupPlayer,
+  MatchLineupsView,
+  PlayerPosition,
+  TeamLineup,
+} from "./lineup.type.js";
+export type {
+  SearchHit,
+  SearchKind,
+  SearchQuery,
+  SearchResults,
+} from "./search.type.js";
+export type {
+  CurrencyConfig,
+  FeatureFlag,
+  FeatureFlags,
+  PlatformConfigView,
+  StakeLimits,
+} from "./config.type.js";
+export type {
+  PageQuery,
+  PageView,
+  TransactionQuery,
+  TransactionStatus,
+} from "./page.type.js";

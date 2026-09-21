@@ -1,15 +1,3 @@
-/**
- * Event service configuration.
- *
- * The event service owns no database: a live stream is a projection of what
- * the match service already recorded, and a client that misses a frame
- * re-reads the match rather than asking the event service to replay one.
- * It therefore declares no database URL.
- *
- * Redis is enabled because fanning out across more than one event-service
- * instance needs a shared channel; see `docs/api/realtime.md`.
- */
-
 import { loadServiceConfig } from "@betng/service-kit";
 import type { ServiceConfig } from "@betng/service-kit";
 

@@ -1,5 +1,3 @@
-"""Service-local request plumbing."""
-
 from .actor_guard import require_admin
 from .request_context import (
     current_rpc_request_id,

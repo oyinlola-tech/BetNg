@@ -1,5 +1,3 @@
-"""Freezes a match's exposure at close."""
-
 from __future__ import annotations
 
 import logging
@@ -18,8 +16,6 @@ from .freeze_exposure_command import FreezeExposureCommand
 class FreezeExposureHandler(
     CommandHandler[FreezeExposureCommand, FreezeExposureResult]
 ):
-    """Stores the snapshot once; a repeat returns the first freeze."""
-
     message_type = RiskCommand.FREEZE_EXPOSURE
 
     def __init__(
@@ -28,13 +24,11 @@ class FreezeExposureHandler(
         reader: ExposureReader,
         logger: logging.Logger,
     ) -> None:
-        """Bind the handler to its collaborators."""
         self._repository = repository
         self._reader = reader
         self._logger = logger
 
     async def execute(self, message: FreezeExposureCommand) -> FreezeExposureResult:
-        """Snapshot the match's pending book unless a snapshot exists."""
         matches = await self._repository.load_matches([message.match_id])
         if not matches:
             raise MatchNotFoundError

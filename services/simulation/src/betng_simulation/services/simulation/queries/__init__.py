@@ -1,5 +1,3 @@
-"""Simulation queries."""
-
 from .calculate_probabilities import (
     CalculateProbabilitiesHandler,
     CalculateProbabilitiesQuery,

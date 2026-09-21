@@ -47,7 +47,6 @@ def parse_day(path: str, value: str, zone: str) -> date:
 
 
 def validate_days(first: str | None, last: str | None, zone: str) -> DayRange:
-    """Resolve a report's day range; it defaults to the week ending today."""
     last_day = today_in(zone) if last is None else parse_day("to", last, zone)
     first_day = (
         last_day - timedelta(days=DEFAULT_REPORT_DAYS - 1)

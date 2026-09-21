@@ -1,5 +1,3 @@
-"""Wire shapes mirroring ``risk.type.ts`` and ``riskOverviewSchema``."""
-
 from __future__ import annotations
 
 from datetime import UTC, datetime
@@ -61,8 +59,6 @@ class RiskActor(WireModel):
 
 
 class RiskLeg(WireModel):
-    """One leg of the slip, at the odds betting will store on the bet."""
-
     match_id: UUID
     market_id: UUID
     selection_id: UUID
@@ -70,16 +66,12 @@ class RiskLeg(WireModel):
 
 
 class RiskEvaluateRequest(WireModel):
-    """The payload of ``risk.evaluate``."""
-
     actor: RiskActor
     stake: PositiveKobo
     legs: Annotated[list[RiskLeg], Field(min_length=1, max_length=MAX_LEGS)]
 
 
 class RiskDecision(WireModel):
-    """What risk answers before a stake is accepted."""
-
     decision_id: UUID
     decision: DecisionKind
     reason: RiskReason
@@ -100,8 +92,6 @@ class FreezeExposureResult(WireModel):
 
 
 class RiskLimits(WireModel):
-    """The limits version in force."""
-
     version: Annotated[int, Field(ge=1)]
     min_stake: PositiveKobo
     max_stake_per_bet: PositiveKobo
@@ -126,8 +116,6 @@ class UpdateRiskLimitsRequest(WireModel):
 
 
 class SelectionExposureRow(WireModel):
-    """One selection's share of the pending book."""
-
     selection_id: UUID
     code: str
     label: str
@@ -143,8 +131,6 @@ class SelectionExposureRow(WireModel):
 
 
 class MarketExposure(WireModel):
-    """One market's pending book."""
-
     market_id: UUID
     type: str
     line: WireDecimal | None = None
@@ -176,16 +162,12 @@ class MatchExposureList(WireModel):
 
 
 class DecisionCounts(WireModel):
-    """Stored decisions by kind."""
-
     accepted: Count
     limited: Count
     rejected: Count
 
 
 class MarketTypeExposure(WireModel):
-    """The pending book grouped by market type."""
-
     market_type: str
     market_label: str
     stake: int
@@ -193,8 +175,6 @@ class MarketTypeExposure(WireModel):
 
 
 class MatchRiskSummary(WireModel):
-    """One match's line on the overview."""
-
     match_id: UUID
     match_label: str
     league_name: str
@@ -205,8 +185,6 @@ class MatchRiskSummary(WireModel):
 
 
 class RiskOverview(WireModel):
-    """The platform-wide view of the pending book."""
-
     total_stake: Kobo
     potential_payout: Kobo
     exposure: Kobo

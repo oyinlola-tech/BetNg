@@ -138,7 +138,6 @@ export function AdminShell(): React.JSX.Element {
       try {
         localStorage.setItem(COLLAPSE_KEY, value ? "0" : "1");
       } catch {
-        /* ignore */
       }
 
       return !value;

@@ -6,7 +6,6 @@ import { useTheme } from "../theme";
 import { Pressable } from "./Pressable";
 import { Text } from "./Text";
 
-/* Sits just above the tab bar whenever the slip has selections, so the slip is one tap away from any screen. */
 export function SlipBar({
   bottom,
 }: {

@@ -168,6 +168,8 @@ model Match {
 /// Append-only log of lifecycle transitions, written in the same transaction as the state change.
 model MatchTransition {
   id        String   @id @default(uuid()) @db.Uuid
+  /// Insertion order; `at` alone cannot order two transitions committed in the same millisecond.
+  sequence  BigInt   @unique @default(autoincrement())
   matchId   String   @map("match_id") @db.Uuid
   fromState String?  @map("from_state") @db.VarChar(32)
   toState   String   @map("to_state") @db.VarChar(32)
@@ -177,6 +179,6 @@ model MatchTransition {
 
   match Match @relation(fields: [matchId], references: [id], onDelete: Restrict)
 
-  @@index([matchId, at])
+  @@index([matchId, sequence])
   @@map("match_transitions")
 }

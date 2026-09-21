@@ -1,5 +1,3 @@
-"""The markets the platform offers, as data."""
-
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -39,8 +37,6 @@ Outcome = Callable[[int, int], bool]
 
 @dataclass(frozen=True)
 class SelectionSpec:
-    """One selection: its code, its label and the scores it wins on."""
-
     code: str
     label: str
     wins: Outcome
@@ -48,8 +44,6 @@ class SelectionSpec:
 
 @dataclass(frozen=True)
 class MarketSpec:
-    """One market row: type, optional line, display name and selections."""
-
     type: str
     name: str
     line: Decimal | None
@@ -57,7 +51,6 @@ class MarketSpec:
 
 
 def market_name(market_type: str, line: Decimal | None) -> str:
-    """Return the display name of a market, as the frontends title it."""
     if market_type == OVER_UNDER and line is not None:
         return f"Total Goals {line}"
 
@@ -120,7 +113,6 @@ def _correct_score_market() -> MarketSpec:
 
 
 def build_catalogue(home: str, away: str) -> tuple[MarketSpec, ...]:
-    """Return every market of a match, labelled with its teams' short names."""
     spread = abs(GOAL_SPREAD_LINE)
 
     return (

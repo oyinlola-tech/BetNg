@@ -1,5 +1,3 @@
-"""Carries an RPC frame's ``metadata.requestId`` to the procedure."""
-
 from __future__ import annotations
 
 import re
@@ -14,7 +12,6 @@ _rpc_request_id: ContextVar[str | None] = ContextVar(
 
 
 def safe_request_id(candidate: Any) -> str | None:
-    """Return the identifier when it is safe to store and log."""
     if isinstance(candidate, str) and _SAFE_REQUEST_ID.match(candidate):
         return candidate
 
@@ -22,10 +19,8 @@ def safe_request_id(candidate: Any) -> str | None:
 
 
 def set_rpc_request_id(request_id: str) -> None:
-    """Remember the identifier for the procedure about to run."""
     _rpc_request_id.set(request_id)
 
 
 def current_rpc_request_id() -> str:
-    """Return the identifier of the RPC call in progress."""
     return _rpc_request_id.get() or "unknown"

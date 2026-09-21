@@ -11,7 +11,6 @@ export const SETTLEMENT_PROCEDURE = Object.freeze({
   VOID_MATCH: "settlement.voidMatch",
 });
 
-/** Settling a busy match touches every bet on it. */
 const SETTLE_TIMEOUT_MS = 15_000;
 
 const resultSchema: ValidationSchema<MatchSettlementResult> = z.object({

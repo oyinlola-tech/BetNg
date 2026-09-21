@@ -33,7 +33,6 @@ export interface MatchApp {
   readonly onShutdown: readonly (() => Promise<void>)[];
   readonly lifecycle: LifecycleService;
   readonly scheduler: SchedulerJob;
-  /** Seeds an empty catalogue, then starts the scheduler when it is enabled. */
   readonly startBackground: () => Promise<void>;
 }
 

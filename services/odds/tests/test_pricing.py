@@ -159,7 +159,6 @@ class TestMargin:
         ) == Decimal("500")
 
     def test_the_formula(self) -> None:
-        # 1 / (0.5 * 1.07) = 1.8691...
         assert price_selection(
             Decimal("0.5"), Decimal("0.07"), Decimal("1.01"), Decimal("500")
         ) == Decimal("1.87")

@@ -1,25 +1,14 @@
-/**
- * The shared client for BetNG's web, mobile and TV applications.
- *
- * All three consume the same platform the same way: REST through the
- * gateway for state, and one WebSocket to the event service for live match
- * events. Putting that in one package is what keeps the promise that there
- * is no mobile-only backend — there is no mobile-only client code that
- * could ask for one.
- *
- * It holds no UI and no framework. Web and TV are React, mobile is React
- * Native, and this runs unchanged in all three because it uses only `fetch`
- * and `WebSocket`.
- */
-
 export { DEFAULT_TIMEOUT_MS } from "./config/index.js";
-export type { BetNgClientConfig } from "./config/index.js";
+export type { BetNgClientConfig, RequestFailure } from "./config/index.js";
 
 export {
   BetNgApiError,
+  IDEMPOTENCY_HEADER,
+  codeForStatus,
   createRestClient,
   isErrorResponse,
 } from "./rest/index.js";
+export type { ApiFailureKind, RequestOptions } from "./rest/index.js";
 export type {
   AdminFixtureQuery,
   AnalyticsBreakdownQuery,
@@ -36,9 +25,31 @@ export type {
   TicketQuery,
 } from "./rest/index.js";
 
-export { createLiveClient } from "./live/index.js";
+export {
+  SYSTEM_CHANNEL,
+  accountChannel,
+  createConnectionManager,
+  createEventRouter,
+  createRealtimeClient,
+  createSubscriptionManager,
+  sseTransport,
+  webSocketTransport,
+} from "./realtime/index.js";
 export type {
-  LiveClient,
-  LiveClientOptions,
-  LiveHandlers,
-} from "./live/index.js";
+  ConnectionManager,
+  ConnectionManagerOptions,
+  ConnectionStatus,
+  EventRouter,
+  EventSourceConstructor,
+  RealtimeAuthMode,
+  RealtimeClient,
+  RealtimeClientOptions,
+  RealtimeEvent,
+  RealtimeEventType,
+  RealtimeListener,
+  RealtimeTransport,
+  SubscriptionManager,
+  TransportConnection,
+  TransportHandlers,
+  WebSocketConstructor,
+} from "./realtime/index.js";

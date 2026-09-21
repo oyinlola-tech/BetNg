@@ -1,5 +1,3 @@
-"""Match-wide market status changes, driven by the match lifecycle."""
-
 from __future__ import annotations
 
 import logging
@@ -17,8 +15,6 @@ from .set_match_markets_status_command import SetMatchMarketsStatusCommand
 class SetMatchMarketsStatusHandler(
     CommandHandler[SetMatchMarketsStatusCommand, SetMatchMarketsStatusResult]
 ):
-    """Apply the match service's open, close, settle or void to the markets."""
-
     repository: OddsRepository
     logger: logging.Logger
 
@@ -27,7 +23,6 @@ class SetMatchMarketsStatusHandler(
     async def execute(
         self, message: SetMatchMarketsStatusCommand
     ) -> SetMatchMarketsStatusResult:
-        """Move the markets that may move; a repeat call moves none."""
         match_id = str(message.request.match_id)
         status = message.request.status
         updated = await self.repository.set_match_markets_status(

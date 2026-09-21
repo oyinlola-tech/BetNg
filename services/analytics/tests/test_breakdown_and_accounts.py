@@ -28,8 +28,6 @@ def get(client: TestClient, path: str, **params: str) -> Any:
 
 
 class Mixed:
-    """Two leagues, two matches, online and shop bets in every status."""
-
     def __init__(self, book: Book) -> None:
         self.book = book
         self.match_a = book.match(book.league("Premier Lagos"))

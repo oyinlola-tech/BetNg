@@ -1,5 +1,3 @@
-"""List match events handler."""
-
 from __future__ import annotations
 
 from betng_service_kit import QueryHandler
@@ -12,16 +10,12 @@ from .list_match_events_query import ListMatchEventsQuery
 
 
 class ListMatchEventsHandler(QueryHandler[ListMatchEventsQuery, MatchEventList]):
-    """Reads a match's whole timeline for internal callers."""
-
     message_type = SimulationQuery.LIST_MATCH_EVENTS
 
     def __init__(self, repository: SimulationRepository) -> None:
-        """Store the collaborators."""
         self._repository = repository
 
     async def execute(self, message: ListMatchEventsQuery) -> MatchEventList:
-        """Execute the message."""
         async with self._repository.transaction() as connection:
             run = await self._repository.get_latest_run(connection, message.match_id)
 

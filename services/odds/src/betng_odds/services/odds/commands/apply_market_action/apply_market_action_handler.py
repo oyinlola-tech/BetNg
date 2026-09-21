@@ -1,5 +1,3 @@
-"""Suspend and resume."""
-
 from __future__ import annotations
 
 import logging
@@ -139,7 +137,6 @@ class ApplyMarketActionHandler(
     async def _announce(
         self, market: MarketRecord, suspend: bool, request_id: str
     ) -> None:
-        """Tell live clients to re-read. The change stands if this fails."""
         description = f"{market.type} market {'suspended' if suspend else 'resumed'}"
 
         try:

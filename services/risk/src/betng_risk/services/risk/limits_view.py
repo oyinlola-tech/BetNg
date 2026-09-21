@@ -1,5 +1,3 @@
-"""The wire and audit views of a limits version."""
-
 from __future__ import annotations
 
 from typing import Any
@@ -9,7 +7,6 @@ from ...types import LimitsRecord
 
 
 def to_risk_limits(record: LimitsRecord) -> RiskLimits:
-    """Shape a limits row as the contract's ``RiskLimits``."""
     limits = record.limits
 
     return RiskLimits(

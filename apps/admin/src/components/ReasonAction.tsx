@@ -9,7 +9,6 @@ export interface PendingAction {
   readonly run: (reason: string) => Promise<unknown>;
 }
 
-/** One confirm-with-reason dialog per screen; `ask` opens it for whichever action was chosen. */
 export function useReasonAction(): { readonly ask: (action: PendingAction) => void; readonly dialog: React.JSX.Element } {
   const [action, setAction] = useState<PendingAction | undefined>();
   const [loading, setLoading] = useState(false);
@@ -34,7 +33,6 @@ export function useReasonAction(): { readonly ask: (action: PendingAction) => vo
           await action.run(reason);
           setAction(undefined);
         } catch {
-          /* the mutation already toasted the failure; the dialog stays open so the reason is not lost */
         } finally {
           setLoading(false);
         }

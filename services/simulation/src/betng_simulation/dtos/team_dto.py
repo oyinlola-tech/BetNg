@@ -1,5 +1,3 @@
-"""What the simulation is told about a team: its properties, and nothing else."""
-
 from __future__ import annotations
 
 from typing import Annotated
@@ -15,8 +13,6 @@ Form = Annotated[float, Field(ge=-10, le=10, allow_inf_nan=False)]
 
 
 class TeamStrengthDto(ContractModel):
-    """Mirrors ``teamStrengthSchema``."""
-
     attack: Rating
     defence: Rating
     midfield: Rating
@@ -28,7 +24,6 @@ class TeamStrengthDto(ContractModel):
     home_advantage: Rating
 
     def to_engine(self) -> TeamStrength:
-        """Convert to the engine's type."""
         return TeamStrength(
             attack=self.attack,
             defence=self.defence,
@@ -43,15 +38,12 @@ class TeamStrengthDto(ContractModel):
 
 
 class SimulationTeamDto(ContractModel):
-    """Mirrors ``simulationTeamInputSchema``."""
-
     team_id: UUID
     name: Annotated[str, Field(min_length=1, max_length=120)]
     short_name: Annotated[str, Field(min_length=2, max_length=8)]
     strength: TeamStrengthDto
 
     def to_engine(self) -> SimulationTeam:
-        """Convert to the engine's type."""
         return SimulationTeam(
             team_id=str(self.team_id),
             name=self.name,

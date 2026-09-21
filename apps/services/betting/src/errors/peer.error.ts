@@ -1,11 +1,3 @@
-/**
- * How a peer's RPC failure is classified.
- *
- * The distinction matters for money. A refusal is definite: the peer answered
- * and did nothing. Anything else — a timeout, a dropped connection, a fault —
- * leaves the outcome unknown, and the caller must not assume either way.
- */
-
 export class PeerRefusedError extends Error {
   public readonly code: string;
 
@@ -25,7 +17,7 @@ export class PeerUnavailableError extends Error {
 
 const TRANSPORT_CODE = /^(ERR_)?RPC_/;
 
-/** Turns whatever an RPC call threw into one of the two classes above. */
+// A domain code is a definite refusal; a transport code (RPC_*) leaves the outcome unknown.
 export function classifyPeerFailure(peer: string, error: unknown): Error {
   const code =
     typeof error === "object" && error !== null

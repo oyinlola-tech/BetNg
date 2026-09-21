@@ -1,15 +1,3 @@
-/**
- * Gateway configuration.
- *
- * The gateway owns no database: it holds no domain state of its own, only
- * the addresses of the services that do. `databaseUrlKey` is therefore
- * omitted, and `databaseUrl` stays `undefined`, so readiness reports no
- * database rather than a fictional one.
- *
- * Redis is enabled because the gateway is where response caching and
- * request throttling will eventually live.
- */
-
 import { loadServiceConfig } from "@betng/service-kit";
 import type { ServiceConfig } from "@betng/service-kit";
 

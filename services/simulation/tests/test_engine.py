@@ -5,6 +5,7 @@ import itertools
 
 import pytest
 
+from betng_simulation.dtos import ModelParametersDto
 from betng_simulation.engine import (
     ModelConfiguration,
     SimulationTeam,
@@ -20,6 +21,7 @@ from betng_simulation.engine import (
     squad_for,
 )
 from betng_simulation.engine.events import generate_timeline
+from betng_simulation.utils import TUNABLE_FIELDS
 
 from .conftest import AWAY_TEAM, HOME_TEAM, STRONG, WEAK
 
@@ -268,3 +270,7 @@ def test_team_types_carry_no_bet_data() -> None:
     for model in (TeamStrength, SimulationTeam, ModelConfiguration):
         for field in dataclasses.fields(model):
             assert not set(field.name.lower().split("_")) & forbidden
+
+
+def test_every_tunable_is_exposed_with_bounds() -> None:
+    assert set(ModelParametersDto.model_fields) == TUNABLE_FIELDS

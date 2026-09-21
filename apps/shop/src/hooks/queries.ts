@@ -31,7 +31,6 @@ export function useMarkets(matchId: string | undefined, active = true) {
   });
 }
 
-/** Prices for every match on screen, so 1 X 2 can sit inline in the list. */
 export function useMarketsFor(matchIds: readonly string[]) {
   return useQueries({
     queries: matchIds.map((id) => ({

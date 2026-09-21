@@ -1,11 +1,3 @@
-/**
- * PostgreSQL implementation of {@link BetRepository}.
- *
- * Every transition is a conditional update: it names the state it expects, so
- * two callers racing for the same bet or ticket cannot both win. The database
- * triggers in the `bet_integrity` migration are the second line behind it.
- */
-
 import { MONEY_TRANSACTION } from "../constants/index.js";
 import type { Prisma, PrismaClient } from "../generated/prisma/client.js";
 import type {
@@ -49,7 +41,6 @@ function decimalText(value: unknown, places: number): string {
   return (candidate as DecimalLike).toFixed(places);
 }
 
-/** Thrown inside a transaction to roll it back without reporting a fault. */
 class TransitionRefused extends Error {}
 
 function toLegRecord(row: BetRow["selections"][number]): BetLegRecord {
@@ -152,8 +143,7 @@ async function settle(
   tx: Prisma.TransactionClient,
   input: SettlementInput,
 ): Promise<SettlementResult> {
-  /* The row lock is what serialises settlement against a ticket
-   * cancellation, which takes the same lock first. */
+  // Serialises settlement against ticket cancellation, which locks the bet row first too.
   const locked = await tx.$queryRaw<{ id: string }[]>`
     SELECT id::text AS id FROM betting.bets WHERE id = ${input.betId}::uuid FOR UPDATE
   `;
@@ -427,7 +417,7 @@ export function createBetRepository(prisma: PrismaClient): BetRepository {
             include: { bet: true },
           });
 
-          /* Bet first, then ticket: the same order settlement locks in. */
+          // Bet before ticket: the lock order settlement uses.
           const bet = await tx.bet.updateMany({
             where: { id: ticket.betId, status: "PENDING" },
             data: { status: "CANCELLED", cancelledAt: now },

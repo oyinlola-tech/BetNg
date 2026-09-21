@@ -1,8 +1,8 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { Ticket } from "@betng/contracts";
-import { CASHIER_PIN } from "./support/fakes.js";
-import { startHarness } from "./support/harness.js";
-import type { Harness, SeededMatch, SeededShop } from "./support/harness.js";
+import { CASHIER_PIN } from "./fakes.js";
+import { startHarness } from "./harness.js";
+import type { Harness, SeededMatch, SeededShop } from "./harness.js";
 
 interface ErrorBody {
   readonly error: {

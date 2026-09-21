@@ -1,5 +1,3 @@
-"""The wire shapes of the admin routes."""
-
 from __future__ import annotations
 
 from typing import Annotated, Any, Literal
@@ -12,18 +10,15 @@ from .configuration_dto import ModelParametersDto
 
 AdminRunStatus = Literal["QUEUED", "READY", "RUNNING", "COMPLETED", "FAILED"]
 SimulationAdminAction = Literal["RETRY", "CANCEL"]
+WITHHELD_FIELDS = frozenset({"score", "seed"})
 
 
 class AdminRunScore(ContractModel):
-    """A revealed score."""
-
     home: int
     away: int
 
 
 class AdminSimulationRun(ContractModel):
-    """Mirrors ``adminSimulationRunSchema``."""
-
     id: UUID
     match_id: UUID
     status: AdminRunStatus
@@ -32,7 +27,8 @@ class AdminSimulationRun(ContractModel):
     events: int
     #: ``None`` until the match is ``COMPLETED`` (result secrecy).
     score: AdminRunScore | None
-    seed: str
+    #: Withheld like ``score``: a seed plus the source code is a result.
+    seed: str | None
     model_version: str
     configuration_version: int
     attempt: int
@@ -44,32 +40,26 @@ class AdminSimulationRun(ContractModel):
     def _omit_absent_optionals(
         self, handler: SerializerFunctionWrapHandler
     ) -> dict[str, Any]:
-        # Contract optionals are absent, not null; a null `score` means withheld.
+        # Contract optionals are absent, not null; null `score`/`seed` mean withheld.
         data: dict[str, Any] = handler(self)
 
         return {
             key: value
             for key, value in data.items()
-            if value is not None or key == "score"
+            if value is not None or key in WITHHELD_FIELDS
         }
 
 
 class AdminSimulationRunList(ContractModel):
-    """List envelope."""
-
     items: list[AdminSimulationRun]
 
 
 class SimulationActionRequest(ContractModel):
-    """Body of the run action route."""
-
     action: SimulationAdminAction
     reason: Annotated[str, Field(min_length=3, max_length=500)]
 
 
 class ModelConfigurationView(ContractModel):
-    """One stored configuration version."""
-
     version: int
     model_version: str
     active: bool
@@ -80,6 +70,4 @@ class ModelConfigurationView(ContractModel):
 
 
 class ModelConfigurationUpdate(ModelParametersDto):
-    """A partial set of parameters and why they are changing."""
-
     reason: Annotated[str, Field(min_length=3, max_length=500)]

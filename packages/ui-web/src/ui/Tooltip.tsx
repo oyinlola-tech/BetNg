@@ -1,7 +1,6 @@
 import { useId } from "react";
 import { cn } from "../lib/cn";
 
-/** A CSS-only tooltip shown on hover and keyboard focus. The content is also the accessible description. */
 export function Tooltip({ content, children, side = "top", className }: { readonly content: string; readonly children: React.ReactNode; readonly side?: "top" | "bottom"; readonly className?: string }): React.JSX.Element {
   const id = useId();
 

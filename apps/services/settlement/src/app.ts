@@ -5,6 +5,7 @@ import {
   serviceProbe,
 } from "@betng/service-kit";
 import type { Logger, ServiceServer } from "@betng/service-kit";
+import type { CommandBus, QueryBus } from "@zudojs/cqrs";
 import {
   createAuditRecorder,
   createBettingClient,
@@ -40,13 +41,13 @@ export interface SettlementPeers {
 export interface SettlementApp {
   readonly server: ServiceServer;
   readonly logger: Logger;
+  readonly commandBus: CommandBus;
+  readonly queryBus: QueryBus;
   readonly maintenance: MaintenanceJob;
-  /** Seeds the default commission configuration, opens a reporting period and starts the timer. */
   readonly prepare: () => Promise<void>;
   readonly onShutdown: readonly (() => Promise<void>)[];
 }
 
-/** `peers` replaces the RPC clients; tests pass fakes that record every call. */
 export function createApp(config: SettlementConfig, peers?: SettlementPeers): SettlementApp {
   if (config.databaseUrl === undefined) {
     throw new Error("SETTLEMENT_DATABASE_URL is required.");
@@ -119,6 +120,8 @@ export function createApp(config: SettlementConfig, peers?: SettlementPeers): Se
   return {
     server,
     logger,
+    commandBus,
+    queryBus,
     maintenance,
     onShutdown,
 

@@ -1,5 +1,3 @@
-"""Route handlers."""
-
 from .admin_controller import AdminSimulationController
 from .simulation_controller import SimulationController
 

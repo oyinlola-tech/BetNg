@@ -54,8 +54,6 @@ class Window:
 
 @dataclass(frozen=True)
 class BetScope:
-    """Which accepted bets a figure covers. Empty means every bet there is."""
-
     window: Window = field(default_factory=Window)
     league_id: str | None = None
     match_id: str | None = None
@@ -68,8 +66,6 @@ class BetScope:
 
 @dataclass(frozen=True)
 class DayRange:
-    """Calendar days in the report time zone, both ends included."""
-
     first: date
     last: date
 

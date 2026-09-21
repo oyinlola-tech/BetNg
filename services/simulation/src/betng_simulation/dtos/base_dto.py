@@ -1,5 +1,3 @@
-"""The base every wire shape is built on."""
-
 from __future__ import annotations
 
 from datetime import UTC, datetime
@@ -10,8 +8,6 @@ from pydantic.alias_generators import to_camel
 
 
 class ContractModel(BaseModel):
-    """camelCase on the wire; unknown fields are rejected."""
-
     model_config = ConfigDict(
         alias_generator=to_camel,
         populate_by_name=True,

@@ -1,7 +1,6 @@
 import { randomFromAlphabet, randomNumericCode } from "@zudojs/crypto";
 import { SECURITY } from "../constants/index.js";
 
-/** No look-alike characters: these are read off a screen and typed at a shop terminal. */
 const PASSWORD_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
 
 export interface IssuedSecrets {

@@ -1,5 +1,3 @@
-"""Re-checks the actor: the gateway's route table alone must not be the only guard."""
-
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -28,8 +26,6 @@ def _require(request: Request, kind: str, permission: str | None) -> Actor:
 
 
 def admin_guard(permission: str | None = None) -> Callable[[Request], Actor]:
-    """Check the actor as a dependency, before the query string is validated."""
-
     def guard(request: Request) -> Actor:
         return _require(request, ACTOR_ADMIN, permission)
 

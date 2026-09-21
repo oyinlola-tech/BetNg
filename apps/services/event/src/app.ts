@@ -1,14 +1,7 @@
 /**
- * Assembles the event service.
- *
- * This is the one BetNG service that serves two protocols, so it is the one
- * that creates its own `http.Server`: ZudoJS's node adapter serves REST on it
- * and the WebSocket adapter attaches its `upgrade` handler to the same
- * server. One process, one port — a client reads a match over REST and
- * subscribes to its live stream on the same origin.
- *
- * `@zudojs/adapters` defines the `WebSocketAdapter` contract and ships no
- * implementation; `@betng/service-kit` provides BetNG's, backed by `ws`.
+ * Creates its own `http.Server` so the node adapter can serve REST on it
+ * while the WebSocket adapter attaches its `upgrade` handler to the same
+ * server: one process, one port.
  */
 
 import { createServer } from "node:http";

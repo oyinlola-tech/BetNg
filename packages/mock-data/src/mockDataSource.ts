@@ -1,5 +1,3 @@
-/** `BetNgDataSource` over the in-process platform. */
-
 import type { LeagueId, MatchId, TeamId } from "@betng/contracts";
 import {
   DataSourceError,

@@ -24,7 +24,6 @@ export function percentToBasisPoints(percent: string | number): number {
   return basisPoints;
 }
 
-/** 1250 → "12.50", the text form PostgreSQL casts to NUMERIC(5,2) without rounding. */
 export function basisPointsToPercentText(basisPoints: number): string {
   const whole = Math.trunc(basisPoints / 100);
   const fraction = basisPoints % 100;

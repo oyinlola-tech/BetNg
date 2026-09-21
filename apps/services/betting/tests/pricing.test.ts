@@ -21,7 +21,6 @@ describe("slip pricing", () => {
   });
 
   it("prices three legs from the integer product, flooring once", () => {
-    // 215 × 340 × 185 = 13 523 500 → 13.5235
     expect(priceSlip(10_000, [215, 340, 185])).toEqual({
       totalOddsHundredths: 1352,
       potentialPayout: 135_235,

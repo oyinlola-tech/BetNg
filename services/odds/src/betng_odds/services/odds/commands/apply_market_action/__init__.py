@@ -1,5 +1,3 @@
-"""Operator actions on a market."""
-
 from .apply_market_action_command import ApplyMarketActionCommand
 from .apply_market_action_handler import ApplyMarketActionHandler
 

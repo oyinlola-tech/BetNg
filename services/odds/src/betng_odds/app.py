@@ -1,5 +1,3 @@
-"""Application assembly."""
-
 from __future__ import annotations
 
 import logging
@@ -56,8 +54,6 @@ DESCRIPTION = (
 
 @dataclass(frozen=True)
 class PeerOverrides:
-    """Replacements for the collaborators that live outside the odds schema."""
-
     probability_model: ProbabilityModel | None = None
     event_publisher: EventPublisher | None = None
     audit_recorder: AuditRecorder | None = None
@@ -100,7 +96,6 @@ def create_app(
     *,
     overrides: PeerOverrides | None = None,
 ) -> FastAPI:
-    """Build the service. ``overrides`` lets a test stand in for a peer."""
     resolved = settings or load_odds_settings()
     logger = logging.getLogger(resolved.service_name)
     pool = create_pool(require_database_url(resolved))
