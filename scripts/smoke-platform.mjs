@@ -19,7 +19,8 @@ const leagues = await source.listLeagues().catch(() => []);
 await step("leagues", async () => leagues.map((l) => l.code).join(","));
 const matches = await source.listMatches({ limit: 50 }).catch((e) => (console.log("FAIL listMatches", e.code, e.message), []));
 await step("matches", async () => `${matches.length} · phases ${[...new Set(matches.map((m) => m.phase))].join(",")}`);
-const live = matches.find((m) => m.phase === "LIVE" || m.phase === "HALFTIME") ?? matches[0];
+const inPlay = await source.listMatches({ phases: ["LIVE", "HALFTIME"], limit: 1 }).catch(() => []);
+const live = inPlay[0] ?? matches[0];
 
 if (live !== undefined) {
   await step("match", async () => {
@@ -34,9 +35,9 @@ if (live !== undefined) {
   const seen = [];
   const sub = source.subscribeMatch(live.id, { onEvent: (e) => seen.push(e.kind), onSignal: (s) => seen.push(`signal:${s}`), onConnection: (c) => seen.push(`conn:${c}`) });
 
-  await new Promise((r) => setTimeout(r, 6000));
+  await new Promise((r) => setTimeout(r, 12000));
   sub.unsubscribe();
-  console.log("ok   realtime (6s):", seen.join(" "));
+  console.log("ok   realtime (12s):", seen.join(" "));
 }
 
 if (leagues[0] !== undefined) await step("standings", async () => (await source.getStandings(leagues[0].id)).rows.length);
