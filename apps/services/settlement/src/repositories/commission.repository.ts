@@ -5,8 +5,8 @@
  * The ledger is written only by closing a period (see the operator repository).
  */
 
-import { Prisma } from "../databases/index.js";
-import type { PrismaClient } from "../databases/index.js";
+import { Prisma } from "../generated/prisma/client.js";
+import type { PrismaClient } from "../generated/prisma/client.js";
 import type { CommissionRepository } from "../interfaces/index.js";
 import type { CommissionConfigRecord, CommissionLedgerRecord } from "../models/index.js";
 import { basisPointsToPercentText } from "../utils/index.js";

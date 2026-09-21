@@ -25,6 +25,7 @@ beforeEach(() => {
   harness.risk.next = { decision: "ACCEPT", reason: "WITHIN_LIMIT", maxStake: 10_000_000 };
   harness.wallet.down = false;
   harness.failNextInsert = false;
+  harness.lockUnavailable = false;
 });
 
 function fundedCustomer(balance = 1_000_000): string {
@@ -297,6 +298,24 @@ describe("POST /bets", () => {
 
     expect(reply.status).toBe(503);
     expect(reply.body.error.code).toBe("UPSTREAM_UNAVAILABLE");
+    expect(await betRows(userId)).toBe(0);
+  });
+
+  it("never places unlocked: no lock, no risk call, no debit, no bet", async () => {
+    const match = await harness.seedMatch();
+    const userId = fundedCustomer();
+
+    harness.lockUnavailable = true;
+
+    const reply = await harness.call<ErrorBody>("POST", "/bets", {
+      headers: harness.customer(userId),
+      body: { selections: [match.leg(0)], stake: 1000 },
+    });
+
+    expect(reply.status).toBe(503);
+    expect(reply.body.error.code).toBe("SERVICE_UNAVAILABLE");
+    expect(harness.risk.calls.some((call) => call.actor.id === userId)).toBe(false);
+    expect(harness.wallet.calls.some((call) => call.ownerId === userId)).toBe(false);
     expect(await betRows(userId)).toBe(0);
   });
 

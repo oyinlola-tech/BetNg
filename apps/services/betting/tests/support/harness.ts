@@ -2,7 +2,12 @@ import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import process from "node:process";
 import { PrismaPg } from "@prisma/adapter-pg";
-import { internalHeaders } from "@betng/service-kit";
+import {
+  createRedisConnection,
+  createServiceLogger,
+  internalHeaders,
+} from "@betng/service-kit";
+import { createRedisMatchLock } from "../../src/clients/index.js";
 import { createApp, loadBettingConfig } from "../../src/index.js";
 import type { BettingApp } from "../../src/index.js";
 import { PrismaClient } from "../../src/generated/prisma/client.js";
@@ -82,6 +87,7 @@ export interface Harness {
   readonly identity: FakeIdentity;
   readonly admin: PrismaClient;
   failNextInsert: boolean;
+  lockUnavailable: boolean;
   seedMatch(options?: SeedMatchOptions): Promise<SeededMatch>;
   seedShop(): Promise<SeededShop>;
   customer(id: string): Record<string, string>;
@@ -137,12 +143,20 @@ export async function startHarness(): Promise<Harness> {
     REDIS_URL: process.env["REDIS_URL"] ?? "redis://localhost:56379",
   });
 
-  const harness: { failNextInsert: boolean } = { failNextInsert: false };
+  const harness = { failNextInsert: false, lockUnavailable: false };
+  const redis = createRedisConnection(config.redisUrl ?? "");
+  const redisLock = createRedisMatchLock(redis, createServiceLogger(config));
 
   const app: BettingApp = createApp(config, {
     risk,
     wallet,
     identity,
+    lock: {
+      withMatches: async (matchIds, task) =>
+        harness.lockUnavailable
+          ? { acquired: false }
+          : redisLock.withMatches(matchIds, task),
+    },
     wrapRepository: (repository): BetRepository => ({
       ...repository,
       insert: async (bet) => {
@@ -338,6 +352,7 @@ export async function startHarness(): Promise<Harness> {
         await task();
       }
 
+      await redis.close();
       await admin.$disconnect();
     },
   });
