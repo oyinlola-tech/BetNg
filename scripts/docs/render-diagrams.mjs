@@ -1,5 +1,5 @@
 // Draws the README banner and the architecture diagrams as SVG, in light and dark variants.
-import { writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { LOGO_B_PATH, LOGO_CUT_PATH, LOGO_TILE_PATH, crestFor, crestSvg } from "../../packages/brand/dist/index.js";
 
 const THEMES = {
@@ -252,3 +252,27 @@ for (const [name, t] of Object.entries(THEMES)) {
 }
 
 console.log("banner and diagrams written");
+
+// Badges carry numbers from the latest recorded runs; update them with the proof images.
+const BADGES = [
+  ["licence", "licence", "MIT", "#2457F5"],
+  ["play-money", "money", "play money only", "#9C5207"],
+  ["platform-tests", "platform tests", "1,578 passing", "#0E7553"],
+  ["frontend-tests", "frontend tests", "641 passing", "#0E7553"],
+  ["scenario", "end-to-end scenario", "22 / 22 steps", "#0E7553"],
+  ["typescript", "TypeScript", "7", "#3178C6"],
+  ["python", "Python", "3.14", "#3776AB"],
+  ["node", "Node.js", "24", "#5FA04E"],
+];
+
+const width = (s) => Math.round([...s].reduce((w, ch) => w + (/[A-Z0-9]/.test(ch) ? 7.4 : ch === " " ? 3.4 : 6.4), 0)) + 20;
+
+for (const [file, label, value, color] of BADGES) {
+  const lw = width(label);
+  const vw = width(value);
+  const w = lw + vw;
+  const badge = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="24" viewBox="0 0 ${w} 24" role="img" aria-label="${esc(label)}: ${esc(value)}"><rect width="${w}" height="24" rx="5" fill="#14130F"/><rect x="${lw}" width="${vw}" height="24" rx="5" fill="${color}"/><rect x="${lw}" width="6" height="24" fill="${color}"/><text x="${lw / 2}" y="16" text-anchor="middle" font-family="${SANS}" font-size="12" font-weight="600" fill="#F2F4F7">${esc(label)}</text><text x="${lw + vw / 2}" y="16" text-anchor="middle" font-family="${SANS}" font-size="12" font-weight="700" fill="#FFFFFF">${esc(value)}</text></svg>\n`;
+
+  mkdirSync("docs/images/badges", { recursive: true });
+  writeFileSync(`docs/images/badges/${file}.svg`, badge);
+}
