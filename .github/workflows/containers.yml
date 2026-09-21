@@ -1,0 +1,120 @@
+name: Containers
+
+on:
+  pull_request:
+    paths:
+      - "apps/**"
+      - "packages/**"
+      - "infrastructure/**"
+      - "scripts/check-public-env.mjs"
+      - "pnpm-lock.yaml"
+      - ".dockerignore"
+      - ".github/workflows/containers.yml"
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: containers-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build-scan:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [web, tv, shop, admin]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: infrastructure/docker/web.Dockerfile
+          build-args: |
+            APP=${{ matrix.app }}
+            VITE_API_URL=${{ vars.FRONTEND_API_URL || 'https://api.betng.invalid' }}
+            VITE_WS_URL=${{ vars.FRONTEND_WS_URL || 'wss://live.betng.invalid/live' }}
+          push: false
+          load: true
+          tags: betng-frontend-${{ matrix.app }}:ci
+          cache-from: type=gha,scope=frontend-${{ matrix.app }}
+          cache-to: type=gha,mode=max,scope=frontend-${{ matrix.app }}
+      - name: Image boots and serves the security headers
+        run: |
+          docker run -d --name "fe-${{ matrix.app }}" --read-only --tmpfs /tmp:uid=101,gid=101,mode=0700 \
+            --cap-drop ALL --security-opt no-new-privileges:true -p 127.0.0.1:8080:8080 \
+            -e BETNG_API_ORIGIN=https://api.betng.invalid -e BETNG_WS_ORIGIN=wss://live.betng.invalid \
+            "betng-frontend-${{ matrix.app }}:ci"
+          for _ in $(seq 1 30); do curl -fsS http://127.0.0.1:8080/healthz && break; sleep 1; done
+          headers="$(curl -fsSI http://127.0.0.1:8080/)"
+          echo "${headers}"
+          for header in content-security-policy strict-transport-security x-content-type-options \
+            referrer-policy permissions-policy cross-origin-opener-policy; do
+            grep -qi "^${header}:" <<<"${headers}" || { echo "::error::missing ${header}"; exit 1; }
+          done
+          docker rm -f "fe-${{ matrix.app }}"
+      - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: betng-frontend-${{ matrix.app }}:ci
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+
+  publish:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build-scan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        app: [web, tv, shop, admin]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Require the production endpoints
+        env:
+          API_URL: ${{ vars.FRONTEND_API_URL }}
+          WS_URL: ${{ vars.FRONTEND_WS_URL }}
+        run: |
+          [[ "${API_URL}" == https://* && "${WS_URL}" == wss://* ]] || {
+            echo "::error::Set repository variables FRONTEND_API_URL (https://) and FRONTEND_WS_URL (wss://)."
+            exit 1
+          }
+      - id: image
+        run: echo "name=ghcr.io/${GITHUB_REPOSITORY,,}/frontend-${{ matrix.app }}" >> "${GITHUB_OUTPUT}"
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: infrastructure/docker/web.Dockerfile
+          build-args: |
+            APP=${{ matrix.app }}
+            VITE_API_URL=${{ vars.FRONTEND_API_URL }}
+            VITE_WS_URL=${{ vars.FRONTEND_WS_URL }}
+            VITE_SITE_URL=${{ vars.FRONTEND_SITE_URL }}
+            VITE_AUTH_TRANSPORT=${{ vars.FRONTEND_AUTH_TRANSPORT }}
+            VITE_UPLOAD_HOSTS=${{ vars.FRONTEND_UPLOAD_HOSTS }}
+            VITE_CHECKOUT_HOSTS=${{ vars.FRONTEND_CHECKOUT_HOSTS }}
+          push: true
+          provenance: mode=max
+          sbom: true
+          tags: ${{ steps.image.outputs.name }}:sha-${{ github.sha }}
+          cache-from: type=gha,scope=frontend-${{ matrix.app }}
