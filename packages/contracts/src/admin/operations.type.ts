@@ -32,6 +32,10 @@ export const adminPermissionSchema = z.enum([
   "health:read",
   "settings:read",
   "settings:write",
+  "kyc:read",
+  "kyc:write",
+  "payments:read",
+  "payments:write",
 ]);
 
 export type AdminPermission = z.infer<typeof adminPermissionSchema>;

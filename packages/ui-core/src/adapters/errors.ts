@@ -34,6 +34,11 @@ const BY_CODE: Readonly<Partial<Record<string, DataSourceErrorCode>>> = {
   INSUFFICIENT_FUNDS: "INSUFFICIENT_FUNDS",
   CONFLICT: "CONFLICT",
   NOT_IMPLEMENTED: "NOT_IMPLEMENTED",
+  LIMIT_EXCEEDED: "LIMIT_EXCEEDED",
+  SELF_EXCLUDED: "SELF_EXCLUDED",
+  KYC_REQUIRED: "KYC_REQUIRED",
+  PAYMENT_FAILED: "PAYMENT_FAILED",
+  PAYMENT_PROVIDER_UNAVAILABLE: "UNAVAILABLE",
   ODDS_UNAVAILABLE: "UNAVAILABLE",
   RISK_UNAVAILABLE: "UNAVAILABLE",
   DATABASE_UNAVAILABLE: "UNAVAILABLE",
@@ -64,6 +69,7 @@ export function translateApiError(cause: unknown, hasSession = false): DataSourc
     if (cause.kind === "offline") return new DataSourceError("OFFLINE", cause.message, info);
     if (cause.kind === "timeout") return new DataSourceError("TIMEOUT", cause.message, info);
     if (cause.status === 0) return new DataSourceError("NETWORK", cause.message, info);
+    if (cause.kind === "parse") return new DataSourceError("SERVER", "The platform sent an answer that could not be read.", info);
 
     if (cause.status === 401 || cause.code === "UNAUTHENTICATED" || cause.code === "SESSION_EXPIRED") {
       return hasSession || cause.code === "SESSION_EXPIRED"

@@ -1,5 +1,5 @@
 import { z } from "@zudojs/validation";
-import { isoTimestampSchema } from "../common/index.js";
+import { isoTimestampSchema, httpsUrlSchema } from "../common/index.js";
 
 // Pending backend: identity service account-security routes. The TOTP secret and backup codes are generated and stored server-side.
 
@@ -175,7 +175,7 @@ export const statementJobSchema = z.object({
   format: statementFormatSchema,
   from: z.iso.date(),
   to: z.iso.date(),
-  downloadUrl: z.url().optional(),
+  downloadUrl: httpsUrlSchema.optional(),
   expiresAt: isoTimestampSchema.optional(),
   createdAt: isoTimestampSchema,
 });

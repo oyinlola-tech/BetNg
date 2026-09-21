@@ -63,7 +63,7 @@ export {
   toLocalDateKey,
 } from "./datetime.js";
 export type { DateTimeConfig } from "./datetime.js";
-export { DEFAULT_FLAGS, parseFlagOverrides, resolveFlags } from "./flags.js";
+export { DEFAULT_FLAGS, FLAG_VARIABLES, parseFlagOverrides, resolveFlags } from "./flags.js";
 export { consoleSink, createLogger, redact } from "./logger.js";
 export type {
   LogCategory,
@@ -101,14 +101,30 @@ export type {
   PlatformDataSourceOptions,
 } from "./adapters/platformDataSource.js";
 
-export { createSessionStore, hasPermission } from "./session.js";
+export { COOKIE_SESSION_TOKEN, createSessionStore, hasPermission, withoutCredential } from "./session.js";
+export { createSessionMonitor } from "./sessionMonitor.js";
+export type { SessionMonitor, SessionMonitorOptions, SessionMonitorPhase, SessionMonitorState } from "./sessionMonitor.js";
+export { createIdempotencyKey, isAllowedExternalUrl, maskAccountNumber, safeReturnPath } from "./safety.js";
+export type {
+  AccountServicesSource,
+  DevicesSource,
+  KycSource,
+  KycUploadInput,
+  LimitsSource,
+  PaymentsSource,
+  SecuritySource,
+  UploadProgress,
+} from "./accountServices.type.js";
+export { createPlatformAccountServices } from "./adapters/platformAccountServices.js";
+export type { PlatformAccountServicesOptions } from "./adapters/platformAccountServices.js";
+export { uploadToTicket } from "./adapters/upload.js";
 export type { SessionLike, SessionSnapshot, SessionStatus, SessionStorage, SessionStore } from "./session.js";
 
 export type { AuthDataSource } from "./authDataSource.type.js";
-export type { PlaceTicketInput, ShopDataSource, TicketFilter } from "./shopDataSource.type.js";
-export type { AdminDataSource } from "./adminDataSource.type.js";
+export type { PlaceTicketInput, ShopDataSource, ShopShiftSource, TicketFilter } from "./shopDataSource.type.js";
+export type { AdminDataSource, ComplianceDataSource } from "./adminDataSource.type.js";
 
-export { createPlatformAdminSource, createPlatformAuthSource, createPlatformShopSource } from "./adapters/platformAccountSources.js";
+export { createPlatformAdminSource, createPlatformAuthSource, createPlatformComplianceSource, createPlatformShopSource } from "./adapters/platformAccountSources.js";
 export type { PlatformAdminOptions } from "./adapters/platformAccountSources.js";
 export { translateApiError } from "./adapters/errors.js";
 

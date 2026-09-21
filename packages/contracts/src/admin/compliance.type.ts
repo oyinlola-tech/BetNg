@@ -1,5 +1,5 @@
 import { z } from "@zudojs/validation";
-import { isoTimestampSchema, minorUnitsSchema } from "../common/index.js";
+import { isoTimestampSchema, minorUnitsSchema, httpsUrlSchema } from "../common/index.js";
 import { kycDocumentSchema, kycStatusSchema, kycTierSchema } from "../account/kyc.type.js";
 import { paymentRecordSchema } from "../account/payments.type.js";
 import { limitsSummarySchema } from "../account/limits.type.js";
@@ -26,7 +26,7 @@ export const kycReviewDecisionSchema = z.object({
 export type KycReviewDecision = z.infer<typeof kycReviewDecisionSchema>;
 
 /** A document preview is a short-lived, platform-signed URL fetched on demand, never stored. */
-export const kycDocumentPreviewSchema = z.object({ url: z.url(), expiresAt: isoTimestampSchema, contentType: z.string() });
+export const kycDocumentPreviewSchema = z.object({ url: httpsUrlSchema, expiresAt: isoTimestampSchema, contentType: z.string() });
 
 export type KycDocumentPreview = z.infer<typeof kycDocumentPreviewSchema>;
 

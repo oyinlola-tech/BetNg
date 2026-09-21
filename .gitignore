@@ -96,3 +96,9 @@ Thumbs.db
 *.swp
 *~
 scripts/e2e/.logs/
+
+# ---------------------------------------------------------------------------
+# Lockfiles of other package managers (pnpm-lock.yaml is the only lockfile)
+# ---------------------------------------------------------------------------
+package-lock.json
+yarn.lock

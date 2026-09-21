@@ -10,3 +10,10 @@
 .git
 .env
 docs/screenshots
+**/.env
+**/.env.*
+!**/.env.example
+.kilo
+playwright-report
+test-results
+**/*.log

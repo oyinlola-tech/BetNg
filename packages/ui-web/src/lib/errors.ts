@@ -148,10 +148,44 @@ const PRESETS: Record<DataSourceErrorCode, ErrorPreset> = {
     platformMessage: true,
   },
   RATE_LIMITED: {
-    title: "Too many attempts",
+    title: "Too many requests",
     message: "Wait a moment before trying again.",
     retryable: true,
     tone: "warning",
+  },
+  TWO_FACTOR_REQUIRED: {
+    title: "Verification code needed",
+    message: "Enter the code from your authenticator app to finish signing in.",
+    retryable: false,
+    tone: "info",
+  },
+  LIMIT_EXCEEDED: {
+    title: "Limit reached",
+    message: "This would go over a responsible gaming limit on your account.",
+    retryable: false,
+    tone: "warning",
+    platformMessage: true,
+  },
+  SELF_EXCLUDED: {
+    title: "Account restricted",
+    message: "Your account is self-excluded. Betting and deposits are paused until the exclusion ends.",
+    retryable: false,
+    tone: "warning",
+    platformMessage: true,
+  },
+  KYC_REQUIRED: {
+    title: "Verification required",
+    message: "Verify your identity before doing this.",
+    retryable: false,
+    tone: "info",
+    platformMessage: true,
+  },
+  PAYMENT_FAILED: {
+    title: "Payment not completed",
+    message: "The payment did not go through. No money was taken for this attempt.",
+    retryable: false,
+    tone: "danger",
+    platformMessage: true,
   },
 };
 
@@ -182,7 +216,7 @@ function messageFor(error: DataSourceError, preset: ErrorPreset): string {
     Number.isFinite(retryAfter) &&
     retryAfter > 0
   )
-    return waitWording(retryAfter);
+    return `Too many requests. ${waitWording(retryAfter)}`;
 
   if (preset.platformMessage !== true) return preset.message;
 

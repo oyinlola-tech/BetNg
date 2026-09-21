@@ -1,5 +1,5 @@
-import { parseFlagOverrides } from "../flags.js";
-import type { FeatureFlags } from "../types/index.js";
+import { FLAG_VARIABLES, parseFlagOverrides } from "../flags.js";
+import type { FeatureFlag, FeatureFlags } from "../types/index.js";
 
 export type AppEnvironment = "development" | "test" | "staging" | "production";
 export type DataSourceMode = "mock" | "platform";
@@ -15,6 +15,12 @@ export interface ClientEnv {
   readonly flagOverrides: Partial<FeatureFlags>;
   readonly logLevel: "debug" | "info" | "warn" | "error";
   readonly siteUrl: string | undefined;
+  /** `cookie` when the platform issues an HttpOnly session cookie; nothing secret is then kept in browser storage. */
+  readonly authTransport: "bearer" | "cookie";
+  /** Hosts the platform may name as a KYC upload target. */
+  readonly uploadHosts: readonly string[];
+  /** Hosts a deposit may redirect to for a provider's hosted checkout. */
+  readonly checkoutHosts: readonly string[];
   readonly problems: readonly string[];
 }
 
@@ -71,6 +77,16 @@ export function readClientEnv(raw: RawEnv): ClientEnv {
   }
 
   const timeout = Number(text(raw, "VITE_REQUEST_TIMEOUT_MS"));
+  const flagOverrides: Partial<Record<FeatureFlag, boolean>> = { ...parseFlagOverrides(text(raw, "VITE_FEATURE_FLAGS")) };
+
+  for (const [flag, name] of Object.entries(FLAG_VARIABLES) as [FeatureFlag, string][]) {
+    const value = text(raw, name);
+
+    if (value === "true" || value === "false") flagOverrides[flag] = value === "true";
+  }
+
+  const hosts = (name: string): readonly string[] =>
+    Object.freeze((text(raw, name) ?? "").split(",").map((host) => host.trim().toLowerCase()).filter((host) => /^\.?[a-z0-9.-]+$/.test(host)));
 
   return Object.freeze({
     appEnv,
@@ -80,9 +96,12 @@ export function readClientEnv(raw: RawEnv): ClientEnv {
     realtimeTransport,
     realtimeAuth: oneOf(text(raw, "VITE_REALTIME_AUTH"), ["none", "frame", "query"] as const, "none"),
     requestTimeoutMs: Number.isFinite(timeout) && timeout >= 1_000 ? timeout : 10_000,
-    flagOverrides: parseFlagOverrides(text(raw, "VITE_FEATURE_FLAGS")),
+    flagOverrides,
     logLevel: oneOf(text(raw, "VITE_LOG_LEVEL"), ["debug", "info", "warn", "error"] as const, deployed ? "warn" : "info"),
     siteUrl: text(raw, "VITE_SITE_URL"),
+    authTransport: oneOf(text(raw, "VITE_AUTH_TRANSPORT"), ["bearer", "cookie"] as const, "bearer"),
+    uploadHosts: hosts("VITE_UPLOAD_HOSTS"),
+    checkoutHosts: hosts("VITE_CHECKOUT_HOSTS"),
     problems,
   });
 }

@@ -35,7 +35,6 @@ import { formatScore } from "../format.js";
 import { localDayRange } from "../datetime.js";
 import { currentCurrency } from "../money.js";
 import { isFinished, resolvePhase } from "../phase.js";
-import { computeStandings } from "../standings.js";
 import type {
   BetLegView,
   BetPlacementView,
@@ -760,20 +759,7 @@ export function createPlatformDataSource(
         };
       }
 
-      const completed = await required(() =>
-        rest.listMatches({ leagueId, status: "COMPLETED" }),
-      );
-      const summaries = await Promise.all(completed.map(toSummary));
-      const inSeason = summaries.filter(
-        (m) => season === undefined || m.season === season,
-      );
-
-      return computeStandings(
-        leagueId,
-        season ?? inSeason[0]?.season ?? 1,
-        allTeams,
-        inSeason,
-      );
+      throw new DataSourceError("NOT_IMPLEMENTED", "Standings are not served by the platform yet.");
     },
 
     getTopScorers: async (leagueId, season): Promise<readonly TopScorer[]> => {

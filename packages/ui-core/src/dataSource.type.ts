@@ -1,4 +1,4 @@
-import type { LeagueId, MatchId, TeamId } from "@betng/contracts";
+import type { LeagueId, MatchId, TeamId, TwoFactorChallenge } from "@betng/contracts";
 import type {
   BetPlacementView,
   BetView,
@@ -128,13 +128,20 @@ export type DataSourceErrorCode =
   | "SESSION_EXPIRED"
   | "FORBIDDEN"
   | "CONFLICT"
-  | "RATE_LIMITED";
+  | "RATE_LIMITED"
+  | "TWO_FACTOR_REQUIRED"
+  | "LIMIT_EXCEEDED"
+  | "SELF_EXCLUDED"
+  | "KYC_REQUIRED"
+  | "PAYMENT_FAILED";
 
 export interface DataSourceErrorDetail {
   readonly status?: number;
   readonly requestId?: string;
   readonly fields?: Readonly<Record<string, string>>;
   readonly retryAfterSeconds?: number;
+  /** Set on TWO_FACTOR_REQUIRED: the platform's challenge to answer. */
+  readonly challenge?: TwoFactorChallenge;
 }
 
 export class DataSourceError extends Error {

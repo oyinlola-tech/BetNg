@@ -8,7 +8,7 @@ import { DataSourceError, formatDateTime, formatMoney } from "@betng/ui-core";
 import { Button, CodeInput, ErrorState, LoadingState, Modal, Panel, presentError, useToast } from "@betng/ui-web";
 import { Guard } from "../components/Guard";
 import { PageHeader } from "../components/PageHeader";
-import { TicketLookup } from "../components/TicketLookup";
+import { TicketScanner } from "../components/TicketScanner";
 import { TicketReceipt } from "../components/TicketReceipt";
 import { usePayoutTicket, useTicket } from "../hooks/queries";
 import { queryKeys } from "../lib/queryKeys";
@@ -73,7 +73,7 @@ function Payout(): React.JSX.Element {
   return (
     <div className="mx-auto max-w-4xl p-4 lg:p-6">
       <PageHeader title="Payout" description="Pay a winning ticket or refund a void one. Every payout needs your PIN." />
-      <TicketLookup
+      <TicketScanner
         key={paid?.code ?? "lookup"}
         label="Ticket ID"
         actionLabel="Find"

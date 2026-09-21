@@ -1,5 +1,6 @@
 import type { CustomerProfile, CustomerSession, UserId } from "@betng/contracts";
 import { DataSourceError, createSessionStore, type AuthDataSource } from "@betng/ui-core";
+import { secondFactorGateFor } from "../account/index.js";
 import type { KeyValueStorage } from "../engine.js";
 import { hash, uuidFrom } from "../prng.js";
 
@@ -53,6 +54,7 @@ export function createMockAuthSource(options: MockAuthOptions = {}): AuthDataSou
 
   let failures = 0;
   let lockedUntil = 0;
+  const challenges = new Map<string, { accountEmail: string; expiresAt: number; attempts: number }>();
 
   const load = (): StoredAccount[] => {
     try {
@@ -177,6 +179,41 @@ export function createMockAuthSource(options: MockAuthOptions = {}): AuthDataSou
 
         if (!account.verified) throw new DataSourceError("CONFLICT", "This email has not been verified yet.");
 
+        if (secondFactorGateFor(session)?.required(account.id) === true) {
+          const challengeId = uuidFrom(`challenge:${account.id}:${String(now())}`);
+          const expiresAt = now() + 5 * 60_000;
+
+          challenges.set(challengeId, { accountEmail: account.email, expiresAt, attempts: 0 });
+          throw new DataSourceError("TWO_FACTOR_REQUIRED", "Enter the code from your authenticator app.", {
+            challenge: { challengeId, methods: ["TOTP", "BACKUP_CODE"], expiresAt: new Date(expiresAt).toISOString() },
+          });
+        }
+
+        return open(account);
+      }),
+
+    /** @endpoint POST /api/v1/auth/login/2fa { challengeId, code } → CustomerSession */
+    completeTwoFactor: (request) =>
+      call(() => {
+        const challenge = challenges.get(request.challengeId);
+        const account = challenge === undefined ? undefined : find(challenge.accountEmail);
+
+        if (challenge === undefined || account === undefined || challenge.expiresAt < now()) {
+          throw new DataSourceError("SESSION_EXPIRED", "That sign-in attempt expired. Sign in again.");
+        }
+
+        challenge.attempts += 1;
+        if (challenge.attempts > 5) {
+          challenges.delete(request.challengeId);
+          throw new DataSourceError("RATE_LIMITED", "Too many attempts. Sign in again.");
+        }
+
+        if (secondFactorGateFor(session)?.verify(account.id, request.code) !== true) {
+          throw new DataSourceError("VALIDATION", "That code is not right.", { fields: { code: "That code is not right." } });
+        }
+
+        challenges.delete(request.challengeId);
+
         return open(account);
       }),
 
@@ -188,5 +225,19 @@ export function createMockAuthSource(options: MockAuthOptions = {}): AuthDataSou
 
     /** @endpoint POST /api/v1/auth/password/forgot → 204 (always, whether or not the address exists) */
     requestPasswordReset: () => call(() => undefined),
+
+    /** @endpoint POST /api/v1/auth/password/reset { email, code, newPassword } → 204 (revokes every session) */
+    confirmPasswordReset: (request) =>
+      call(() => {
+        const account = find(request.email);
+
+        if (account === undefined || request.code !== MOCK_VERIFICATION_CODE) throw new DataSourceError("VALIDATION", "That code is not right or has expired.", { fields: { code: "That code is not right or has expired." } });
+
+        const salt = uuidFrom(`${account.email}:${String(now())}`).slice(0, 8);
+        const updated = { ...account, salt, passwordHash: digest(salt, request.newPassword) };
+
+        accounts = accounts.map((a) => (a.email === account.email ? updated : a));
+        persist();
+      }),
   };
 }

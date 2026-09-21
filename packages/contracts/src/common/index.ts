@@ -4,6 +4,7 @@ export {
   CURRENCY,
   currencySchema,
   decimalOddsSchema,
+  httpsUrlSchema,
   isoTimestampSchema,
   minorUnitsSchema,
   uuidSchema,

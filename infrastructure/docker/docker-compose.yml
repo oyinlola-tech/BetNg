@@ -12,6 +12,46 @@
 
 name: betng
 
+# Static browser apps behind unprivileged nginx: `docker compose --profile frontend up --build`.
+# VITE_* build args are baked into the bundle; BETNG_* origins feed the CSP at container start.
+x-frontend-build-args: &frontend-build-args
+  VITE_APP_ENV: ${FRONTEND_APP_ENV:-production}
+  VITE_API_URL: ${FRONTEND_API_URL:-http://localhost:3000}
+  VITE_WS_URL: ${FRONTEND_WS_URL:-ws://localhost:3008/live}
+  VITE_REALTIME_TRANSPORT: ${FRONTEND_REALTIME_TRANSPORT:-websocket}
+  VITE_AUTH_TRANSPORT: ${FRONTEND_AUTH_TRANSPORT:-bearer}
+  VITE_UPLOAD_HOSTS: ${FRONTEND_UPLOAD_HOSTS:-}
+  VITE_CHECKOUT_HOSTS: ${FRONTEND_CHECKOUT_HOSTS:-}
+
+x-frontend: &frontend
+  profiles: ["frontend"]
+  restart: unless-stopped
+  read_only: true
+  tmpfs:
+    - /tmp:size=16m,uid=101,gid=101,mode=0700,noexec,nosuid,nodev
+  cap_drop: ["ALL"]
+  security_opt: ["no-new-privileges:true"]
+  deploy:
+    resources:
+      limits:
+        cpus: "0.50"
+        memory: 128M
+        pids: 64
+  environment:
+    BETNG_API_ORIGIN: ${FRONTEND_API_ORIGIN:-http://localhost:3000}
+    BETNG_WS_ORIGIN: ${FRONTEND_WS_ORIGIN:-ws://localhost:3008}
+    BETNG_UPLOAD_ORIGINS: ${FRONTEND_UPLOAD_ORIGINS:-}
+    BETNG_CHECKOUT_ORIGINS: ${FRONTEND_CHECKOUT_ORIGINS:-}
+    BETNG_IMG_ORIGINS: ${FRONTEND_IMG_ORIGINS:-}
+    # Local compose talks to the platform over plain http/ws; deployed images leave this false.
+    BETNG_ALLOW_INSECURE_ORIGINS: ${FRONTEND_ALLOW_INSECURE_ORIGINS:-true}
+  healthcheck:
+    test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/healthz"]
+    interval: 30s
+    timeout: 3s
+    retries: 3
+    start_period: 5s
+
 services:
   postgres:
     image: postgres:17-alpine
@@ -252,6 +292,54 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+
+  web:
+    <<: *frontend
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/web.Dockerfile
+      args:
+        <<: *frontend-build-args
+        APP: web
+    image: betng-frontend-web
+    ports:
+      - "127.0.0.1:${WEB_PUBLISHED_PORT:-8420}:8080"
+
+  tv:
+    <<: *frontend
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/web.Dockerfile
+      args:
+        <<: *frontend-build-args
+        APP: tv
+    image: betng-frontend-tv
+    ports:
+      - "127.0.0.1:${TV_PUBLISHED_PORT:-8430}:8080"
+
+  shop:
+    <<: *frontend
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/web.Dockerfile
+      args:
+        <<: *frontend-build-args
+        APP: shop
+    image: betng-frontend-shop
+    ports:
+      - "127.0.0.1:${SHOP_PUBLISHED_PORT:-8440}:8080"
+
+  admin:
+    <<: *frontend
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/web.Dockerfile
+      args:
+        <<: *frontend-build-args
+        APP: admin
+    image: betng-frontend-admin
+    ports:
+      - "127.0.0.1:${ADMIN_PUBLISHED_PORT:-8450}:8080"
 
 volumes:
   postgres-data:

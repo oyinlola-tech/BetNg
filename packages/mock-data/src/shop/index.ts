@@ -1,4 +1,4 @@
-import type { Cashier, ShopDailyReport, ShopPermission, ShopSession, ShopTransaction, ShopTransactionType, Ticket, TicketId, TicketSelection } from "@betng/contracts";
+import type { CashierShift, Cashier, ShopDailyReport, ShopPermission, ShopSession, ShopTransaction, ShopTransactionType, Ticket, TicketId, TicketSelection } from "@betng/contracts";
 import {
   DataSourceError,
   MAX_SELECTIONS,
@@ -29,6 +29,7 @@ export interface MockShopOptions {
 }
 
 interface ShopState {
+  shifts?: CashierShift[];
   float: number;
   tickets: Ticket[];
   transactions: ShopTransaction[];
@@ -293,8 +294,128 @@ export function createMockShopSource(options: MockShopOptions): ShopDataSource {
       .reverse();
   }
 
+  const shiftList = (): CashierShift[] => (state.shifts ??= []);
+
+  /* Totals come from the shop ledger, as the platform will compute them; the terminal never adds them up itself. */
+  function withTotals(shift: CashierShift): CashierShift {
+    const from = Date.parse(shift.openedAt);
+    const to = shift.closedAt === undefined ? Number.POSITIVE_INFINITY : Date.parse(shift.closedAt);
+    const rows = state.transactions.filter((t) => t.cashierId === shift.cashierId && Date.parse(t.createdAt) >= from && Date.parse(t.createdAt) <= to);
+    const sum = (type: ShopTransactionType): number => rows.filter((t) => t.type === type).reduce((total, t) => total + Math.abs(t.amount), 0);
+    const totals = {
+      openingFloat: shift.totals.openingFloat,
+      sales: sum("TICKET_SALE"),
+      payouts: sum("TICKET_PAYOUT"),
+      cancellations: sum("TICKET_CANCEL"),
+      cashIn: sum("CASH_IN"),
+      cashOut: sum("CASH_OUT"),
+      ticketsSold: rows.filter((t) => t.type === "TICKET_SALE").length,
+      expectedCash: 0,
+    };
+
+    totals.expectedCash = totals.openingFloat + totals.sales - totals.payouts - totals.cancellations + totals.cashIn - totals.cashOut;
+
+    return { ...shift, totals, ...(shift.countedCash === undefined ? {} : { discrepancy: shift.countedCash - totals.expectedCash }) };
+  }
+
+  const shiftKeys = new Map<string, CashierShift>();
+
+  function openShiftFor(cashierId: string): CashierShift | undefined {
+    return shiftList().find((sh) => sh.cashierId === cashierId && sh.status === "OPEN");
+  }
+
+  const shifts: ShopDataSource["shifts"] = {
+    /** @endpoint GET /api/v1/shop/shifts/current → { shift: CashierShift | null } */
+    getCurrent: async () => {
+      await platform.delay();
+
+      const open = openShiftFor(current().cashier.id);
+
+      return open === undefined ? null : withTotals(open);
+    },
+
+    /** @endpoint POST /api/v1/shop/shifts { openingFloat } (Idempotency-Key) → CashierShift */
+    open: async (openingFloat, key) => {
+      await platform.delay();
+
+      const active = current();
+      const replay = shiftKeys.get(key);
+
+      if (replay !== undefined) return withTotals(replay);
+      if (openShiftFor(active.cashier.id) !== undefined) throw new DataSourceError("CONFLICT", "A shift is already open for this cashier.");
+      if (openingFloat < 0) throw new DataSourceError("VALIDATION", "The opening float cannot be negative.");
+
+      const shift: CashierShift = {
+        id: uuidFrom(`shop:shift:${active.cashier.id}:${String(now())}`),
+        cashierId: active.cashier.id,
+        cashierName: active.cashier.displayName,
+        status: "OPEN",
+        openedAt: new Date(now()).toISOString(),
+        totals: { openingFloat, sales: 0, payouts: 0, cancellations: 0, cashIn: 0, cashOut: 0, expectedCash: openingFloat, ticketsSold: 0 },
+      };
+
+      shiftList().push(shift);
+      shiftKeys.set(key, shift);
+      commit();
+
+      return withTotals(shift);
+    },
+
+    /** @endpoint POST /api/v1/shop/shifts/current/cash { type, amount, note } (Idempotency-Key) → CashierShift */
+    recordCash: async (request, key) => {
+      const active = await authorised("transactions:read");
+      const open = openShiftFor(active.cashier.id);
+
+      if (open === undefined) throw new DataSourceError("CONFLICT", "Start a shift before recording cash.");
+      if (!shiftKeys.has(key)) {
+        if (request.type === "CASH_OUT" && request.amount > withTotals(open).totals.expectedCash) throw new DataSourceError("INSUFFICIENT_FUNDS", "The drawer does not hold that much cash.");
+        ledger(request.type, request.type === "CASH_IN" ? request.amount : -request.amount, active.cashier, `CASH-${String(state.sequence + 1)}`, now(), request.note);
+        shiftKeys.set(key, open);
+        commit();
+      }
+
+      return withTotals(open);
+    },
+
+    /** @endpoint POST /api/v1/shop/shifts/:id/close { counted: [{ denomination, count }], note?, pin } (Idempotency-Key) → CashierShift */
+    close: async (shiftId, request, key) => {
+      await platform.delay();
+
+      const active = current();
+      const shift = shiftList().find((sh) => sh.id === shiftId);
+
+      if (shift === undefined || shift.cashierId !== active.cashier.id) throw new DataSourceError("NOT_FOUND", "That shift is not yours to close.");
+      if (shiftKeys.get(key) === shift && shift.status !== "OPEN") return withTotals(shift);
+      if (shift.status !== "OPEN") throw new DataSourceError("CONFLICT", "This shift is already closed.");
+      if (request.pin !== DEMO_PIN) throw new DataSourceError("VALIDATION", "That PIN is not right.", { fields: { pin: "That PIN is not right." } });
+
+      const counted = request.counted.reduce((total, row) => total + row.denomination * row.count, 0);
+
+      Object.assign(shift, { status: "CLOSED", closedAt: new Date(now()).toISOString(), countedCash: counted, ...(request.note === undefined ? {} : { discrepancyNote: request.note }) });
+      const closed = withTotals(shift);
+
+      Object.assign(shift, { totals: closed.totals, discrepancy: closed.discrepancy });
+      shiftKeys.set(key, shift);
+      commit();
+
+      return closed;
+    },
+
+    /** @endpoint GET /api/v1/shop/shifts?date → { items: CashierShift[] } */
+    list: async (date) => {
+      await platform.delay();
+      current();
+
+      return shiftList()
+        .filter((sh) => date === undefined || toLocalDateKey(new Date(sh.openedAt)) === date)
+        .map(withTotals)
+        .reverse();
+    },
+  };
+
   return {
     session,
+    shifts,
 
     /** @endpoint POST /api/v1/shop/auth/login ShopLoginRequest → ShopSession */
     login: async (request) => {

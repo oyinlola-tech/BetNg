@@ -57,3 +57,6 @@ export const currencySchema = z.literal(CURRENCY);
 export const decimalOddsSchema = z.number().gt(1).max(1000);
 
 export type DecimalOdds = number;
+
+/** A platform-issued link (checkout, upload target, signed download). Only https; never `javascript:`, `data:` or plain http. */
+export const httpsUrlSchema = z.url({ protocol: /^https$/, hostname: z.regexes.domain });

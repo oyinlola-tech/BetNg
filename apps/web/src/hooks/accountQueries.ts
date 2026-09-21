@@ -20,7 +20,7 @@ export const RECENT_TRANSACTIONS_QUERY: TransactionQuery = Object.freeze({
   direction: "desc",
 });
 
-function useSignedIn(): boolean {
+export function useSignedIn(): boolean {
   return useSession(session).status === "AUTHENTICATED";
 }
 
@@ -134,7 +134,7 @@ export function useWithdraw() {
   return useWalletMutation((amount) => dataSource.withdraw(amount));
 }
 
-/** Re-reads the customer's data when the platform reports an account change (settlement, payout, new alert). */
+/** Re-reads the customer's data when the platform reports an account change (settlement, payout, payment, limit, new alert). */
 export function useAccountSignals(): void {
   const client = useQueryClient();
   const signedIn = useSignedIn();
@@ -147,6 +147,8 @@ export function useAccountSignals(): void {
       void client.invalidateQueries({ queryKey: keys.bets });
       void client.invalidateQueries({ queryKey: keys.transactionsRoot });
       void client.invalidateQueries({ queryKey: keys.notifications });
+      void client.invalidateQueries({ queryKey: keys.paymentsRoot });
+      void client.invalidateQueries({ queryKey: keys.limitsRoot });
     });
   }, [client, signedIn]);
 }

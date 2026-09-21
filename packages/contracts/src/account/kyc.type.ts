@@ -1,5 +1,5 @@
 import { z } from "@zudojs/validation";
-import { isoTimestampSchema } from "../common/index.js";
+import { isoTimestampSchema, httpsUrlSchema } from "../common/index.js";
 
 // Pending backend: the KYC service. Identity and bank verification providers are called server-side only.
 
@@ -96,7 +96,7 @@ export interface KycUploadTicket {
 
 export const kycUploadTicketSchema = z.object({
   uploadId: z.string().min(1),
-  uploadUrl: z.url(),
+  uploadUrl: httpsUrlSchema,
   method: z.enum(["PUT", "POST"]),
   headers: z.record(z.string(), z.string()),
   expiresAt: isoTimestampSchema,

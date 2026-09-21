@@ -11,6 +11,7 @@ export {
   errorResponseSchema,
   healthResponseSchema,
   healthStatusSchema,
+  httpsUrlSchema,
   isoTimestampSchema,
   minorUnitsSchema,
   pageSchema,

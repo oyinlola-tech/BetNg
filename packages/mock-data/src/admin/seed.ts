@@ -41,6 +41,10 @@ const ALL_PERMISSIONS = [
   "health:read",
   "settings:read",
   "settings:write",
+  "kyc:read",
+  "kyc:write",
+  "payments:read",
+  "payments:write",
 ] as const;
 
 export const ROLE_PERMISSIONS: Readonly<Record<AdminRole, readonly string[]>> = {

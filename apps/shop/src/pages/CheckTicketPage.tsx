@@ -6,7 +6,7 @@ import { DataSourceError, formatDateTime, formatMoney } from "@betng/ui-core";
 import { Button, ErrorState, LoadingState, cn } from "@betng/ui-web";
 import { Guard } from "../components/Guard";
 import { PageHeader } from "../components/PageHeader";
-import { TicketLookup } from "../components/TicketLookup";
+import { TicketScanner } from "../components/TicketScanner";
 import { TicketReceipt } from "../components/TicketReceipt";
 import { useTicket } from "../hooks/queries";
 import { useShopSession } from "../hooks/useShopSession";
@@ -71,7 +71,7 @@ function CheckTicket(): React.JSX.Element {
   return (
     <div className="mx-auto max-w-4xl p-4 lg:p-6">
       <PageHeader title="Check Ticket" description="Shows the state of any ticket sold at this shop." />
-      <TicketLookup
+      <TicketScanner
         label="Ticket number"
         actionLabel="Check"
         initial={code}

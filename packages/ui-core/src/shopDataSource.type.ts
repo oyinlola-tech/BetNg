@@ -1,4 +1,4 @@
-import type { Cashier, ShopDailyReport, ShopLoginRequest, ShopSession, ShopTransaction, Ticket, TicketStatus } from "@betng/contracts";
+import type { CashMovementRequest, CashierShift, CloseShiftRequest, Cashier, ShopDailyReport, ShopLoginRequest, ShopSession, ShopTransaction, Ticket, TicketStatus } from "@betng/contracts";
 import type { SessionStore } from "./session.js";
 import type { SlipSelection } from "./types/index.js";
 
@@ -13,6 +13,15 @@ export interface TicketFilter {
   readonly status?: TicketStatus;
   readonly q?: string;
   readonly date?: string;
+}
+
+/** Pending backend. Totals, expected cash and discrepancies are always the platform's figures. */
+export interface ShopShiftSource {
+  getCurrent(): Promise<CashierShift | null>;
+  open(openingFloat: number, idempotencyKey: string): Promise<CashierShift>;
+  recordCash(request: CashMovementRequest, idempotencyKey: string): Promise<CashierShift>;
+  close(shiftId: string, request: CloseShiftRequest, idempotencyKey: string): Promise<CashierShift>;
+  list(date?: string): Promise<readonly CashierShift[]>;
 }
 
 export interface ShopDataSource {
@@ -30,6 +39,7 @@ export interface ShopDataSource {
   getDailyReport(date?: string): Promise<ShopDailyReport>;
   listDailyReports(from: string, to: string): Promise<readonly ShopDailyReport[]>;
   listCashiers(): Promise<readonly Cashier[]>;
+  readonly shifts: ShopShiftSource;
 
   /** Fires when tickets or the float change (a sale, a settlement, a payout), so lists refresh without polling blindly. */
   subscribe(listener: () => void): () => void;

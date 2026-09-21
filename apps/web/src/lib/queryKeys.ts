@@ -1,3 +1,4 @@
+import type { PaymentDirection, PaymentHistoryQuery } from "@betng/contracts";
 import type { MatchFilter, SearchQuery, TransactionQuery } from "@betng/ui-core";
 
 export const keys = {
@@ -24,6 +25,19 @@ export const keys = {
   bet: (id: string) => ["bets", id] as const,
   notifications: ["notifications"] as const,
   preferences: ["preferences"] as const,
+  paymentsRoot: ["payments"] as const,
+  paymentHistory: (query: PaymentHistoryQuery) => ["payments", "history", query] as const,
+  payment: (direction: PaymentDirection, reference: string) => ["payments", "record", direction, reference] as const,
+  banks: ["banks"] as const,
+  bankAccounts: ["bank-accounts"] as const,
+  kycRoot: ["kyc"] as const,
+  kycOverview: ["kyc", "overview"] as const,
+  kycDocuments: ["kyc", "documents"] as const,
+  limitsRoot: ["limits"] as const,
+  limitsSummary: ["limits", "summary"] as const,
+  limitHistory: ["limits", "history"] as const,
+  statementsRoot: ["statements"] as const,
+  statement: (id: string) => ["statements", id] as const,
 };
 
 /** Everything that belongs to the signed-in customer; dropped on sign-out. */
@@ -34,4 +48,9 @@ export const ACCOUNT_QUERY_KEYS = [
   keys.notifications,
   keys.preferences,
   keys.viewed,
+  keys.paymentsRoot,
+  keys.bankAccounts,
+  keys.kycRoot,
+  keys.limitsRoot,
+  keys.statementsRoot,
 ] as const;

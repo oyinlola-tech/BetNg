@@ -1,5 +1,5 @@
 import { z } from "@zudojs/validation";
-import { currencySchema, isoTimestampSchema, minorUnitsSchema, type Currency } from "../common/index.js";
+import { currencySchema, isoTimestampSchema, minorUnitsSchema, type Currency, httpsUrlSchema } from "../common/index.js";
 
 // Pending backend: the payments service. Providers (Paystack, Flutterwave, Bachs) are chosen and called server-side only.
 
@@ -75,7 +75,7 @@ export interface DepositInitiation {
 
 export const depositInitiationSchema = z.object({
   payment: paymentRecordSchema,
-  checkoutUrl: z.url().optional(),
+  checkoutUrl: httpsUrlSchema.optional(),
   instructions: z.object({ title: z.string(), lines: z.array(z.string()) }).optional(),
   expiresAt: isoTimestampSchema,
 });

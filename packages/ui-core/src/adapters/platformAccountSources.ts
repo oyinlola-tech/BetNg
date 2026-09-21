@@ -1,10 +1,11 @@
 import type { AdminListQuery, AdminListResource, BetNgRestClient } from "@betng/client-sdk";
 import type { AdminSession, CustomerSession, ShopSession } from "@betng/contracts";
-import type { AdminDataSource } from "../adminDataSource.type.js";
+import type { AdminDataSource, ComplianceDataSource } from "../adminDataSource.type.js";
 import type { AuthDataSource } from "../authDataSource.type.js";
 import type { ShopDataSource } from "../shopDataSource.type.js";
 import type { SessionLike, SessionStore } from "../session.js";
 import { pageRows } from "../pageRows.js";
+import { DataSourceError } from "../dataSource.type.js";
 import { translateApiError } from "./errors.js";
 
 function guarded<S extends SessionLike>(session: SessionStore<S>) {
@@ -20,6 +21,38 @@ function guarded<S extends SessionLike>(session: SessionStore<S>) {
 
       throw error;
     }
+  };
+}
+
+/** For routes still pending on the platform: a 404/405 means the service is not deployed, not that a record is missing. */
+function servedOrPending(run: <T>(call: () => Promise<T>) => Promise<T>) {
+  return async function call<T>(work: () => Promise<T>): Promise<T> {
+    try {
+      return await run(work);
+    } catch (cause) {
+      const error = cause as DataSourceError;
+
+      if (error.detail.status === 404 || error.detail.status === 405) {
+        throw new DataSourceError("NOT_IMPLEMENTED", "This service is not available on the platform yet.", error.detail);
+      }
+
+      throw error;
+    }
+  };
+}
+
+export function createPlatformComplianceSource(rest: BetNgRestClient, session: SessionStore<AdminSession>): ComplianceDataSource {
+  const call = servedOrPending(guarded(session));
+  const c = rest.compliance;
+
+  return {
+    listKycQueue: (query) => call(() => c.listKycQueue(query)),
+    reviewKyc: (userId, decision) => call(() => c.reviewKyc(userId, decision)),
+    previewKycDocument: (documentId) => call(() => c.previewKycDocument(documentId)),
+    getPaymentOverview: () => call(() => c.getPaymentOverview()),
+    listPayments: (query) => call(() => c.listPayments(query)),
+    reviewWithdrawal: (reference, review) => call(() => c.reviewWithdrawal(reference, review)),
+    listResponsibleGaming: (query) => call(() => c.listResponsibleGaming(query)),
   };
 }
 
@@ -48,7 +81,18 @@ export function createPlatformAuthSource(rest: BetNgRestClient, session: Session
     },
     resendVerification: (email) => run(() => rest.auth.resendVerification(email)),
     login: async (request) => {
-      const next = await run(() => rest.auth.login(request));
+      const result = await run(() => rest.auth.login(request));
+
+      if ("challenge" in result) {
+        throw new DataSourceError("TWO_FACTOR_REQUIRED", "Enter the code from your authenticator app.", { challenge: result.challenge });
+      }
+
+      session.set(result.session);
+
+      return result.session;
+    },
+    completeTwoFactor: async (request) => {
+      const next = await run(() => rest.auth.completeTwoFactor(request));
 
       session.set(next);
 
@@ -56,11 +100,13 @@ export function createPlatformAuthSource(rest: BetNgRestClient, session: Session
     },
     logout: () => signOut(session, () => rest.auth.logout()),
     requestPasswordReset: (email) => run(() => rest.auth.requestPasswordReset(email)),
+    confirmPasswordReset: (request) => run(() => rest.auth.confirmPasswordReset(request)),
   };
 }
 
 export function createPlatformShopSource(rest: BetNgRestClient, session: SessionStore<ShopSession>): ShopDataSource {
   const run = guarded(session);
+  const unserved = servedOrPending(run);
   const listeners = new Set<() => void>();
   const notify = (): void => {
     for (const listener of listeners) listener();
@@ -109,6 +155,13 @@ export function createPlatformShopSource(rest: BetNgRestClient, session: Session
     getDailyReport: (date) => run(() => rest.shop.getDailyReport(date)),
     listDailyReports: (from, to) => run(() => rest.shop.listDailyReports(from, to)),
     listCashiers: () => run(() => rest.shop.listCashiers()),
+    shifts: {
+      getCurrent: () => unserved(() => rest.shop.getCurrentShift()),
+      open: async (openingFloat, key) => changed(await unserved(() => rest.shop.openShift({ openingFloat }, key))),
+      recordCash: async (request, key) => changed(await unserved(() => rest.shop.recordCashMovement(request, key))),
+      close: async (shiftId, request, key) => changed(await unserved(() => rest.shop.closeShift(shiftId, request, key))),
+      list: (date) => unserved(() => rest.shop.listShifts(date)),
+    },
     subscribe: (listener) => {
       listeners.add(listener);
 

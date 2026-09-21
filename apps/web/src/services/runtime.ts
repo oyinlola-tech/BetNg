@@ -1,6 +1,9 @@
 import type { CustomerSession } from "@betng/contracts";
 import {
+  COOKIE_SESSION_TOKEN,
   configureCurrency,
+  createPlatformAccountServices,
+  withoutCredential,
   configureDateTime,
   createPlatformAuthSource,
   createPlatformClients,
@@ -8,6 +11,7 @@ import {
   createSessionStore,
   currentCurrency,
   resolveFlags,
+  type AccountServicesSource,
   type AuthDataSource,
   type BetNgDataSource,
   type FeatureFlags,
@@ -72,6 +76,7 @@ const pending = new Proxy({}, { get: notReady });
 
 export let dataSource: BetNgDataSource = pending as BetNgDataSource;
 export let authSource: AuthDataSource = pending as AuthDataSource;
+export let accountServices: AccountServicesSource = pending as AccountServicesSource;
 
 let info: RuntimeInfo | undefined;
 let configRead: PlatformConfigView | undefined;
@@ -83,15 +88,21 @@ async function createSources(): Promise<void> {
 
     dataSource = mock.dataSource;
     authSource = mock.authSource;
+    accountServices = mock.accountServices;
     adoptSession(mock.authSource.session);
 
     return;
   }
 
-  const store = createSessionStore<CustomerSession>(SESSION_KEY, sessionStorageAdapter);
+  const cookieSession = env.authTransport === "cookie";
+  const store = createSessionStore<CustomerSession>(SESSION_KEY, cookieSession ? withoutCredential(sessionStorageAdapter) : sessionStorageAdapter);
   const { rest, realtime } = createPlatformClients({
     env,
-    getToken: () => store.token(),
+    getToken: () => {
+      const token = store.token();
+
+      return cookieSession || token === COOKIE_SESSION_TOKEN ? undefined : token;
+    },
     onUnauthorized: () => {
       store.expire();
     },
@@ -116,6 +127,7 @@ async function createSources(): Promise<void> {
     storage: localStorageAdapter,
   });
   authSource = createPlatformAuthSource(rest, store);
+  accountServices = createPlatformAccountServices(rest, store, { uploadHosts: env.uploadHosts });
   adoptSession(store);
 }
 
@@ -151,8 +163,10 @@ export function getRuntimeConfig(): PlatformConfigView | undefined {
 export function __setRuntimeForTests(sources: {
   readonly dataSource: BetNgDataSource;
   readonly authSource: AuthDataSource;
+  readonly accountServices?: AccountServicesSource;
 }): void {
   dataSource = sources.dataSource;
   authSource = sources.authSource;
+  if (sources.accountServices !== undefined) accountServices = sources.accountServices;
   adoptSession(sources.authSource.session);
 }

@@ -4,6 +4,8 @@ import { RouteErrorBoundary } from "@betng/ui-web";
 import { AppShell } from "../layouts/AppShell";
 import { logger } from "../services/runtime";
 import { accountRoutes, authRoutes } from "./account.routes";
+import { legalRoutes } from "./legal.routes";
+import { moneyRoutes } from "./money.routes";
 
 const HomePage = lazy(() => import("../pages/HomePage").then((m) => ({ default: m.HomePage })));
 const LivePage = lazy(() => import("../pages/LivePage").then((m) => ({ default: m.LivePage })));
@@ -53,6 +55,8 @@ export const appRoutes: RouteObject[] = [
       { path: "unauthorized", Component: UnauthorizedPage },
       { path: "forbidden", Component: ForbiddenPage },
       ...accountRoutes,
+      ...moneyRoutes,
+      ...legalRoutes,
       { path: "*", Component: NotFoundPage },
     ],
   },

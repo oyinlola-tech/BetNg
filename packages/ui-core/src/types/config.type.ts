@@ -6,6 +6,16 @@ export interface FeatureFlags {
   readonly liveEnabled: boolean;
   readonly tvEnabled: boolean;
   readonly searchEnabled: boolean;
+  readonly paymentsEnabled: boolean;
+  readonly kycEnabled: boolean;
+  readonly responsibleGamingEnabled: boolean;
+  readonly twoFactorEnabled: boolean;
+  readonly accountSessionsEnabled: boolean;
+  readonly statementsEnabled: boolean;
+  readonly notificationChannelsEnabled: boolean;
+  readonly accountDeletionEnabled: boolean;
+  readonly cashShiftsEnabled: boolean;
+  readonly complianceEnabled: boolean;
 }
 
 export type FeatureFlag = keyof FeatureFlags;

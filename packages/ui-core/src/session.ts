@@ -100,3 +100,22 @@ export function createSessionStore<S extends SessionLike>(key: string, storage?:
 export function hasPermission(permissions: readonly string[] | undefined, permission: string): boolean {
   return permissions?.includes(permission) ?? false;
 }
+
+export const COOKIE_SESSION_TOKEN = "cookie-session";
+
+/** For cookie sessions: persists who is signed in and until when, never a credential. The browser holds the HttpOnly cookie. */
+export function withoutCredential(storage: SessionStorage): SessionStorage {
+  return {
+    get: (key) => storage.get(key),
+    set: (key, value) => {
+      try {
+        const parsed = JSON.parse(value) as Record<string, unknown>;
+
+        storage.set(key, JSON.stringify({ ...parsed, token: COOKIE_SESSION_TOKEN }));
+      } catch {
+        storage.set(key, "");
+      }
+    },
+    ...(storage.remove === undefined ? {} : { remove: (key: string) => storage.remove?.(key) }),
+  };
+}

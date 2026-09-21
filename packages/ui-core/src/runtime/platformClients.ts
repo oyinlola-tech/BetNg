@@ -31,6 +31,7 @@ export function createPlatformClients(options: PlatformClientOptions): PlatformC
     timeoutMs: env.requestTimeoutMs,
     getToken: options.getToken,
     onUnauthorized: options.onUnauthorized,
+    ...(env.authTransport === "cookie" ? { credentials: "include" as const, csrf: { cookie: "betng_csrf", header: "x-csrf-token" } } : {}),
     onRequestError: (failure) => {
       const level =
         failure.status >= 500 || failure.status === 0
