@@ -14,6 +14,7 @@ import {
 } from "@betng/ui-core";
 import { env } from "../configs/env";
 import { logger } from "./logger";
+import type { DemoTerminal } from "./mockSources";
 import { local, perTab } from "./storage";
 
 export interface RuntimeInfo {
@@ -24,6 +25,7 @@ export interface RuntimeInfo {
 
 export let dataSource: BetNgDataSource;
 export let shopSource: ShopDataSource;
+export let demoTerminal: DemoTerminal | undefined;
 
 let info: RuntimeInfo | undefined;
 
@@ -34,6 +36,7 @@ async function createSources(): Promise<RuntimeInfo["mode"]> {
 
     dataSource = mock.dataSource;
     shopSource = mock.shopSource;
+    demoTerminal = mock.demo;
 
     return "mock";
   }

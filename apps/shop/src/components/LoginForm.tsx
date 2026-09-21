@@ -5,8 +5,7 @@ import { z } from "zod";
 import { LogIn, WifiOff } from "lucide-react";
 import { DataSourceError } from "@betng/ui-core";
 import { Button, CodeInput, Input, PasswordInput, presentError } from "@betng/ui-web";
-import { isMock } from "../services/dataSource";
-import { shopSource } from "../services/dataSource";
+import { demoTerminal, isMock, shopSource } from "../services/dataSource";
 
 /* Mirrors `shopLoginRequestSchema`; the terminal always asks for the PIN, which the contract leaves optional. */
 const schema = z.object({
@@ -56,7 +55,7 @@ export function LoginForm({ fixed, submitLabel = "Sign in", onSuccess }: LoginFo
   return (
     <form onSubmit={(event) => void submit(event)} noValidate className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2">
-        <Input label="Shop code" placeholder="BNG-LAG-001" autoCapitalize="characters" autoComplete="organization" spellCheck={false} readOnly={fixed !== undefined} tabIndex={fixed === undefined ? undefined : -1} autoFocus={fixed === undefined} error={errors.shopCode?.message} className={fixed === undefined ? undefined : "opacity-60"} {...register("shopCode")} />
+        <Input label="Shop code" placeholder="e.g. BNG-XXX-001" autoCapitalize="characters" autoComplete="organization" spellCheck={false} readOnly={fixed !== undefined} tabIndex={fixed === undefined ? undefined : -1} autoFocus={fixed === undefined} error={errors.shopCode?.message} className={fixed === undefined ? undefined : "opacity-60"} {...register("shopCode")} />
         <Input label="Username" autoComplete="username" spellCheck={false} readOnly={fixed !== undefined} tabIndex={fixed === undefined ? undefined : -1} error={errors.username?.message} className={fixed === undefined ? undefined : "opacity-60"} {...register("username")} />
       </div>
       <PasswordInput label="Password" autoComplete="current-password" autoFocus={fixed !== undefined} error={errors.password?.message} {...register("password")} />
@@ -75,14 +74,22 @@ export function LoginForm({ fixed, submitLabel = "Sign in", onSuccess }: LoginFo
         {isSubmitting ? "Signing in" : submitLabel}
       </Button>
 
-      {isMock() && fixed === undefined && (
+      {isMock() && fixed === undefined && demoTerminal !== undefined && (
         <div className="rounded-sm border border-dashed border-border-strong px-3 py-2.5 text-sm text-text-secondary">
           <p className="caps-label mb-1">Demo shop</p>
           <p>
-            Shop <code className="font-mono text-text-primary">BNG-LAG-001</code> · password <code className="font-mono text-text-primary">betng-demo</code> · PIN <code className="font-mono text-text-primary">1234</code>
+            Shop <code className="font-mono text-text-primary">{demoTerminal.shopCode}</code> · password{" "}
+            <code className="font-mono text-text-primary">{demoTerminal.password}</code> · PIN{" "}
+            <code className="font-mono text-text-primary">{demoTerminal.pin}</code>
           </p>
           <p className="mt-0.5 text-text-muted">
-            Users: <code className="font-mono">ada</code> (owner), <code className="font-mono">tunde</code> (manager), <code className="font-mono">bisi</code> (cashier), <code className="font-mono">kunle</code> (suspended)
+            Users:{" "}
+            {demoTerminal.users.map((user, index) => (
+              <span key={user.username}>
+                {index > 0 ? ", " : ""}
+                <code className="font-mono">{user.username}</code> ({user.role})
+              </span>
+            ))}
           </p>
         </div>
       )}
