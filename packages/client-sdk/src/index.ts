@@ -22,6 +22,12 @@ export {
 } from "./rest/index.js";
 export type {
   AdminFixtureQuery,
+  AnalyticsBreakdownQuery,
+  AnalyticsSessionQuery,
+  AnalyticsWindow,
+  CommissionConfigView,
+  MatchWindowQuery,
+  OperatorLedger,
   BetNgAdminClient,
   BetNgAuthClient,
   BetNgRestClient,

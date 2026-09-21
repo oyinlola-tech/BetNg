@@ -1,9 +1,4 @@
-"""Suspend and resume.
-
-An operator can stop and restart betting on a market. There is no action that
-sets a price, a probability or an outcome: the only thing that changes is the
-status, and with it the version and the snapshot history.
-"""
+"""Suspend and resume."""
 
 from __future__ import annotations
 
@@ -145,9 +140,7 @@ class ApplyMarketActionHandler(
         self, market: MarketRecord, suspend: bool, request_id: str
     ) -> None:
         """Tell live clients to re-read. The change stands if this fails."""
-        description = (
-            f"{market.type} market {'suspended' if suspend else 'resumed'}"
-        )
+        description = f"{market.type} market {'suspended' if suspend else 'resumed'}"
 
         try:
             await self.event_publisher.publish_odds_updated(

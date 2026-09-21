@@ -1,24 +1,7 @@
--- BetNG database bootstrap. Idempotent: safe on an empty server and on one that already ran it.
---
--- One authoritative database, `betng`, with one schema per owning service. The rule the grants encode:
---   a service WRITES only its own schema, and may READ every schema.
--- Reads cross schemas because risk, settlement and analytics must see the whole book; writes never do,
--- so every table still has exactly one service that can change it.
---
---   match       leagues, teams, fixtures, matches, lifecycle transitions
---   odds        markets, market_selections, odds_snapshots, pricing configuration
---   simulation  simulation_runs, match_results, match_events, model configuration
---   risk        risk_limits, risk_decisions
---   betting     bets, bet_selections, tickets
---   wallet      wallet_accounts, wallet_transactions
---   settlement  settlements, operator_periods, operator_ledger, commission_ledger
---   identity    customers, admin_users, shops, cashiers, sessions, audit_logs, platform_settings
---   (analytics owns nothing: it is a read-only view over the rest)
---
--- Run with psql as the server superuser (scripts/db-bootstrap.sh does). The passwords are local development
--- defaults for a container of simulated data; a deployment supplies its own.
-
--- `-v dbname=betng_test` builds an identical database for the integration tests.
+-- Idempotent. One database, one schema and one login per owning service.
+-- A service writes only its own schema and may read every schema (betng_reader).
+-- `-v dbname=betng_test` builds an identical database for tests.
+-- Passwords are local development defaults; a deployment supplies its own.
 
 \set ON_ERROR_STOP on
 SET client_min_messages = warning;
@@ -45,7 +28,7 @@ BEGIN
 END
 $$;
 
--- Prisma's `migrate dev` needs a throwaway database per Prisma-managed service.
+-- Shadow databases for `prisma migrate dev`.
 SELECT format('CREATE DATABASE %I OWNER %I', 'betng_' || s || '_shadow', 'betng_' || s)
 FROM unnest(ARRAY['match','betting','wallet','settlement','identity']) AS s
 WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'betng_' || s || '_shadow')\gexec

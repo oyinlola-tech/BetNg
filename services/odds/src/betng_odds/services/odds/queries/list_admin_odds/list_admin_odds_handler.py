@@ -41,9 +41,7 @@ class ListAdminOddsHandler(QueryHandler[ListAdminOddsQuery, AdminMarketOddsList]
 
         return AdminMarketOddsList(
             items=[
-                to_admin_market(
-                    record, matches.get(record.match_id), opening, exposure
-                )
+                to_admin_market(record, matches.get(record.match_id), opening, exposure)
                 for record in records
             ]
         )

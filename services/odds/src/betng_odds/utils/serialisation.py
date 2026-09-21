@@ -14,9 +14,5 @@ def iso_timestamp(value: datetime) -> str:
 
 
 def to_number(value: Decimal) -> float:
-    """Render a stored ``NUMERIC`` as a JSON number.
-
-    Prices are computed and stored as ``Decimal``; the float exists only at
-    the wire, where the shortest repr of a 2 dp value is that value.
-    """
+    """Render a stored ``NUMERIC`` as a JSON number."""
     return float(value)

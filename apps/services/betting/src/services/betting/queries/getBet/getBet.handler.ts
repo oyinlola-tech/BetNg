@@ -1,17 +1,19 @@
 import { QueryHandler } from "@zudojs/cqrs";
-import type { Bet } from "@betng/contracts";
 import { BETTING_QUERY } from "../../../../constants/index.js";
-import { BetNotFoundError } from "../../../../errors/index.js";
-import type { BetRepository } from "../../../../interfaces/index.js";
+import { betNotFound } from "../../../../errors/index.js";
+import type {
+  BetRecord,
+  BetRepository,
+} from "../../../../interfaces/index.js";
 import type { GetBetQuery } from "./getBet.query.js";
 
 /**
- * Reads one bet.
+ * Reads one of the caller's own bets.
  *
- * Raises {@link BetNotFoundError} rather than returning `undefined`, so
- * "no such bet" is answered the same way whichever caller asked.
+ * Someone else's bet answers exactly as a missing one does, so the route
+ * cannot be used to learn which bet ids exist.
  */
-export class GetBetHandler extends QueryHandler<GetBetQuery, Bet> {
+export class GetBetHandler extends QueryHandler<GetBetQuery, BetRecord> {
   public readonly queryType = BETTING_QUERY.GET_BET;
 
   private readonly bets: BetRepository;
@@ -21,11 +23,11 @@ export class GetBetHandler extends QueryHandler<GetBetQuery, Bet> {
     this.bets = bets;
   }
 
-  public async execute(query: GetBetQuery): Promise<Bet> {
-    const found = await this.bets.find(query.betId);
+  public async execute(query: GetBetQuery): Promise<BetRecord> {
+    const found = await this.bets.findBet(query.betId);
 
-    if (found === undefined) {
-      throw new BetNotFoundError(query.betId);
+    if (found === undefined || found.userId !== query.userId) {
+      throw betNotFound();
     }
 
     return found;

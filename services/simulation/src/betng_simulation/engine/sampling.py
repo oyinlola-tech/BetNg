@@ -17,6 +17,7 @@ T = TypeVar("T")
 
 
 def sample_index(rng: random.Random, size: int) -> int:
+    """Draw a uniform index below ``size``."""
     if size < 1:
         raise ValueError("Cannot sample from an empty range.")
 
@@ -29,10 +30,12 @@ def sample_int(rng: random.Random, low: int, high: int) -> int:
 
 
 def sample_bool(rng: random.Random, probability: float) -> bool:
+    """Draw ``True`` with the given probability."""
     return rng.random() < probability
 
 
 def sample_choice(rng: random.Random, items: Sequence[T]) -> T:
+    """Draw one item uniformly."""
     return items[sample_index(rng, len(items))]
 
 

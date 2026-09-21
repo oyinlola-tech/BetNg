@@ -1,19 +1,5 @@
-// BetNG wallet service schema.
-//
-// This service owns the `wallet` schema of the `betng` database: customer
-// wallets, shop floats and the append-only ledger behind both. Its login
-// may write here and only read elsewhere, which is what makes the ownership
-// boundary in `docs/architecture.md` enforceable rather than a convention.
-//
-// Identifiers belonging to another service appear as plain columns rather
-// than foreign keys: the owner of an account lives in the `identity` schema,
-// which this login cannot reference. The owner is verified by a cross-schema
-// read when the account is opened.
-//
-// Prisma 7 no longer takes the connection URL here: migrations read it from
-// `prisma.config.ts`, and the client is built with a driver adapter.
-// Constraints and triggers Prisma cannot express are in the hand-written
-// `money_invariants` migration.
+// Owns the `wallet` schema. Owners live in `identity`, so they are plain columns verified by a cross-schema read, not
+// foreign keys. CHECKs and triggers Prisma cannot express are in the `money_invariants` migration.
 
 generator client {
   provider = "prisma-client-js"
@@ -24,9 +10,7 @@ datasource db {
   provider = "postgresql"
 }
 
-/// Who may hold an account. There is deliberately no operator or admin
-/// value: the operator's result lives in the settlement service's operator
-/// ledger and is never absorbed by a wallet.
+/// No operator or admin value: the operator result lives in settlement's operator ledger, never in a wallet.
 enum OwnerType {
   CUSTOMER
   SHOP
@@ -34,33 +18,20 @@ enum OwnerType {
   @@map("owner_type")
 }
 
-/// A customer's wallet or a shop's float.
-///
-/// Money is stored as an integer count of minor units (kobo) — never a
-/// float, and never a type that rounds. An integer makes it impossible to
-/// represent a fraction of a kobo, so the question of how to round one never
-/// arises.
 model WalletAccount {
   id        String    @id @default(uuid()) @db.Uuid
   ownerType OwnerType @map("owner_type")
   ownerId   String    @map("owner_id") @db.Uuid
 
-  /// Total holding, in minor units. Constrained non-negative.
   balance  BigInt @default(0)
-  /// The part of `balance` that is committed and cannot be spent.
   /// Available balance is `balance - reserved`.
   reserved BigInt @default(0)
-  /// ISO 4217. Fixed per account: an account holds one currency, so no
-  /// operation can silently add two different ones together.
   currency String @default("NGN") @db.Char(3)
 
-  /// Incremented on every balance change, so a reader can tell whether the
-  /// account moved between two reads.
+  /// Incremented on every balance change.
   version Int @default(0)
 
-  /// Blocks all movement without deleting history. A frozen account is a
-  /// normal state for an account under review, and the ledger must survive
-  /// it intact.
+  /// Blocks all movement without deleting history.
   frozenAt DateTime? @map("frozen_at") @db.Timestamptz(3)
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
@@ -72,28 +43,17 @@ model WalletAccount {
   @@map("wallet_accounts")
 }
 
-/// The kinds of entry the ledger records.
 enum TransactionType {
   DEPOSIT
   WITHDRAWAL
-  /// Stake moved out of a customer wallet when a bet was accepted.
   BET_STAKE
-  /// Winnings credited by the settlement service.
   BET_PAYOUT
-  /// Stake returned because a match was voided.
   BET_REFUND
-  /// Corrects an earlier entry. The ledger is never edited, so a mistake is
-  /// fixed by adding the opposite entry and pointing at the original.
   ADJUSTMENT
-  /// The play-money grant a customer wallet opens with.
   WELCOME_GRANT
-  /// The play-money float a shop account opens with.
   OPENING_FLOAT
-  /// Cash taken over the counter for a ticket; credits the float.
   TICKET_SALE
-  /// Cash paid over the counter for a winning ticket; debits the float.
   TICKET_PAYOUT
-  /// Cash returned for a cancelled ticket; debits the float.
   TICKET_CANCEL
   CASH_IN
   CASH_OUT
@@ -101,41 +61,27 @@ enum TransactionType {
   @@map("transaction_type")
 }
 
-/// One ledger entry.
-///
-/// The ledger is append-only and is the authority: a balance is the sum of
-/// its entries, and `WalletAccount.balance` is a maintained projection of
-/// that sum, not an independent number. There is no update or delete path to
-/// this table, so a balance can always be re-derived and audited.
+/// Append-only and authoritative: `WalletAccount.balance` is a maintained projection of the sum of these rows.
 model WalletTransaction {
   id        String          @id @default(uuid()) @db.Uuid
   accountId String          @map("account_id") @db.Uuid
   type      TransactionType
 
-  /// Signed: positive credits, negative debits. The sign is on the amount
-  /// rather than implied by `type`, so summing the ledger needs no per-type
-  /// branching and cannot be got wrong by forgetting a case.
+  /// 0 for the opening entry, then the account `version` the entry produced. Exact order; `created_at` is not.
+  sequence Int
+
+  /// Signed kobo: positive credits, negative debits.
   amount   BigInt
   currency String @db.Char(3)
 
-  /// The balance immediately after this entry. Stored so an auditor can
-  /// verify the running sum without replaying every prior row, and so a
-  /// divergence between ledger and projection is detectable.
   balanceAfter BigInt @map("balance_after")
 
-  /// Caller-supplied key making the write idempotent.
-  ///
-  /// A retried request — a timeout the client did not see, a redelivered
-  /// call — must not credit or debit twice. The unique index makes the
-  /// second attempt fail rather than duplicate.
+  /// Unique per account, so a retried call cannot move money twice.
   idempotencyKey String @map("idempotency_key") @db.VarChar(120)
 
-  /// The domain object that caused this entry: a bet id for BET_STAKE, a
-  /// settlement id for BET_PAYOUT, a ticket code for the TICKET_* types.
   reference  String? @db.VarChar(120)
   note       String? @db.VarChar(160)
-  /// Who caused the entry: a cashier id for the shop types, an admin id for
-  /// an adjustment. Absent for entries the platform posts on its own.
+  /// Required for the TICKET_* and CASH_* types (the cashier).
   actorId    String? @map("actor_id") @db.VarChar(64)
   /// For ADJUSTMENT, the entry being corrected.
   correctsId String? @map("corrects_id") @db.Uuid
@@ -144,9 +90,8 @@ model WalletTransaction {
 
   account WalletAccount @relation(fields: [accountId], references: [id])
 
-  /// Scoped to the account rather than global: two owners may legitimately
-  /// submit the same client-generated key.
   @@unique([accountId, idempotencyKey])
+  @@unique([accountId, sequence])
   @@index([accountId, createdAt])
   @@index([createdAt])
   @@index([reference])

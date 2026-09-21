@@ -4,10 +4,15 @@ import {
   BET_REPOSITORY_TOKEN,
   BETTING_COMMAND,
   BETTING_QUERY,
-  EVENT_BUS_TOKEN,
-  RISK_GATE_TOKEN,
+  CLOCK_TOKEN,
+  IDENTITY_PEER_TOKEN,
+  LOGGER_TOKEN,
+  MARKET_READER_TOKEN,
+  MATCH_LOCK_TOKEN,
+  RISK_PEER_TOKEN,
+  WALLET_PEER_TOKEN,
 } from "../../constants/index.js";
-import { PlaceBetHandler } from "./commands/index.js";
+import { ApplySettlementHandler, PlaceBetHandler } from "./commands/index.js";
 import { GetBetHandler, ListBetsHandler } from "./queries/index.js";
 
 export interface BettingServiceConfig {
@@ -20,12 +25,25 @@ export function registerBettingService(config: BettingServiceConfig): void {
   const { container, commandBus, queryBus } = config;
 
   const bets = container.resolve(BET_REPOSITORY_TOKEN);
-  const events = container.resolve(EVENT_BUS_TOKEN);
-  const risk = container.resolve(RISK_GATE_TOKEN);
+  const logger = container.resolve(LOGGER_TOKEN);
 
   commandBus.register(
     BETTING_COMMAND.PLACE_BET,
-    new PlaceBetHandler(bets, events, risk),
+    new PlaceBetHandler({
+      bets,
+      markets: container.resolve(MARKET_READER_TOKEN),
+      lock: container.resolve(MATCH_LOCK_TOKEN),
+      risk: container.resolve(RISK_PEER_TOKEN),
+      wallet: container.resolve(WALLET_PEER_TOKEN),
+      identity: container.resolve(IDENTITY_PEER_TOKEN),
+      logger,
+      now: container.resolve(CLOCK_TOKEN),
+    }),
+  );
+
+  commandBus.register(
+    BETTING_COMMAND.APPLY_SETTLEMENT,
+    new ApplySettlementHandler(bets, logger),
   );
 
   queryBus.register(BETTING_QUERY.GET_BET, new GetBetHandler(bets));

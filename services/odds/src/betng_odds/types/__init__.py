@@ -1,8 +1,4 @@
-"""Service-local records.
-
-The wire shapes live in ``dtos`` and mirror ``@betng/contracts``; these are
-the typed rows behind them.
-"""
+"""Service-local records."""
 
 from .odds_type import (
     AuditEntry,

@@ -8,6 +8,8 @@ export class BetNgApiError extends Error {
   readonly requestId: string;
 
   readonly details: readonly ErrorDetail[];
+  /** Context of a domain error, e.g. `maxStake` on STAKE_LIMITED or `current` on ODDS_CHANGED. */
+  readonly data: Readonly<Record<string, unknown>>;
 
   constructor(status: number, body: ErrorResponse["error"]) {
     super(body.message);
@@ -16,6 +18,7 @@ export class BetNgApiError extends Error {
     this.code = body.code;
     this.requestId = body.requestId;
     this.details = body.details ?? [];
+    this.data = body.data ?? {};
   }
 }
 

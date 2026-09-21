@@ -1,16 +1,11 @@
-"""Odds service routes.
-
-Gateway-exposed routes live under ``/api/v1`` at the same path the gateway
-serves them; ``/internal`` is never proxied. The admin routes re-check the
-actor kind and the permission the gateway already required.
-"""
+"""Odds service routes."""
 
 from __future__ import annotations
 
 from typing import Annotated
 from uuid import UUID
 
-from betng_service_kit import Actor, get_request_id
+from betng_service_kit import Actor, get_request_id, require_internal
 from fastapi import APIRouter, Depends, Query, Request
 
 from ..constants import MAX_BULK_MATCH_IDS, OddsPermission
@@ -42,7 +37,12 @@ def create_odds_router(controller: OddsController) -> APIRouter:
     router = APIRouter()
     public = APIRouter(prefix=API_PREFIX, tags=["odds"])
     admin = APIRouter(prefix=f"{API_PREFIX}/admin", tags=["admin"])
-    internal = APIRouter(prefix=INTERNAL_PREFIX, tags=["internal"])
+    # Never proxied; answers 404 without the internal service token.
+    internal = APIRouter(
+        prefix=INTERNAL_PREFIX,
+        tags=["internal"],
+        dependencies=[Depends(require_internal)],
+    )
 
     @public.get(
         "/matches/{match_id}/odds",

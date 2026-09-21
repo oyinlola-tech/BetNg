@@ -10,9 +10,7 @@ from .....utils import operator_result
 from .get_account_analysis_query import GetAccountAnalysisQuery
 
 
-class GetAccountAnalysisHandler(
-    QueryHandler[GetAccountAnalysisQuery, AccountAnalysis]
-):
+class GetAccountAnalysisHandler(QueryHandler[GetAccountAnalysisQuery, AccountAnalysis]):
     message_type = AnalyticsQueryType.GET_ACCOUNT_ANALYSIS
 
     def __init__(self, reader: AnalyticsReader) -> None:
@@ -38,10 +36,9 @@ class GetAccountAnalysisHandler(
             losses=row["losing_bets"],
             voids=row["void_bets"],
             stake=row["stake"],
-            # A cashier's payout is what they paid over the counter, which
-            # need not be on tickets they sold; the contribution below is
-            # always about the bets the subject accepted or placed.
-            payout=row.get("payout_processed", row["payout"]),
+            # A cashier's payout is what they paid out, not necessarily on
+            # tickets they sold; the contribution is about tickets they accepted.
+            payout=row["payout_processed" if "payout_processed" in row else "payout"],
             net_result=-contribution,
             operator_contribution=contribution,
             commission=row.get("commission"),

@@ -10,6 +10,19 @@ import type {
   AdminShopSummary,
   AdminSimulationRun,
   AdminTeam,
+  AccountAnalysis,
+  AnalyticsBreakdown,
+  AnalyticsDimension,
+  AnalyticsOverview,
+  CommissionConfig,
+  CommissionSummary,
+  MatchExposure,
+  OperatorPeriod,
+  OperatorSummary,
+  RiskLimits,
+  SessionAnalysis,
+  UpdateCommissionConfigRequest,
+  UpdateRiskLimitsRequest,
   AuditLogEntry,
   AuditLogQuery,
   CashierCredentials,
@@ -33,6 +46,34 @@ export interface AdminFixtureQuery {
   readonly leagueId?: string;
   readonly matchday?: number;
   readonly matchStatus?: string;
+}
+
+export interface AnalyticsWindow {
+  readonly from?: string;
+  readonly to?: string;
+}
+
+export interface AnalyticsBreakdownQuery extends AnalyticsWindow {
+  readonly by: AnalyticsDimension;
+  readonly leagueId?: string;
+  readonly matchId?: string;
+  readonly shopId?: string;
+  readonly limit?: number;
+}
+
+export interface AnalyticsSessionQuery extends AnalyticsWindow {
+  readonly kind: SessionAnalysis["kind"];
+  readonly leagueId?: string;
+}
+
+export interface OperatorLedger {
+  readonly current: OperatorSummary;
+  readonly closed: readonly OperatorSummary[];
+}
+
+export interface CommissionConfigView {
+  readonly default: CommissionConfig;
+  readonly shops: readonly CommissionConfig[];
 }
 
 export interface BetNgAdminClient {
@@ -67,6 +108,19 @@ export interface BetNgAdminClient {
   marketAction(marketId: string, request: MarketAdminActionRequest): Promise<AdminMarketOdds>;
 
   getRiskOverview(): Promise<RiskOverview>;
+  listExposure(): Promise<readonly MatchExposure[]>;
+  getRiskLimits(): Promise<RiskLimits>;
+  updateRiskLimits(request: UpdateRiskLimitsRequest): Promise<RiskLimits>;
+  getAnalyticsOverview(window?: AnalyticsWindow): Promise<AnalyticsOverview>;
+  getAnalyticsBreakdown(query: AnalyticsBreakdownQuery): Promise<AnalyticsBreakdown>;
+  listAnalyticsSessions(query: AnalyticsSessionQuery): Promise<readonly SessionAnalysis[]>;
+  getAccountAnalysis(kind: "accounts" | "shops" | "cashiers", id: string, window?: AnalyticsWindow): Promise<AccountAnalysis>;
+  getOperatorLedger(): Promise<OperatorLedger>;
+  listOperatorPeriods(): Promise<readonly OperatorPeriod[]>;
+  closeOperatorPeriod(reason: string): Promise<OperatorSummary>;
+  listCommission(periodId?: string): Promise<readonly CommissionSummary[]>;
+  getCommissionConfig(): Promise<CommissionConfigView>;
+  updateCommissionConfig(request: UpdateCommissionConfigRequest): Promise<CommissionConfig>;
 
   listSimulations(status?: string): Promise<readonly AdminSimulationRun[]>;
   simulationAction(runId: string, action: SimulationAdminAction, reason: string): Promise<AdminSimulationRun>;
@@ -122,6 +176,20 @@ export function createAdminClient(request: Requester): BetNgAdminClient {
     marketAction: async (marketId, body) => request<AdminMarketOdds>("POST", `${base}/markets/${marketId}/actions`, body),
 
     getRiskOverview: async () => request<RiskOverview>("GET", `${base}/risk/overview`),
+    listExposure: async () => list<MatchExposure>(`${base}/risk/exposure`),
+    getRiskLimits: async () => request<RiskLimits>("GET", `${base}/risk/limits`),
+    updateRiskLimits: async (body) => request<RiskLimits>("PUT", `${base}/risk/limits`, body),
+    getAnalyticsOverview: async (window = {}) => request<AnalyticsOverview>("GET", `${base}/analytics/overview${buildQuery({ ...window })}`),
+    getAnalyticsBreakdown: async (query) =>
+      request<AnalyticsBreakdown>("GET", `${base}/analytics/breakdown${buildQuery({ ...query, limit: query.limit === undefined ? undefined : String(query.limit) })}`),
+    listAnalyticsSessions: async (query) => list<SessionAnalysis>(`${base}/analytics/sessions${buildQuery({ ...query })}`),
+    getAccountAnalysis: async (kind, id, window = {}) => request<AccountAnalysis>("GET", `${base}/analytics/${kind}/${id}${buildQuery({ ...window })}`),
+    getOperatorLedger: async () => request<OperatorLedger>("GET", `${base}/operator`),
+    listOperatorPeriods: async () => list<OperatorPeriod>(`${base}/operator/periods`),
+    closeOperatorPeriod: async (reason) => request<OperatorSummary>("POST", `${base}/operator/periods/close`, { reason }),
+    listCommission: async (periodId) => list<CommissionSummary>(`${base}/commission${buildQuery({ periodId })}`),
+    getCommissionConfig: async () => request<CommissionConfigView>("GET", `${base}/commission/config`),
+    updateCommissionConfig: async (body) => request<CommissionConfig>("PUT", `${base}/commission/config`, body),
 
     listSimulations: async (status) => list<AdminSimulationRun>(`${base}/simulations${buildQuery({ status })}`),
     simulationAction: async (runId, action, reason) => request<AdminSimulationRun>("POST", `${base}/simulations/${runId}/actions`, { action, reason }),

@@ -1,8 +1,4 @@
-"""The peers the odds service calls, over the platform's RPC transport.
-
-A peer's own error text never reaches this service's clients: each failure is
-logged here and re-raised as one of this service's errors with a fixed message.
-"""
+"""The peers the odds service calls, over the platform's RPC transport."""
 
 from __future__ import annotations
 
@@ -49,8 +45,7 @@ class RpcProbabilityModel(ProbabilityModel):
                 extra={"requestId": request_id, "rpcCode": error.code},
             )
             raise OddsUnavailableError(
-                "The probability model could not be reached, so no odds were "
-                "published."
+                "The probability model could not be reached, so no odds were published."
             ) from error
         except ValidationError as error:
             self.logger.error(

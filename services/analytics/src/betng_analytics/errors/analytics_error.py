@@ -39,11 +39,7 @@ class InvalidQueryError(ServiceError):
 
 
 class DatabaseUnavailableError(ServiceError):
-    """The database refused or failed a read.
-
-    Answered instead of a partial or remembered figure: a number this service
-    cannot trace to rows right now is a number it does not report.
-    """
+    """Answered instead of a partial or remembered figure."""
 
     def __init__(self) -> None:
         super().__init__(

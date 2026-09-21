@@ -1,10 +1,4 @@
-"""Cross-schema reads of the shared read model (docs/architecture.md §8).
-
-The odds login can read every schema and write only its own. These classes
-issue SELECTs against the contract columns of ``match`` and ``betting`` and
-nothing else. Neither feeds pricing: the match directory supplies labels and
-the betting window, the exposure reader supplies the admin console's figures.
-"""
+"""Cross-schema reads of the shared read model (docs/architecture.md §8)."""
 
 from __future__ import annotations
 

@@ -8,7 +8,10 @@ from .get_platform_overview import GetPlatformOverviewHandler, GetPlatformOvervi
 from .list_bets import ListBetsHandler, ListBetsQuery
 from .list_daily_reports import ListDailyReportsHandler, ListDailyReportsQuery
 from .list_sessions import ListSessionsHandler, ListSessionsQuery
-from .list_shop_daily_reports import ListShopDailyReportsHandler, ListShopDailyReportsQuery
+from .list_shop_daily_reports import (
+    ListShopDailyReportsHandler,
+    ListShopDailyReportsQuery,
+)
 
 __all__ = [
     "GetAccountAnalysisHandler",

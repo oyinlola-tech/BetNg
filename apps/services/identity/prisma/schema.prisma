@@ -1,0 +1,256 @@
+// BetNG identity service schema.
+//
+// This service owns the `identity` schema of the `betng` database: customers,
+// admin users, shops, cashiers, sessions, the audit log and platform settings.
+//
+// Customers, cashiers and admin users are three separate tables on purpose.
+// An admin is structurally not a customer (architecture invariant 9): there is
+// no shared "users" row an admin could be promoted from, no wallet owner type
+// for one, and the `admin_customer_separation` migration refuses a customer
+// row that reuses an admin's e-mail address and the reverse.
+//
+// Secrets are stored only as hashes: scrypt for passwords and PINs, SHA-256
+// for session tokens, verification codes and reset tokens. The columns other
+// services may read are listed in `docs/architecture.md` §8 and must not be
+// renamed or retyped.
+//
+// Prisma 7 no longer takes the connection URL here: migrations read it from
+// `prisma.config.ts`, and the client is built with a driver adapter.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum AccountStatus {
+  ACTIVE
+  SUSPENDED
+
+  @@map("account_status")
+}
+
+enum ShopStatus {
+  ACTIVE
+  SUSPENDED
+  OFFLINE
+
+  @@map("shop_status")
+}
+
+enum AdminRole {
+  SUPER_ADMIN
+  OPERATIONS
+  RISK_ANALYST
+  SUPPORT
+
+  @@map("admin_role")
+}
+
+enum ShopRole {
+  OWNER
+  MANAGER
+  CASHIER
+
+  @@map("shop_role")
+}
+
+enum SessionKind {
+  CUSTOMER
+  CASHIER
+  ADMIN
+
+  @@map("session_kind")
+}
+
+enum AuditSeverity {
+  INFO
+  NOTICE
+  WARNING
+  CRITICAL
+
+  @@map("audit_severity")
+}
+
+/// A customer of the web and mobile clients. E-mail is stored lower-cased.
+model Customer {
+  id              String        @id @default(uuid()) @db.Uuid
+  email           String        @unique @db.VarChar(254)
+  displayName     String        @map("display_name") @db.VarChar(60)
+  phone           String?       @db.VarChar(20)
+  status          AccountStatus @default(ACTIVE)
+  passwordHash    String        @map("password_hash")
+  emailVerifiedAt DateTime?     @map("email_verified_at") @db.Timestamptz(3)
+  lastActiveAt    DateTime      @default(now()) @map("last_active_at") @db.Timestamptz(3)
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  verifications  EmailVerification[]
+  passwordResets PasswordReset[]
+
+  @@index([createdAt])
+  @@map("customers")
+}
+
+/// One issued six-digit code. Only its hash is kept; `attempts` caps guessing.
+model EmailVerification {
+  id         String    @id @default(uuid()) @db.Uuid
+  customerId String    @map("customer_id") @db.Uuid
+  codeHash   String    @map("code_hash")
+  expiresAt  DateTime  @map("expires_at") @db.Timestamptz(3)
+  attempts   Int       @default(0)
+  consumedAt DateTime? @map("consumed_at") @db.Timestamptz(3)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId, createdAt])
+  @@map("email_verifications")
+}
+
+model PasswordReset {
+  id         String    @id @default(uuid()) @db.Uuid
+  customerId String    @map("customer_id") @db.Uuid
+  tokenHash  String    @unique @map("token_hash")
+  expiresAt  DateTime  @map("expires_at") @db.Timestamptz(3)
+  consumedAt DateTime? @map("consumed_at") @db.Timestamptz(3)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@map("password_resets")
+}
+
+/// An operator of the admin control plane. Never a customer; owns no wallet.
+///
+/// `totpLastStep` is the RFC 6238 time step of the last accepted code, so a
+/// code cannot be replayed inside its validity window.
+model AdminUser {
+  id               String        @id @default(uuid()) @db.Uuid
+  email            String        @unique @db.VarChar(254)
+  name             String        @db.VarChar(60)
+  role             AdminRole
+  status           AccountStatus @default(ACTIVE)
+  passwordHash     String        @map("password_hash")
+  totpSecret       String?       @map("totp_secret")
+  twoFactorEnabled Boolean       @default(false) @map("two_factor_enabled")
+  totpLastStep     BigInt?       @map("totp_last_step")
+  lastLoginAt      DateTime?     @map("last_login_at") @db.Timestamptz(3)
+  createdAt        DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@map("admin_users")
+}
+
+/// A betting shop. `code` is stored upper-cased. The float lives in the wallet service.
+model Shop {
+  id        String     @id @default(uuid()) @db.Uuid
+  code      String     @unique @db.VarChar(20)
+  name      String     @db.VarChar(80)
+  address   String     @db.VarChar(160)
+  phone     String     @db.VarChar(20)
+  email     String     @db.VarChar(254)
+  status    ShopStatus @default(ACTIVE)
+  ownerName String     @map("owner_name") @db.VarChar(80)
+  createdAt DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime   @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  cashiers Cashier[]
+
+  @@map("shops")
+}
+
+/// A shop terminal login. `username` is stored lower-cased and is unique per shop.
+///
+/// Issued credentials are temporary until first used: `credentialsExpireAt` is
+/// set when an admin creates or resets them and cleared by the first successful
+/// sign-in. After it passes unused, they no longer sign in and must be reset.
+model Cashier {
+  id                  String        @id @default(uuid()) @db.Uuid
+  shopId              String        @map("shop_id") @db.Uuid
+  username            String        @db.VarChar(40)
+  displayName         String        @map("display_name") @db.VarChar(60)
+  role                ShopRole
+  status              AccountStatus @default(ACTIVE)
+  passwordHash        String        @map("password_hash")
+  pinHash             String        @map("pin_hash")
+  credentialsExpireAt DateTime?     @map("credentials_expire_at") @db.Timestamptz(3)
+  lastActiveAt        DateTime?     @map("last_active_at") @db.Timestamptz(3)
+  createdAt           DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  shop Shop @relation(fields: [shopId], references: [id], onDelete: Restrict)
+
+  @@unique([shopId, username])
+  @@map("cashiers")
+}
+
+/// A bearer session. The token itself is never stored, only its SHA-256.
+model Session {
+  id         String      @id @default(uuid()) @db.Uuid
+  kind       SessionKind
+  subjectId  String      @map("subject_id") @db.Uuid
+  tokenHash  String      @unique @map("token_hash")
+  expiresAt  DateTime    @map("expires_at") @db.Timestamptz(3)
+  revokedAt  DateTime?   @map("revoked_at") @db.Timestamptz(3)
+  createdAt  DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  lastSeenAt DateTime    @default(now()) @map("last_seen_at") @db.Timestamptz(3)
+
+  @@index([kind, subjectId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+/// Consecutive failed sign-ins per login identifier, known or not.
+///
+/// Keyed by a hash of the identifier rather than by account, so an address
+/// that does not exist locks exactly like one that does and the lockout
+/// cannot be used to enumerate accounts.
+model LoginThrottle {
+  keyHash     String    @id @map("key_hash")
+  failures    Int       @default(0)
+  lockedUntil DateTime? @map("locked_until") @db.Timestamptz(3)
+  updatedAt   DateTime  @default(now()) @map("updated_at") @db.Timestamptz(3)
+
+  @@index([updatedAt])
+  @@map("login_throttles")
+}
+
+/// Append-only: the `audit_append_only` migration rejects UPDATE, DELETE and TRUNCATE.
+model AuditLog {
+  id         String        @id @default(uuid()) @db.Uuid
+  actorId    String        @map("actor_id") @db.VarChar(80)
+  actorRole  String        @map("actor_role") @db.VarChar(40)
+  actorName  String        @map("actor_name") @db.VarChar(80)
+  action     String        @db.VarChar(80)
+  entityType String        @map("entity_type") @db.VarChar(80)
+  entityId   String        @map("entity_id") @db.VarChar(80)
+  before     Json?
+  after      Json?
+  reason     String?       @db.VarChar(240)
+  severity   AuditSeverity @default(INFO)
+  requestId  String        @map("request_id") @db.VarChar(64)
+  createdAt  DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([createdAt(sort: Desc)])
+  @@index([actorId, createdAt(sort: Desc)])
+  @@index([action, createdAt(sort: Desc)])
+  @@index([entityType, entityId, createdAt(sort: Desc)])
+  @@index([severity, createdAt(sort: Desc)])
+  @@map("audit_logs")
+}
+
+/// The single platform settings document. `version` increases by one per change.
+model PlatformSettings {
+  id        Int      @id @default(1) @db.SmallInt
+  value     Json
+  version   Int      @default(1)
+  updatedBy String   @map("updated_by") @db.VarChar(80)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(3)
+
+  @@map("platform_settings")
+}

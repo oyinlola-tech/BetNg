@@ -15,11 +15,7 @@ COMPLETED = "COMPLETED"
 
 
 def _result(match: Row) -> MatchResult | None:
-    """Answer the result only for a match that is ``COMPLETED``.
-
-    The reader already withholds the result row until then; checking the
-    status again keeps the secrecy rule in force if the statement changes.
-    """
+    """Second check of result secrecy; the SQL join already withholds the row."""
     if match["status"] != COMPLETED or match["home_goals"] is None:
         return None
 

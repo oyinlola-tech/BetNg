@@ -41,6 +41,12 @@ from .errors import (
     build_error_body,
 )
 from .health import DependencyProbe, create_health_router
+from .internal_auth import (
+    INTERNAL_TOKEN_HEADER,
+    internal_headers,
+    is_internal_request,
+    require_internal,
+)
 from .logging import configure_logging, parse_log_level
 from .rpc import (
     RPC_INTERNAL_ERROR,
@@ -62,6 +68,10 @@ from .rpc import (
 from .middleware import REQUEST_ID_HEADER, get_request_id
 
 __all__ = [
+    "INTERNAL_TOKEN_HEADER",
+    "internal_headers",
+    "is_internal_request",
+    "require_internal",
     "ACTOR_HEADERS",
     "Actor",
     "Pool",

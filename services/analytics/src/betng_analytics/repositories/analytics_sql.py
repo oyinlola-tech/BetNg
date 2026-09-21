@@ -1,12 +1,4 @@
-"""The SQL the analytics reader issues.
-
-Every statement is assembled from the constant fragments in this module; a
-caller's value only ever travels as a bound parameter. Status and enum columns
-are compared as text, as the shared read model (docs/architecture.md §8)
-requires, so the statements work whether the owner stored an enum or text.
-
-The formulas are documented in the service README.
-"""
+"""Statement text comes only from constants here; caller values are always bound."""
 
 from __future__ import annotations
 
@@ -42,7 +34,6 @@ BET_FIGURES: Final = """
     )::bigint AS pending_liability
 """
 
-#: How many distinct bettors and points of sale a set of bets came from.
 PARTY_FIGURES: Final = """
     COUNT(DISTINCT s.user_id) AS customers,
     COUNT(DISTINCT s.shop_id) AS shops,
@@ -120,11 +111,7 @@ def window_conditions(column: str, window: Window, params: Params) -> list[str]:
 
 
 def scoped_cte(scope: BetScope, params: Params) -> str:
-    """Return the ``scoped`` CTE: the accepted bets a figure covers.
-
-    Every row of `betting.bets` is an accepted bet, whoever placed it and
-    wherever. A scope narrows the population; it never samples it.
-    """
+    """Select the accepted bets a figure covers; a scope narrows, never samples."""
     conditions = window_conditions("b.placed_at", scope.window, params)
 
     equalities = {
@@ -165,10 +152,7 @@ def scoped_cte(scope: BetScope, params: Params) -> str:
 
 
 def leg_conditions(scope: BetScope) -> str:
-    """Narrow legs to the league or match the scope names.
-
-    The parameters are the ones :func:`scoped_cte` already bound.
-    """
+    """Reuse the parameters :func:`scoped_cte` already bound."""
     conditions = ""
 
     if scope.league_id is not None:
@@ -223,7 +207,6 @@ def overview_sql(scope: BetScope, params: Params) -> str:
 
 
 def _json_leg(key: str, match_id: str) -> str:
-    """Build the containment probe for one leg of `risk_decisions.legs`."""
     return json.dumps([{key: match_id}])
 
 
@@ -264,16 +247,13 @@ def breakdown_sql(dimension: ReaderDimension, scope: BetScope, params: Params) -
     """
 
 
-#: session kind -> the `date_trunc` unit and step it is cut by. The only source
-#: of the unit that reaches the statement text.
+#: The only source of the `date_trunc` unit that reaches the statement text.
 _BUCKET_UNITS: Final[dict[str, str]] = {"HOUR": "hour", "DAY": "day"}
 
-#: wallet owner kinds a transaction count may be asked for.
 _WALLET_OWNERS: Final[dict[str, str]] = {"CUSTOMER": "CUSTOMER", "SHOP": "SHOP"}
 
 
 def bucket_sessions_sql(kind: str, scope: BetScope, params: Params) -> str:
-    """Sessions cut by the clock: ``kind`` is ``HOUR`` or ``DAY``."""
     unit = _BUCKET_UNITS[kind]
 
     return f"""
@@ -314,7 +294,6 @@ def bucket_sessions_sql(kind: str, scope: BetScope, params: Params) -> str:
 
 
 def round_sessions_sql(scope: BetScope, params: Params) -> str:
-    """Sessions cut by the fixture list: league, season and matchday."""
     return f"""
     WITH {scoped_cte(scope, params)},
     rounds AS (
@@ -576,8 +555,7 @@ BET_LEGS_SQL: Final = """
     ORDER BY l.kickoff_at, l.id
 """
 
-#: The result joins only when the match is COMPLETED: before that instant the
-#: row exists in `simulation.match_results` but is not this service's to tell.
+#: Result secrecy: the result row joins only when the match is COMPLETED.
 MATCH_SQL: Final = """
     SELECT m.id, m.status::text AS status, f.league_id, lg.name AS league_name,
            f.season::text AS season, f.matchday, f.kickoff_at,
@@ -648,12 +626,9 @@ def exposure_level_sql(
     group = ", ".join(f"l.{column}" for column in columns)
     keys = ", ".join(f"k.{column}" for column in columns)
     labels = ", ".join(
-        f"MIN({expression}) AS {name}"
-        for name, expression in label_expressions.items()
+        f"MIN({expression}) AS {name}" for name, expression in label_expressions.items()
     )
-    outer_labels = ", ".join(
-        f"MIN(k.{name}) AS {name}" for name in label_expressions
-    )
+    outer_labels = ", ".join(f"MIN(k.{name}) AS {name}" for name in label_expressions)
     narrowed = " AND l.match_id::text = ANY(%(match_ids)s)" if within_matches else ""
     limit = "" if within_matches else "LIMIT %(limit)s"
 

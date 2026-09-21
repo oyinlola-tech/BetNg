@@ -51,12 +51,16 @@ SURNAMES: Final = (
 
 @dataclass(frozen=True)
 class Player:
+    """A fictional player."""
+
     name: str
     position: Position
 
 
 @dataclass(frozen=True)
 class Squad:
+    """Eleven starters and a bench."""
+
     starters: tuple[Player, ...]
     bench: tuple[Player, ...]
 
@@ -93,6 +97,7 @@ def _fill(
 
 
 def squad_for(team_id: str) -> Squad:
+    """Return the team's squad, derived from its id alone."""
     rng = _squad_prng(team_id)
     taken: set[str] = set()
 

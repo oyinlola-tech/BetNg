@@ -19,11 +19,7 @@ def _invalid(message: str) -> ServiceError:
 
 
 def parse_match_ids(raw: str) -> tuple[str, ...]:
-    """Parse ``matchIds=a,b,c`` into canonical UUID strings.
-
-    Between one and ``MAX_BULK_MATCH_IDS`` ids, each a UUID; anything else is
-    a 422, so the list that reaches SQL is bounded and well-formed.
-    """
+    """Parse ``matchIds=a,b,c`` into canonical UUID strings."""
     parts = [part.strip() for part in raw.split(",") if part.strip()]
 
     if not parts:

@@ -1,5 +1,9 @@
-"""Request schemas.
+"""Request checks that are not expressed by a body schema.
 
-FastAPI validates each request body against the Pydantic model in ``dtos``
-before a controller runs, so the contract shapes are the validators.
+FastAPI validates each body, path and query value against the Pydantic models
+in ``dtos``; what remains is who is calling.
 """
+
+from .actor_validator import require_admin
+
+__all__ = ["require_admin"]

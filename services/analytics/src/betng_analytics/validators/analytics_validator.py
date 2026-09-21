@@ -1,5 +1,3 @@
-"""Bounds every analytics query must satisfy before it reaches the database."""
-
 from __future__ import annotations
 
 from datetime import UTC, date, datetime, timedelta
@@ -15,7 +13,6 @@ _MAX_DAY_TEXT = 40
 
 
 def validate_window(start: datetime | None, end: datetime | None) -> Window:
-    """Build the half-open ``placed_at`` window a figure covers."""
     window = Window(start=as_utc(start), end=as_utc(end))
 
     if (

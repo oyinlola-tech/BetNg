@@ -1,9 +1,4 @@
-"""Integer arithmetic shared by the engine and the exposure read model.
-
-Payouts follow the platform rule: with each leg's odds as integer hundredths
-``h_i``, ``potential_payout = floor(stake * Π h_i / 100^n)``. Nothing here
-touches a float.
-"""
+"""Integer-only payout and utilisation arithmetic."""
 
 from __future__ import annotations
 
@@ -18,11 +13,12 @@ CRITICAL_PERCENT = 85
 
 
 def odds_hundredths(odds: Decimal) -> int:
+    """Return two-place odds as integer hundredths."""
     return int((odds * 100).to_integral_value(rounding=ROUND_DOWN))
 
 
 def odds_fraction(legs_odds: Sequence[Decimal]) -> tuple[int, int]:
-    """Total odds as an exact fraction ``(Π h_i, 100^n)``."""
+    """Total odds as an exact fraction ``(product of h_i, 100^n)``."""
     numerator = 1
     for odds in legs_odds:
         numerator *= odds_hundredths(odds)
@@ -36,15 +32,12 @@ def total_odds(numerator: int, denominator: int) -> Decimal:
 
 
 def potential_payout(stake: int, numerator: int, denominator: int) -> int:
+    """Return ``floor(stake * total odds)`` in kobo."""
     return stake * numerator // denominator
 
 
 def largest_stake(allowed: Callable[[int], bool], upper: int) -> int:
-    """Largest stake in ``[0, upper]`` that ``allowed`` accepts.
-
-    ``allowed`` must be monotone: once it refuses a stake it refuses every
-    larger one. Returns 0 when even a zero stake is refused.
-    """
+    """Return the largest stake in [0, upper] a monotone ``allowed`` takes."""
     if upper <= 0 or not allowed(0):
         return 0
 
@@ -63,11 +56,7 @@ def largest_stake(allowed: Callable[[int], bool], upper: int) -> int:
 
 
 def utilisation_status(pairs: Iterable[tuple[int, int]]) -> UtilisationStatus:
-    """Status of the most utilised ``(value, limit)`` pair.
-
-    Below 50% of the limit is NORMAL, 50–85% ELEVATED, above 85% CRITICAL.
-    Compared by cross-multiplication so no ratio is ever a float.
-    """
+    """Return the level of the most utilised (value, limit) pair."""
     status: UtilisationStatus = "NORMAL"
 
     for value, limit in pairs:

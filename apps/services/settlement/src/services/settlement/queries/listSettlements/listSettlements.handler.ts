@@ -1,12 +1,12 @@
 import { QueryHandler } from "@zudojs/cqrs";
-import type { Settlement } from "@betng/contracts";
 import { SETTLEMENT_QUERY } from "../../../../constants/index.js";
 import type { SettlementRepository } from "../../../../interfaces/index.js";
+import type { SettlementRecord } from "../../../../models/index.js";
 import type { ListSettlementsQuery } from "./listSettlements.query.js";
 
 export class ListSettlementsHandler extends QueryHandler<
   ListSettlementsQuery,
-  readonly Settlement[]
+  readonly SettlementRecord[]
 > {
   public readonly queryType = SETTLEMENT_QUERY.LIST_SETTLEMENTS;
 
@@ -17,7 +17,7 @@ export class ListSettlementsHandler extends QueryHandler<
     this.settlements = settlements;
   }
 
-  public async execute(): Promise<readonly Settlement[]> {
-    return this.settlements.list();
+  public async execute(query: ListSettlementsQuery): Promise<readonly SettlementRecord[]> {
+    return this.settlements.list(query.filter);
   }
 }

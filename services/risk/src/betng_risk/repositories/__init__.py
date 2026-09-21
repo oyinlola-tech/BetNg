@@ -1,10 +1,6 @@
-"""Concrete implementations of the risk analysis contract.
+"""Concrete implementations of the risk service's contracts."""
 
-The risk service is stateless in this phase: it holds no database and owns no
-rows, so this folder carries the analyser rather than a data-access
-repository. The naming mirrors the TypeScript services.
-"""
+from .identity_audit import IdentityAuditRecorder
+from .risk_repository import PostgresRiskRepository
 
-from .risk_repository import UnbuiltRiskAnalyser, create_risk_analyser
-
-__all__ = ["UnbuiltRiskAnalyser", "create_risk_analyser"]
+__all__ = ["IdentityAuditRecorder", "PostgresRiskRepository"]

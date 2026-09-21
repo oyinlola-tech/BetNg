@@ -22,6 +22,7 @@ def _weighted_mean(pairs: tuple[tuple[float, float], ...]) -> float:
 
 
 def offensive_rating(team: TeamStrength, configuration: ModelConfiguration) -> float:
+    """Return the weighted attacking rating."""
     return _weighted_mean(
         (
             (team.attack, configuration.attack_weight),
@@ -34,6 +35,7 @@ def offensive_rating(team: TeamStrength, configuration: ModelConfiguration) -> f
 
 
 def defensive_rating(team: TeamStrength, configuration: ModelConfiguration) -> float:
+    """Return the weighted defensive rating."""
     return _weighted_mean(
         (
             (team.defence, configuration.defence_weight),
@@ -141,6 +143,7 @@ def score_matrix(
 def calculate_probabilities(
     home: TeamStrength, away: TeamStrength, configuration: ModelConfiguration
 ) -> ProbabilityMatrix:
+    """Build the score matrix the odds are priced from."""
     home_xg, away_xg = expected_goals(home, away, configuration)
 
     return ProbabilityMatrix(

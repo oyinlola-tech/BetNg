@@ -1,8 +1,4 @@
-"""The correlation identifier of the request being served.
-
-An RPC handler receives only its payload, so the identifier the caller sent
-is carried in a context variable for the peers this service calls in turn.
-"""
+"""The correlation identifier of the request being served."""
 
 from __future__ import annotations
 

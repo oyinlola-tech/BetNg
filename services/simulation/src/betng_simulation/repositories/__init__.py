@@ -1,11 +1,12 @@
-"""Concrete implementations of the simulation engine contract.
+"""Data access: the service's own schema, the schemas it reads, and its peers."""
 
-The simulation service is stateless: it holds no database and owns no rows, so
-this folder carries the engine rather than a data-access repository. The
-naming mirrors the TypeScript services, where the same folder holds whatever
-satisfies the service's core interface.
-"""
+from .audit_repository import IdentityAuditRecorder
+from .match_repository import PostgresMatchReadModel
+from .simulation_repository import SimulationRepository, stats_to_json
 
-from .simulation_repository import UnbuiltSimulationEngine, create_simulation_engine
-
-__all__ = ["UnbuiltSimulationEngine", "create_simulation_engine"]
+__all__ = [
+    "IdentityAuditRecorder",
+    "PostgresMatchReadModel",
+    "SimulationRepository",
+    "stats_to_json",
+]

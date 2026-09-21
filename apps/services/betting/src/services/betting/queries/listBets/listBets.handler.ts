@@ -1,15 +1,15 @@
 import { QueryHandler } from "@zudojs/cqrs";
-import type { Bet } from "@betng/contracts";
 import { BETTING_QUERY } from "../../../../constants/index.js";
 import type {
-  BetFilter,
+  BetRecord,
   BetRepository,
 } from "../../../../interfaces/index.js";
 import type { ListBetsQuery } from "./listBets.query.js";
 
+/** One customer's bets, newest first. */
 export class ListBetsHandler extends QueryHandler<
   ListBetsQuery,
-  readonly Bet[]
+  readonly BetRecord[]
 > {
   public readonly queryType = BETTING_QUERY.LIST_BETS;
 
@@ -20,12 +20,11 @@ export class ListBetsHandler extends QueryHandler<
     this.bets = bets;
   }
 
-  public async execute(query: ListBetsQuery): Promise<readonly Bet[]> {
-    const filter: BetFilter = {
-      ...(query.userId === undefined ? {} : { userId: query.userId }),
-      ...(query.status === undefined ? {} : { status: query.status }),
-    };
-
-    return this.bets.list(filter);
+  public async execute(query: ListBetsQuery): Promise<readonly BetRecord[]> {
+    return this.bets.listBets({
+      userId: query.userId,
+      status: query.status,
+      limit: query.limit,
+    });
   }
 }

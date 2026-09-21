@@ -61,6 +61,197 @@ services:
       timeout: 3s
       retries: 10
 
+  # The platform itself. `docker compose --profile platform up --build` runs every service;
+  # without the profile only PostgreSQL and Redis start, for running services from source.
+  migrate:
+    profiles: ["platform"]
+    build: &node-build
+      context: ../..
+      dockerfile: infrastructure/docker/node.Dockerfile
+    image: betng-node
+    environment: &platform-env
+      NODE_ENV: ${NODE_ENV:-development}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      HOST: 0.0.0.0
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:?set INTERNAL_SERVICE_TOKEN in .env}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+      REDIS_URL: redis://redis:6379
+      MATCH_DATABASE_URL: postgresql://betng_match:betng_match_local@postgres:5432/betng?schema=match
+      BETTING_DATABASE_URL: postgresql://betng_betting:betng_betting_local@postgres:5432/betng?schema=betting
+      WALLET_DATABASE_URL: postgresql://betng_wallet:betng_wallet_local@postgres:5432/betng?schema=wallet
+      SETTLEMENT_DATABASE_URL: postgresql://betng_settlement:betng_settlement_local@postgres:5432/betng?schema=settlement
+      IDENTITY_DATABASE_URL: postgresql://betng_identity:betng_identity_local@postgres:5432/betng?schema=identity
+      SIMULATION_DATABASE_URL: postgresql://betng_simulation:betng_simulation_local@postgres:5432/betng
+      ODDS_DATABASE_URL: postgresql://betng_odds:betng_odds_local@postgres:5432/betng
+      RISK_DATABASE_URL: postgresql://betng_risk:betng_risk_local@postgres:5432/betng
+      ANALYTICS_DATABASE_URL: postgresql://betng_analytics:betng_analytics_local@postgres:5432/betng
+      GATEWAY_SERVICE_URL: http://gateway:3000
+      MATCH_SERVICE_URL: http://match:3001
+      BETTING_SERVICE_URL: http://betting:3002
+      WALLET_SERVICE_URL: http://wallet:3003
+      SETTLEMENT_SERVICE_URL: http://settlement:3004
+      SIMULATION_SERVICE_URL: http://simulation:3005
+      ODDS_SERVICE_URL: http://odds:3006
+      RISK_SERVICE_URL: http://risk:3007
+      EVENT_SERVICE_URL: http://event:3008
+      ANALYTICS_SERVICE_URL: http://analytics:3009
+      IDENTITY_SERVICE_URL: http://identity:3010
+    command: ["pnpm", "db:migrate"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  gateway:
+    profiles: ["platform"]
+    build: *node-build
+    image: betng-node
+    restart: unless-stopped
+    environment: *platform-env
+    command: ["pnpm", "--filter", "@betng/gateway", "exec", "tsx", "src/server.ts"]
+    ports:
+      - "${GATEWAY_PUBLISHED_PORT:-3000}:3000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  match:
+    profiles: ["platform"]
+    build: *node-build
+    image: betng-node
+    restart: unless-stopped
+    environment: *platform-env
+    command: ["pnpm", "--filter", "@betng/match-service", "exec", "tsx", "src/server.ts"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  betting:
+    profiles: ["platform"]
+    build: *node-build
+    image: betng-node
+    restart: unless-stopped
+    environment: *platform-env
+    command: ["pnpm", "--filter", "@betng/betting-service", "exec", "tsx", "src/server.ts"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  wallet:
+    profiles: ["platform"]
+    build: *node-build
+    image: betng-node
+    restart: unless-stopped
+    environment: *platform-env
+    command: ["pnpm", "--filter", "@betng/wallet-service", "exec", "tsx", "src/server.ts"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  settlement:
+    profiles: ["platform"]
+    build: *node-build
+    image: betng-node
+    restart: unless-stopped
+    environment: *platform-env
+    command: ["pnpm", "--filter", "@betng/settlement-service", "exec", "tsx", "src/server.ts"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  event:
+    profiles: ["platform"]
+    build: *node-build
+    image: betng-node
+    restart: unless-stopped
+    environment: *platform-env
+    command: ["pnpm", "--filter", "@betng/event-service", "exec", "tsx", "src/server.ts"]
+    ports:
+      - "${EVENT_PUBLISHED_PORT:-3008}:3008"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  identity:
+    profiles: ["platform"]
+    build: *node-build
+    image: betng-node
+    restart: unless-stopped
+    environment: *platform-env
+    command: ["pnpm", "--filter", "@betng/identity-service", "exec", "tsx", "src/server.ts"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  simulation:
+    profiles: ["platform"]
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/python.Dockerfile
+      args:
+        SERVICE: simulation
+    image: betng-simulation
+    restart: unless-stopped
+    environment: *platform-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  odds:
+    profiles: ["platform"]
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/python.Dockerfile
+      args:
+        SERVICE: odds
+    image: betng-odds
+    restart: unless-stopped
+    environment: *platform-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  risk:
+    profiles: ["platform"]
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/python.Dockerfile
+      args:
+        SERVICE: risk
+    image: betng-risk
+    restart: unless-stopped
+    environment: *platform-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  analytics:
+    profiles: ["platform"]
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/python.Dockerfile
+      args:
+        SERVICE: analytics
+    image: betng-analytics
+    restart: unless-stopped
+    environment: *platform-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+
 volumes:
   postgres-data:
     name: betng-postgres-data

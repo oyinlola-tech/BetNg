@@ -19,9 +19,7 @@ class GetOperatorSummaryHandler(
     def __init__(self, reader: AnalyticsReader) -> None:
         self._reader = reader
 
-    async def execute(
-        self, message: GetOperatorSummaryQuery
-    ) -> OperatorReconciliation:
+    async def execute(self, message: GetOperatorSummaryQuery) -> OperatorReconciliation:
         window = message.scope.window
         row = await self._reader.operator(message.scope)
         generated_at = now()
@@ -45,9 +43,7 @@ class GetOperatorSummaryHandler(
                 gross_stakes=bets.gross_stakes,
                 gross_payouts=bets.gross_payouts,
                 operator_result=bets.operator_result,
-                operator_result_rate=rate(
-                    bets.operator_result, bets.gross_stakes
-                ),
+                operator_result_rate=rate(bets.operator_result, bets.gross_stakes),
                 settled_bets=bets.settled_bets,
                 void_bets=bets.void_bets,
                 refunded_stakes=bets.refunded_stakes,

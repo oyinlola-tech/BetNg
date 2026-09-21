@@ -1,43 +1,82 @@
+"""Assembles the risk service."""
+
 from __future__ import annotations
 
 import logging
+from collections.abc import AsyncIterator, Callable
+from contextlib import asynccontextmanager
+from datetime import datetime
+from pathlib import Path
 
-from betng_service_kit import ServiceSettings, create_service_app
+from betng_service_kit import (
+    RpcClient,
+    ServiceSettings,
+    apply_migrations,
+    create_pool,
+    create_service_app,
+    database_probe,
+)
 from fastapi import FastAPI
 
-from .configs import load_risk_settings
+from .configs import load_risk_settings, require_database_url
+from .constants import SCHEMA
 from .controllers import RiskController
+from .interfaces import AuditRecorder
 from .loaders import load_container, load_services
-from .procedures import create_risk_rpc_server
-from .repositories import create_risk_analyser
-from .routes import create_risk_router
+from .procedures import create_risk_rpc_router, create_risk_rpc_server
+from .repositories import IdentityAuditRecorder, PostgresRiskRepository
+from .routes import create_admin_router, create_internal_router
 
 DESCRIPTION = (
-    "Assesses the exposure a market carries while it is still open, so the "
-    "platform can reprice or suspend before betting closes. Internal: it is "
-    "not reachable from a public client, and it can never alter a bet, a "
-    "price or a match result."
+    "Decides, before betting closes, whether a stake is accepted, limited or "
+    "rejected, from the global pending book and the limits in force. It can "
+    "never alter a bet, a price, a match or a result, and it has no channel to "
+    "the simulation."
 )
 
+MIGRATIONS_DIRECTORY = Path(__file__).parent / "migrations"
 
-def create_app(settings: ServiceSettings | None = None) -> FastAPI:
+
+def create_app(
+    settings: ServiceSettings | None = None,
+    *,
+    audit: AuditRecorder | None = None,
+    clock: Callable[[], datetime] | None = None,
+) -> FastAPI:
+    """Build the application; ``audit`` and ``clock`` are seams for tests."""
     resolved = settings or load_risk_settings()
-
-    analyser = create_risk_analyser()
     logger = logging.getLogger(resolved.service_name)
-    container = load_container(analyser, logger)
-    query_bus = load_services(container)
 
-    controller = RiskController(query_bus)
+    pool = create_pool(require_database_url(resolved))
+    repository = PostgresRiskRepository(pool, logger)
+    recorder = audit or IdentityAuditRecorder(
+        RpcClient(
+            resolved.identity_service_url, "identity", resolved.service_timeout_ms
+        ),
+        logger,
+    )
+
+    container = load_container(repository, recorder, logger)
+    command_bus, query_bus = load_services(container, clock)
+    controller = RiskController(command_bus, query_bus)
+
+    @asynccontextmanager
+    async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+        await pool.open()
+        try:
+            await apply_migrations(pool, SCHEMA, MIGRATIONS_DIRECTORY, logger)
+            yield
+        finally:
+            await pool.close()
 
     return create_service_app(
         resolved,
         description=DESCRIPTION,
-        routers=[create_risk_router(controller)],
-        # RPC is this service's primary API: its caller is the betting
-        # service, and it must not be reachable from a public client.
-        rpc_server=create_risk_rpc_server(query_bus),
-        # The risk service reaches nothing: it is handed stakes and returns
-        # an analysis. An empty list is the honest answer.
-        probes=[],
+        routers=[
+            create_risk_rpc_router(create_risk_rpc_server(command_bus)),
+            create_internal_router(controller),
+            create_admin_router(controller),
+        ],
+        probes=[database_probe(pool)],
+        lifespan=lifespan,
     )

@@ -1,9 +1,4 @@
-"""PostgreSQL implementation of :class:`OddsRepository`.
-
-Every write that changes what a market looks like also bumps its
-``odds_version`` and appends a snapshot in the same transaction, so a version
-a bet was accepted at can always be looked up afterwards.
-"""
+"""PostgreSQL implementation of :class:`OddsRepository`."""
 
 from __future__ import annotations
 
@@ -46,9 +41,8 @@ _CONFIGURATION_COLUMNS = (
     "version, margins, min_odds, max_odds, active, created_at, created_by, reason"
 )
 
-#: The snapshot is built by the database from the rows just written, so it can
-#: never disagree with them.
-_SNAPSHOT_SQL = f"""
+#: Built in SQL from the rows just written, so it cannot disagree with them.
+_SNAPSHOT_SQL = """
     INSERT INTO odds.odds_snapshots
         (id, market_id, match_id, odds_version, reason, status, prices)
     SELECT gen_random_uuid(), m.id, m.match_id, m.odds_version, %s, m.status,
@@ -61,7 +55,7 @@ _SNAPSHOT_SQL = f"""
              WHERE s.market_id = m.id)
       FROM odds.markets m
      WHERE m.id = ANY(%s::uuid[])
-"""  # noqa: S608 - no interpolated input
+"""
 
 _TRADING_STATUSES = [
     MarketStatusValue.OPEN,
@@ -151,7 +145,7 @@ class PostgresOddsRepository(OddsRepository):
                 SELECT COALESCE(MAX(version), 0) + 1, %s, %s, %s, true, %s, %s
                   FROM odds.pricing_configurations
                 RETURNING {_CONFIGURATION_COLUMNS}
-                """,  # noqa: S608 - column list is a module constant
+                """,
                 (
                     Jsonb({name: float(value) for name, value in margins.items()}),
                     min_odds,
@@ -183,8 +177,7 @@ class PostgresOddsRepository(OddsRepository):
     ) -> PublishOutcome:
         """Create a match's markets, selections and INITIAL snapshots once."""
         async with transaction(self.pool) as connection:
-            # Two publishers racing on one match serialise here; the loser
-            # then finds the winner's rows and returns them unchanged.
+            # Racing publishers serialise here; the loser returns the winner's rows.
             await connection.execute(
                 "SELECT pg_advisory_xact_lock(hashtextextended(%s, 0))",
                 (f"odds:publish:{match_id}",),
@@ -289,8 +282,7 @@ class PostgresOddsRepository(OddsRepository):
         """Change one market's status under a row lock; ``None`` if absent."""
         async with transaction(self.pool) as connection:
             cursor = await connection.execute(
-                f"SELECT {_MARKET_COLUMNS} FROM odds.markets "  # noqa: S608
-                "WHERE id = %s FOR UPDATE",
+                f"SELECT {_MARKET_COLUMNS} FROM odds.markets WHERE id = %s FOR UPDATE",
                 (market_id,),
             )
             row = await cursor.fetchone()
@@ -309,7 +301,7 @@ class PostgresOddsRepository(OddsRepository):
                        updated_at = now()
                  WHERE id = %s
                 RETURNING {_MARKET_COLUMNS}
-                """,  # noqa: S608 - column list is a module constant
+                """,
                 (status, market_id),
             )
             updated = await cursor.fetchone()
@@ -327,8 +319,7 @@ class PostgresOddsRepository(OddsRepository):
         """Return one market with its selections."""
         async with transaction(self.pool) as connection:
             cursor = await connection.execute(
-                f"SELECT {_MARKET_COLUMNS} FROM odds.markets "  # noqa: S608
-                "WHERE id = %s",
+                f"SELECT {_MARKET_COLUMNS} FROM odds.markets WHERE id = %s",
                 (market_id,),
             )
             markets = await self._with_selections(connection, await cursor.fetchall())
@@ -342,7 +333,7 @@ class PostgresOddsRepository(OddsRepository):
 
         async with transaction(self.pool) as connection:
             cursor = await connection.execute(
-                f"SELECT {_MARKET_COLUMNS} FROM odds.markets "  # noqa: S608
+                f"SELECT {_MARKET_COLUMNS} FROM odds.markets "
                 "WHERE match_id = ANY(%s::uuid[]) ORDER BY match_id, sort_order",
                 (match_ids,),
             )
@@ -353,7 +344,7 @@ class PostgresOddsRepository(OddsRepository):
         """Return markets that are not yet settled or void, newest match first."""
         async with transaction(self.pool) as connection:
             cursor = await connection.execute(
-                f"SELECT {_MARKET_COLUMNS} FROM odds.markets "  # noqa: S608
+                f"SELECT {_MARKET_COLUMNS} FROM odds.markets "
                 "WHERE status = ANY(%s) "
                 "ORDER BY created_at DESC, match_id, sort_order LIMIT %s",
                 (_TRADING_STATUSES, limit),
@@ -408,7 +399,7 @@ class PostgresOddsRepository(OddsRepository):
         self, connection: Connection
     ) -> ConfigurationRecord:
         cursor = await connection.execute(
-            f"SELECT {_CONFIGURATION_COLUMNS} "  # noqa: S608
+            f"SELECT {_CONFIGURATION_COLUMNS} "
             "FROM odds.pricing_configurations WHERE active"
         )
         row = await cursor.fetchone()
@@ -447,7 +438,7 @@ class PostgresOddsRepository(OddsRepository):
             return grouped
 
         cursor = await connection.execute(
-            f"SELECT {_SELECTION_COLUMNS} FROM odds.market_selections "  # noqa: S608
+            f"SELECT {_SELECTION_COLUMNS} FROM odds.market_selections "
             "WHERE market_id = ANY(%s::uuid[]) ORDER BY market_id, sort_order",
             (market_ids,),
         )

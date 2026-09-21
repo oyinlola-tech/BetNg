@@ -1,3 +1,5 @@
+"""Process entry point."""
+
 from __future__ import annotations
 
 import uvicorn
@@ -7,6 +9,7 @@ from .configs import load_simulation_settings
 
 
 def main() -> None:
+    """Run the service."""
     settings = load_simulation_settings()
 
     uvicorn.run(

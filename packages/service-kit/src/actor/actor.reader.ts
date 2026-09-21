@@ -1,14 +1,9 @@
-/**
- * The authenticated actor, as the gateway asserts it.
- *
- * The gateway is the only component that sees a session token. It resolves the token with the identity service,
- * strips any inbound `x-betng-*` header, and forwards who is calling in the headers below. A service behind the
- * gateway trusts them, re-checks the permission it needs, and never takes a user id from a path or body instead.
- */
+// The gateway asserts the actor in these headers; they are honoured only with the internal token.
 
 import { forbidden, unauthorized } from "@zudojs/http";
 import type { HttpRequestContext } from "@zudojs/http";
 import { ErrorCodes } from "@betng/contracts";
+import { isInternalRequest } from "../internalAuth/index.js";
 
 export const ACTOR_HEADER_PREFIX = "x-betng-";
 
@@ -35,6 +30,8 @@ export interface Actor {
 const KINDS: readonly string[] = ["CUSTOMER", "CASHIER", "ADMIN"];
 
 export function readActor(request: HttpRequestContext): Actor | undefined {
+  if (!isInternalRequest(request)) return undefined;
+
   const kind = request.getHeader(ACTOR_HEADERS.kind);
   const id = request.getHeader(ACTOR_HEADERS.id);
 
@@ -60,7 +57,6 @@ export interface ActorRequirement {
   readonly permission?: string;
 }
 
-/** Returns the actor, or throws 401 when there is none and 403 when it may not do this. */
 export function requireActor(
   request: HttpRequestContext,
   requirement: ActorRequirement = {},
@@ -96,7 +92,7 @@ export function requireActor(
   return actor;
 }
 
-/** The headers that carry an actor to an upstream. The display name is URI-encoded: header values are ASCII. */
+/** The display name is URI-encoded: header values are ASCII. */
 export function actorHeaders(actor: Actor): Record<string, string> {
   return {
     [ACTOR_HEADERS.kind]: actor.kind,

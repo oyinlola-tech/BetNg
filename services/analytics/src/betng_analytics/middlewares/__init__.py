@@ -1,3 +1,3 @@
-from .actor_guard import require_admin, require_shop_cashier
+from .actor_guard import admin_guard, shop_report_guard
 
-__all__ = ["require_admin", "require_shop_cashier"]
+__all__ = ["admin_guard", "shop_report_guard"]

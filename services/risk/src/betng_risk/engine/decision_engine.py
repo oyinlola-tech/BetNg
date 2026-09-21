@@ -1,9 +1,4 @@
-"""The stake decision: ACCEPT, LIMIT or REJECT, with the largest stake allowed.
-
-Pure: no clock, no database, no network. The caller supplies the instant, the
-leg states and the global book. The engine's whole vocabulary is a stake — it
-has no way to name a price, a match outcome or a bettor.
-"""
+"""The pure stake decision: ACCEPT, LIMIT or REJECT with a maximum stake."""
 
 from __future__ import annotations
 
@@ -33,7 +28,7 @@ def _reject(reason: RiskReason) -> EngineDecision:
 def _known_state(
     leg: SlipLeg, states: Mapping[str, SelectionState]
 ) -> SelectionState | None:
-    """The leg's state, or ``None`` when the leg does not describe real rows."""
+    """Return the leg's state, or ``None`` when the leg names no real rows."""
     state = states.get(leg.selection_id)
 
     if (
@@ -83,11 +78,9 @@ def _state_rejection(
 class _TouchedMarket:
     """One market the slip backs, reduced to what a new stake can move."""
 
-    #: Net exposure of each selection the slip backs on this market.
     backed_nets: tuple[int, ...]
-    #: Positive worst case among the selections the slip does not back. The
-    #: relief a new stake gives those selections is ignored, which keeps the
-    #: match figure monotone in the stake and errs on the side of the book.
+    #: Worst case of the unbacked selections. Their relief from a new stake is
+    #: ignored: that keeps the match figure monotone and errs towards the book.
     floor: int
 
     def worst_case(self, added_liability: int) -> int:
@@ -194,7 +187,9 @@ def decide(
                 liability + added <= limits.max_liability_per_selection
                 for liability in selection_liabilities
             )
-            and all(net + added <= limits.max_liability_per_market for net in backed_nets)
+            and all(
+                net + added <= limits.max_liability_per_market for net in backed_nets
+            )
             and all(
                 match.worst_case(added) <= ceiling
                 for match, ceiling in zip(matches, match_ceilings, strict=True)

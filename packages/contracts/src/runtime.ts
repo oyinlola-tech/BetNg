@@ -58,10 +58,6 @@ export const ErrorCodes = Object.freeze({
 
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];
 
-export function leagueChannel(leagueId: string): string {
-  return `league:${leagueId}`;
-}
-
 export function matchChannel(matchId: string): string {
   return `match:${matchId}`;
 }

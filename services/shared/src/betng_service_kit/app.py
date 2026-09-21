@@ -19,6 +19,7 @@ from fastapi import APIRouter, FastAPI
 
 from .config import ServiceSettings
 from .errors import install_error_handlers
+from .internal_auth import assert_internal_token_configured
 from .health import DependencyProbe, create_health_router
 from .logging import configure_logging
 from .middleware import AccessLogMiddleware, RequestIdMiddleware
@@ -34,6 +35,8 @@ def create_service_app(
     rpc_server: RpcServer | None = None,
     lifespan: Callable[[FastAPI], AbstractAsyncContextManager[None]] | None = None,
 ) -> FastAPI:
+    assert_internal_token_configured()
+
     configure_logging(
         settings.service_name,
         settings.version,

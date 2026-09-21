@@ -15,11 +15,7 @@ from ..errors import DatabaseUnavailableError
 
 @asynccontextmanager
 async def transaction(pool: Pool) -> AsyncIterator[AsyncConnection[DictRow]]:
-    """Yield a connection whose work commits on a clean exit, else rolls back.
-
-    A database that cannot be reached surfaces as ``DATABASE_UNAVAILABLE``
-    rather than as an opaque 500.
-    """
+    """Yield a connection whose work commits on a clean exit, else rolls back."""
     try:
         async with pool.connection() as connection:
             yield connection

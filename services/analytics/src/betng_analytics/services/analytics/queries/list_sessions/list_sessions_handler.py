@@ -5,7 +5,7 @@ from betng_service_kit import QueryHandler
 from .....constants import AnalyticsQueryType
 from .....dtos import SessionAnalysis, SessionAnalysisList
 from .....interfaces import AnalyticsReader
-from .....types import Row, SessionKind, Window
+from .....types import Row, SessionKind
 from .....utils import now, operator_result, rate, to_iso
 from ...session_ids import (
     custom_session_id,
@@ -16,8 +16,7 @@ from ...session_ids import (
 from .list_sessions_query import ListSessionsQuery
 
 
-def _identity(kind: SessionKind, row: Row, window: Window) -> tuple[str, str]:
-    """Return the session's id and label."""
+def _identity(kind: SessionKind, row: Row) -> tuple[str, str]:
     if kind == "HOUR":
         return (
             hour_session_id(row["day_code"], row["hour"]),
@@ -34,8 +33,7 @@ def _identity(kind: SessionKind, row: Row, window: Window) -> tuple[str, str]:
 
     return (
         round_session_id(kind, row["league_code"], row["season"], row["matchday"]),
-        f"{row['league_name']} - Season {row['season']} - "
-        f"{unit} {row['matchday']}",
+        f"{row['league_name']} - Season {row['season']} - {unit} {row['matchday']}",
     )
 
 
@@ -47,18 +45,14 @@ class ListSessionsHandler(QueryHandler[ListSessionsQuery, SessionAnalysisList]):
 
     async def execute(self, message: ListSessionsQuery) -> SessionAnalysisList:
         window = message.scope.window
-        rows = await self._reader.sessions(
-            message.kind, message.scope, message.limit
-        )
+        rows = await self._reader.sessions(message.kind, message.scope, message.limit)
 
         if message.kind == "CUSTOM":
             generated_at = now()
             rows = [
                 {
                     **row,
-                    "starts_at": window.start
-                    or row["first_placed_at"]
-                    or generated_at,
+                    "starts_at": window.start or row["first_placed_at"] or generated_at,
                     "ends_at": window.end or row["last_placed_at"] or generated_at,
                 }
                 for row in rows
@@ -67,7 +61,7 @@ class ListSessionsHandler(QueryHandler[ListSessionsQuery, SessionAnalysisList]):
         items: list[SessionAnalysis] = []
 
         for row in rows:
-            session_id, label = _identity(message.kind, row, window)
+            session_id, label = _identity(message.kind, row)
             result = operator_result(row["settled_stake"], row["payout"])
 
             items.append(

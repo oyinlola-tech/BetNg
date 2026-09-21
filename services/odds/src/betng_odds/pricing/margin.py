@@ -1,10 +1,4 @@
-"""Probability to price.
-
-``odds = 1 / (p * (1 + margin))``, rounded to two places and clamped to the
-configured bounds. The margin and the bounds come from the pricing
-configuration; nothing here holds a tunable. All arithmetic is ``Decimal`` so
-the same inputs give the same price on every machine.
-"""
+"""Probability to price."""
 
 from __future__ import annotations
 
@@ -77,13 +71,7 @@ def price_markets(
 
 
 def overround(odds: list[Decimal], probabilities: list[Decimal]) -> Decimal:
-    """Return the book's margin actually present in a set of prices.
-
-    The sum of implied probabilities over the sum of model probabilities,
-    minus one. For a market whose probabilities sum to one this is the usual
-    overround; dividing keeps it meaningful for DOUBLE_CHANCE, which sums to
-    two.
-    """
+    """Return the book's margin actually present in a set of prices."""
     fair = sum(probabilities, Decimal(0))
 
     if fair <= 0:

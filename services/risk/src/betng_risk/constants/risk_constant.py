@@ -35,10 +35,7 @@ class RiskPermission:
     """Admin permissions, as named in ``adminPermissionSchema``."""
 
     READ: Final = "risk:read"
-    #: ``adminPermissionSchema`` defines no ``risk:write``. Changing the limits
-    #: is a platform configuration change, so ``settings:write`` grants it;
-    #: ``risk:write`` is honoured as well should identity come to issue it.
-    WRITE: Final = frozenset({"risk:write", "settings:write"})
+    WRITE: Final = "risk:write"
 
 
 ADMIN_ACTOR_KIND: Final = "ADMIN"
@@ -47,8 +44,6 @@ AUDIT_ACTION_LIMITS_CHANGED: Final = "risk_configuration_changed"
 AUDIT_ENTITY_LIMITS: Final = "risk_limits"
 AUDIT_SEVERITY_LIMITS: Final = "WARNING"
 
-#: The window the overview counts stored decisions over.
 DECISION_WINDOW_HOURS: Final = 24
 
-#: The most matches one dashboard read returns.
 DASHBOARD_MATCH_LIMIT: Final = 200

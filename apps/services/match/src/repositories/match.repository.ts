@@ -1,66 +1,137 @@
-/**
- * In-memory implementation of {@link MatchRepository}.
- *
- * This is deliberately not a database. It exists so the request path is
- * exercisable end to end before the match schema lands, and it is replaced
- * by a PostgreSQL implementation of the same interface. See
- * `docs/architecture.md` for the data-ownership rules and
- * `docs/development.md` for the migration workflow.
- */
+import { randomUUID } from "node:crypto";
+import type { Prisma, PrismaClient } from "../generated/prisma/client.js";
+import { MATCH_INCLUDE } from "../interfaces/index.js";
+import type { FixtureFilter, MatchRepository } from "../interfaces/index.js";
 
-import type { Fixture, League, Match, Team } from "@betng/contracts";
-import type { MatchFilter, MatchRepository } from "../interfaces/index.js";
-import {
-  createDemoFixtures,
-  createDemoLeagues,
-  createDemoMatches,
-  createDemoTeams,
-} from "../models/index.js";
-
-/**
- * Creates the in-memory match repository, pre-loaded with the
- * demonstration league.
- *
- * `now` is injected so tests are deterministic rather than dependent on the
- * wall clock.
- */
-export function createInMemoryMatchRepository(
-  now: () => Date = () => new Date(),
-): MatchRepository {
-  const createdAt = now().toISOString();
-
-  const leagues: readonly League[] = createDemoLeagues(createdAt);
-  const teams: readonly Team[] = createDemoTeams(createdAt);
-  const fixtures: readonly Fixture[] = createDemoFixtures(now(), createdAt);
-  const matches: readonly Match[] = createDemoMatches(createdAt);
-
-  function matchesFilter(entry: Match, filter: MatchFilter): boolean {
-    if (filter.status !== undefined && entry.status !== filter.status) {
-      return false;
-    }
-
-    if (filter.leagueId === undefined) {
-      return true;
-    }
-
-    const fixture = fixtures.find((candidate) => candidate.id === entry.fixtureId);
-
-    return fixture?.leagueId === filter.leagueId;
-  }
-
+function fixtureWhere(filter: Omit<FixtureFilter, "limit">): Prisma.FixtureWhereInput {
   return {
-    listLeagues: async () => leagues,
+    ...(filter.leagueId === undefined ? {} : { leagueId: filter.leagueId }),
+    ...(filter.season === undefined ? {} : { season: filter.season }),
+    ...(filter.matchday === undefined ? {} : { matchday: filter.matchday }),
+    ...(filter.from === undefined && filter.to === undefined
+      ? {}
+      : {
+          kickoffAt: {
+            ...(filter.from === undefined ? {} : { gte: filter.from }),
+            ...(filter.to === undefined ? {} : { lte: filter.to }),
+          },
+        }),
+  };
+}
 
-    listTeams: async (leagueId) =>
-      leagueId === undefined
-        ? teams
-        : teams.filter((team) => team.leagueId === leagueId),
-
-    listFixtures: async () => fixtures,
+export function createMatchRepository(prisma: PrismaClient): MatchRepository {
+  return {
+    listFixtures: async (filter) =>
+      prisma.fixture.findMany({
+        where: fixtureWhere(filter),
+        include: { match: true },
+        orderBy: [{ kickoffAt: "asc" }, { id: "asc" }],
+        take: filter.limit,
+      }),
 
     listMatches: async (filter) =>
-      matches.filter((entry) => matchesFilter(entry, filter)),
+      prisma.match.findMany({
+        where: {
+          ...(filter.status === undefined ? {} : { status: filter.status }),
+          fixture: fixtureWhere(filter),
+        },
+        include: MATCH_INCLUDE,
+        orderBy: [{ fixture: { kickoffAt: filter.newestFirst === true ? "desc" : "asc" } }, { id: "asc" }],
+        take: filter.limit,
+      }),
 
-    findMatch: async (id) => matches.find((entry) => entry.id === id),
+    findMatch: async (id) => (await prisma.match.findUnique({ where: { id }, include: MATCH_INCLUDE })) ?? undefined,
+
+    listTransitions: async (matchId) =>
+      prisma.matchTransition.findMany({ where: { matchId }, orderBy: [{ at: "asc" }, { id: "asc" }], take: 200 }),
+
+    listCompleted: async (filter) =>
+      prisma.match.findMany({
+        where: {
+          status: "COMPLETED",
+          homeScore: { not: null },
+          awayScore: { not: null },
+          fixture: {
+            ...(filter.leagueId === undefined ? {} : { leagueId: filter.leagueId }),
+            ...(filter.season === undefined ? {} : { season: filter.season }),
+          },
+        },
+        include: MATCH_INCLUDE,
+        orderBy: [{ completedAt: "desc" }, { id: "asc" }],
+        take: filter.limit,
+      }),
+
+    currentSeason: async (leagueId, now) => {
+      const latest = await prisma.fixture.findFirst({
+        where: { leagueId, kickoffAt: { lte: now } },
+        orderBy: { kickoffAt: "desc" },
+        select: { season: true },
+      });
+
+      if (latest !== null) return latest.season;
+
+      const first = await prisma.fixture.findFirst({
+        where: { leagueId },
+        orderBy: { kickoffAt: "asc" },
+        select: { season: true },
+      });
+
+      return first?.season ?? 1;
+    },
+
+    latestScheduledRound: async (leagueId) => {
+      const latest = await prisma.fixture.findFirst({
+        where: { leagueId, source: "SCHEDULER" },
+        orderBy: [{ season: "desc" }, { matchday: "desc" }],
+        select: { season: true, matchday: true, kickoffAt: true },
+      });
+
+      return latest ?? undefined;
+    },
+
+    countUpcomingRounds: async (leagueId, now) => {
+      const rounds = await prisma.fixture.groupBy({
+        by: ["season", "matchday"],
+        where: { leagueId, source: "SCHEDULER", kickoffAt: { gt: now } },
+      });
+
+      return rounds.length;
+    },
+
+    createFixtures: async (fixtures, options) =>
+      prisma.$transaction(async (tx) => {
+        const rows = fixtures.map((fixture) => ({ ...fixture, id: randomUUID(), source: options.source, createdAt: options.at }));
+
+        // A pairing an admin already added to this matchday is left as it is rather than failing the round.
+        await tx.fixture.createMany({ data: rows, skipDuplicates: true });
+
+        const inserted = await tx.fixture.findMany({
+          where: { id: { in: rows.map((row) => row.id) } },
+          select: { id: true },
+        });
+
+        const matches = inserted.map((fixture) => ({ id: randomUUID(), fixtureId: fixture.id }));
+
+        await tx.match.createMany({
+          data: matches.map((match) => ({
+            ...match,
+            status: "SCHEDULED" as const,
+            lifecycle: "FIXTURE_CREATED",
+            createdAt: options.at,
+          })),
+        });
+
+        await tx.matchTransition.createMany({
+          data: matches.map((match) => ({
+            matchId: match.id,
+            fromState: null,
+            toState: "FIXTURE_CREATED",
+            at: options.at,
+            actor: options.actor,
+          })),
+        });
+
+        return matches.map((match) => match.id);
+      }),
   };
 }

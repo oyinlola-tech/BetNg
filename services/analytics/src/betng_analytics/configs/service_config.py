@@ -1,9 +1,3 @@
-"""Analytics service configuration.
-
-The service owns no schema. It connects with ``ANALYTICS_DATABASE_URL``, whose
-login is granted ``SELECT`` on every schema and nothing else.
-"""
-
 from __future__ import annotations
 
 import os
@@ -25,12 +19,6 @@ def load_analytics_settings() -> ServiceSettings:
 
 
 def load_report_timezone() -> str:
-    """Return the zone calendar days and hours are cut in.
-
-    Raises:
-        ValueError: When the configured name is not an IANA zone, so a typo
-            fails at startup instead of on the first report.
-    """
     name = os.environ.get(REPORT_TIMEZONE_ENV) or DEFAULT_REPORT_TIMEZONE
 
     try:
@@ -44,11 +32,5 @@ def load_report_timezone() -> str:
 
 
 def read_only_conninfo(database_url: str) -> str:
-    """Make every transaction on the connection read-only.
-
-    The login already lacks write privileges; this is the second lock, so a
-    statement that tried to write is refused before the grant check.
-    """
-    return make_conninfo(
-        database_url, options="-c default_transaction_read_only=on"
-    )
+    """Second lock behind the SELECT-only grant: every transaction opens read-only."""
+    return make_conninfo(database_url, options="-c default_transaction_read_only=on")

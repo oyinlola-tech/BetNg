@@ -1,10 +1,3 @@
-"""Rows to wire shapes.
-
-The only arithmetic here is the operator result and its rate, both delegated
-to :mod:`betng_analytics.utils.figure_util`. Every other figure is copied from
-the aggregate row unchanged.
-"""
-
 from __future__ import annotations
 
 from datetime import datetime

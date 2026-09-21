@@ -1,13 +1,4 @@
-"""The wire shapes of the analytics service.
-
-These mirror `packages/contracts/src/platform/analytics.type.ts`,
-`platform/ledger.type.ts`, `admin/*.ts` and `shop/shop.type.ts`. They are
-written out again here rather than imported, because a TypeScript package must
-not become a build dependency of a Python service.
-
-Money is integer kobo. A rate is a number rounded to six places. An optional
-field is left out of the JSON rather than sent as ``null``.
-"""
+"""Mirrors packages/contracts; money is integer kobo, optional fields are omitted."""
 
 from __future__ import annotations
 
@@ -29,7 +20,7 @@ class WireModel(BaseModel):
 
 
 class AnalyticsOverview(WireModel):
-    from_: str | None = Field(default=None, alias="from")
+    from_: str | None = Field(default=None, serialization_alias="from")
     to: str | None = None
     total_matches: Count
     total_bets: Count
@@ -71,7 +62,7 @@ class AnalyticsBreakdownRow(WireModel):
 
 class AnalyticsBreakdown(WireModel):
     by: Dimension
-    from_: str | None = Field(default=None, alias="from")
+    from_: str | None = Field(default=None, serialization_alias="from")
     to: str | None = None
     items: list[AnalyticsBreakdownRow]
 
@@ -123,10 +114,7 @@ class MatchResult(WireModel):
 
 
 class MatchAnalysis(WireModel):
-    """One match's share of the global bets.
-
-    ``result`` is present only once the match is ``COMPLETED``.
-    """
+    """``result`` is present only once the match is ``COMPLETED``."""
 
     match_id: str
     label: str
@@ -245,8 +233,6 @@ class OperatorSummary(WireModel):
 
 
 class OperatorSourceFigures(WireModel):
-    """The same four figures as one source reports them."""
-
     settled_bets: Count
     void_bets: Count
     gross_stakes: Kobo
@@ -256,13 +242,7 @@ class OperatorSourceFigures(WireModel):
 
 
 class OperatorReconciliation(WireModel):
-    """The live operator summary, stated three ways over the same bets.
-
-    ``summary`` and ``bets`` come from `betting.bets`; ``settlements`` from the
-    latest revision in `settlement.settlements`; ``ledger`` from
-    `settlement.operator_ledger_entries`. ``reconciled`` is true only when all
-    three agree on every figure.
-    """
+    """``reconciled`` only when bets, settlements and the ledger all agree."""
 
     summary: OperatorSummary
     bets: OperatorSourceFigures

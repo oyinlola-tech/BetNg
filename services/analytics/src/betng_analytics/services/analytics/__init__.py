@@ -1,9 +1,3 @@
-"""The analytics application service.
-
-Registers the read handlers on the query bus, resolving the reader from the
-container. There is no command bus: analytics changes nothing.
-"""
-
 from __future__ import annotations
 
 from betng_service_kit import Container, QueryBus

@@ -1,9 +1,4 @@
-"""Odds HTTP handlers.
-
-The controller turns a validated request into a command or a query and holds
-no domain logic. The public reads take no actor at all: there is no per-user
-price, so there is nothing an identity could change.
-"""
+"""Odds HTTP handlers."""
 
 from __future__ import annotations
 

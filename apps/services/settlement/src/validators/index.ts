@@ -1,6 +1,13 @@
-/**
- * Request schemas. The settlement endpoints take no body and no
- * query string, so there is nothing to validate beyond the path.
- */
-
-export {};
+export {
+  betIdParamSchema,
+  closePeriodBodySchema,
+  listAdminSettlementsQuerySchema,
+  listCommissionQuerySchema,
+  listLimitQuerySchema,
+  listSettlementsQuerySchema,
+  matchIdParamSchema,
+  retrySettlementBodySchema,
+  settleMatchPayloadSchema,
+  updateCommissionConfigBodySchema,
+  voidMatchPayloadSchema,
+} from "./settlement.validator.js";

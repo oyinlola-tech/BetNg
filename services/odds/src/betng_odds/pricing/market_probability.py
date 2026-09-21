@@ -1,9 +1,4 @@
-"""Score matrix to market probabilities.
-
-The matrix is the simulation service's statement of how likely each score is.
-This stage only adds cells up: it cannot make an outcome more or less likely,
-which is what keeps price and probability separate concerns.
-"""
+"""Score matrix to market probabilities."""
 
 from __future__ import annotations
 
@@ -53,8 +48,7 @@ def _market_probabilities(
             for away_goals, cell in enumerate(row)
             if selection.wins(home_goals, away_goals)
         )
-        # The matrix is truncated at maxGoals, so it is renormalised by its
-        # own total rather than assumed to sum to exactly one.
+        # The matrix is truncated at maxGoals, so divide by its own total.
         probability = Decimal(repr(mass / total)).quantize(
             PROBABILITY_QUANTUM, rounding=ROUND_HALF_UP
         )
@@ -74,11 +68,7 @@ def _market_probabilities(
 def derive_market_probabilities(
     score_matrix: list[list[float]], home: str, away: str
 ) -> tuple[MarketProbabilities, ...]:
-    """Return the probability of every selection of every market.
-
-    ``score_matrix[h][a]`` is P(home scores h, away scores a). ``home`` and
-    ``away`` are the short names used in the selection labels.
-    """
+    """Return the probability of every selection of every market."""
     total = _validated_total(score_matrix)
 
     return tuple(

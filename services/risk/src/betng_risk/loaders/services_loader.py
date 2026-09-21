@@ -1,18 +1,31 @@
+"""Builds the buses and registers the handlers."""
+
 from __future__ import annotations
 
-from betng_service_kit import Container, QueryBus
+from collections.abc import Callable
+from datetime import datetime
+
+from betng_service_kit import CommandBus, Container, QueryBus
 
 from ..constants import LOGGER_TOKEN
 from ..services import register_risk_service
 
 
-def load_services(container: Container) -> QueryBus:
+def load_services(
+    container: Container, clock: Callable[[], datetime] | None = None
+) -> tuple[CommandBus, QueryBus]:
+    """Return the command and query buses with every handler registered."""
+    command_bus = CommandBus()
     query_bus = QueryBus()
 
-    register_risk_service(container, query_bus)
+    if clock is None:
+        register_risk_service(container, command_bus, query_bus)
+    else:
+        register_risk_service(container, command_bus, query_bus, clock)
 
     container.resolve(LOGGER_TOKEN).debug(
-        "Query handlers registered", extra={"queries": query_bus.size()}
+        "Handlers registered",
+        extra={"commands": command_bus.size(), "queries": query_bus.size()},
     )
 
-    return query_bus
+    return command_bus, query_bus

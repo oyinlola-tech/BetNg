@@ -38,9 +38,7 @@ class OddsDependencies:
     exposure_reader: ExposureReader
 
 
-def load_container(
-    dependencies: OddsDependencies, logger: logging.Logger
-) -> Container:
+def load_container(dependencies: OddsDependencies, logger: logging.Logger) -> Container:
     """Register the service's collaborators against their tokens."""
     container = Container()
 

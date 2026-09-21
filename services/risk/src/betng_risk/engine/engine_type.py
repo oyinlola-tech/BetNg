@@ -1,9 +1,4 @@
-"""The decision engine's inputs and output.
-
-Plain frozen values: the engine sees a slip, the limits in force, what the
-database says about each leg, and the global book. It is never handed a bettor,
-a shop or a cashier, so it cannot treat one caller differently from another.
-"""
+"""The decision engine's inputs and output; it is never handed a bettor."""
 
 from __future__ import annotations
 
@@ -29,6 +24,8 @@ RiskReason = Literal[
 
 @dataclass(frozen=True)
 class SlipLeg:
+    """One leg of the slip at the odds the bet would store."""
+
     match_id: str
     market_id: str
     selection_id: str
@@ -50,11 +47,7 @@ class Limits:
 
 @dataclass(frozen=True)
 class SelectionState:
-    """What the database holds for one selection id.
-
-    ``match_lifecycle`` and ``betting_closes_at`` are ``None`` when the market
-    points at a match that does not exist.
-    """
+    """Database state of a selection; match fields are None if no match."""
 
     selection_id: str
     market_id: str
@@ -71,16 +64,16 @@ class MarketBook:
 
     market_id: str
     match_id: str
-    #: Σ stake of pending bets with a leg on this market, each bet once.
+    #: Each pending bet's stake counted once, however many legs it has here.
     stake: int
-    #: Σ potential payout of pending bets, per selection id.
     payouts: Mapping[str, int] = field(default_factory=dict)
 
     def net(self, selection_id: str) -> int:
-        """What the book loses on this market if the selection wins."""
+        """Return what the book loses on this market if the selection wins."""
         return self.payouts.get(selection_id, 0) - self.stake
 
     def worst_case(self) -> int:
+        """Return the largest net exposure, or 0 for an empty market."""
         if not self.payouts:
             return 0
 
@@ -91,14 +84,15 @@ class MarketBook:
 class ExposureBook:
     """Global pending exposure for the matches a slip touches."""
 
-    #: Σ(potential_payout − stake) per selection id.
+    #: Sum of (potential_payout - stake) per selection id.
     selection_liability: Mapping[str, int] = field(default_factory=dict)
-    #: Every market of those matches that carries a pending bet.
     markets: Mapping[str, MarketBook] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
 class EngineDecision:
+    """The engine's answer; ``max_stake`` is 0 on a reject."""
+
     decision: DecisionKind
     reason: RiskReason
     max_stake: int

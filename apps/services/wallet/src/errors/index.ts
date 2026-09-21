@@ -1,4 +1,8 @@
 export {
+  BalanceLimitError,
+  IdempotencyConflictError,
   InsufficientFundsError,
-  WalletNotFoundError,
+  WalletDatabaseError,
+  WalletFrozenError,
+  WalletOwnerNotFoundError,
 } from "./wallet.error.js";

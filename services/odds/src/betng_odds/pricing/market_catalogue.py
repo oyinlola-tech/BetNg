@@ -1,9 +1,4 @@
-"""The markets the platform offers, as data.
-
-The codes, lines and labels are part of the contract (docs/architecture.md §8)
-and are what the frontends already render, so they are declared once here and
-nowhere inside a pricing function.
-"""
+"""The markets the platform offers, as data."""
 
 from __future__ import annotations
 
@@ -34,8 +29,10 @@ TOTAL_GOALS_LINES: Final[tuple[Decimal, ...]] = (
     Decimal("3.5"),
 )
 GOAL_SPREAD_LINE: Final = Decimal("-1.5")
-#: Correct-score cells run 0..3 for each side; everything else is CS_OTHER.
 CORRECT_SCORE_MAX_GOALS: Final = 3
+
+#: The frontends' correct-score labels use an en dash.
+_EN_DASH: Final = "\N{EN DASH}"
 
 Outcome = Callable[[int, int], bool]
 
@@ -102,7 +99,7 @@ def _totals_market(line: Decimal) -> MarketSpec:
 def _correct_score_market() -> MarketSpec:
     cells = range(CORRECT_SCORE_MAX_GOALS + 1)
     selections = [
-        SelectionSpec(f"CS_{h}_{a}", f"{h} – {a}", _exact_score(h, a))
+        SelectionSpec(f"CS_{h}_{a}", f"{h} {_EN_DASH} {a}", _exact_score(h, a))
         for h in cells
         for a in cells
     ]

@@ -11,8 +11,6 @@ from .....types import BetScope
 
 @dataclass(frozen=True)
 class GetExposureQuery(Query[ExposureReport]):
-    """Asks for the pending liability by match, market and selection."""
-
     scope: BetScope
     limit: int
 

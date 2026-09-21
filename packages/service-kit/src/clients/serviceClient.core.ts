@@ -12,6 +12,7 @@
  * failure.
  */
 
+import { internalHeaders } from "../internalAuth/index.js";
 import { ErrorCodes, REQUEST_ID_HEADER } from "@betng/contracts";
 import { HttpError, serviceUnavailable } from "@zudojs/http";
 import type { ServiceEndpoint } from "../serviceConfig/index.js";
@@ -26,7 +27,6 @@ export interface ServiceRequest {
   readonly path: string;
   readonly body?: unknown;
   readonly requestId: string;
-  /** Extra headers, e.g. the actor headers the gateway asserts. */
   readonly headers?: Readonly<Record<string, string>>;
 }
 
@@ -60,6 +60,7 @@ export function createServiceClient(endpoint: ServiceEndpoint): ServiceClient {
             ? {}
             : { "content-type": "application/json" }),
           ...options.headers,
+          ...internalHeaders(),
         },
         ...(options.body === undefined
           ? {}
@@ -69,10 +70,12 @@ export function createServiceClient(endpoint: ServiceEndpoint): ServiceClient {
 
       const contentType = response.headers.get("content-type") ?? "";
 
+      const text = await response.text();
+
       const data = (
-        contentType.includes("application/json")
-          ? await response.json()
-          : await response.text()
+        text !== "" && contentType.includes("application/json")
+          ? JSON.parse(text)
+          : text
       ) as T;
 
       return { status: response.status, data };

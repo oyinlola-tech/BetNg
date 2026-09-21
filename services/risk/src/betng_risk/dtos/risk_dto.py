@@ -1,11 +1,4 @@
-"""The wire shapes of the risk service.
-
-These mirror ``packages/contracts/src/platform/risk.type.ts`` and
-``riskOverviewSchema`` in ``packages/contracts/src/admin/operations.type.ts``.
-They are written out again here rather than imported, because a TypeScript
-package must not become a build dependency of a Python service. Attributes are
-snake_case; the JSON is the contract's camelCase.
-"""
+"""Wire shapes mirroring ``risk.type.ts`` and ``riskOverviewSchema``."""
 
 from __future__ import annotations
 
@@ -19,8 +12,7 @@ from pydantic.alias_generators import to_camel
 
 from ..engine import DecisionKind, RiskReason
 
-#: No stake, limit or aggregate on a play-money book comes near this; anything
-#: larger is refused as malformed rather than carried into arithmetic.
+#: Larger amounts are refused as malformed rather than carried into arithmetic.
 MAX_KOBO = 10**15
 
 MAX_LEGS = 20
@@ -30,8 +22,8 @@ RiskState = Literal["NORMAL", "ELEVATED", "CRITICAL"]
 
 
 def _iso_timestamp(value: datetime) -> str:
-    return value.astimezone(UTC).isoformat(timespec="milliseconds").replace(
-        "+00:00", "Z"
+    return (
+        value.astimezone(UTC).isoformat(timespec="milliseconds").replace("+00:00", "Z")
     )
 
 
@@ -145,8 +137,7 @@ class SelectionExposureRow(WireModel):
     shops: Count
     total_stake: Kobo
     potential_payout: Kobo
-    #: ``potential_payout - market stake``: the book's loss on this market if
-    #: this selection wins.
+    #: ``potential_payout - market stake``: the book's loss if this selection wins.
     net_exposure: int
     status: ExposureStatus
 

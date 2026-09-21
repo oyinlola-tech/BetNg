@@ -1,16 +1,14 @@
-"""Who may read a gateway-proxied report.
-
-The gateway authenticates and forwards the actor; this re-checks the kind and
-the permission, because a route that trusted the gateway's route table alone
-would be open to anything else that can reach the service.
-"""
+"""Re-checks the actor: the gateway's route table alone must not be the only guard."""
 
 from __future__ import annotations
+
+from collections.abc import Callable
+from uuid import UUID
 
 from betng_service_kit import Actor, read_actor
 from fastapi import Request
 
-from ..constants import ACTOR_ADMIN, ACTOR_CASHIER
+from ..constants import ACTOR_ADMIN, ACTOR_CASHIER, REPORTS_READ
 from ..errors import ForbiddenError, UnauthenticatedError
 
 
@@ -29,18 +27,24 @@ def _require(request: Request, kind: str, permission: str | None) -> Actor:
     return actor
 
 
-def require_admin(request: Request, permission: str | None = None) -> Actor:
-    return _require(request, ACTOR_ADMIN, permission)
+def admin_guard(permission: str | None = None) -> Callable[[Request], Actor]:
+    """Check the actor as a dependency, before the query string is validated."""
+
+    def guard(request: Request) -> Actor:
+        return _require(request, ACTOR_ADMIN, permission)
+
+    return guard
 
 
-def require_shop_cashier(request: Request, permission: str) -> tuple[Actor, str]:
-    """Return the cashier and the shop their reports are scoped to.
-
-    The shop comes from the actor alone. A shop id in the query is never read.
-    """
-    actor = _require(request, ACTOR_CASHIER, permission)
+def shop_report_guard(request: Request) -> str:
+    """Return the shop from the actor alone; a shop id in the query is never read."""
+    actor = _require(request, ACTOR_CASHIER, REPORTS_READ)
+    refusal = "This cashier is not attached to a shop."
 
     if actor.shop_id is None:
-        raise ForbiddenError("This cashier is not attached to a shop.")
+        raise ForbiddenError(refusal)
 
-    return actor, actor.shop_id
+    try:
+        return str(UUID(actor.shop_id))
+    except ValueError:
+        raise ForbiddenError(refusal) from None

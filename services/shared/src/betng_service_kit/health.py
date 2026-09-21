@@ -15,6 +15,7 @@ list rather than inventing one.
 from __future__ import annotations
 
 import asyncio
+import logging
 import time
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
@@ -41,11 +42,18 @@ async def _run_probe(probe: DependencyProbe) -> dict[str, object]:
     try:
         await asyncio.wait_for(probe.check(), timeout=PROBE_TIMEOUT_SECONDS)
     except Exception as error:  # noqa: BLE001 - every failure is reportable
+        # The reason goes to the log; a driver message can carry hosts and ports.
+        logging.getLogger("betng.health").warning(
+            "Dependency probe failed",
+            extra={"probe": probe.name, "error": str(error)},
+        )
         return {
             "name": probe.name,
             "status": "degraded" if probe.optional else "unavailable",
             "latencyMs": round((time.perf_counter() - started_at) * 1000),
-            "error": str(error) or type(error).__name__,
+            "error": "timeout"
+            if isinstance(error, TimeoutError)
+            else "unreachable",
         }
 
     return {

@@ -11,8 +11,6 @@ from .....types import BetScope, Dimension
 
 @dataclass(frozen=True)
 class GetBreakdownQuery(Query[AnalyticsBreakdown]):
-    """Asks for the global bets split along one dimension."""
-
     dimension: Dimension
     scope: BetScope
     limit: int

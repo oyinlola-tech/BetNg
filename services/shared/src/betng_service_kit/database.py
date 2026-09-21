@@ -1,13 +1,4 @@
-"""PostgreSQL access shared by the BetNG Python services.
-
-Every Python service connects to the one authoritative ``betng`` database with
-its own login. The login owns exactly one schema and can read the others, so
-"write only your own schema" is enforced by the database rather than by review.
-
-Migrations are plain SQL files applied in name order and recorded in
-``<schema>.schema_migrations``. There is no ORM: the services issue the SQL they
-mean, and money columns stay integers end to end.
-"""
+"""PostgreSQL pool, readiness probe and SQL-file migrations for the Python services."""
 
 from __future__ import annotations
 
@@ -49,11 +40,7 @@ def database_probe(pool: Pool) -> DependencyProbe:
 async def apply_migrations(
     pool: Pool, schema: str, directory: Path, logger: logging.Logger
 ) -> list[str]:
-    """Apply every ``*.sql`` file in ``directory`` that has not run yet.
-
-    A file that already ran is never re-run, and one whose contents changed
-    since it ran is refused: history is append-only.
-    """
+    """Apply new ``*.sql`` files in name order; refuse one that changed after it ran."""
     applied: list[str] = []
 
     async with pool.connection() as connection:

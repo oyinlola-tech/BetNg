@@ -19,9 +19,7 @@ class ListBetsHandler(QueryHandler[ListBetsQuery, BetPage]):
         self._reader = reader
 
     async def execute(self, message: ListBetsQuery) -> BetPage:
-        rows = await self._reader.bets(
-            message.scope, message.page, message.page_size
-        )
+        rows = await self._reader.bets(message.scope, message.page, message.page_size)
 
         legs: defaultdict[str, list[Row]] = defaultdict(list)
 

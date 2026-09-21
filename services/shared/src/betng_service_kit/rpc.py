@@ -30,9 +30,11 @@ from typing import Any
 
 import httpx
 from fastapi import APIRouter, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, ValidationError
 
 from .errors import ServiceError
+from .internal_auth import internal_headers, is_internal_request
 
 RPC_PATH = "/rpc"
 
@@ -214,6 +216,15 @@ def create_rpc_router(server: RpcServer) -> APIRouter:
 
     @router.post(RPC_PATH, include_in_schema=False)
     async def handle_rpc(frame: RpcRequestFrame, request: Request) -> Any:
+        # RPC is service-to-service only; an outsider learns nothing here.
+        if not is_internal_request(request):
+            return JSONResponse(
+                status_code=404,
+                content=_failure(
+                    frame, RPC_PROCEDURE_NOT_FOUND, "Not found."
+                ).model_dump(exclude_none=True),
+            )
+
         response = await server.handle(frame)
 
         return response.model_dump(exclude_none=True)
@@ -242,7 +253,7 @@ class RpcClient:
             "timestamp": int(time.time() * 1000),
         }
 
-        headers = {"content-type": "application/json"}
+        headers = {"content-type": "application/json", **internal_headers()}
         if request_id is not None:
             headers["x-request-id"] = request_id
 

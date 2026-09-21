@@ -121,7 +121,8 @@ def _corner_mean(
     ) / configuration.rating_scale
 
     return max(
-        configuration.corners_per_team * (1.0 + configuration.corner_attack_weight * gap),
+        configuration.corners_per_team
+        * (1.0 + configuration.corner_attack_weight * gap),
         0.0,
     )
 
@@ -295,9 +296,7 @@ def _play_substitution(rng: random.Random, timeline: _Timeline, slot: _Slot) -> 
 
     leaving = sample_choice(rng, leaving_candidates)
     like_for_like = [
-        player
-        for player in arriving_candidates
-        if player.position == leaving.position
+        player for player in arriving_candidates if player.position == leaving.position
     ]
     arriving = sample_choice(rng, like_for_like or arriving_candidates)
 
@@ -331,9 +330,7 @@ def _play(
         _play_substitution(rng, timeline, slot)
     else:
         team = timeline.lineup(slot.side).team
-        timeline.add(
-            slot.minute, "CORNER", f"Corner to {team.name}.", side=slot.side
-        )
+        timeline.add(slot.minute, "CORNER", f"Corner to {team.name}.", side=slot.side)
 
 
 def _possession_share(
@@ -351,9 +348,7 @@ def _possession_share(
     home_control = control(home)
     total = home_control + control(away)
     share = (
-        float(EVEN_POSSESSION)
-        if total <= 0
-        else home_control / total * FULL_POSSESSION
+        float(EVEN_POSSESSION) if total <= 0 else home_control / total * FULL_POSSESSION
     )
     share += (rng.random() * 2.0 - 1.0) * configuration.possession_noise
 
@@ -364,9 +359,7 @@ def _possession_share(
 
 
 def _count(events: list[MatchEventDraft], event_type: EventType, side: Side) -> int:
-    return sum(
-        1 for event in events if event.type == event_type and event.side == side
-    )
+    return sum(1 for event in events if event.type == event_type and event.side == side)
 
 
 def _side_stats(

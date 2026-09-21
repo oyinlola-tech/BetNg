@@ -1,18 +1,16 @@
 // BetNG settlement service schema.
 //
-// This service owns settlement records, and nothing else. It connects to `betng_settlement`
-// with its own login and holds no credentials for another service's
-// database, which is what makes the ownership boundary in
-// `docs/architecture.md` enforceable rather than a convention.
+// The service owns the `settlement` schema of the one `betng` database: settlements, the operator ledger,
+// the commission ledger and the reporting periods. It writes nothing else and reads the other schemas
+// (`betting`, `match`, `simulation`, `identity`) with schema-qualified raw queries.
 //
-// Identifiers belonging to another service appear as plain columns rather
-// than foreign keys: the referenced table is in a different database, so the
-// constraint could not be enforced and pretending otherwise would mislead.
-// Referential integrity across services is the API's job.
+// Identifiers belonging to another service are plain columns, not foreign keys: the owner of that row is
+// another service, and referential integrity across services is the API's job.
 //
-// Prisma 7 no longer takes the connection URL here: migrations read it from
-// `prisma.config.ts`, and the client is built with a driver adapter.
-// Migrations live in `prisma/migrations`; see `docs/development.md`.
+// Status and outcome columns are text guarded by CHECK constraints (second migration) so every reader,
+// Python included, sees plain strings. Append-only rules are triggers in the same migration.
+//
+// Prisma 7 takes the connection URL from `prisma.config.ts`; the client is built with a driver adapter.
 
 generator client {
   provider = "prisma-client-js"
@@ -23,62 +21,155 @@ datasource db {
   provider = "postgresql"
 }
 
-enum SettlementOutcome {
-  WON
-  LOST
-  VOID
-
-  @@map("settlement_outcome")
-}
-
-/// The record of one bet being resolved against a completed match result.
-///
-/// Written once and never changed. Re-settling means writing a second record
-/// that supersedes the first, not editing it, so the history of what was
-/// decided and when survives intact.
+/// One bet resolved against authoritative results. Written once; only `effects_applied_at` is ever set,
+/// once, when the wallet and betting effects have been applied.
 model Settlement {
-  id       String            @id @default(uuid()) @db.Uuid
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  betId            String    @map("bet_id") @db.Uuid
+  /// A correction would be a new row at the next revision. `(bet_id, revision)` is the no-double-pay key.
+  revision         Int       @default(1)
+  outcome          String
+  stake            BigInt
+  payout           BigInt
+  channel          String
+  userId           String?   @map("user_id") @db.Uuid
+  shopId           String?   @map("shop_id") @db.Uuid
+  cashierId        String?   @map("cashier_id") @db.Uuid
+  periodId         String    @map("period_id")
+  effectsAppliedAt DateTime? @map("effects_applied_at") @db.Timestamptz(3)
+  settledAt        DateTime  @default(now()) @map("settled_at") @db.Timestamptz(3)
 
-  /// Owned by the betting service; a plain column, not a foreign key.
-  betId    String            @map("bet_id") @db.Uuid
-  /// The match result this settlement was computed from, so a disputed
-  /// payout can be traced back to the result that produced it.
-  matchId  String            @map("match_id") @db.Uuid
+  period      OperatorPeriod       @relation(fields: [periodId], references: [id])
+  selections  SettledSelection[]
+  ledgerEntry OperatorLedgerEntry?
 
-  outcome  SettlementOutcome
-  /// Payout in minor units. Zero for a losing bet.
-  payout   BigInt
-  currency String            @default("NGN") @db.Char(3)
-
-  /// Increments when a bet is re-settled. The highest revision for a bet is
-  /// the current one; the rest are history.
-  revision Int               @default(1)
-  /// The settlement this one supersedes, when it is a correction.
-  supersedesId String?       @map("supersedes_id") @db.Uuid
-
-  settledAt DateTime         @default(now()) @map("settled_at")
-
-  selections SettledSelection[]
-
-  /// One settlement per bet per revision: the same bet cannot be settled
-  /// twice at the same revision, so a redelivered message is refused rather
-  /// than paying out again.
   @@unique([betId, revision])
-  @@index([matchId])
-  @@index([outcome])
+  @@index([userId, settledAt])
+  @@index([periodId])
+  @@index([settledAt])
   @@map("settlements")
 }
 
-/// How one selection on a bet resolved against the match result.
+/// How one leg resolved. `selection_id` is `betting.bet_selections.selection_id`.
 model SettledSelection {
-  id           String            @id @default(uuid()) @db.Uuid
-  settlementId String            @map("settlement_id") @db.Uuid
-  selectionId  String            @map("selection_id") @db.Uuid
-  matchId      String            @map("match_id") @db.Uuid
-  outcome      SettlementOutcome
+  id           String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  settlementId String  @map("settlement_id") @db.Uuid
+  selectionId  String  @map("selection_id") @db.Uuid
+  matchId      String  @map("match_id") @db.Uuid
+  outcome      String
+  /// The final score the leg was judged against, "h-a". Null for a leg on a voided match.
+  result       String?
 
-  settlement Settlement @relation(fields: [settlementId], references: [id], onDelete: Cascade)
+  settlement Settlement @relation(fields: [settlementId], references: [id])
 
   @@unique([settlementId, selectionId])
+  @@index([matchId])
   @@map("settled_selections")
+}
+
+/// Progress of settling one match. The only mutable table besides `operator_periods`.
+model MatchSettlement {
+  matchId       String    @id @map("match_id") @db.Uuid
+  /// `RESULT` for a settlement from the result, `VOID` for a voided match.
+  kind          String    @default("RESULT")
+  status        String
+  betsTotal     Int       @default(0) @map("bets_total")
+  betsSettled   Int       @default(0) @map("bets_settled")
+  attempts      Int       @default(0)
+  failureReason String?   @map("failure_reason")
+  startedAt     DateTime  @default(now()) @map("started_at") @db.Timestamptz(3)
+  completedAt   DateTime? @map("completed_at") @db.Timestamptz(3)
+
+  @@index([status])
+  @@map("match_settlements")
+}
+
+/// A reporting period, `SESSION-YYYYMMDD-NNNN`. At most one is OPEN (partial unique index).
+model OperatorPeriod {
+  id       String    @id
+  kind     String
+  status   String
+  startsAt DateTime  @map("starts_at") @db.Timestamptz(3)
+  endsAt   DateTime? @map("ends_at") @db.Timestamptz(3)
+
+  settlements Settlement[]
+  entries     OperatorLedgerEntry[]
+  ledger      OperatorLedger?
+  commissions CommissionLedger[]
+
+  @@index([status])
+  @@map("operator_periods")
+}
+
+/// The operator's side of one settlement, written in the settlement's transaction.
+model OperatorLedgerEntry {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  settlementId String   @unique @map("settlement_id") @db.Uuid
+  periodId     String   @map("period_id")
+  betId        String   @map("bet_id") @db.Uuid
+  channel      String
+  userId       String?  @map("user_id") @db.Uuid
+  shopId       String?  @map("shop_id") @db.Uuid
+  cashierId    String?  @map("cashier_id") @db.Uuid
+  outcome      String
+  stake        BigInt
+  payout       BigInt
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  settlement Settlement     @relation(fields: [settlementId], references: [id])
+  period     OperatorPeriod @relation(fields: [periodId], references: [id])
+
+  @@index([periodId, shopId])
+  @@map("operator_ledger_entries")
+}
+
+/// The closed result of a period. `operator_result` may be negative and is recorded as it is.
+model OperatorLedger {
+  periodId           String   @id @map("period_id")
+  grossStakes        BigInt   @map("gross_stakes")
+  grossPayouts       BigInt   @map("gross_payouts")
+  operatorResult     BigInt   @map("operator_result")
+  operatorResultRate Decimal  @map("operator_result_rate") @db.Decimal(9, 6)
+  settledBets        Int      @map("settled_bets")
+  voidBets           Int      @map("void_bets")
+  refundedStakes     BigInt   @map("refunded_stakes")
+  status             String
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  period OperatorPeriod @relation(fields: [periodId], references: [id])
+
+  @@map("operator_ledger")
+}
+
+/// Versioned by `effective_from`; a change is a new row. `shop_id` null is the platform default.
+model CommissionConfig {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  shopId           String?  @map("shop_id") @db.Uuid
+  shopSharePercent Decimal  @map("shop_share_percent") @db.Decimal(5, 2)
+  effectiveFrom    DateTime @default(now()) @map("effective_from") @db.Timestamptz(3)
+  createdBy        String   @map("created_by")
+  reason           String
+
+  @@index([shopId, effectiveFrom])
+  @@map("commission_config")
+}
+
+/// A shop's share of its own realised operator result in a closed period.
+model CommissionLedger {
+  id                   String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  periodId             String   @map("period_id")
+  shopId               String   @map("shop_id") @db.Uuid
+  grossStakes          BigInt   @map("gross_stakes")
+  grossPayouts         BigInt   @map("gross_payouts")
+  grossOperatorResult  BigInt   @map("gross_operator_result")
+  shopSharePercent     Decimal  @map("shop_share_percent") @db.Decimal(5, 2)
+  shopShareAmount      BigInt   @map("shop_share_amount")
+  platformSharePercent Decimal  @map("platform_share_percent") @db.Decimal(5, 2)
+  platformShareAmount  BigInt   @map("platform_share_amount")
+  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  period OperatorPeriod @relation(fields: [periodId], references: [id])
+
+  @@unique([periodId, shopId])
+  @@map("commission_ledger")
 }

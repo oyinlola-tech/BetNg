@@ -1,1 +1,41 @@
-export type { MatchFilter, MatchRepository } from "./match.interface.js";
+export { MATCH_INCLUDE } from "./match.interface.js";
+export type {
+  BettingReader,
+  CatalogueRepository,
+  Clock,
+  FixtureFilter,
+  FixtureRecord,
+  LeagueRecord,
+  LifecycleRepository,
+  MatchFilter,
+  MatchRecord,
+  MatchRepository,
+  NewFixture,
+  NewLeague,
+  NewTeam,
+  RoundCursor,
+  ScorerRow,
+  SimulationEventRow,
+  SimulationReader,
+  SimulationResultRow,
+  TeamPatch,
+  TeamRecord,
+  TeamRow,
+  TransitionInput,
+  TransitionRecord,
+} from "./match.interface.js";
+
+export type {
+  AuditInput,
+  EventPeer,
+  IdentityPeer,
+  LiveEventInput,
+  MarketsStatus,
+  MatchSettlementResult,
+  OddsPeer,
+  Peers,
+  PublishMarketsResult,
+  RiskPeer,
+  SettlementPeer,
+  SimulationPeer,
+} from "./peer.interface.js";

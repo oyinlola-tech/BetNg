@@ -1,104 +1,154 @@
-"""The wire shapes of the simulation service.
+"""The wire shapes of the simulation RPC procedures and internal routes.
 
-These mirror `packages/contracts/src/simulation` exactly. They are written out
-again here rather than imported, because a TypeScript package must not become
-a build dependency of a Python service — the contract is the JSON described in
-`docs/api.md`, and each side implements it in its own language.
-
-Any change here has to be made in `@betng/contracts` too. `docs/api.md` is the
-document both sides answer to.
+They mirror `packages/contracts/src/platform/lifecycle.type.ts`. They are
+written out again here rather than imported, because a TypeScript package must
+not become a build dependency of a Python service: the contract is the JSON in
+`docs/architecture.md` §6, and each side implements it in its own language.
 """
 
 from __future__ import annotations
 
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
+from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import Field
 
-MatchEventType = Literal[
+from .base_dto import ContractModel, IsoTimestamp
+from .team_dto import SimulationTeamDto, TeamStrengthDto
+
+WinnerDto = Literal["HOME", "AWAY", "DRAW"]
+RunStatusDto = Literal["RUNNING", "COMPLETED", "FAILED", "CANCELLED"]
+MatchEventTypeDto = Literal[
     "KICK_OFF",
     "GOAL",
     "YELLOW_CARD",
     "RED_CARD",
     "SUBSTITUTION",
+    "CORNER",
     "HALF_TIME",
+    "SECOND_HALF",
     "FULL_TIME",
 ]
-
-MatchSide = Literal["HOME", "AWAY"]
-
-
-class SimulationTeam(BaseModel):
-    model_config = ConfigDict(frozen=True)
-
-    id: Annotated[str, Field(description="The team's UUID.")]
-    name: Annotated[str, Field(min_length=1, max_length=120)]
-    strength: Annotated[float, Field(ge=0, le=100)]
+MatchSideDto = Literal["HOME", "AWAY"]
 
 
-class SimulationRequest(BaseModel):
-    model_config = ConfigDict(frozen=True)
+class RunMatchBody(ContractModel):
+    """The body of the internal run route. The match id is the path's."""
 
-    matchId: Annotated[str, Field(description="The match's UUID.")]
-    homeTeam: SimulationTeam
-    awayTeam: SimulationTeam
-    seed: Annotated[
-        int | None,
-        Field(
-            default=None,
-            description=(
-                "Optional seed for a reproducible run. Supplying one makes a "
-                "simulation repeatable for testing; omitting it draws fresh "
-                "randomness."
-            ),
-        ),
-    ] = None
+    home: SimulationTeamDto
+    away: SimulationTeamDto
 
 
-class MatchScore(BaseModel):
-    model_config = ConfigDict(frozen=True)
+class RunMatchRequest(RunMatchBody):
+    """Mirrors ``runMatchRequestSchema``: the match and its two teams, only."""
 
-    home: Annotated[int, Field(ge=0)]
-    away: Annotated[int, Field(ge=0)]
-
-
-class SimulatedEvent(BaseModel):
-    model_config = ConfigDict(frozen=True)
-
-    type: MatchEventType
-    minute: Annotated[int, Field(ge=0, le=120)]
-    side: MatchSide | None = None
-    description: Annotated[str, Field(max_length=240)]
+    match_id: UUID
 
 
-class SimulationResult(BaseModel):
-    model_config = ConfigDict(frozen=True)
+class MatchScoreResult(ContractModel):
+    """Score, winner and gap."""
 
-    matchId: str
-    score: MatchScore
-    events: list[SimulatedEvent]
-    seed: Annotated[int, Field(description="The seed used, so a run replays.")]
-    completedAt: str
-
-
-class ProbabilityRequest(BaseModel):
-    model_config = ConfigDict(frozen=True)
-
-    matchId: str
-    homeTeam: SimulationTeam
-    awayTeam: SimulationTeam
+    home_goals: Annotated[int, Field(ge=0)]
+    away_goals: Annotated[int, Field(ge=0)]
+    winner: WinnerDto
+    winning_gap: Annotated[int, Field(ge=0)]
 
 
-class OutcomeProbabilities(BaseModel):
-    """The response of ``POST /api/v1/probabilities``.
+class RunMatchResponse(ContractModel):
+    """Mirrors ``runMatchResponseSchema``."""
 
-    The three outcome probabilities sum to 1. The odds service turns these
-    into prices; it does not compute them itself.
-    """
+    simulation_id: UUID
+    match_id: UUID
+    status: Literal["COMPLETED", "FAILED"]
+    duplicate: bool
+    model_version: str
+    configuration_version: int
+    seed: str
+    result: MatchScoreResult
+    event_count: Annotated[int, Field(ge=0)]
 
-    model_config = ConfigDict(frozen=True)
 
-    matchId: str
-    homeWin: Annotated[float, Field(ge=0, le=1)]
-    draw: Annotated[float, Field(ge=0, le=1)]
-    awayWin: Annotated[float, Field(ge=0, le=1)]
+class CalculateProbabilitiesRequest(ContractModel):
+    """Payload of ``simulation.calculateProbabilities``."""
+
+    home: TeamStrengthDto
+    away: TeamStrengthDto
+
+
+class ProbabilityMatrixResponse(ContractModel):
+    """Mirrors ``probabilityMatrixSchema``."""
+
+    home_xg: float
+    away_xg: float
+    max_goals: int
+    score_matrix: list[list[float]]
+    model_version: str
+    configuration_version: int
+
+
+class SimulationRunView(ContractModel):
+    """A ``simulation_runs`` row."""
+
+    id: UUID
+    match_id: UUID
+    status: RunStatusDto
+    model_version: str
+    configuration_version: int
+    seed: str
+    attempt: int
+    started_at: IsoTimestamp
+    completed_at: IsoTimestamp | None = None
+    failure_reason: str | None = None
+
+
+class MatchResultView(ContractModel):
+    """A ``match_results`` row."""
+
+    match_id: UUID
+    simulation_id: UUID
+    home_goals: int
+    away_goals: int
+    winner: WinnerDto
+    winning_gap: int
+    home_xg: float
+    away_xg: float
+    seed: str
+    model_version: str
+    configuration_version: int
+    stats: dict[str, Any]
+    created_at: IsoTimestamp
+
+
+class MatchRunDetail(ContractModel):
+    """A run and its result, if any."""
+
+    run: SimulationRunView
+    result: MatchResultView | None
+
+
+class EventScore(ContractModel):
+    """Running score after an event."""
+
+    home: int
+    away: int
+
+
+class MatchEventView(ContractModel):
+    """Mirrors ``matchEventSchema``, plus the event's ``sequence``."""
+
+    id: UUID
+    match_id: UUID
+    sequence: int
+    minute: int
+    type: MatchEventTypeDto
+    side: MatchSideDto | None = None
+    player: str | None = None
+    secondary_player: str | None = None
+    score: EventScore
+    description: str
+
+
+class MatchEventList(ContractModel):
+    """List envelope."""
+
+    items: list[MatchEventView]

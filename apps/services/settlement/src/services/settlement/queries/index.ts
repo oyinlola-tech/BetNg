@@ -1,8 +1,6 @@
+export { GetSettlementQuery, GetSettlementHandler } from "./getSettlement/index.js";
+export { ListSettlementsQuery, ListSettlementsHandler } from "./listSettlements/index.js";
 export {
-  GetSettlementQuery,
-  GetSettlementHandler,
-} from "./getSettlement/index.js";
-export {
-  ListSettlementsQuery,
-  ListSettlementsHandler,
-} from "./listSettlements/index.js";
+  ListAdminSettlementsQuery,
+  ListAdminSettlementsHandler,
+} from "./listAdminSettlements/index.js";

@@ -73,10 +73,8 @@ class AuditAction:
 
 ODDS_UPDATED_EVENT: Final = "ODDS_UPDATED"
 
-#: The statuses a match-wide status change may move a market out of. An
-#: operator's suspension survives the scheduler opening the match; only RESUME
-#: lifts it. SETTLED and VOID are terminal, except that a settled match can
-#: still be voided.
+#: Target status -> statuses it may replace. A suspension survives the
+#: scheduler's OPEN (only RESUME lifts it); VOID is terminal.
 MATCH_STATUS_SOURCES: Final[dict[str, frozenset[str]]] = {
     MarketStatusValue.OPEN: frozenset({MarketStatusValue.CLOSED}),
     MarketStatusValue.CLOSED: frozenset(
@@ -99,8 +97,7 @@ MATCH_STATUS_SOURCES: Final[dict[str, frozenset[str]]] = {
     ),
 }
 
-#: Lifecycle states (docs/architecture.md §5) in which a match still takes bets
-#: or has yet to start taking them.
+#: Lifecycles (docs/architecture.md §5) before betting closes.
 BETTABLE_LIFECYCLES: Final = frozenset(
     {
         "FIXTURE_CREATED",

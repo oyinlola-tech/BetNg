@@ -1,9 +1,4 @@
-"""Versioned pricing configuration changes.
-
-A change inserts a new version; nothing is edited in place. It prices markets
-published afterwards, so a market already on sale keeps the prices every
-client has seen.
-"""
+"""Versioned pricing configuration changes."""
 
 from __future__ import annotations
 
@@ -70,7 +65,7 @@ class UpdatePricingConfigurationHandler(
             )
 
         record = await self.repository.insert_configuration(
-            dict(message.request.margins),
+            {str(name): value for name, value in message.request.margins.items()},
             message.request.min_odds,
             message.request.max_odds,
             message.actor.id,

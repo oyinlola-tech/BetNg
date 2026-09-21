@@ -1,11 +1,11 @@
-/**
- * The demonstration rows the foundation serves until the match schema lands.
- */
-
 export {
-  createDemoFixtures,
-  createDemoLeagues,
-  createDemoMatches,
-  createDemoTeams,
-  DEMO_IDS,
+  toAdminFixture,
+  toAdminMatch,
+  toAdminTeam,
+  toCompletedMatch,
+  toFixture,
+  toLeague,
+  toMatch,
+  toMatchEvent,
+  toTeam,
 } from "./match.model.js";

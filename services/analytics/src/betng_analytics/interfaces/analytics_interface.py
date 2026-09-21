@@ -1,10 +1,3 @@
-"""The analytics read contract.
-
-Handlers are written against this protocol, never against PostgreSQL. What the
-protocol lacks matters as much as what it has: there is no method that writes,
-and no method that reads a bet in order to produce a match result.
-"""
-
 from __future__ import annotations
 
 from typing import Protocol

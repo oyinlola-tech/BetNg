@@ -24,9 +24,7 @@ class ListShopDailyReportsHandler(
     def __init__(self, reader: AnalyticsReader) -> None:
         self._reader = reader
 
-    async def execute(
-        self, message: ListShopDailyReportsQuery
-    ) -> ShopDailyReportList:
+    async def execute(self, message: ListShopDailyReportsQuery) -> ShopDailyReportList:
         rows = await self._reader.shop_daily(message.shop_id, message.days)
 
         cashiers: defaultdict[date, list[ShopCashierDay]] = defaultdict(list)

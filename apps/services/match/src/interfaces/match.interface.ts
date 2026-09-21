@@ -1,29 +1,203 @@
 /**
- * The match service's data-access contract.
+ * The match service's data-access contracts.
  *
- * Handlers are written against this interface, never against a concrete
- * store. The foundation ships an in-memory implementation; the PostgreSQL
- * one lands with the match schema and satisfies the same interface, so
- * nothing above this file changes when it does.
+ * Handlers and the lifecycle are written against these interfaces. The PostgreSQL implementations live in
+ * `repositories/`; rows of the service's own schema are Prisma's generated types, rows read from another
+ * service's schema are declared here column by column, as `docs/architecture.md` §8 publishes them.
  */
 
-import type {
-  Fixture,
-  League,
-  Match,
-  MatchStatus,
-  Team,
-} from "@betng/contracts";
+import type { MatchEventType, MatchLifecycle, MatchSide, MatchStatus } from "@betng/contracts";
+import type { League, Prisma, Team } from "../generated/prisma/client.js";
 
-export interface MatchFilter {
+export const MATCH_INCLUDE = {
+  fixture: { include: { league: true, homeTeam: true, awayTeam: true } },
+} satisfies Prisma.MatchInclude;
+
+/** A match with its fixture, league and both teams. */
+export type MatchRecord = Prisma.MatchGetPayload<{ include: typeof MATCH_INCLUDE }>;
+
+export type FixtureRecord = Prisma.FixtureGetPayload<{ include: { match: true } }>;
+
+export type TeamRecord = Prisma.TeamGetPayload<{ include: { league: true } }>;
+
+export type TransitionRecord = Prisma.MatchTransitionGetPayload<object>;
+
+export type { League as LeagueRecord, Team as TeamRow };
+
+export interface FixtureFilter {
   readonly leagueId?: string;
+  readonly season?: number;
+  readonly matchday?: number;
+  readonly from?: Date;
+  readonly to?: Date;
+  readonly limit: number;
+}
+
+export interface MatchFilter extends FixtureFilter {
   readonly status?: MatchStatus;
+  /** Newest kick-off first; the default is soonest first. */
+  readonly newestFirst?: boolean;
+}
+
+export interface NewLeague {
+  readonly name: string;
+  readonly code: string;
+  readonly slug: string;
+  readonly country: string;
+  readonly sport: string;
+  readonly status: "ACTIVE" | "SUSPENDED" | "ARCHIVED";
+  readonly staggerSeconds: number;
+}
+
+export type NewTeam = Omit<Prisma.TeamUncheckedCreateInput, "id" | "createdAt" | "updatedAt">;
+
+export type TeamPatch = Pick<
+  Prisma.TeamUncheckedUpdateInput,
+  "name" | "shortName" | "status" | "strength" | "attack" | "midfield" | "defence" | "goalkeeping" | "pace" | "finishing" | "form"
+>;
+
+export interface NewFixture {
+  readonly leagueId: string;
+  readonly season: number;
+  readonly matchday: number;
+  readonly homeTeamId: string;
+  readonly awayTeamId: string;
+  readonly kickoffAt: Date;
+  readonly bettingClosesAt: Date;
+}
+
+export interface CatalogueRepository {
+  listLeagues(): Promise<readonly League[]>;
+  findLeague(id: string): Promise<League | undefined>;
+  countLeagues(): Promise<number>;
+  createLeague(league: NewLeague): Promise<League>;
+  listTeams(leagueId?: string): Promise<readonly TeamRecord[]>;
+  findTeam(id: string): Promise<TeamRecord | undefined>;
+  createTeam(team: NewTeam): Promise<TeamRecord>;
+  /**
+   * Applies `patch` and runs `afterUpdate` inside the same transaction, so a change whose audit entry cannot be
+   * written is rolled back.
+   */
+  updateTeam(
+    id: string,
+    patch: TeamPatch,
+    afterUpdate: (before: TeamRecord, after: TeamRecord) => Promise<void>,
+  ): Promise<TeamRecord | undefined>;
+}
+
+export interface RoundCursor {
+  readonly season: number;
+  readonly matchday: number;
+  readonly kickoffAt: Date;
 }
 
 export interface MatchRepository {
-  listLeagues(): Promise<readonly League[]>;
-  listTeams(leagueId?: string): Promise<readonly Team[]>;
-  listFixtures(): Promise<readonly Fixture[]>;
-  listMatches(filter: MatchFilter): Promise<readonly Match[]>;
-  findMatch(id: string): Promise<Match | undefined>;
+  listFixtures(filter: FixtureFilter): Promise<readonly FixtureRecord[]>;
+  listMatches(filter: MatchFilter): Promise<readonly MatchRecord[]>;
+  findMatch(id: string): Promise<MatchRecord | undefined>;
+  listTransitions(matchId: string): Promise<readonly TransitionRecord[]>;
+  listCompleted(filter: { readonly leagueId?: string; readonly season?: number; readonly limit: number }): Promise<readonly MatchRecord[]>;
+  /** The season of the league's most recent kick-off, or of its first fixture when none has kicked off. */
+  currentSeason(leagueId: string, now: Date): Promise<number>;
+  /** The scheduler's newest round in a league; rounds an admin added by hand are not part of the rotation. */
+  latestScheduledRound(leagueId: string): Promise<RoundCursor | undefined>;
+  countUpcomingRounds(leagueId: string, now: Date): Promise<number>;
+  /** Creates fixtures and their matches at `FIXTURE_CREATED` in one transaction. Returns the matches created. */
+  createFixtures(
+    fixtures: readonly NewFixture[],
+    options: { readonly source: "SCHEDULER" | "ADMIN"; readonly actor: string; readonly at: Date },
+  ): Promise<readonly string[]>;
 }
+
+export interface TransitionInput {
+  readonly matchId: string;
+  readonly from: MatchLifecycle;
+  /** The states passed through, in order; the match ends in the last one. */
+  readonly path: readonly MatchLifecycle[];
+  readonly actor: string;
+  readonly reason?: string;
+  readonly at: Date;
+  readonly patch?: Prisma.MatchUncheckedUpdateManyInput;
+}
+
+export interface LifecycleRepository {
+  /** Matches in one of `states` whose next attempt is due, soonest kick-off first. */
+  listDue(query: {
+    readonly states: readonly MatchLifecycle[];
+    readonly now: Date;
+    readonly kickoffBy?: Date;
+    readonly bettingClosesBy?: Date;
+    readonly bettingClosesAfter?: Date;
+    readonly maxFailures?: number;
+    readonly ignoreLease?: boolean;
+    readonly limit: number;
+  }): Promise<readonly MatchRecord[]>;
+  /**
+   * Moves a match along `path` if, and only if, it is still in `from`. The state change and its transition rows
+   * commit together; `false` means another worker got there first and nothing was written.
+   */
+  transition(input: TransitionInput): Promise<boolean>;
+  /** Takes the right to work on a match in `state` until `until`. `false` when it is not due or has moved on. */
+  claim(matchId: string, state: MatchLifecycle, now: Date, until: Date): Promise<boolean>;
+  /** Records a failed attempt without changing state. */
+  recordFailure(matchId: string, state: MatchLifecycle, reason: string, nextAttemptAt: Date): Promise<void>;
+  /** Makes a failed match due now with a clean attempt count. */
+  resetAttempts(matchId: string, state: MatchLifecycle, now: Date): Promise<boolean>;
+  /** Advances the revealed score, only from the sequence the caller read. */
+  reveal(
+    matchId: string,
+    fromSequence: number,
+    revealed: { readonly sequence: number; readonly homeScore: number; readonly awayScore: number },
+  ): Promise<boolean>;
+  /** Voids a match from whatever state it is in, unless it is already settled or void. Returns the state it left. */
+  voidMatch(matchId: string, actor: string, reason: string, at: Date): Promise<MatchLifecycle | undefined>;
+}
+
+export interface SimulationEventRow {
+  readonly id: string;
+  readonly matchId: string;
+  readonly sequence: number;
+  readonly minute: number;
+  readonly type: MatchEventType;
+  readonly side: MatchSide | null;
+  readonly player: string | null;
+  readonly secondaryPlayer: string | null;
+  readonly scoreHome: number;
+  readonly scoreAway: number;
+  readonly description: string;
+}
+
+export interface SimulationResultRow {
+  readonly matchId: string;
+  readonly homeGoals: number;
+  readonly awayGoals: number;
+  readonly stats: unknown;
+}
+
+export interface ScorerRow {
+  readonly player: string;
+  readonly teamId: string;
+  readonly goals: number;
+  readonly assists: number;
+}
+
+/** Read-only access to the simulation service's schema. A missing table reads as "nothing there yet". */
+export interface SimulationReader {
+  hasResult(matchId: string): Promise<boolean>;
+  /** Only for a match at or past full time, or for figures that are scaled before they leave the service. */
+  findResult(matchId: string): Promise<SimulationResultRow | undefined>;
+  listEvents(matchId: string, range: { readonly after: number; readonly upTo?: number; readonly limit: number }): Promise<readonly SimulationEventRow[]>;
+  countEventsAfter(matchId: string, sequence: number): Promise<number>;
+  /** Goals and assists from events already revealed, for one league season. */
+  listScorers(leagueId: string, season: number, limit: number): Promise<readonly ScorerRow[]>;
+  /** Of `matchIds`, those the simulation has a committed result for. */
+  matchesWithResult(matchIds: readonly string[]): Promise<readonly string[]>;
+}
+
+/** Read-only access to the betting service's schema. */
+export interface BettingReader {
+  /** Of `matchIds`, those with at least one bet placed on them. */
+  matchesWithBets(matchIds: readonly string[]): Promise<readonly string[]>;
+}
+
+export type Clock = () => Date;

@@ -27,6 +27,16 @@ from .analytics_dto import (
     ShopDailyReportList,
     ShopLeagueDay,
 )
+from .analytics_query_dto import (
+    BetsParams,
+    BreakdownParams,
+    DailyReportParams,
+    ExposureParams,
+    SessionsParams,
+    ShopDailyParams,
+    ShopRangeParams,
+    WindowParams,
+)
 
 __all__ = [
     "AccountAnalysis",
@@ -36,7 +46,11 @@ __all__ = [
     "BetLeg",
     "BetPage",
     "BetRecord",
+    "BetsParams",
+    "BreakdownParams",
+    "DailyReportParams",
     "ExposureFigures",
+    "ExposureParams",
     "ExposureReport",
     "MarketExposure",
     "MatchAnalysis",
@@ -52,8 +66,12 @@ __all__ = [
     "SelectionExposure",
     "SessionAnalysis",
     "SessionAnalysisList",
+    "SessionsParams",
     "ShopCashierDay",
+    "ShopDailyParams",
     "ShopDailyReport",
     "ShopDailyReportList",
     "ShopLeagueDay",
+    "ShopRangeParams",
+    "WindowParams",
 ]

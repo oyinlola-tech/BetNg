@@ -1,9 +1,4 @@
-"""The contracts the risk handlers are written against.
-
-What is absent matters as much as what is present: nothing here reads a match
-result, a score or an event, and nothing writes outside the ``risk`` schema.
-Risk answers with a stake decision and nothing else.
-"""
+"""Handler protocols; none reads a result or writes outside ``risk``."""
 
 from __future__ import annotations
 

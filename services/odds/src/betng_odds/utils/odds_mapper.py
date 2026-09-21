@@ -107,11 +107,7 @@ def to_admin_market(
     opening: dict[str, Decimal],
     exposure: dict[str, SelectionExposure],
 ) -> AdminMarketOdds:
-    """Render one market as ``adminMarketOddsSchema``.
-
-    ``margin`` is measured from the stored prices rather than copied from the
-    configuration, so it shows what rounding and the odds bounds really left.
-    """
+    """Render one market as ``adminMarketOddsSchema``."""
     selections = [
         AdminSelectionOdds(
             selection_id=selection.id,

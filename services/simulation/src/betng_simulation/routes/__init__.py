@@ -1,3 +1,11 @@
-from .simulation_route import API_PREFIX, create_simulation_router
+"""HTTP routers."""
 
-__all__ = ["API_PREFIX", "create_simulation_router"]
+from .admin_route import ADMIN_PREFIX, create_admin_router
+from .internal_route import INTERNAL_PREFIX, create_internal_router
+
+__all__ = [
+    "ADMIN_PREFIX",
+    "INTERNAL_PREFIX",
+    "create_admin_router",
+    "create_internal_router",
+]

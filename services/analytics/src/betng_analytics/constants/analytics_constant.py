@@ -8,15 +8,12 @@ LEG_DIMENSIONS: Final[frozenset[str]] = frozenset(
     {"league", "match", "market", "selection", "market_id", "selection_id"}
 )
 
-#: The permission `adminPermissionSchema` and `shopPermissionSchema` both name
-#: for reading reports.
 REPORTS_READ: Final = "reports:read"
 
 ACTOR_ADMIN: Final = "ADMIN"
 ACTOR_CASHIER: Final = "CASHIER"
 
-#: The key a breakdown row carries when the dimension is absent on the bet:
-#: an online bet has no shop or cashier, a walk-in ticket has no customer.
+#: Breakdown key for a bet that lacks the dimension, e.g. an online bet's shop.
 NO_KEY: Final = "none"
 
 DEFAULT_BREAKDOWN_LIMIT: Final = 100
@@ -27,10 +24,8 @@ MAX_PAGE_SIZE: Final = 100
 #: A customer counts as active while their last activity is this recent.
 ACTIVE_USER_WINDOW_MINUTES: Final = 15
 
-#: The longest day range one report request may span.
 MAX_REPORT_DAYS: Final = 366
 
-#: Daily reports default to this many days ending today.
 DEFAULT_REPORT_DAYS: Final = 7
 
 

@@ -11,13 +11,6 @@ from .....types import SubjectKind, Window
 
 @dataclass(frozen=True)
 class GetAccountAnalysisQuery(Query[AccountAnalysis]):
-    """Asks for one customer's, shop's or cashier's share of the global bets.
-
-    A view over the same bets every other figure counts: the subjects'
-    shares add up to the global totals, and none of them implies a
-    separate game.
-    """
-
     kind: SubjectKind
     subject_id: str
     window: Window

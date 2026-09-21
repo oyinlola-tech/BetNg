@@ -1,9 +1,4 @@
-"""Risk service configuration.
-
-The risk service owns no database in this phase: it is handed a market's
-accepted stakes and returns an analysis. It therefore declares no database
-URL, and readiness reports no database rather than a fictional one.
-"""
+"""Risk service configuration; deliberately holds no simulation URL."""
 
 from __future__ import annotations
 
@@ -15,4 +10,15 @@ DEFAULT_PORT = 3007
 
 
 def load_risk_settings() -> ServiceSettings:
+    """Read the service's settings from the environment."""
     return load_settings(SERVICE_NAME, SERVICE_VERSION)
+
+
+def require_database_url(settings: ServiceSettings) -> str:
+    """Return the database URL or refuse to start without one."""
+    url = settings.database_url
+
+    if url is None:
+        raise ValueError("RISK_DATABASE_URL is required.")
+
+    return url

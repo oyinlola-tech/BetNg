@@ -1,5 +1,4 @@
--- Risk schema: versioned limits, every stake decision, and the exposure
--- snapshot taken when a match closes. Money is BIGINT kobo throughout.
+-- Money is BIGINT kobo throughout.
 
 CREATE TABLE risk.risk_limits (
     version                      integer     PRIMARY KEY CHECK (version >= 1),
@@ -46,8 +45,7 @@ CREATE TABLE risk.exposure_freezes (
     snapshot   jsonb       NOT NULL
 );
 
--- Play-money defaults, in kobo: min stake N50, max stake N500,000, max payout
--- N20,000,000, liability caps N15m / N30m / N60m per selection / market / match.
+-- Play-money defaults in kobo.
 INSERT INTO risk.risk_limits (
     version, min_stake, max_stake_per_bet, max_payout_per_bet,
     max_liability_per_selection, max_liability_per_market, max_liability_per_match,

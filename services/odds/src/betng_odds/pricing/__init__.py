@@ -1,8 +1,4 @@
-"""The pure pricing pipeline: score matrix, market probabilities, margin, odds.
-
-Nothing in this package performs I/O or knows who is asking, so the same
-inputs always give the same prices.
-"""
+"""The pure pricing pipeline: score matrix, market probabilities, margin, odds."""
 
 from .margin import (
     MissingMarginError,

@@ -1,13 +1,4 @@
-"""The wire shapes of the odds service.
-
-These mirror ``packages/contracts`` (``odds/*``, ``admin/operations.type.ts``,
-``platform/lifecycle.type.ts``). They are written out again here rather than
-imported, because a TypeScript package must not become a build dependency of
-a Python service. Fields are snake_case in Python and camelCase on the wire.
-
-No request model carries a user, a shop or a stake: a price is a property of
-the market, so there is nothing for such a field to influence.
-"""
+"""The wire shapes of the odds service."""
 
 from __future__ import annotations
 

@@ -27,6 +27,7 @@ CREATE TABLE "wallet_transactions" (
     "id" UUID NOT NULL,
     "account_id" UUID NOT NULL,
     "type" "transaction_type" NOT NULL,
+    "sequence" INTEGER NOT NULL,
     "amount" BIGINT NOT NULL,
     "currency" CHAR(3) NOT NULL,
     "balance_after" BIGINT NOT NULL,
@@ -54,6 +55,9 @@ CREATE INDEX "wallet_transactions_reference_idx" ON "wallet_transactions"("refer
 
 -- CreateIndex
 CREATE UNIQUE INDEX "wallet_transactions_account_id_idempotency_key_key" ON "wallet_transactions"("account_id", "idempotency_key");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "wallet_transactions_account_id_sequence_key" ON "wallet_transactions"("account_id", "sequence");
 
 -- AddForeignKey
 ALTER TABLE "wallet_transactions" ADD CONSTRAINT "wallet_transactions_account_id_fkey" FOREIGN KEY ("account_id") REFERENCES "wallet_accounts"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

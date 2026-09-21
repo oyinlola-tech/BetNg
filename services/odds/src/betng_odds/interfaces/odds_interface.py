@@ -1,10 +1,4 @@
-"""The contracts the odds handlers are written against.
-
-The repository and every peer are protocols so a test can swap any one of
-them. The split that matters: the simulation service owns *probability*, the
-odds service owns *price*. Nothing here can decide how likely an outcome is,
-and nothing here takes a user, a stake or a shop.
-"""
+"""The contracts the odds handlers are written against."""
 
 from __future__ import annotations
 
@@ -24,7 +18,6 @@ from ..types import (
     SnapshotRecord,
 )
 
-#: Given the locked market, return its next status or raise a domain error.
 StatusDecision = Callable[[MarketRecord], str]
 #: Runs inside the transaction; raising rolls the change back.
 MarketCommitGuard = Callable[[MarketRecord, MarketRecord], Awaitable[None]]

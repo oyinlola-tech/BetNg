@@ -1,1 +1,11 @@
-export type { LedgerEntryDto, TransactionListDto } from "./wallet.dto.js";
+export type {
+  BalanceDto,
+  LedgerEntryDto,
+  PlatformLedgerEntryDto,
+  PostEntryDto,
+  ShopTransactionListDto,
+  TransactionDto,
+  TransactionListDto,
+  WalletDto,
+  WalletOverviewDto,
+} from "./wallet.dto.js";

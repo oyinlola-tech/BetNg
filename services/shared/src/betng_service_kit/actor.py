@@ -1,10 +1,4 @@
-"""The authenticated actor, as the gateway asserts it.
-
-The gateway is the only component that sees a session token. It resolves the
-token with the identity service and forwards who is calling in these headers;
-it strips any inbound copy first, so a client cannot assert them itself.
-Services behind the gateway trust the headers and never see credentials.
-"""
+"""The authenticated actor asserted by the gateway; honoured only with the internal token."""
 
 from __future__ import annotations
 
@@ -12,6 +6,8 @@ from dataclasses import dataclass
 from urllib.parse import unquote
 
 from fastapi import Request
+
+from .internal_auth import is_internal_request
 
 ACTOR_HEADERS = {
     "kind": "x-betng-actor-kind",
@@ -37,6 +33,9 @@ class Actor:
 
 def read_actor(request: Request) -> Actor | None:
     """Read the gateway-asserted actor, or ``None`` for an anonymous call."""
+    if not is_internal_request(request):
+        return None
+
     kind = request.headers.get(ACTOR_HEADERS["kind"])
     actor_id = request.headers.get(ACTOR_HEADERS["id"])
 

@@ -1,9 +1,3 @@
-"""The values that travel between the handlers and the reader.
-
-A reader answers rows exactly as PostgreSQL aggregated them; the handlers turn
-rows into wire shapes. Nothing here carries a figure of its own.
-"""
-
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -25,8 +19,7 @@ Dimension = Literal[
     "day",
 ]
 
-#: What the reader can group by: the public dimensions plus the two id-keyed
-#: ones the single-match analysis uses.
+#: The public dimensions plus the two id-keyed ones match analysis uses.
 ReaderDimension = Literal[
     "league",
     "match",

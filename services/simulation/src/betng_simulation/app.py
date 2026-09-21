@@ -1,43 +1,111 @@
+"""Application factory."""
+
 from __future__ import annotations
 
 import logging
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 
-from betng_service_kit import ServiceSettings, create_service_app
-from fastapi import FastAPI
+from betng_service_kit import (
+    RpcClient,
+    ServiceSettings,
+    apply_migrations,
+    create_pool,
+    create_rpc_router,
+    create_service_app,
+    database_probe,
+)
+from fastapi import APIRouter, Depends, FastAPI
 
-from .configs import load_simulation_settings
-from .controllers import SimulationController
+from .configs import (
+    DATABASE_SCHEMA,
+    IDENTITY_PEER,
+    MIGRATIONS_DIRECTORY,
+    load_simulation_settings,
+    require_database_url,
+)
+from .constants import BACKGROUND_AUDITOR_TOKEN
+from .controllers import AdminSimulationController, SimulationController
+from .engine import ModelConfiguration, simulate
+from .interfaces import AuditRecorder, MatchReadModel, Simulate
 from .loaders import load_container, load_services
+from .middlewares import bind_request_context
 from .procedures import create_simulation_rpc_server
-from .repositories import create_simulation_engine
-from .routes import create_simulation_router
+from .repositories import (
+    IdentityAuditRecorder,
+    PostgresMatchReadModel,
+    SimulationRepository,
+)
+from .routes import create_admin_router, create_internal_router
 
 DESCRIPTION = (
-    "Produces virtual match results and the outcome probabilities the odds "
-    "service prices from. Runs only after betting has closed, and receives no "
-    "bet data, so a result cannot be influenced by the book's position."
+    "Produces the one authoritative result and timeline of every virtual match, "
+    "and the score matrix the odds service prices from. It receives teams and a "
+    "match id, never bet data, so a result cannot be influenced by the book's "
+    "position."
 )
 
 
-def create_app(settings: ServiceSettings | None = None) -> FastAPI:
-    resolved = settings or load_simulation_settings()
+def create_app(
+    settings: ServiceSettings | None = None,
+    *,
+    audit_recorder: AuditRecorder | None = None,
+    match_read_model: MatchReadModel | None = None,
+    simulate_match: Simulate = simulate,
+) -> FastAPI:
+    """Assemble the service.
 
-    engine = create_simulation_engine()
+    The keyword arguments replace a collaborator that reaches outside the
+    service, so a test needs neither the identity service nor the ``match``
+    schema.
+    """
+    resolved = settings or load_simulation_settings()
     logger = logging.getLogger(resolved.service_name)
-    container = load_container(engine, logger)
+
+    pool = create_pool(require_database_url(resolved))
+    repository = SimulationRepository(pool)
+    container = load_container(
+        repository,
+        match_read_model or PostgresMatchReadModel(pool),
+        audit_recorder
+        or IdentityAuditRecorder(
+            RpcClient(
+                resolved.identity_service_url,
+                IDENTITY_PEER,
+                resolved.service_timeout_ms,
+            )
+        ),
+        simulate_match,
+        logger,
+    )
     command_bus, query_bus = load_services(container)
 
-    controller = SimulationController(command_bus, query_bus)
+    @asynccontextmanager
+    async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+        await pool.open()
+        try:
+            await apply_migrations(pool, DATABASE_SCHEMA, MIGRATIONS_DIRECTORY, logger)
+            await repository.ensure_default_configuration(ModelConfiguration())
+            yield
+            await container.resolve(BACKGROUND_AUDITOR_TOKEN).drain()
+        finally:
+            await pool.close()
+
+    # The RPC router is mounted here rather than by the kit so it shares the
+    # dependency that binds the request id an audit entry must carry.
+    rpc_router = APIRouter(dependencies=[Depends(bind_request_context)])
+    rpc_router.include_router(
+        create_rpc_router(create_simulation_rpc_server(command_bus, query_bus))
+    )
 
     return create_service_app(
         resolved,
         description=DESCRIPTION,
-        routers=[create_simulation_router(controller)],
-        # RPC is this service's primary API: its callers are the match and
-        # odds services, not a browser. REST stays available for debugging.
-        rpc_server=create_simulation_rpc_server(command_bus, query_bus),
-        # The simulation service reaches nothing: no database, no cache and
-        # no peer service. An empty list is the honest answer, rather than a
-        # probe invented so the endpoint looks busy.
-        probes=[],
+        routers=[
+            rpc_router,
+            create_internal_router(SimulationController(command_bus, query_bus)),
+            create_admin_router(AdminSimulationController(command_bus, query_bus)),
+        ],
+        probes=[database_probe(pool)],
+        lifespan=lifespan,
     )

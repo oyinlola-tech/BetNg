@@ -122,6 +122,7 @@ export {
   HttpError,
   notFound,
   serviceUnavailable,
+  tooManyRequests,
   unauthorized,
   unprocessableEntity,
 } from "@zudojs/http";
@@ -141,3 +142,11 @@ export {
   requireActor,
 } from "./actor/index.js";
 export type { Actor, ActorKind, ActorRequirement } from "./actor/index.js";
+
+export {
+  assertInternalTokenConfigured,
+  INTERNAL_TOKEN_HEADER,
+  internalHeaders,
+  internalToken,
+  isInternalRequest,
+} from "./internalAuth/index.js";

@@ -1,18 +1,10 @@
-"""The PostgreSQL analytics reader.
-
-Every method issues ``SELECT`` statements and nothing else. A request that
-needs several statements runs them in one ``REPEATABLE READ`` read-only
-transaction, so the figures of one answer describe one instant of the book.
-
-A database failure is never papered over: it becomes ``DATABASE_UNAVAILABLE``.
-"""
+"""SELECT-only reader; one REPEATABLE READ transaction per answer, one instant."""
 
 from __future__ import annotations
 
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from dataclasses import replace
 
 import psycopg
 from betng_service_kit import Pool
@@ -40,13 +32,11 @@ from . import analytics_sql as sql
 
 Connection = AsyncConnection[DictRow]
 
-_SUBJECT_COLUMNS: dict[str, str] = {
-    "CUSTOMER": "user_id",
-    "SHOP": "shop_id",
-    "CASHIER": "cashier_id",
-}
-
 _CLOCK_SESSIONS = frozenset({"HOUR", "DAY"})
+
+#: How long a request waits for a connection before it is answered
+#: DATABASE_UNAVAILABLE instead of hanging behind a database that is down.
+POOL_TIMEOUT_SECONDS = 5.0
 
 
 class PostgresAnalyticsReader(AnalyticsReader):
@@ -60,11 +50,9 @@ class PostgresAnalyticsReader(AnalyticsReader):
     @asynccontextmanager
     async def _snapshot(self) -> AsyncIterator[Connection]:
         try:
-            async with self._pool.connection() as connection:
+            async with self._pool.connection(POOL_TIMEOUT_SECONDS) as connection:
                 await connection.set_read_only(True)
-                await connection.set_isolation_level(
-                    IsolationLevel.REPEATABLE_READ
-                )
+                await connection.set_isolation_level(IsolationLevel.REPEATABLE_READ)
                 yield connection
         except (psycopg.Error, PoolTimeout) as error:
             self._logger.error(
@@ -123,9 +111,7 @@ class PostgresAnalyticsReader(AnalyticsReader):
         scope = BetScope(match_id=match_id)
 
         async with self._snapshot() as connection:
-            matches = await self._all(
-                connection, sql.MATCH_SQL, {"match_id": match_id}
-            )
+            matches = await self._all(connection, sql.MATCH_SQL, {"match_id": match_id})
 
             if not matches:
                 return None
@@ -139,7 +125,7 @@ class PostgresAnalyticsReader(AnalyticsReader):
 
             for dimension in ("market_id", "selection_id"):
                 params: sql.Params = {"limit": 500}
-                query = sql.breakdown_sql(dimension, scope, params)  # type: ignore[arg-type]
+                query = sql.breakdown_sql(dimension, scope, params)
                 breakdowns.append(await self._all(connection, query, params))
 
         return MatchAnalysisRows(
@@ -246,8 +232,11 @@ class PostgresAnalyticsReader(AnalyticsReader):
     async def account(
         self, kind: SubjectKind, subject_id: str, window: Window
     ) -> Row | None:
-        scope = replace(
-            BetScope(window=window), **{_SUBJECT_COLUMNS[kind]: subject_id}
+        scope = BetScope(
+            window=window,
+            user_id=subject_id if kind == "CUSTOMER" else None,
+            shop_id=subject_id if kind == "SHOP" else None,
+            cashier_id=subject_id if kind == "CASHIER" else None,
         )
         params: sql.Params = {"subject_id": subject_id}
         query = sql.account_sql(kind, scope, params)
@@ -275,9 +264,7 @@ class PostgresAnalyticsReader(AnalyticsReader):
         async with self._snapshot() as connection:
             return ShopDailyRows(
                 days=await self._all(connection, sql.SHOP_DAYS_SQL, params),
-                by_cashier=await self._all(
-                    connection, sql.SHOP_CASHIERS_SQL, params
-                ),
+                by_cashier=await self._all(connection, sql.SHOP_CASHIERS_SQL, params),
                 by_league=await self._all(connection, sql.SHOP_LEAGUES_SQL, params),
             )
 

@@ -12,6 +12,7 @@
 import { API_PREFIX } from "@betng/contracts/runtime";
 import type {
   Bet,
+  CompletedMatch,
   Fixture,
   League,
   Match,
@@ -37,14 +38,39 @@ export interface LedgerEntry {
   readonly transaction: Transaction;
 }
 
+export interface MatchWindowQuery {
+  readonly leagueId?: string;
+  readonly status?: string;
+  readonly season?: number;
+  readonly matchday?: number;
+  readonly from?: string;
+  readonly to?: string;
+  readonly limit?: number;
+}
+
+const text = (value: number | undefined): string | undefined =>
+  value === undefined ? undefined : String(value);
+
+function windowQuery(query: MatchWindowQuery): string {
+  return buildQuery({
+    ...query,
+    season: text(query.season),
+    matchday: text(query.matchday),
+    limit: text(query.limit),
+  });
+}
+
 export interface BetNgRestClient {
   listLeagues(): Promise<readonly League[]>;
   listTeams(leagueId?: string): Promise<readonly Team[]>;
-  listFixtures(): Promise<readonly Fixture[]>;
-  listMatches(query?: {
+  listFixtures(query?: MatchWindowQuery): Promise<readonly Fixture[]>;
+  listMatches(query?: MatchWindowQuery): Promise<readonly Match[]>;
+  listResults(query?: {
     readonly leagueId?: string;
-    readonly status?: string;
-  }): Promise<readonly Match[]>;
+    readonly limit?: number;
+  }): Promise<readonly CompletedMatch[]>;
+  /** Prices for several matches in one call (at most 60 ids). */
+  listMatchOdds(matchIds: readonly string[]): Promise<readonly MatchOdds[]>;
   getMatch(matchId: string): Promise<Match>;
   /** The timeline so far, oldest first. */
   listMatchEvents(matchId: string): Promise<readonly MatchEvent[]>;
@@ -93,15 +119,37 @@ export function createRestClient(config: BetNgClientConfig): BetNgRestClient {
         )
       ).items,
 
-    listFixtures: async () =>
-      (await request<ListResponse<Fixture>>("GET", `${API_PREFIX}/fixtures`))
-        .items,
+    listFixtures: async (query = {}) =>
+      (
+        await request<ListResponse<Fixture>>(
+          "GET",
+          `${API_PREFIX}/fixtures${windowQuery(query)}`,
+        )
+      ).items,
+
+    listResults: async (query = {}) =>
+      (
+        await request<ListResponse<CompletedMatch>>(
+          "GET",
+          `${API_PREFIX}/results${buildQuery({ leagueId: query.leagueId, limit: text(query.limit) })}`,
+        )
+      ).items,
+
+    listMatchOdds: async (matchIds) =>
+      matchIds.length === 0
+        ? []
+        : (
+            await request<ListResponse<MatchOdds>>(
+              "GET",
+              `${API_PREFIX}/odds${buildQuery({ matchIds: matchIds.join(",") })}`,
+            )
+          ).items,
 
     listMatches: async (query = {}) =>
       (
         await request<ListResponse<Match>>(
           "GET",
-          `${API_PREFIX}/matches${buildQuery(query)}`,
+          `${API_PREFIX}/matches${windowQuery(query)}`,
         )
       ).items,
 

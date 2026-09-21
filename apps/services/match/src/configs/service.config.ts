@@ -1,28 +1,100 @@
 /**
  * Match service configuration.
  *
- * The service owns its own PostgreSQL database and connects to no other, so
- * `MATCH_DATABASE_URL` is required: the service refuses to start without it
- * rather than discovering the problem on the first query.
+ * `MATCH_DATABASE_URL` and `REDIS_URL` are required: the catalogue and the lifecycle live in PostgreSQL and the
+ * scheduler refuses to tick without its Redis lock. The virtual-clock constants default to the values in
+ * `docs/architecture.md` §5, which are the ones `packages/ui-core/src/timing.ts` draws the match clock with.
  */
 
+import process from "node:process";
 import { loadServiceConfig } from "@betng/service-kit";
 import type { ServiceConfig } from "@betng/service-kit";
 
 export const SERVICE_NAME = "match" as const;
 
-export const SERVICE_VERSION = "0.1.0";
+export const SERVICE_VERSION = "0.2.0";
 
 export const DEFAULT_PORT = 3001;
 
-export async function loadMatchConfig(
-  env?: Readonly<Record<string, string | undefined>>,
-): Promise<ServiceConfig> {
-  return loadServiceConfig({
+export interface MatchTiming {
+  /** Wall-clock seconds one match minute lasts. May be fractional in tests. */
+  readonly secondsPerMinute: number;
+  readonly halfTimeSeconds: number;
+  readonly bettingCloseLeadSeconds: number;
+  readonly roundCycleSeconds: number;
+  readonly leagueStaggerSeconds: number;
+  readonly upcomingRounds: number;
+}
+
+export const DEFAULT_TIMING: MatchTiming = Object.freeze({
+  secondsPerMinute: 2,
+  halfTimeSeconds: 15,
+  bettingCloseLeadSeconds: 10,
+  roundCycleSeconds: 240,
+  leagueStaggerSeconds: 60,
+  upcomingRounds: 3,
+});
+
+export interface MatchConfig extends ServiceConfig {
+  readonly timing: MatchTiming;
+  readonly schedulerEnabled: boolean;
+}
+
+type Env = Readonly<Record<string, string | undefined>>;
+
+function readNumber(
+  env: Env,
+  key: string,
+  fallback: number,
+  bounds: { readonly min: number; readonly max: number; readonly integer?: boolean },
+): number {
+  const raw = env[key];
+
+  if (raw === undefined || raw.trim() === "") return fallback;
+
+  const value = Number(raw);
+  const valid =
+    Number.isFinite(value) &&
+    value >= bounds.min &&
+    value <= bounds.max &&
+    (bounds.integer !== true || Number.isInteger(value));
+
+  if (!valid) {
+    throw new Error(
+      `${key} must be ${bounds.integer === true ? "an integer" : "a number"} ` +
+        `between ${String(bounds.min)} and ${String(bounds.max)}.`,
+    );
+  }
+
+  return value;
+}
+
+export function readTiming(env: Env): MatchTiming {
+  return Object.freeze({
+    secondsPerMinute: readNumber(env, "MATCH_SECONDS_PER_MINUTE", DEFAULT_TIMING.secondsPerMinute, { min: 0.001, max: 60 }),
+    halfTimeSeconds: readNumber(env, "MATCH_HALF_TIME_SECONDS", DEFAULT_TIMING.halfTimeSeconds, { min: 0, max: 900 }),
+    bettingCloseLeadSeconds: readNumber(env, "BETTING_CLOSE_LEAD_SECONDS", DEFAULT_TIMING.bettingCloseLeadSeconds, { min: 0, max: 3600 }),
+    roundCycleSeconds: readNumber(env, "ROUND_CYCLE_SECONDS", DEFAULT_TIMING.roundCycleSeconds, { min: 1, max: 86_400 }),
+    leagueStaggerSeconds: readNumber(env, "LEAGUE_STAGGER_SECONDS", DEFAULT_TIMING.leagueStaggerSeconds, { min: 0, max: 86_400 }),
+    upcomingRounds: readNumber(env, "UPCOMING_ROUNDS", DEFAULT_TIMING.upcomingRounds, { min: 1, max: 20, integer: true }),
+  });
+}
+
+export async function loadMatchConfig(env?: Env): Promise<MatchConfig> {
+  const source = env ?? process.env;
+
+  const service = await loadServiceConfig({
     serviceName: SERVICE_NAME,
     version: SERVICE_VERSION,
     defaultPort: DEFAULT_PORT,
     databaseUrlKey: "MATCH_DATABASE_URL",
+    usesRedis: true,
     ...(env === undefined ? {} : { env }),
+  });
+
+  return Object.freeze({
+    ...service,
+    timing: readTiming(source),
+    schedulerEnabled: (source["SCHEDULER_ENABLED"] ?? "true").toLowerCase() !== "false",
   });
 }

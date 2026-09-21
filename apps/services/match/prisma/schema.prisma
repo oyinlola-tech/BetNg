@@ -100,6 +100,8 @@ model Fixture {
   awayTeamId      String   @map("away_team_id") @db.Uuid
   kickoffAt       DateTime @map("kickoff_at") @db.Timestamptz(3)
   bettingClosesAt DateTime @map("betting_closes_at") @db.Timestamptz(3)
+  /// SCHEDULER for a round of the rotation, ADMIN for a fixture added by hand. Only the former advances the rotation.
+  source          String   @default("SCHEDULER") @db.VarChar(16)
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
 
   league   League @relation(fields: [leagueId], references: [id], onDelete: Cascade)
@@ -138,6 +140,9 @@ model Match {
   awayScore           Int?        @map("away_score")
   /// Highest `simulation.match_events.sequence` already revealed.
   revealedSequence    Int         @default(0) @map("revealed_sequence")
+  /// The ratings the markets were priced from; the simulation runs on the same ones.
+  homeStrength        Json?       @map("home_strength")
+  awayStrength        Json?       @map("away_strength")
   bettingOpenedAt     DateTime?   @map("betting_opened_at") @db.Timestamptz(3)
   bettingClosedAt     DateTime?   @map("betting_closed_at") @db.Timestamptz(3)
   simulationStartedAt DateTime?   @map("simulation_started_at") @db.Timestamptz(3)

@@ -1,10 +1,4 @@
-"""The odds service's RPC procedures.
-
-The match service drives the market lifecycle through these two calls. They
-dispatch onto the same buses the REST controller uses, so there is one
-implementation of each operation. Results are dumped by alias here because
-the wire is camelCase.
-"""
+"""The odds service's RPC procedures."""
 
 from __future__ import annotations
 
