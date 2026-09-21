@@ -1,178 +1,177 @@
 import { Link, useParams } from "react-router";
-import { ChevronLeft } from "lucide-react";
 import type { TeamId } from "@betng/contracts";
-import {
-  EmptyState,
-  ErrorState,
-  FormPips,
-  MatchRow,
-  SectionHeader,
-  Skeleton,
-  SkeletonRows,
-  TeamBadge,
-} from "@betng/ui-web";
-import { useMatches, useStandings, useTeam } from "../hooks/queries";
+import { DataSourceError, type Player, type StandingRow } from "@betng/ui-core";
+import { EmptyState, ErrorState, FormPips, LeagueMark, NotFoundState, ProfileSkeleton, SectionHeading, TeamHeader } from "@betng/ui-web";
+import { MatchList } from "../components/domain";
+import { usePageMeta } from "../features/seo";
+import { useIsStale } from "../hooks/useConnection";
+import { useLeague, useMatches, useStandings, useTeam } from "../hooks/queries";
+import { paths } from "../lib/paths";
 
-export function TeamPage(): React.JSX.Element {
-  const { teamId } = useParams<{ teamId: string }>();
-  const team = useTeam(teamId);
-  const standings = useStandings(team.data?.leagueId);
-  const row = standings.data?.rows.find((r) => r.team.id === teamId);
-  const recent = useMatches(
-    { teamId: teamId as TeamId, phases: ["FINISHED", "SETTLED"], limit: 6 },
-    { enabled: teamId !== undefined },
+const POSITION_LABEL: Readonly<Record<Player["position"], string>> = {
+  GK: "Goalkeepers",
+  DF: "Defenders",
+  MF: "Midfielders",
+  FW: "Forwards",
+};
+
+const POSITIONS = Object.keys(POSITION_LABEL) as readonly Player["position"][];
+
+function signed(value: number): string {
+  return value > 0 ? `+${String(value)}` : String(value);
+}
+
+function SeasonFigures({ row, strength }: { readonly row: StandingRow | undefined; readonly strength: number }): React.JSX.Element {
+  const figures: readonly (readonly [string, string | number | undefined])[] = [
+    ["Position", row?.position],
+    ["Points", row?.points],
+    ["Played", row?.played],
+    ["Won", row?.won],
+    ["Drawn", row?.drawn],
+    ["Lost", row?.lost],
+    ["Goals", row === undefined ? undefined : `${String(row.goalsFor)}:${String(row.goalsAgainst)}`],
+    ["Difference", row === undefined ? undefined : signed(row.goalDifference)],
+  ];
+
+  return (
+    <div className="overflow-hidden rounded-md border border-border bg-surface">
+      <dl className="grid grid-cols-4 gap-px bg-border">
+        {figures.map(([label, value]) => (
+          <div key={label} className="bg-surface p-3">
+            <dt className="type-caption">{label}</dt>
+            <dd className="mt-1 font-display text-xl font-bold tabular">{value ?? "–"}</dd>
+          </div>
+        ))}
+      </dl>
+      <div className="flex items-center justify-between gap-3 border-t border-border px-3 py-2.5">
+        <span className="type-caption">Form</span>
+        {row === undefined || row.form.length === 0 ? <span className="type-small text-text-muted">No matches played</span> : <FormPips form={row.form} />}
+      </div>
+      <div className="flex items-center justify-between gap-3 border-t border-border px-3 py-2.5">
+        <span className="type-caption">Simulated strength</span>
+        <span className="type-data font-semibold">{strength}</span>
+      </div>
+    </div>
   );
-  const upcoming = useMatches(
-    {
-      teamId: teamId as TeamId,
-      phases: [
-        "LIVE",
-        "HALFTIME",
-        "BETTING_OPEN",
-        "BETTING_CLOSED",
-        "SCHEDULED",
-      ],
-      limit: 3,
-    },
-    { enabled: teamId !== undefined },
-  );
+}
 
-  if (team.isError)
+function Squad({ squad }: { readonly squad: readonly Player[] }): React.JSX.Element {
+  if (squad.length === 0) {
     return (
-      <ErrorState error={team.error} onRetry={() => void team.refetch()} />
-    );
-
-  if (team.isPending) {
-    return (
-      <div className="space-y-4" aria-busy>
-        <Skeleton className="h-6 w-48" />
-        <Skeleton className="h-32" />
-        <SkeletonRows rows={5} />
+      <div className="rounded-md border border-border bg-surface">
+        <EmptyState compact title="Squad not available" description="The platform has not published a squad for this team." />
       </div>
     );
   }
 
-  const t = team.data;
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      {POSITIONS.map((position) => {
+        const players = squad.filter((player) => player.position === position);
+
+        if (players.length === 0) return null;
+
+        return (
+          <div key={position} className="overflow-hidden rounded-md border border-border bg-surface">
+            <h3 className="type-caption border-b border-border bg-surface-sunken px-3 py-2">{POSITION_LABEL[position]}</h3>
+            <ul className="divide-y divide-border">
+              {players.map((player) => (
+                <li key={player.id} className="flex items-center gap-3 px-3 py-2">
+                  <span className="w-6 text-right type-data text-text-muted">{player.shirt}</span>
+                  <span className="min-w-0 truncate text-base font-medium">{player.name}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+export function TeamPage(): React.JSX.Element {
+  const { teamId } = useParams<{ teamId: string }>();
+  const stale = useIsStale();
+  const team = useTeam(teamId);
+  const league = useLeague(team.data?.leagueId);
+  const standings = useStandings(team.data?.leagueId);
+  const fixtures = useMatches(
+    { teamId: teamId as TeamId, phases: ["LIVE", "HALFTIME", "BETTING_CLOSED", "BETTING_OPEN", "SCHEDULED"], limit: 5 },
+    { enabled: teamId !== undefined },
+  );
+  const results = useMatches({ teamId: teamId as TeamId, phases: ["FINISHED", "SETTLED"], limit: 8 }, { enabled: teamId !== undefined, pace: "slow" });
+
+  usePageMeta({
+    title: team.data?.name ?? "Team",
+    ...(team.data === undefined ? {} : { description: `${team.data.name}: squad, fixtures, results and season figures on BETNG.` }),
+  });
+
+  if (team.error instanceof DataSourceError && team.error.code === "NOT_FOUND") {
+    return (
+      <div className="mx-auto max-w-lg rounded-md border border-border bg-surface">
+        <h1 className="sr-only">Team not found</h1>
+        <NotFoundState title="Team not found" description="This team does not exist on the platform." />
+      </div>
+    );
+  }
+
+  if (team.isError) {
+    return (
+      <div className="rounded-md border border-border bg-surface">
+        <h1 className="sr-only">Team</h1>
+        <ErrorState error={team.error} onRetry={() => void team.refetch()} />
+      </div>
+    );
+  }
+
+  if (team.data === undefined) return <ProfileSkeleton />;
+
+  const row = standings.data?.rows.find((entry) => entry.team.id === team.data.id);
 
   return (
-    <div className="space-y-6">
-      <Link
-        to={`/leagues/${t.leagueId}`}
-        className="inline-flex items-center gap-0.5 text-sm text-text-muted hover:text-text-primary focus-ring rounded-xs"
-      >
-        <ChevronLeft className="size-4" /> League
-      </Link>
-      <header className="flex flex-wrap items-center gap-5 rounded-md border border-border bg-surface p-5">
-        <TeamBadge team={t} size="xl" />
-        <div className="min-w-0 flex-1">
-          <h1 className="font-display text-2xl font-bold tracking-tight">
-            {t.name}
-          </h1>
-          <p className="text-sm text-text-muted">
-            {t.city} · {t.stadium} · Founded {t.founded} · Manager {t.manager}
-          </p>
-        </div>
-        <dl className="grid grid-cols-3 gap-6 text-center">
-          <div>
-            <dt className="caps-label">Position</dt>
-            <dd className="font-display text-2xl font-bold tabular">
-              {row?.position ?? "–"}
-            </dd>
-          </div>
-          <div>
-            <dt className="caps-label">Points</dt>
-            <dd className="font-display text-2xl font-bold tabular">
-              {row?.points ?? "–"}
-            </dd>
-          </div>
-          <div>
-            <dt className="caps-label">Form</dt>
-            <dd className="mt-2">
-              <FormPips form={row?.form ?? []} />
-            </dd>
-          </div>
-        </dl>
-      </header>
+    <div className="space-y-8">
+      <div className="rounded-md border border-border bg-surface p-4 md:p-6">
+        <TeamHeader
+          team={team.data}
+          leagueMark={
+            league.data === undefined ? undefined : (
+              <Link to={paths.league(league.data.id)} className="inline-flex items-center gap-2 rounded-xs hover:text-text-primary focus-ring">
+                <LeagueMark slug={league.data.slug} code={league.data.code} size={20} />
+                {league.data.name}
+              </Link>
+            )
+          }
+        />
+        <p className="mt-4 border-t border-border pt-3 type-small text-text-secondary">
+          Manager {team.data.manager} · Founded {team.data.founded}
+        </p>
+      </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <section>
-          <SectionHeader title="Season statistics" className="mb-2" />
-          <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-md border border-border bg-border sm:grid-cols-4">
-            {[
-              ["Played", row?.played],
-              ["Won", row?.won],
-              ["Drawn", row?.drawn],
-              ["Lost", row?.lost],
-              ["Goals for", row?.goalsFor],
-              ["Goals against", row?.goalsAgainst],
-              [
-                "Goal difference",
-                row === undefined
-                  ? undefined
-                  : row.goalDifference > 0
-                    ? `+${String(row.goalDifference)}`
-                    : row.goalDifference,
-              ],
-              ["Strength", t.strength],
-            ].map(([label, value]) => (
-              <div key={String(label)} className="bg-surface p-3">
-                <dt className="caps-label">{label}</dt>
-                <dd className="mt-1 font-display text-xl font-bold tabular">
-                  {value ?? "–"}
-                </dd>
-              </div>
-            ))}
-          </dl>
-          <SectionHeader title="Squad" className="mb-2 mt-6" />
-          <div className="rounded-md border border-border bg-surface">
-            {t.squad.length === 0 ? (
-              <EmptyState compact title="Squad not available" />
-            ) : (
-              <ul className="grid grid-cols-1 divide-y divide-border sm:grid-cols-2 sm:divide-y-0">
-                {t.squad.map((p) => (
-                  <li
-                    key={p.id}
-                    className="flex items-center gap-3 px-3 py-2 text-sm"
-                  >
-                    <span className="w-6 text-right tabular text-text-muted">
-                      {p.shirt}
-                    </span>
-                    <span className="w-7 rounded-xs bg-surface-sunken px-1 text-center text-[10px] font-bold text-text-secondary">
-                      {p.position}
-                    </span>
-                    <span className="font-medium">{p.name}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </section>
-        <section className="space-y-6">
-          <div>
-            <SectionHeader title="Next matches" className="mb-2" />
-            <div className="divide-y divide-border rounded-md border border-border bg-surface">
-              {upcoming.isPending ? (
-                <SkeletonRows rows={2} className="p-4" />
-              ) : (upcoming.data ?? []).length === 0 ? (
-                <EmptyState compact title="No upcoming fixtures" />
-              ) : (
-                upcoming.data?.map((m) => <MatchRow key={m.id} match={m} />)
-              )}
+      <div className="grid gap-8 2xl:grid-cols-2">
+        <div className="min-w-0 space-y-8">
+          <section aria-labelledby="team-season">
+            <SectionHeading id="team-season">Season</SectionHeading>
+            <div className="mt-3">
+              <SeasonFigures row={row} strength={team.data.strength} />
             </div>
-          </div>
-          <div>
-            <SectionHeader title="Recent results" className="mb-2" />
-            <div className="divide-y divide-border rounded-md border border-border bg-surface">
-              {recent.isPending ? (
-                <SkeletonRows rows={4} className="p-4" />
-              ) : (recent.data ?? []).length === 0 ? (
-                <EmptyState compact title="No results yet" />
-              ) : (
-                recent.data?.map((m) => <MatchRow key={m.id} match={m} />)
-              )}
+          </section>
+          <section aria-labelledby="team-squad">
+            <SectionHeading id="team-squad">Squad</SectionHeading>
+            <div className="mt-3">
+              <Squad squad={team.data.squad} />
             </div>
-          </div>
-        </section>
+          </section>
+        </div>
+        <div className="min-w-0 space-y-8">
+          <section aria-labelledby="team-fixtures">
+            <SectionHeading id="team-fixtures">Fixtures</SectionHeading>
+            <MatchList query={fixtures} withMarkets stale={stale} empty="noUpcomingMatches" skeletons={3} label="Fixtures" className="mt-3" />
+          </section>
+          <section aria-labelledby="team-results">
+            <SectionHeading id="team-results">Results</SectionHeading>
+            <MatchList query={results} withOutcome empty="noResults" skeletons={4} label="Results" className="mt-3" />
+          </section>
+        </div>
       </div>
     </div>
   );

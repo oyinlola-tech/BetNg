@@ -2,10 +2,27 @@ import { create } from "zustand";
 
 export type AuthView = "login" | "register" | "verify" | "forgot" | "expired";
 
+export type AuthIntentName =
+  | "place-bet"
+  | "tickets"
+  | "wallet"
+  | "transactions"
+  | "notifications"
+  | "account";
+
 export interface AuthIntent {
   readonly reason: string;
   readonly run?: () => void;
 }
+
+export const INTENT_REASONS: Readonly<Record<AuthIntentName, string>> = {
+  "place-bet": "Sign in to place this bet. Your slip stays as it is.",
+  tickets: "Sign in to see your tickets.",
+  wallet: "Sign in to open your wallet.",
+  transactions: "Sign in to see your transactions.",
+  notifications: "Sign in to see your notifications.",
+  account: "Sign in to manage your account.",
+};
 
 interface AuthDialogState {
   readonly open: boolean;

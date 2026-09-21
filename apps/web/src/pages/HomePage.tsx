@@ -1,284 +1,311 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router";
-import { Flag, Radio, Receipt, Trophy, Wallet } from "lucide-react";
-import { toLocalDateKey } from "@betng/ui-core";
+import { Link } from "react-router";
+import { ArrowRight, CircleHelp, ListOrdered, Radio, Search, Trophy } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { formatKickoffTime, formatMatchday, formatShortDate, type LeagueView } from "@betng/ui-core";
 import {
-  cn,
   EmptyState,
+  ErrorBoundary,
   ErrorState,
+  FeatureGate,
+  Football,
   LeagueMark,
   LeagueTable,
-  LiveMatchCard,
-  MatchCardSkeleton,
-  MatchRow,
-  SectionHeader,
-  SkeletonRows,
-  UpcomingMatchCard,
+  LiveDot,
+  MatchCard,
+  SectionHeading,
+  Select,
+  Skeleton,
+  TableSkeleton,
+  useFeatureFlags,
 } from "@betng/ui-web";
-import { useAuth } from "../features/auth";
+import { MatchList, ResultMarket } from "../components/domain";
+import { usePageMeta } from "../features/seo";
+import { useSearchDialog } from "../features/search";
+import { useIsStale } from "../hooks/useConnection";
 import { useLeagues, useMatches, useStandings } from "../hooks/queries";
+import { paths } from "../lib/paths";
+
+const LIVE_PHASES = ["LIVE", "HALFTIME"] as const;
+const OPEN_PHASES = ["BETTING_OPEN", "BETTING_CLOSED"] as const;
+const FINISHED_PHASES = ["FINISHED", "SETTLED"] as const;
+
+function More({ to, children }: { readonly to: string; readonly children: React.ReactNode }): React.JSX.Element {
+  return (
+    <Link to={to} className="inline-flex items-center gap-1 rounded-xs text-sm font-semibold text-brand hover:underline focus-ring">
+      {children}
+      <ArrowRight className="size-3.5" aria-hidden />
+    </Link>
+  );
+}
+
+function ContextHero({ live }: { readonly live: ReturnType<typeof useMatches> }): React.JSX.Element {
+  const stale = useIsStale();
+  const next = useMatches({ phases: [...OPEN_PHASES, "SCHEDULED"], limit: 1 });
+  const liveMatch = live.data?.[0];
+  const match = liveMatch ?? next.data?.[0];
+
+  if (match === undefined) {
+    if ((live.isPending && live.fetchStatus !== "idle") || next.isPending) return <MatchCard.Skeleton variant="featured" />;
+    if (live.isError && next.isError) return <MatchCard.Error variant="featured" onRetry={() => void next.refetch()} />;
+
+    return (
+      <div className="rounded-md border border-border bg-surface">
+        <EmptyState preset="noUpcomingMatches" />
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <p className="type-caption mb-2">{liveMatch === undefined ? "Next kick-off" : "Live now"}</p>
+      <MatchCard
+        match={match}
+        variant="featured"
+        to={paths.match(match.id)}
+        stale={stale && liveMatch !== undefined}
+        markets={<ResultMarket match={match} className="max-w-md" />}
+      />
+    </div>
+  );
+}
+
+function CompetitionCard({ league }: { readonly league: LeagueView }): React.JSX.Element {
+  const live = useMatches({ leagueId: league.id, phases: LIVE_PHASES }, { pace: "slow" });
+  const next = useMatches({ leagueId: league.id, phases: [...OPEN_PHASES, "SCHEDULED"], limit: 1 }, { pace: "slow" });
+  const liveCount = live.data?.length ?? 0;
+  const upcoming = next.data?.[0];
+
+  return (
+    <Link
+      to={`${paths.virtuals}?league=${encodeURIComponent(league.id)}`}
+      className="group flex flex-col gap-3 rounded-md border border-border bg-surface p-4 transition-colors hover:border-border-strong focus-ring"
+    >
+      <span className="flex items-center gap-3">
+        <LeagueMark slug={league.slug} code={league.code} size={32} />
+        <span className="min-w-0">
+          <span className="block truncate type-h3">{league.name}</span>
+          <span className="block truncate type-small text-text-muted">
+            {league.country} · {formatMatchday(league.currentMatchday)} of {league.matchdays}
+          </span>
+        </span>
+      </span>
+      <span className="flex items-center justify-between gap-2 border-t border-border pt-3 type-small">
+        <span className="text-text-secondary">
+          {next.isPending ? (
+            <Skeleton className="h-3.5 w-24" />
+          ) : upcoming === undefined ? (
+            "No kick-off scheduled"
+          ) : (
+            <>
+              Next kick-off <span className="tabular font-semibold text-text-primary">{formatKickoffTime(upcoming.kickoffAt)}</span>
+            </>
+          )}
+        </span>
+        {liveCount > 0 && (
+          <span className="inline-flex items-center gap-1.5 font-semibold text-live">
+            <LiveDot />
+            <span className="tabular">{liveCount}</span> live
+          </span>
+        )}
+      </span>
+    </Link>
+  );
+}
+
+function Competitions(): React.JSX.Element {
+  const leagues = useLeagues();
+
+  if (leagues.isPending) {
+    return (
+      <div className="grid gap-3 sm:grid-cols-2" role="status" aria-label="Loading competitions">
+        {[0, 1, 2, 3].map((slot) => (
+          <Skeleton key={slot} className="h-28" />
+        ))}
+      </div>
+    );
+  }
+
+  if (leagues.isError) return <ErrorState compact error={leagues.error} onRetry={() => void leagues.refetch()} />;
+
+  if (leagues.data.length === 0) return <EmptyState compact title="No competitions" description="The platform has no active competitions right now." />;
+
+  return (
+    <ul className="grid gap-3 sm:grid-cols-2">
+      {leagues.data.map((league) => (
+        <li key={league.id}>
+          <CompetitionCard league={league} />
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function StandingsPreview(): React.JSX.Element {
+  const leagues = useLeagues();
+  const [picked, setPicked] = useState<string | undefined>(undefined);
+  const leagueId = picked ?? leagues.data?.[0]?.id;
+  const standings = useStandings(leagueId);
+
+  return (
+    <section aria-labelledby="home-standings">
+      <SectionHeading id="home-standings" action={<More to={leagueId === undefined ? paths.standings : `${paths.standings}?league=${encodeURIComponent(leagueId)}`}>Full table</More>}>
+        Standings
+      </SectionHeading>
+      <div className="mt-3 overflow-hidden rounded-md border border-border bg-surface">
+        {leagues.data !== undefined && leagueId !== undefined && leagues.data.length > 1 && (
+          <div className="border-b border-border p-2">
+            <Select
+              label="Competition"
+              size="sm"
+              value={leagueId}
+              onChange={setPicked}
+              options={leagues.data.map((league) => ({ value: league.id, label: league.name }))}
+              className="w-full"
+            />
+          </div>
+        )}
+        {standings.isError ? (
+          <ErrorState compact error={standings.error} onRetry={() => void standings.refetch()} />
+        ) : standings.data === undefined ? (
+          <TableSkeleton rows={6} columns={4} />
+        ) : standings.data.rows.length === 0 ? (
+          <EmptyState compact title="No table yet" description="The table appears once the first matchday is complete." />
+        ) : (
+          <LeagueTable
+            standings={{ ...standings.data, rows: standings.data.rows.slice(0, 8) }}
+            density="compact"
+            responsive={false}
+            teamHref={(row) => paths.team(row.team.id)}
+          />
+        )}
+      </div>
+    </section>
+  );
+}
+
+interface QuickLink {
+  readonly to: string;
+  readonly label: string;
+  readonly hint: string;
+  readonly icon: LucideIcon | typeof Football;
+}
+
+function QuickNavigation(): React.JSX.Element {
+  const flags = useFeatureFlags();
+  const showSearch = useSearchDialog((s) => s.show);
+  const links: readonly QuickLink[] = [
+    ...(flags.liveEnabled ? [{ to: paths.live, label: "Live", hint: "Matches in play", icon: Radio }] : []),
+    ...(flags.virtualFootballEnabled ? [{ to: paths.virtuals, label: "Virtuals", hint: "Fixtures and prices", icon: Football }] : []),
+    { to: paths.results, label: "Results", hint: "Full-time scores", icon: ListOrdered },
+    { to: paths.standings, label: "Standings", hint: "League tables", icon: Trophy },
+    { to: paths.help(), label: "Help", hint: "How BETNG works", icon: CircleHelp },
+  ];
+  const tile = "flex min-h-14 items-center gap-3 rounded-md border border-border bg-surface px-3 text-left transition-colors hover:border-border-strong focus-ring";
+
+  return (
+    <section aria-labelledby="home-quick">
+      <SectionHeading id="home-quick">Quick navigation</SectionHeading>
+      <ul className="mt-3 grid grid-cols-2 gap-2 lg:grid-cols-1 2xl:grid-cols-2">
+        {links.map((link) => (
+          <li key={link.to}>
+            <Link to={link.to} className={tile}>
+              <link.icon className="size-5 shrink-0 text-text-muted" aria-hidden />
+              <span className="min-w-0">
+                <span className="block text-base font-semibold">{link.label}</span>
+                <span className="block truncate type-small text-text-muted">{link.hint}</span>
+              </span>
+            </Link>
+          </li>
+        ))}
+        {flags.searchEnabled && (
+          <li>
+            <button type="button" onClick={showSearch} className={`${tile} w-full`}>
+              <Search className="size-5 shrink-0 text-text-muted" aria-hidden />
+              <span className="min-w-0">
+                <span className="block text-base font-semibold">Search</span>
+                <span className="block truncate type-small text-text-muted">Teams, matches, players</span>
+              </span>
+            </button>
+          </li>
+        )}
+      </ul>
+    </section>
+  );
+}
 
 export function HomePage(): React.JSX.Element {
-  const live = useMatches(
-    { phases: ["LIVE", "HALFTIME"] },
-    { refetchMs: 3000 },
-  );
-  const soon = useMatches({
-    phases: ["BETTING_OPEN", "BETTING_CLOSED"],
-    limit: 6,
-  });
-  const recent = useMatches({ phases: ["FINISHED", "SETTLED"], limit: 8 });
-  const today = useMatches({ date: toLocalDateKey(new Date()), limit: 10 });
-  const leagues = useLeagues();
-  const [tableLeagueId, setTableLeagueId] = useState<string>();
-  const tableLeague = leagues.data?.find((l) => l.id === tableLeagueId) ?? leagues.data?.[0];
-  const standings = useStandings(tableLeague?.id);
-  const navigate = useNavigate();
-  const { requireAuth } = useAuth();
+  const stale = useIsStale();
+  const flags = useFeatureFlags();
+  const live = useMatches({ phases: LIVE_PHASES, limit: 5 }, { enabled: flags.liveEnabled });
+  const soon = useMatches({ phases: OPEN_PHASES, limit: 4 });
+  const upcoming = useMatches({ phases: ["SCHEDULED"], limit: 6 }, { pace: "slow" });
+  const results = useMatches({ phases: FINISHED_PHASES, limit: 6 }, { pace: "slow" });
 
-  const quick = [
-    { label: "Live", hint: `${String(live.data?.length ?? 0)} in play`, icon: Radio, to: "/live", account: false },
-    { label: "Results", hint: "Completed simulations", icon: Flag, to: "/results", account: false },
-    { label: "My Bets", hint: "Open and settled", icon: Receipt, to: "/history", account: true },
-    { label: "Wallet", hint: "Simulated balance", icon: Wallet, to: "/wallet", account: true },
-  ] as const;
+  usePageMeta({ title: "BETNG", path: "/" });
 
   return (
     <div className="space-y-10">
-      <section aria-labelledby="live-now">
-        <SectionHeader
-          as="h1"
-          eyebrow="Virtual football"
-          title="Live now"
-          to="/live"
-          linkLabel="All live"
-          className="mb-4"
-        />
-        {live.isPending ? (
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            <MatchCardSkeleton />
-            <MatchCardSkeleton />
-            <MatchCardSkeleton />
-          </div>
-        ) : live.isError ? (
-          <ErrorState
-            compact
-            error={live.error}
-            onRetry={() => void live.refetch()}
-          />
-        ) : live.data.length === 0 ? (
-          <EmptyState
-            compact
-            icon={<Radio className="size-5" />}
-            title="No matches in play"
-            description="The next matchday kicks off shortly — see what's starting soon."
-          />
-        ) : (
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {live.data.slice(0, 6).map((m) => (
-              <LiveMatchCard key={m.id} match={m} />
-            ))}
-          </div>
-        )}
-      </section>
+      <header className="flex flex-wrap items-end justify-between gap-2">
+        <h1 className="type-h1">Football today</h1>
+        <p className="type-data text-text-muted">{formatShortDate(new Date().toISOString())}</p>
+      </header>
 
-      <section aria-labelledby="starting-soon">
-        <SectionHeader
-          title="Starting soon"
-          to="/virtuals"
-          linkLabel="Open lobby"
-          className="mb-4"
-        />
-        {soon.isPending ? (
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            <MatchCardSkeleton />
-            <MatchCardSkeleton />
-            <MatchCardSkeleton />
-          </div>
-        ) : soon.isError ? (
-          <ErrorState
-            compact
-            error={soon.error}
-            onRetry={() => void soon.refetch()}
-          />
-        ) : soon.data.length === 0 ? (
-          <EmptyState
-            compact
-            title="Nothing scheduled"
-            description="Fixtures for the next matchday will appear here."
-          />
-        ) : (
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {soon.data.map((m) => (
-              <UpcomingMatchCard key={m.id} match={m} />
-            ))}
-          </div>
-        )}
-      </section>
+      <div className="grid gap-x-8 gap-y-10 lg:grid-cols-[minmax(0,1fr)_19rem] 2xl:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="min-w-0 space-y-10">
+          <ErrorBoundary scope="feature">
+            <ContextHero live={live} />
+          </ErrorBoundary>
 
-      <div className="grid gap-10 lg:grid-cols-[1fr_minmax(0,22rem)] xl:grid-cols-[1fr_minmax(0,26rem)]">
-        <div className="space-y-10">
-          <section aria-labelledby="featured-leagues">
-            <SectionHeader title="Virtual Football" to="/virtuals" className="mb-4" />
-            <div className="grid gap-3 sm:grid-cols-2">
-              {leagues.isPending
-                ? Array.from({ length: 4 }, (_, i) => <div key={i} className="skeleton h-[76px] rounded-md" aria-busy />)
-                : (leagues.data ?? []).map((l) => (
-                    <Link
-                      key={l.id}
-                      to={`/virtuals?league=${l.id}`}
-                      className="flex items-center gap-4 rounded-md border border-border bg-surface p-4 transition-colors hover:border-border-strong focus-ring"
-                    >
-                      <LeagueMark slug={l.slug} code={l.code} size={44} className="shrink-0" />
-                      <span className="min-w-0">
-                        <span className="block truncate font-display text-md font-semibold">{l.name}</span>
-                        <span className="block truncate text-sm text-text-muted">
-                          {l.teamCount} clubs · Matchday {String(l.currentMatchday).padStart(2, "0")} of {l.matchdays}
-                        </span>
-                      </span>
-                    </Link>
-                  ))}
-            </div>
+          <FeatureGate flag="liveEnabled">
+            <section aria-labelledby="home-live" hidden={live.data?.length === 1}>
+              <SectionHeading id="home-live" action={<More to={paths.live}>All live</More>}>
+                Live matches
+              </SectionHeading>
+              <MatchList query={live} skip={1} limit={4} variant="live" layout="grid" empty="noLiveMatches" stale={stale} skeletons={2} label="Live matches" className="mt-3" />
+            </section>
+          </FeatureGate>
+
+          <section aria-labelledby="home-soon">
+            <SectionHeading id="home-soon" action={<More to={paths.virtuals}>All fixtures</More>}>
+              Starting soon
+            </SectionHeading>
+            <MatchList query={soon} variant="standard" layout="grid" withMarkets empty="noUpcomingMatches" label="Matches starting soon" className="mt-3" />
           </section>
 
-          <section aria-labelledby="todays-matches">
-            <SectionHeader
-              title="Today's matches"
-              to="/virtuals"
-              className="mb-2"
-            />
-            <div className="rounded-md border border-border bg-surface">
-              {today.isPending ? (
-                <SkeletonRows rows={5} className="p-4" />
-              ) : today.isError ? (
-                <ErrorState
-                  compact
-                  error={today.error}
-                  onRetry={() => void today.refetch()}
-                />
-              ) : today.data.length === 0 ? (
-                <EmptyState compact title="No matches today" />
-              ) : (
-                <div className="divide-y divide-border">
-                  {today.data
-                    .slice(-8)
-                    .reverse()
-                    .map((m) => (
-                      <MatchRow key={m.id} match={m} showLeague />
-                    ))}
-                </div>
-              )}
-            </div>
+          <FeatureGate flag="virtualFootballEnabled">
+            <section aria-labelledby="home-competitions">
+              <SectionHeading id="home-competitions" action={<More to={paths.leagues}>All competitions</More>}>
+                Virtual football
+              </SectionHeading>
+              <div className="mt-3">
+                <Competitions />
+              </div>
+            </section>
+          </FeatureGate>
+
+          <section aria-labelledby="home-upcoming">
+            <SectionHeading id="home-upcoming" action={<More to={`${paths.virtuals}?state=upcoming`}>Fixtures</More>}>
+              Upcoming
+            </SectionHeading>
+            <MatchList query={upcoming} variant="standard" layout="grid" limit={4} empty="noUpcomingMatches" label="Upcoming matches" className="mt-3" />
           </section>
 
-          <section aria-labelledby="recent-results">
-            <SectionHeader
-              title="Recent results"
-              to="/results"
-              className="mb-2"
-            />
-            <div className="rounded-md border border-border bg-surface">
-              {recent.isPending ? (
-                <SkeletonRows rows={5} className="p-4" />
-              ) : recent.isError ? (
-                <ErrorState
-                  compact
-                  error={recent.error}
-                  onRetry={() => void recent.refetch()}
-                />
-              ) : recent.data.length === 0 ? (
-                <EmptyState
-                  compact
-                  title="No results yet"
-                  description="Results land here as matches finish."
-                />
-              ) : (
-                <div className="divide-y divide-border">
-                  {recent.data.map((m) => (
-                    <MatchRow key={m.id} match={m} showLeague />
-                  ))}
-                </div>
-              )}
-            </div>
+          <section aria-labelledby="home-results">
+            <SectionHeading id="home-results" action={<More to={paths.results}>All results</More>}>
+              Latest results
+            </SectionHeading>
+            <MatchList query={results} empty="noResults" label="Latest results" className="mt-3" />
           </section>
         </div>
 
-        <section
-          aria-labelledby="standings-preview"
-          className="lg:sticky lg:top-20"
-        >
-          <SectionHeader
-            title={tableLeague?.name ?? "Standings"}
-            eyebrow="League table"
-            to="/standings"
-            className="mb-2"
-          />
-          <div role="radiogroup" aria-label="League" className="mb-2 flex gap-1.5">
-            {(leagues.data ?? []).map((l) => (
-              <button
-                key={l.id}
-                type="button"
-                role="radio"
-                aria-checked={l.id === tableLeague?.id}
-                aria-label={l.name}
-                onClick={() => {
-                  setTableLeagueId(l.id);
-                }}
-                className={cn(
-                  "h-7 flex-1 rounded-xs border text-xs font-semibold tracking-caps focus-ring",
-                  l.id === tableLeague?.id ? "border-brand bg-brand-subtle text-brand" : "border-border bg-surface text-text-secondary hover:bg-surface-hover",
-                )}
-              >
-                {l.code}
-              </button>
-            ))}
-          </div>
-          <div className="rounded-md border border-border bg-surface">
-            {standings.isPending ? (
-              <SkeletonRows rows={8} className="p-4" />
-            ) : standings.isError ? (
-              <ErrorState
-                compact
-                error={standings.error}
-                onRetry={() => void standings.refetch()}
-              />
-            ) : standings.data.rows.length === 0 ? (
-              <EmptyState
-                compact
-                icon={<Trophy className="size-5" />}
-                title="Season just started"
-              />
-            ) : (
-              <LeagueTable standings={standings.data} compact />
-            )}
-          </div>
-        </section>
+        <div className="min-w-0 space-y-10">
+          <ErrorBoundary scope="feature">
+            <StandingsPreview />
+          </ErrorBoundary>
+          <QuickNavigation />
+        </div>
       </div>
-
-      <section aria-label="Quick access">
-        <SectionHeader title="Quick access" className="mb-4" />
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          {quick.map((item) => (
-            <button
-              key={item.to}
-              type="button"
-              onClick={() => {
-                if (item.account) requireAuth({ reason: `Log in to open ${item.label.toLowerCase()}.`, run: () => void navigate(item.to) });
-                else void navigate(item.to);
-              }}
-              className="flex items-center gap-3 rounded-md border border-border bg-surface p-3.5 text-left transition-colors hover:border-border-strong focus-ring"
-            >
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-sm bg-surface-sunken text-text-secondary">
-                <item.icon className="size-4" aria-hidden />
-              </span>
-              <span className="min-w-0">
-                <span className="block text-base font-semibold">{item.label}</span>
-                <span className="block truncate text-sm text-text-muted">{item.hint}</span>
-              </span>
-            </button>
-          ))}
-        </div>
-      </section>
     </div>
   );
 }

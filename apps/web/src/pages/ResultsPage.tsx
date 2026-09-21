@@ -1,169 +1,137 @@
-import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { LeagueId } from "@betng/contracts";
-import {
-  formatMatchday,
-  toLocalDateKey,
-  type MatchSummary,
-} from "@betng/ui-core";
-import {
-  EmptyState,
-  ErrorState,
-  IconButton,
-  MatchRow,
-  SectionHeader,
-  Select,
-  SkeletonRows,
-  Tabs,
-} from "@betng/ui-web";
-import {
-  useCompletedMatchdays,
-  useLeague,
-  useLeagues,
-  useMatches,
-} from "../hooks/queries";
+import { formatMatchday, formatShortDate, toLocalDateKey, type MatchFilter, type MatchSummary } from "@betng/ui-core";
+import { EmptyState, ErrorState, IconButton, MatchCard, SectionHeading, Select, Tabs } from "@betng/ui-web";
+import { MatchRows } from "../components/domain";
+import { usePageMeta } from "../features/seo";
+import { useCompletedMatchdays, useLeagues, useMatches } from "../hooks/queries";
+import { dateKey, positiveInt, useUrlState } from "../lib/urlState";
 
-type Mode = "DAY" | "MATCHDAY";
+type Mode = "day" | "matchday";
+
+const SEASONS_SHOWN = 6;
 
 function shiftDate(key: string, days: number): string {
-  const d = new Date(`${key}T12:00:00`);
+  const date = new Date(`${key}T12:00:00`);
 
-  d.setDate(d.getDate() + days);
+  date.setDate(date.getDate() + days);
 
-  return toLocalDateKey(d);
+  return toLocalDateKey(date);
 }
 
-function dayLabel(key: string): string {
-  const today = toLocalDateKey(new Date());
-
+function dayLabel(key: string, today: string): string {
   if (key === today) return "Today";
   if (key === shiftDate(today, -1)) return "Yesterday";
 
-  return new Date(`${key}T12:00:00`).toLocaleDateString(undefined, {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  });
+  return formatShortDate(new Date(`${key}T12:00:00`).toISOString());
+}
+
+function groupResults(matches: readonly MatchSummary[]): readonly { readonly key: string; readonly label: string; readonly matches: readonly MatchSummary[] }[] {
+  const groups = new Map<string, { label: string; matches: MatchSummary[] }>();
+
+  for (const match of matches) {
+    const key = `${match.leagueId}:${String(match.season)}:${String(match.matchday)}`;
+    const group = groups.get(key);
+
+    if (group === undefined) {
+      groups.set(key, { label: `${match.leagueName} · Season ${String(match.season)} · ${formatMatchday(match.matchday)}`, matches: [match] });
+    } else {
+      group.matches.push(match);
+    }
+  }
+
+  return [...groups.entries()].map(([key, group]) => ({ key, ...group }));
 }
 
 export function ResultsPage(): React.JSX.Element {
   const leagues = useLeagues();
-  const [leagueId, setLeagueId] = useState<string>("");
-  const effectiveLeague =
-    leagueId === "" ? leagues.data?.[0]?.id : (leagueId as LeagueId);
-  const league = useLeague(effectiveLeague);
-  const [mode, setMode] = useState<Mode>("DAY");
-  const [date, setDate] = useState(() => toLocalDateKey(new Date()));
-  const [season, setSeason] = useState<number | undefined>(undefined);
-  const [matchday, setMatchday] = useState<number | undefined>(undefined);
+  const [params, patch] = useUrlState();
+  const today = toLocalDateKey(new Date());
+  const leagueParam = params.get("league") ?? undefined;
+  const matchdayParam = positiveInt(params.get("matchday"));
+  const seasonParam = positiveInt(params.get("season"));
+  const date = dateKey(params.get("date")) ?? today;
+  const mode: Mode = matchdayParam !== undefined || params.get("view") === "matchday" ? "matchday" : "day";
 
-  const currentSeason = league.data?.currentSeason;
-  const activeSeason = season ?? currentSeason;
-  const matchdays = useCompletedMatchdays(effectiveLeague, activeSeason);
-  const activeMatchday = matchday ?? matchdays.data?.[0];
+  const league = leagues.data?.find((entry) => entry.id === leagueParam);
+  const matchdayLeagueId = mode === "matchday" ? (leagueParam ?? leagues.data?.[0]?.id) : undefined;
+  const matchdayLeague = leagues.data?.find((entry) => entry.id === matchdayLeagueId);
+  const season = seasonParam ?? matchdayLeague?.currentSeason;
+  const matchdays = useCompletedMatchdays(matchdayLeagueId, season);
+  const matchday = matchdayParam ?? matchdays.data?.[0];
 
-  const filter = useMemo(
-    () =>
-      mode === "DAY"
-        ? {
-            date,
-            phases: ["FINISHED", "SETTLED"] as const,
-            limit: 60,
-            ...(effectiveLeague === undefined
-              ? {}
-              : { leagueId: effectiveLeague }),
-          }
-        : {
-            ...(effectiveLeague === undefined
-              ? {}
-              : { leagueId: effectiveLeague }),
-            season: activeSeason,
-            matchday: activeMatchday,
-            phases: ["FINISHED", "SETTLED"] as const,
-          },
-    [mode, date, effectiveLeague, activeSeason, activeMatchday],
-  );
-  const results = useMatches(filter as never, {
-    enabled:
-      mode === "DAY" ||
-      (activeSeason !== undefined && activeMatchday !== undefined),
-    refetchMs: 8000,
+  const filter: MatchFilter =
+    mode === "day"
+      ? { phases: ["FINISHED", "SETTLED"], date, limit: 80, ...(leagueParam === undefined ? {} : { leagueId: leagueParam as LeagueId }) }
+      : {
+          phases: ["FINISHED", "SETTLED"],
+          ...(matchdayLeagueId === undefined ? {} : { leagueId: matchdayLeagueId as LeagueId }),
+          ...(season === undefined ? {} : { season }),
+          ...(matchday === undefined ? {} : { matchday }),
+        };
+  const ready = mode === "day" || (matchdayLeagueId !== undefined && season !== undefined && matchday !== undefined);
+  const results = useMatches(filter, { enabled: ready, pace: "slow" });
+  const groups = groupResults(results.data ?? []);
+  const noMatchdays = mode === "matchday" && matchdays.data !== undefined && matchdays.data.length === 0;
+
+  usePageMeta({
+    title: league === undefined ? "Results" : `${league.name} results`,
+    description: "Full-time scores from BETNG virtual football, by day or by matchday.",
   });
 
-  const grouped = useMemo(() => {
-    const groups = new Map<string, MatchSummary[]>();
-
-    for (const m of results.data ?? []) {
-      const key = `${m.leagueCode} · Season ${String(m.season)} · ${formatMatchday(m.matchday)}`;
-
-      groups.set(key, [...(groups.get(key) ?? []), m]);
-    }
-
-    return [...groups.entries()];
-  }, [results.data]);
-
-  const seasonOptions = useMemo(() => {
-    const cs = currentSeason ?? 1;
-
-    return Array.from({ length: Math.min(cs, 6) }, (_, i) => cs - i).map(
-      (s) => ({ value: String(s), label: `Season ${String(s)}` }),
-    );
-  }, [currentSeason]);
+  const currentSeason = matchdayLeague?.currentSeason;
+  const seasonOptions =
+    currentSeason === undefined
+      ? []
+      : Array.from({ length: Math.min(currentSeason, SEASONS_SHOWN) }, (_, index) => currentSeason - index).map((value) => ({
+          value: String(value),
+          label: `Season ${String(value)}`,
+        }));
 
   return (
     <div className="space-y-5">
-      <SectionHeader
-        as="h1"
-        eyebrow="Archive"
-        title="Results"
-        aside={
-          <Select
-            label="League"
-            size="sm"
-            value={effectiveLeague ?? ""}
-            onChange={(v) => {
-              setLeagueId(v);
-              setSeason(undefined);
-              setMatchday(undefined);
-            }}
-            options={(leagues.data ?? []).map((l) => ({
-              value: l.id,
-              label: l.name,
-            }))}
-          />
-        }
-      />
+      <header>
+        <h1 className="type-h1">Results</h1>
+        <p className="mt-1 text-base text-text-secondary">Full-time scores as the platform reported them.</p>
+      </header>
+
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Tabs
-          label="Browse by"
+          label="Browse results by"
           variant="segmented"
           value={mode}
-          onChange={setMode}
+          onChange={(next) => {
+            if (next === "day") patch({ view: undefined, matchday: undefined, season: undefined });
+            else patch({ view: "matchday", date: undefined, league: leagueParam ?? leagues.data?.[0]?.id });
+          }}
           items={[
-            { value: "DAY", label: "By day" },
-            { value: "MATCHDAY", label: "By matchday" },
+            { value: "day", label: "By day" },
+            { value: "matchday", label: "By matchday" },
           ]}
         />
-        {mode === "DAY" ? (
-          <div className="flex items-center gap-1">
+        {mode === "day" ? (
+          <div className="flex items-center gap-1" role="group" aria-label="Date">
             <IconButton
               label="Previous day"
               size="sm"
               onClick={() => {
-                setDate((d) => shiftDate(d, -1));
+                patch({ date: shiftDate(date, -1) });
               }}
             >
               <ChevronLeft className="size-4" />
             </IconButton>
-            <span className="min-w-40 text-center text-sm font-semibold">
-              {dayLabel(date)}
+            <span className="min-w-32 text-center type-data font-semibold" aria-live="polite">
+              {dayLabel(date, today)}
             </span>
             <IconButton
               label="Next day"
               size="sm"
-              disabled={date >= toLocalDateKey(new Date())}
+              disabled={date >= today}
               onClick={() => {
-                setDate((d) => shiftDate(d, 1));
+                const next = shiftDate(date, 1);
+
+                patch({ date: next === today ? undefined : next });
               }}
             >
               <ChevronRight className="size-4" />
@@ -171,61 +139,62 @@ export function ResultsPage(): React.JSX.Element {
           </div>
         ) : (
           <div className="flex items-center gap-2">
-            <Select
-              label="Season"
-              size="sm"
-              value={String(activeSeason ?? "")}
-              onChange={(v) => {
-                setSeason(Number(v));
-                setMatchday(undefined);
-              }}
-              options={seasonOptions}
-            />
-            <Select
-              label="Matchday"
-              size="sm"
-              value={String(activeMatchday ?? "")}
-              onChange={(v) => {
-                setMatchday(Number(v));
-              }}
-              options={(matchdays.data ?? []).map((md) => ({
-                value: String(md),
-                label: formatMatchday(md),
-              }))}
-            />
+            {seasonOptions.length > 0 && season !== undefined && (
+              <Select
+                label="Season"
+                size="sm"
+                value={String(season)}
+                onChange={(value) => {
+                  patch({ season: Number(value) === currentSeason ? undefined : value, matchday: undefined });
+                }}
+                options={seasonOptions}
+              />
+            )}
+            {matchday !== undefined && (matchdays.data?.length ?? 0) > 0 && (
+              <Select
+                label="Matchday"
+                size="sm"
+                value={String(matchday)}
+                onChange={(value) => {
+                  patch({ matchday: value });
+                }}
+                options={(matchdays.data ?? []).map((value) => ({ value: String(value), label: formatMatchday(value) }))}
+              />
+            )}
           </div>
         )}
       </div>
 
-      {results.isPending ? (
+      {noMatchdays ? (
         <div className="rounded-md border border-border bg-surface">
-          <SkeletonRows rows={8} className="p-4" />
+          <EmptyState preset="noResults" description="No matchday has been completed in this season yet." />
         </div>
-      ) : results.isError ? (
-        <ErrorState
-          error={results.error}
-          onRetry={() => void results.refetch()}
-        />
-      ) : grouped.length === 0 ? (
-        <EmptyState
-          title="No results"
-          description={
-            mode === "DAY"
-              ? "No matches finished on this day."
-              : "This matchday has not been completed yet."
-          }
-        />
+      ) : results.isPending ? (
+        <div className="divide-y divide-border overflow-hidden rounded-md border border-border bg-surface" role="status" aria-label="Loading results">
+          {Array.from({ length: 8 }, (_, slot) => (
+            <MatchCard.Skeleton key={slot} variant="compact" />
+          ))}
+        </div>
+      ) : results.isError && results.data === undefined ? (
+        <div className="rounded-md border border-border bg-surface">
+          <ErrorState error={results.error} onRetry={() => void results.refetch()} />
+        </div>
+      ) : groups.length === 0 ? (
+        <div className="rounded-md border border-border bg-surface">
+          <EmptyState
+            preset="noResults"
+            description={mode === "day" ? "No matches finished on this day." : "This matchday has no finished matches."}
+          />
+        </div>
       ) : (
-        grouped.map(([label, items]) => (
-          <section key={label} aria-label={label}>
-            <h2 className="caps-label mb-2">{label}</h2>
-            <div className="divide-y divide-border rounded-md border border-border bg-surface">
-              {items.map((m) => (
-                <MatchRow key={m.id} match={m} />
-              ))}
-            </div>
-          </section>
-        ))
+        <div className="space-y-6">
+          {groups.map((group) => (
+            <section key={group.key} aria-labelledby={`results-${group.key}`}>
+              <SectionHeading id={`results-${group.key}`}>{group.label}</SectionHeading>
+              <MatchRows matches={group.matches} withOutcome showCompetition={false} label={group.label} className="mt-3" />
+            </section>
+          ))}
+        </div>
       )}
     </div>
   );

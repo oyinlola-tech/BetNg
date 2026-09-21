@@ -3,21 +3,80 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>BetNG — Virtual Football</title>
+    <title>BETNG · Virtual football</title>
     <meta
       name="description"
-      content="BetNG virtual football: live matches, markets, results and standings. A portfolio simulation — no real money."
+      content="Virtual football on BETNG: live matches, markets, results and standings. A simulated platform with play money only."
     />
     <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#F5F3EE" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0A0C10" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta property="og:site_name" content="BETNG" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="BETNG · Virtual football" />
+    <meta
+      property="og:description"
+      content="Virtual football on BETNG: live matches, markets, results and standings. A simulated platform with play money only."
+    />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/site.webmanifest" />
     <script>
       try {
         var t = localStorage.getItem("betng.theme");
         if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
       } catch (e) {}
     </script>
+    <style>
+      #boot {
+        min-height: 100dvh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        font: 600 14px/1.4 system-ui, sans-serif;
+        background: #f5f3ee;
+        color: #4b4840;
+      }
+      #boot b {
+        font: 800 28px/1 system-ui, sans-serif;
+        letter-spacing: -0.03em;
+        color: #14130f;
+      }
+      @media (prefers-color-scheme: dark) {
+        #boot {
+          background: #0a0c10;
+          color: #b2bac6;
+        }
+        #boot b {
+          color: #f2f4f7;
+        }
+      }
+      :root[data-theme="light"] #boot {
+        background: #f5f3ee;
+        color: #4b4840;
+      }
+      :root[data-theme="light"] #boot b {
+        color: #14130f;
+      }
+      :root[data-theme="dark"] #boot {
+        background: #0a0c10;
+        color: #b2bac6;
+      }
+      :root[data-theme="dark"] #boot b {
+        color: #f2f4f7;
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div id="boot" role="status">
+        <b>BETNG</b>
+        <span id="boot-status">Loading</span>
+      </div>
+    </div>
+    <noscript>BETNG needs JavaScript to run.</noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

@@ -4,42 +4,79 @@ import type { CustomerProfile } from "@betng/contracts";
 import type { SessionStatus } from "@betng/ui-core";
 import { useSession } from "@betng/ui-web";
 import { ACCOUNT_QUERY_KEYS } from "../../lib/queryKeys";
-import { authSource } from "../../services/dataSource";
-import { useAuthDialog, type AuthIntent, type AuthView } from "./auth.store";
+import { authSource, logger, session } from "../../services/runtime";
+import {
+  INTENT_REASONS,
+  useAuthDialog,
+  type AuthIntent,
+  type AuthIntentName,
+  type AuthView,
+} from "./auth.store";
 
 export interface UseAuth {
   readonly status: SessionStatus;
   readonly user: CustomerProfile | undefined;
   readonly isAuthenticated: boolean;
-  /** Runs the intent now when signed in; otherwise asks for sign-in first and resumes it afterwards. */
-  readonly requireAuth: (intent: AuthIntent) => void;
+  /** Runs the intent now when signed in; otherwise asks for sign-in first and resumes it afterwards. Answers whether it ran. */
+  readonly requireAuth: (
+    intent: AuthIntentName | AuthIntent,
+    run?: () => void,
+  ) => boolean;
   readonly openAuth: (view: AuthView, intent?: AuthIntent) => void;
-  readonly logout: () => Promise<void>;
+  readonly signOut: () => Promise<void>;
 }
 
 export function useIsAuthenticated(): boolean {
-  return useSession(authSource.session).status === "AUTHENTICATED";
+  return useSession(session).status === "AUTHENTICATED";
 }
 
 export function useAuth(): UseAuth {
-  const { status, session } = useSession(authSource.session);
+  const snapshot = useSession(session);
   const show = useAuthDialog((s) => s.show);
   const client = useQueryClient();
-  const isAuthenticated = status === "AUTHENTICATED";
+  const isAuthenticated = snapshot.status === "AUTHENTICATED";
 
   const requireAuth = useCallback(
-    (intent: AuthIntent) => {
-      if (authSource.session.snapshot().status === "AUTHENTICATED") intent.run?.();
-      else show(authSource.session.snapshot().status === "EXPIRED" ? "expired" : "login", intent);
+    (intent: AuthIntentName | AuthIntent, run?: () => void): boolean => {
+      const resolved: AuthIntent =
+        typeof intent === "string"
+          ? { reason: INTENT_REASONS[intent], ...(run === undefined ? {} : { run }) }
+          : run === undefined
+            ? intent
+            : { ...intent, run };
+      const { status } = session.snapshot();
+
+      if (status === "AUTHENTICATED") {
+        resolved.run?.();
+
+        return true;
+      }
+
+      show(status === "EXPIRED" ? "expired" : "login", resolved);
+
+      return false;
     },
     [show],
   );
 
-  const logout = useCallback(async () => {
-    await authSource.logout();
+  const signOut = useCallback(async () => {
+    try {
+      await authSource.logout();
+    } catch {
+      logger.warn("auth", "Sign-out was not confirmed by the platform; the local session was cleared.");
+    }
+
+    if (session.snapshot().status !== "ANONYMOUS") session.clear();
 
     for (const queryKey of ACCOUNT_QUERY_KEYS) client.removeQueries({ queryKey });
   }, [client]);
 
-  return { status, user: isAuthenticated ? session?.user : undefined, isAuthenticated, requireAuth, openAuth: show, logout };
+  return {
+    status: snapshot.status,
+    user: isAuthenticated ? snapshot.session?.user : undefined,
+    isAuthenticated,
+    requireAuth,
+    openAuth: show,
+    signOut,
+  };
 }

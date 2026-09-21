@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { ConfirmDialog, useToast } from "@betng/ui-web";
+import { ConfirmationDialog, useToast } from "@betng/ui-web";
 import { useBetSlip } from "../../stores/betslip.store";
 import { useAuth } from "./useAuth";
 
 export function useLogoutFlow(): { readonly request: () => void; readonly dialog: React.JSX.Element } {
-  const { logout } = useAuth();
+  const { signOut } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const selectionCount = useBetSlip((s) => s.selections.length);
@@ -14,10 +14,10 @@ export function useLogoutFlow(): { readonly request: () => void; readonly dialog
 
   const run = async (): Promise<void> => {
     setBusy(true);
-    await logout();
+    await signOut();
     setBusy(false);
     setConfirming(false);
-    toast({ tone: "info", title: "You are logged out", message: "Matches, results and tables stay open to browse." });
+    toast({ tone: "info", title: "You are signed out", message: "Matches, results and tables stay open to browse." });
     void navigate("/");
   };
 
@@ -27,16 +27,16 @@ export function useLogoutFlow(): { readonly request: () => void; readonly dialog
       else void run();
     },
     dialog: (
-      <ConfirmDialog
+      <ConfirmationDialog
         open={confirming}
         onClose={() => {
           setConfirming(false);
         }}
         onConfirm={run}
         loading={busy}
-        title="Log out?"
-        confirmLabel="Log out"
-        description={`Your bet slip has ${String(selectionCount)} selection${selectionCount === 1 ? "" : "s"}. They stay on this device, but you will need to log in again to place the bet.`}
+        title="Sign out?"
+        confirmLabel="Sign out"
+        description={`Your bet slip has ${String(selectionCount)} selection${selectionCount === 1 ? "" : "s"}. They stay on this device, but you will need to sign in again to place the bet.`}
       />
     ),
   };

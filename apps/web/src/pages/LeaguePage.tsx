@@ -1,179 +1,253 @@
-import { useState } from "react";
+import { useId } from "react";
 import { Link, useParams } from "react-router";
-import { ChevronLeft } from "lucide-react";
 import type { LeagueId } from "@betng/contracts";
-import { formatMatchday } from "@betng/ui-core";
+import { DataSourceError, formatMatchday } from "@betng/ui-core";
 import {
   EmptyState,
   ErrorState,
+  FormPips,
+  LeagueMark,
   LeagueTable,
-  MatchRow,
-  SectionHeader,
-  SkeletonRows,
+  NotFoundState,
+  Skeleton,
+  TabPanel,
+  TableSkeleton,
   Tabs,
-  TeamBadge,
+  TeamCrest,
+  VirtualTeamCard,
 } from "@betng/ui-web";
-import {
-  useLeague,
-  useMatches,
-  useStandings,
-  useTopScorers,
-} from "../hooks/queries";
+import { MatchList } from "../components/domain";
+import { usePageMeta } from "../features/seo";
+import { useIsStale } from "../hooks/useConnection";
+import { useLeague, useMatches, useStandings, useTeams, useTopScorers } from "../hooks/queries";
+import { paths } from "../lib/paths";
+import { useTabParam } from "../lib/useTabParam";
 
-type Section = "TABLE" | "FIXTURES" | "RESULTS" | "SCORERS";
+const TABS = ["fixtures", "results", "table", "teams", "scorers"] as const;
+
+type LeagueTab = (typeof TABS)[number];
+
+const TAB_ITEMS: readonly { readonly value: LeagueTab; readonly label: string }[] = [
+  { value: "fixtures", label: "Fixtures" },
+  { value: "results", label: "Results" },
+  { value: "table", label: "Table" },
+  { value: "teams", label: "Teams" },
+  { value: "scorers", label: "Top scorers" },
+];
+
+function Fixtures({ leagueId }: { readonly leagueId: string }): React.JSX.Element {
+  const stale = useIsStale();
+  const fixtures = useMatches({
+    leagueId: leagueId as LeagueId,
+    phases: ["LIVE", "HALFTIME", "BETTING_CLOSED", "BETTING_OPEN", "SCHEDULED", "DELAYED", "SUSPENDED"],
+    limit: 40,
+  });
+
+  return <MatchList query={fixtures} withMarkets stale={stale} showCompetition={false} empty="noUpcomingMatches" skeletons={6} label="Fixtures" />;
+}
+
+function Results({ leagueId }: { readonly leagueId: string }): React.JSX.Element {
+  const results = useMatches({ leagueId: leagueId as LeagueId, phases: ["FINISHED", "SETTLED"], limit: 30 }, { pace: "slow" });
+
+  return (
+    <MatchList
+      query={results}
+      withOutcome
+      showCompetition={false}
+      empty="noResults"
+      skeletons={6}
+      label="Results"
+      emptyAction={
+        <Link to={`${paths.results}?league=${encodeURIComponent(leagueId)}`} className="rounded-xs text-sm font-semibold text-brand hover:underline focus-ring">
+          Browse the archive
+        </Link>
+      }
+    />
+  );
+}
+
+function Table({ leagueId }: { readonly leagueId: string }): React.JSX.Element {
+  const standings = useStandings(leagueId);
+
+  return (
+    <div className="overflow-hidden rounded-md border border-border bg-surface">
+      {standings.isError && standings.data === undefined ? (
+        <ErrorState compact error={standings.error} onRetry={() => void standings.refetch()} />
+      ) : standings.data === undefined ? (
+        <TableSkeleton rows={10} columns={8} />
+      ) : standings.data.rows.length === 0 ? (
+        <EmptyState compact title="No table yet" description="The table appears once the first matchday is complete." />
+      ) : (
+        <LeagueTable standings={standings.data} teamHref={(row) => paths.team(row.team.id)} />
+      )}
+    </div>
+  );
+}
+
+function Teams({ leagueId, leagueName }: { readonly leagueId: string; readonly leagueName: string | undefined }): React.JSX.Element {
+  const teams = useTeams(leagueId);
+  const standings = useStandings(leagueId);
+
+  if (teams.isPending) {
+    return (
+      <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-3" role="status" aria-label="Loading teams">
+        {[0, 1, 2, 3, 4, 5].map((slot) => (
+          <Skeleton key={slot} className="h-24" />
+        ))}
+      </div>
+    );
+  }
+
+  if (teams.isError) return <ErrorState compact error={teams.error} onRetry={() => void teams.refetch()} />;
+
+  if (teams.data.length === 0) {
+    return (
+      <div className="rounded-md border border-border bg-surface">
+        <EmptyState compact preset="noTeams" />
+      </div>
+    );
+  }
+
+  return (
+    <ul className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-3">
+      {teams.data.map((team) => {
+        const form = standings.data?.rows.find((row) => row.team.id === team.id)?.form;
+
+        return (
+          <li key={team.id} className="min-w-0">
+            <VirtualTeamCard
+              team={team}
+              to={paths.team(team.id)}
+              {...(leagueName === undefined ? {} : { leagueName })}
+              {...(form === undefined || form.length === 0 ? {} : { form: <FormPips form={form} /> })}
+            />
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+function Scorers({ leagueId }: { readonly leagueId: string }): React.JSX.Element {
+  const scorers = useTopScorers(leagueId);
+
+  return (
+    <div className="overflow-hidden rounded-md border border-border bg-surface">
+      {scorers.isError ? (
+        <ErrorState compact error={scorers.error} onRetry={() => void scorers.refetch()} />
+      ) : scorers.data === undefined ? (
+        <TableSkeleton rows={8} columns={4} />
+      ) : scorers.data.length === 0 ? (
+        <EmptyState compact title="No goals yet" description="Scorers appear once the season's first goals are in." />
+      ) : (
+        <table className="w-full">
+          <caption className="sr-only">Top scorers</caption>
+          <thead>
+            <tr className="type-caption border-b border-border bg-surface-sunken text-left">
+              <th scope="col" className="w-10 py-2 pl-3">
+                #
+              </th>
+              <th scope="col" className="py-2">
+                Player
+              </th>
+              <th scope="col" className="w-16 py-2 text-right">
+                Goals
+              </th>
+              <th scope="col" className="w-20 py-2 pr-3 text-right">
+                Assists
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {scorers.data.map((scorer, index) => (
+              <tr key={`${scorer.team.id}:${scorer.player}`} className="border-b border-border last:border-0">
+                <td className="py-2 pl-3 type-data text-text-muted">{index + 1}</td>
+                <td className="py-2">
+                  <span className="block text-base font-medium">{scorer.player}</span>
+                  <Link to={paths.team(scorer.team.id)} className="mt-0.5 inline-flex items-center gap-1.5 rounded-xs type-small text-text-secondary hover:text-brand focus-ring">
+                    <TeamCrest team={scorer.team} size={16} decorative />
+                    {scorer.team.name}
+                  </Link>
+                </td>
+                <td className="py-2 text-right type-data font-bold">{scorer.goals}</td>
+                <td className="py-2 pr-3 text-right type-data text-text-secondary">{scorer.assists}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+}
 
 export function LeaguePage(): React.JSX.Element {
   const { leagueId } = useParams<{ leagueId: string }>();
+  const tabsId = useId();
   const league = useLeague(leagueId);
-  const standings = useStandings(leagueId);
-  const scorers = useTopScorers(leagueId);
-  const [section, setSection] = useState<Section>("TABLE");
-  const fixtures = useMatches(
-    {
-      leagueId: leagueId as LeagueId,
-      phases: [
-        "LIVE",
-        "HALFTIME",
-        "BETTING_OPEN",
-        "BETTING_CLOSED",
-        "SCHEDULED",
-      ],
-    },
-    { enabled: leagueId !== undefined },
-  );
-  const results = useMatches(
-    {
-      leagueId: leagueId as LeagueId,
-      phases: ["FINISHED", "SETTLED"],
-      limit: 24,
-    },
-    { enabled: leagueId !== undefined },
-  );
+  const [tab, setTab] = useTabParam(TABS, "fixtures");
 
-  if (league.isError)
+  usePageMeta({
+    title: league.data?.name ?? "Competition",
+    ...(league.data === undefined ? {} : { description: `${league.data.name}: fixtures, results, table, teams and top scorers on BETNG.` }),
+  });
+
+  if (leagueId === undefined || (league.error instanceof DataSourceError && league.error.code === "NOT_FOUND")) {
     return (
-      <ErrorState error={league.error} onRetry={() => void league.refetch()} />
+      <div className="mx-auto max-w-lg rounded-md border border-border bg-surface">
+        <h1 className="sr-only">Competition not found</h1>
+        <NotFoundState
+          title="Competition not found"
+          description="This competition does not exist on the platform."
+          action={
+            <Link to={paths.leagues} className="rounded-xs text-base font-semibold text-brand hover:underline focus-ring">
+              All competitions
+            </Link>
+          }
+        />
+      </div>
     );
+  }
+
+  if (league.isError) {
+    return (
+      <div className="rounded-md border border-border bg-surface">
+        <h1 className="sr-only">Competition</h1>
+        <ErrorState error={league.error} onRetry={() => void league.refetch()} />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">
-      <Link
-        to="/leagues"
-        className="inline-flex items-center gap-0.5 text-sm text-text-muted hover:text-text-primary focus-ring rounded-xs"
-      >
-        <ChevronLeft className="size-4" /> Leagues
-      </Link>
-      <SectionHeader
-        as="h1"
-        eyebrow={
-          league.data === undefined
-            ? "League"
-            : `${league.data.country} · Season ${String(league.data.currentSeason)} · ${formatMatchday(league.data.currentMatchday)}`
-        }
-        title={league.data?.name ?? "…"}
-      />
-      <Tabs
-        label="League section"
-        value={section}
-        onChange={setSection}
-        items={[
-          { value: "TABLE", label: "Table" },
-          { value: "FIXTURES", label: "Fixtures" },
-          { value: "RESULTS", label: "Results" },
-          { value: "SCORERS", label: "Top scorers" },
-        ]}
-      />
-
-      {section === "TABLE" && (
-        <div className="rounded-md border border-border bg-surface">
-          {standings.isPending ? (
-            <SkeletonRows rows={10} className="p-4" />
-          ) : standings.isError ? (
-            <ErrorState compact error={standings.error} />
-          ) : (
-            <LeagueTable standings={standings.data} />
+      <header className="flex items-center gap-4">
+        {league.data === undefined ? <Skeleton className="size-14" /> : <LeagueMark slug={league.data.slug} code={league.data.code} size={56} />}
+        <div className="min-w-0">
+          <h1 className="type-h1 truncate">{league.data?.name ?? <Skeleton className="h-8 w-56" />}</h1>
+          {league.data !== undefined && (
+            <p className="mt-1 type-data text-text-secondary">
+              {league.data.country} · Season {league.data.currentSeason} · {formatMatchday(league.data.currentMatchday)} of {league.data.matchdays}
+            </p>
           )}
         </div>
-      )}
+      </header>
 
-      {section === "FIXTURES" && (
-        <div className="divide-y divide-border rounded-md border border-border bg-surface">
-          {fixtures.isPending ? (
-            <SkeletonRows rows={6} className="p-4" />
-          ) : fixtures.isError ? (
-            <ErrorState compact error={fixtures.error} />
-          ) : fixtures.data.length === 0 ? (
-            <EmptyState compact title="No fixtures" />
-          ) : (
-            fixtures.data.map((m) => <MatchRow key={m.id} match={m} />)
-          )}
-        </div>
-      )}
+      <Tabs id={tabsId} label="Competition sections" scrollable value={tab} onChange={setTab} items={TAB_ITEMS} />
 
-      {section === "RESULTS" && (
-        <div className="divide-y divide-border rounded-md border border-border bg-surface">
-          {results.isPending ? (
-            <SkeletonRows rows={6} className="p-4" />
-          ) : results.isError ? (
-            <ErrorState compact error={results.error} />
-          ) : results.data.length === 0 ? (
-            <EmptyState compact title="No results yet" />
-          ) : (
-            results.data.map((m) => <MatchRow key={m.id} match={m} />)
-          )}
-        </div>
-      )}
-
-      {section === "SCORERS" && (
-        <div className="rounded-md border border-border bg-surface">
-          {scorers.isPending ? (
-            <SkeletonRows rows={8} className="p-4" />
-          ) : scorers.isError ? (
-            <ErrorState compact error={scorers.error} />
-          ) : scorers.data.length === 0 ? (
-            <EmptyState compact title="No goals yet this season" />
-          ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="caps-label border-b border-border text-left">
-                  <th className="w-8 py-2 pl-3">#</th>
-                  <th className="py-2">Player</th>
-                  <th className="py-2">Club</th>
-                  <th className="w-14 py-2 text-right">Goals</th>
-                  <th className="w-16 py-2 pr-3 text-right">Assists</th>
-                </tr>
-              </thead>
-              <tbody>
-                {scorers.data.map((s, i) => (
-                  <tr
-                    key={`${s.team.id}-${s.player}`}
-                    className="border-b border-border last:border-0"
-                  >
-                    <td className="py-2 pl-3 tabular text-text-muted">
-                      {i + 1}
-                    </td>
-                    <td className="py-2 font-medium">{s.player}</td>
-                    <td className="py-2">
-                      <Link
-                        to={`/teams/${s.team.id}`}
-                        className="inline-flex items-center gap-2 text-text-secondary hover:text-brand focus-ring rounded-xs"
-                      >
-                        <TeamBadge team={s.team} size="xs" /> {s.team.shortName}
-                      </Link>
-                    </td>
-                    <td className="py-2 text-right font-bold tabular">
-                      {s.goals}
-                    </td>
-                    <td className="py-2 pr-3 text-right tabular text-text-secondary">
-                      {s.assists}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      )}
+      <TabPanel tabsId={tabsId} value="fixtures" active={tab}>
+        <Fixtures leagueId={leagueId} />
+      </TabPanel>
+      <TabPanel tabsId={tabsId} value="results" active={tab}>
+        <Results leagueId={leagueId} />
+      </TabPanel>
+      <TabPanel tabsId={tabsId} value="table" active={tab}>
+        <Table leagueId={leagueId} />
+      </TabPanel>
+      <TabPanel tabsId={tabsId} value="teams" active={tab}>
+        <Teams leagueId={leagueId} leagueName={league.data?.name} />
+      </TabPanel>
+      <TabPanel tabsId={tabsId} value="scorers" active={tab}>
+        <Scorers leagueId={leagueId} />
+      </TabPanel>
     </div>
   );
 }

@@ -1,14 +1,18 @@
 import { useEffect, useRef } from "react";
-import { Modal, Sheet, useIsCompact, useSession } from "@betng/ui-web";
-import { authSource } from "../../services/dataSource";
+import { BottomSheet, Dialog, useIsCompact, useSession } from "@betng/ui-web";
+import { session } from "../../services/runtime";
+import { applyDisplayPreferences } from "../account/displayPreferences";
 import { useAuthDialog } from "./auth.store";
 import { AUTH_TITLES, AuthFlow } from "./AuthFlow";
 
 export function AuthDialog(): React.JSX.Element {
   const { open, view, intent, pendingEmail, show, setView, setPendingEmail, close, complete } = useAuthDialog();
   const compact = useIsCompact();
-  const { status } = useSession(authSource.session);
+  const { status } = useSession(session);
   const opener = useRef<HTMLElement | null>(null);
+
+  /* Mounted once by the shell after start-up, so device display preferences are applied over the platform defaults here. */
+  useEffect(applyDisplayPreferences, []);
 
   useEffect(() => {
     if (status === "EXPIRED") show("expired", useAuthDialog.getState().intent);
@@ -40,15 +44,15 @@ export function AuthDialog(): React.JSX.Element {
 
   if (compact) {
     return (
-      <Sheet open={open} onClose={close} title={AUTH_TITLES[view]} side="bottom">
+      <BottomSheet open={open} onClose={close} title={AUTH_TITLES[view]}>
         <div className="px-4 pb-8 pt-4">{flow}</div>
-      </Sheet>
+      </BottomSheet>
     );
   }
 
   return (
-    <Modal open={open} onClose={close} title={AUTH_TITLES[view]} size="sm">
+    <Dialog open={open} onClose={close} title={AUTH_TITLES[view]} size="sm">
       {flow}
-    </Modal>
+    </Dialog>
   );
 }

@@ -1,133 +1,159 @@
+import { useMemo } from "react";
 import { Link } from "react-router";
-import { Bell, CheckCheck, Goal, Receipt, Timer, Trophy } from "lucide-react";
-import { formatRelative, type NotificationKind } from "@betng/ui-core";
-import { Button, cn, EmptyState, ErrorState, SectionHeader, SkeletonRows } from "@betng/ui-web";
-import { useMarkNotificationsRead, useNotifications } from "../hooks/queries";
+import { CheckCheck } from "lucide-react";
+import { formatRelative, formatShortDate, toLocalDateKey, type NotificationView } from "@betng/ui-core";
+import { Button, Card, EmptyState, SectionHeader, SectionHeading, SkeletonRows, cn } from "@betng/ui-web";
+import { AccountErrorState } from "../features/auth";
+import { GROUP_LABELS, NotificationIcon, notificationGroup, notificationTarget } from "../features/notifications/notificationMeta";
+import { usePageMeta } from "../features/seo";
+import { useAccountSignals, useMarkNotificationsRead, useNotifications } from "../hooks/accountQueries";
 
-const ICONS: Record<
-  NotificationKind,
-  React.ComponentType<{ className?: string }>
-> = {
-  MATCH_STARTING: Timer,
-  MATCH_FINISHED: Trophy,
-  RESULT_AVAILABLE: Trophy,
-  BET_SETTLED: Receipt,
-  MATCH_EVENT: Goal,
-};
+interface DayGroup {
+  readonly key: string;
+  readonly label: string;
+  readonly items: readonly NotificationView[];
+}
+
+function groupByDay(items: readonly NotificationView[]): readonly DayGroup[] {
+  const today = toLocalDateKey(new Date());
+  const groups = new Map<string, NotificationView[]>();
+
+  for (const item of items) {
+    const key = toLocalDateKey(new Date(item.createdAt));
+    const list = groups.get(key);
+
+    if (list === undefined) groups.set(key, [item]);
+    else list.push(item);
+  }
+
+  return [...groups.entries()].map(([key, list]) => ({
+    key,
+    label: key === today ? "Today" : formatShortDate(list[0]?.createdAt ?? key),
+    items: list,
+  }));
+}
+
+function NotificationRow({ notification, onOpen }: { readonly notification: NotificationView; readonly onOpen: (notification: NotificationView) => void }): React.JSX.Element {
+  const to = notificationTarget(notification);
+  const content = (
+    <>
+      <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-md", notification.read ? "bg-surface-sunken text-text-muted" : "bg-brand-subtle text-brand")}>
+        <NotificationIcon notification={notification} />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="flex items-center gap-2">
+          <span className={cn("type-body min-w-0 truncate", notification.read ? "font-medium text-text-secondary" : "font-semibold text-text-primary")}>{notification.title}</span>
+          {!notification.read && <span className="type-caption shrink-0 rounded-xs bg-brand-subtle px-1 text-brand">New</span>}
+        </span>
+        <span className="type-small line-clamp-2 text-text-muted">{notification.body}</span>
+        <span className="type-small mt-0.5 block text-text-muted">
+          {GROUP_LABELS[notificationGroup(notification.kind)]} · {formatRelative(notification.createdAt)}
+        </span>
+      </span>
+    </>
+  );
+
+  if (to !== undefined) {
+    return (
+      <Link
+        to={to}
+        onClick={() => {
+          onOpen(notification);
+        }}
+        className="flex items-start gap-3 px-4 py-3 transition-colors hover:bg-surface-hover focus-ring"
+      >
+        {content}
+      </Link>
+    );
+  }
+
+  return (
+    <div className="flex items-start gap-3 px-4 py-3">
+      {content}
+      {!notification.read && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => {
+            onOpen(notification);
+          }}
+        >
+          Mark read
+        </Button>
+      )}
+    </div>
+  );
+}
 
 export function NotificationsPage(): React.JSX.Element {
+  usePageMeta({ title: "Notifications", noindex: true });
+  useAccountSignals();
+
   const notifications = useNotifications();
   const markRead = useMarkNotificationsRead();
   const unread = notifications.data?.filter((n) => !n.read).length ?? 0;
+  const days = useMemo(() => groupByDay(notifications.data ?? []), [notifications.data]);
+
+  const open = (notification: NotificationView): void => {
+    if (!notification.read) markRead.mutate([notification.id]);
+  };
 
   return (
-    <div className="space-y-5">
+    <div className="mx-auto max-w-3xl space-y-5">
       <SectionHeader
         as="h1"
-        eyebrow={unread > 0 ? `${String(unread)} unread` : "All caught up"}
+        eyebrow={notifications.data === undefined ? "Alerts" : unread > 0 ? `${String(unread)} unread` : "All read"}
         title="Notifications"
         aside={
-          <Button
-            variant="secondary"
-            size="sm"
-            icon={<CheckCheck className="size-3.5" />}
-            disabled={unread === 0}
-            loading={markRead.isPending}
-            onClick={() => {
-              markRead.mutate(undefined);
-            }}
-          >
-            Mark all read
-          </Button>
+          <div className="flex items-center gap-2">
+            <Link to="/account/notifications" className="type-small rounded-xs font-semibold text-brand hover:underline focus-ring">
+              Preferences
+            </Link>
+            <Button
+              variant="secondary"
+              size="sm"
+              leadingIcon={<CheckCheck className="size-3.5" aria-hidden />}
+              disabled={unread === 0}
+              loading={markRead.isPending && markRead.variables === undefined}
+              onClick={() => {
+                markRead.mutate(undefined);
+              }}
+            >
+              Mark all read
+            </Button>
+          </div>
         }
       />
-      <div className="rounded-md border border-border bg-surface">
-        {notifications.isPending ? (
-          <SkeletonRows rows={5} className="p-4" />
-        ) : notifications.isError ? (
-          <ErrorState
-            compact
-            error={notifications.error}
-            onRetry={() => void notifications.refetch()}
-          />
-        ) : notifications.data.length === 0 ? (
-          <EmptyState
-            icon={<Bell className="size-5" />}
-            title="No notifications"
-            description="Kick-offs, full-time results and settled bets for matches you follow will show up here."
-          />
-        ) : (
-          <ul className="divide-y divide-border">
-            {notifications.data.map((n) => {
-              const Icon = ICONS[n.kind];
-              const to =
-                n.matchId !== undefined
-                  ? `/matches/${n.matchId}`
-                  : n.betId !== undefined
-                    ? "/history"
-                    : undefined;
-              const body = (
-                <>
-                  <span
-                    className={cn(
-                      "flex size-9 shrink-0 items-center justify-center rounded-md",
-                      n.read
-                        ? "bg-surface-sunken text-text-muted"
-                        : "bg-brand-subtle text-brand",
-                    )}
-                  >
-                    <Icon className="size-4" />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span
-                      className={cn(
-                        "block truncate text-base",
-                        n.read
-                          ? "font-medium text-text-secondary"
-                          : "font-semibold text-text-primary",
-                      )}
-                    >
-                      {n.title}
-                    </span>
-                    <span className="block truncate text-sm text-text-muted">
-                      {n.body}
-                    </span>
-                  </span>
-                  <span className="shrink-0 text-xs text-text-muted">
-                    {formatRelative(n.createdAt)}
-                  </span>
-                  {!n.read && (
-                    <span
-                      aria-label="Unread"
-                      className="size-2 shrink-0 rounded-full bg-brand"
-                    />
-                  )}
-                </>
-              );
-
-              return (
-                <li key={n.id}>
-                  {to === undefined ? (
-                    <div className="flex items-center gap-3 px-4 py-3">
-                      {body}
-                    </div>
-                  ) : (
-                    <Link
-                      to={to}
-                      onClick={() => {
-                        if (!n.read) markRead.mutate([n.id]);
-                      }}
-                      className="flex items-center gap-3 px-4 py-3 hover:bg-surface-hover focus-ring"
-                    >
-                      {body}
-                    </Link>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </div>
+      {notifications.data === undefined ? (
+        <Card padding="none">
+          {notifications.isError ? (
+            <AccountErrorState error={notifications.error} onRetry={() => void notifications.refetch()} />
+          ) : (
+            <SkeletonRows rows={6} className="p-4" />
+          )}
+        </Card>
+      ) : notifications.data.length === 0 ? (
+        <Card padding="none">
+          <EmptyState preset="noNotifications" />
+        </Card>
+      ) : (
+        days.map((day) => (
+          <section key={day.key} aria-labelledby={`day-${day.key}`} className="space-y-2">
+            <SectionHeading as="h2" id={`day-${day.key}`}>
+              {day.label}
+            </SectionHeading>
+            <Card padding="none">
+              <ul className="divide-y divide-border">
+                {day.items.map((notification) => (
+                  <li key={notification.id}>
+                    <NotificationRow notification={notification} onOpen={open} />
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          </section>
+        ))
+      )}
     </div>
   );
 }

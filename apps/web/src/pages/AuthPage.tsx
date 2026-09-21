@@ -4,6 +4,7 @@ import { BrandLogo } from "@betng/ui-web";
 import { AUTH_TITLES, AuthFlow } from "../features/auth/AuthFlow";
 import type { AuthView } from "../features/auth/auth.store";
 import { useAuth } from "../features/auth/useAuth";
+import { usePageMeta } from "../features/seo";
 
 const PATHS: Partial<Record<AuthView, string>> = { login: "/login", register: "/register", forgot: "/forgot-password" };
 
@@ -20,6 +21,8 @@ export function AuthPage({ initial }: { readonly initial: AuthView }): React.JSX
   const [arrivedSignedIn] = useState(isAuthenticated);
   const next = safeNext(params.get("next"));
 
+  usePageMeta({ title: AUTH_TITLES[view], noindex: true });
+
   useEffect(() => {
     setView(initial);
   }, [initial]);
@@ -32,7 +35,7 @@ export function AuthPage({ initial }: { readonly initial: AuthView }): React.JSX
     <div className="mx-auto w-full max-w-sm py-6 md:py-12">
       <div className="rounded-lg border border-border bg-surface p-6 shadow-sm">
         <BrandLogo size={24} />
-        <h1 className="mt-5 font-display text-2xl font-bold tracking-tight">{AUTH_TITLES[view]}</h1>
+        <h1 className="type-h2 mt-5">{AUTH_TITLES[view]}</h1>
         <div className="mt-5">
           <AuthFlow
             view={view}

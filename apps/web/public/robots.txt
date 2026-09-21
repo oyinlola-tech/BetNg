@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /wallet
+Disallow: /transactions
+Disallow: /tickets
+Disallow: /account
+Disallow: /notifications
+Disallow: /settings
+Disallow: /search

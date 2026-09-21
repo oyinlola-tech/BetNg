@@ -1,19 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft, CheckCircle2, MailCheck, RefreshCw, TriangleAlert, WifiOff } from "lucide-react";
+import { ArrowLeft, CheckCircle2, MailCheck } from "lucide-react";
 import { DataSourceError } from "@betng/ui-core";
-import { Button, Checkbox, CodeInput, Input, PasswordInput, presentError, useSession } from "@betng/ui-web";
-import { appConfig } from "../../configs/app.config";
-import { authSource } from "../../services/dataSource";
+import { Button, Checkbox, CodeInput, FormError, Input, PasswordInput, applyFieldErrors, useSession } from "@betng/ui-web";
+import { authSource, logger, session as sessionStore } from "../../services/runtime";
 import type { AuthView } from "./auth.store";
 import { forgotSchema, loginSchema, registerSchema, toRegisterRequest, type RegisterValues } from "./schemas";
 
 const RESEND_SECONDS = 30;
-const DEMO = { email: "demo@betng.test", password: "betng-demo", code: "123456" } as const;
 
 export const AUTH_TITLES: Record<AuthView, string> = {
-  login: "Log in",
+  login: "Sign in",
   register: "Create your account",
   verify: "Verify your email",
   forgot: "Reset your password",
@@ -29,26 +27,18 @@ export interface AuthFlowProps {
   readonly onAuthenticated: () => void;
 }
 
-function FormError({ error, onRetry }: { readonly error: unknown; readonly onRetry?: () => void }): React.JSX.Element | null {
-  if (error === undefined || error === null) return null;
+/** Field messages go onto the form; anything else, and fields the form does not own, surface at form level. */
+function serverFailure<TName extends string>(
+  flow: string,
+  cause: unknown,
+  setError: (name: TName, error: { type: string; message: string }) => void,
+  fields: readonly TName[],
+): unknown {
+  logger.warn("auth", `${flow} failed`, { code: cause instanceof DataSourceError ? cause.code : "UNKNOWN" });
 
-  const presented = presentError(error);
-  const network = error instanceof DataSourceError && error.code === "NETWORK";
+  const { applied, unmatched } = applyFieldErrors(cause, setError, fields);
 
-  return (
-    <div role="alert" className="flex items-start gap-2.5 rounded-sm border border-danger/30 bg-danger-subtle px-3 py-2.5 text-sm">
-      {network ? <WifiOff className="mt-0.5 size-4 shrink-0 text-danger" aria-hidden /> : <TriangleAlert className="mt-0.5 size-4 shrink-0 text-danger" aria-hidden />}
-      <div className="min-w-0 flex-1">
-        <p className="font-semibold text-text-primary">{presented.title}</p>
-        <p className="text-text-secondary">{presented.message}</p>
-      </div>
-      {network && onRetry !== undefined && (
-        <Button variant="secondary" size="sm" onClick={onRetry} icon={<RefreshCw className="size-3.5" />}>
-          Retry
-        </Button>
-      )}
-    </div>
-  );
+  return applied.length > 0 && Object.keys(unmatched).length === 0 ? undefined : cause;
 }
 
 function TextLink({ children, onClick }: { readonly children: React.ReactNode; readonly onClick: () => void }): React.JSX.Element {
@@ -57,12 +47,6 @@ function TextLink({ children, onClick }: { readonly children: React.ReactNode; r
       {children}
     </button>
   );
-}
-
-function DemoHint({ children }: { readonly children: React.ReactNode }): React.JSX.Element | null {
-  if (appConfig.dataSource !== "mock") return null;
-
-  return <div className="flex items-center justify-between gap-3 rounded-sm border border-dashed border-border-strong px-3 py-2 text-sm text-text-secondary">{children}</div>;
 }
 
 function Welcome({ name }: { readonly name: string }): React.JSX.Element {
@@ -122,7 +106,7 @@ function LoginView({ onView, onPendingEmail, onAuthenticated, lockedEmail }: Aut
         return;
       }
 
-      setError(cause);
+      setError(serverFailure("Sign-in", cause, form.setError, ["email", "password"]));
       if (cause instanceof DataSourceError && cause.code === "INVALID_CREDENTIALS") setFocus("password");
     }
   });
@@ -133,7 +117,7 @@ function LoginView({ onView, onPendingEmail, onAuthenticated, lockedEmail }: Aut
 
   return (
     <form onSubmit={(event) => void submit(event)} noValidate className="space-y-4">
-      <FormError error={error} onRetry={() => void submit()} />
+      <FormError error={error} />
       <Input label="Email" type="email" autoComplete="email" inputMode="email" readOnly={lockedEmail !== undefined} disabled={busy} error={form.formState.errors.email?.message} {...form.register("email")} />
       <div>
         <PasswordInput label="Password" autoComplete="current-password" disabled={busy} error={form.formState.errors.password?.message} {...form.register("password")} />
@@ -147,29 +131,13 @@ function LoginView({ onView, onPendingEmail, onAuthenticated, lockedEmail }: Aut
           </TextLink>
         </div>
       </div>
-      <Button type="submit" full size="lg" loading={busy}>
-        Log in
+      <Button type="submit" fullWidth size="lg" loading={busy}>
+        Sign in
       </Button>
-      {lockedEmail === undefined && (
-        <DemoHint>
-          <span className="min-w-0 truncate">
-            Demo account: <span className="font-medium text-text-primary">{DEMO.email}</span>
-          </span>
-          <TextLink
-            onClick={() => {
-              form.setValue("email", DEMO.email);
-              form.setValue("password", DEMO.password);
-              setFocus("password");
-            }}
-          >
-            Fill in
-          </TextLink>
-        </DemoHint>
-      )}
       <p className="text-center text-sm text-text-secondary">
         {lockedEmail === undefined ? (
           <>
-            New to BetNG?{" "}
+            New to BETNG?{" "}
             <TextLink
               onClick={() => {
                 onView("register");
@@ -181,11 +149,11 @@ function LoginView({ onView, onPendingEmail, onAuthenticated, lockedEmail }: Aut
         ) : (
           <TextLink
             onClick={() => {
-              authSource.session.clear();
+              sessionStore.clear();
               onView("login");
             }}
           >
-            Log in as someone else
+            Sign in as someone else
           </TextLink>
         )}
       </p>
@@ -211,7 +179,7 @@ function RegisterView({ onView, onPendingEmail }: AuthFlowProps): React.JSX.Elem
       onPendingEmail(pending.email);
       onView("verify");
     } catch (cause) {
-      setError(cause);
+      setError(serverFailure("Registration", cause, form.setError, ["displayName", "email", "phone", "password"]));
       if (cause instanceof DataSourceError && cause.code === "CONFLICT") setFocus("email");
     }
   });
@@ -221,16 +189,16 @@ function RegisterView({ onView, onPendingEmail }: AuthFlowProps): React.JSX.Elem
 
   return (
     <form onSubmit={(event) => void submit(event)} noValidate className="space-y-4">
-      <FormError error={error} onRetry={() => void submit()} />
+      <FormError error={error} />
       <Input label="Display name" autoComplete="name" disabled={busy} error={errors.displayName?.message} {...form.register("displayName")} />
       <Input label="Email" type="email" autoComplete="email" inputMode="email" disabled={busy} error={errors.email?.message} {...form.register("email")} />
       <Input label="Phone (optional)" type="tel" autoComplete="tel" inputMode="tel" placeholder="+234 …" disabled={busy} error={errors.phone?.message} {...form.register("phone")} />
       <PasswordInput label="Password" autoComplete="new-password" hint="At least 8 characters." disabled={busy} error={errors.password?.message} {...form.register("password")} />
       <div>
-        <Checkbox label="I understand BetNG is a simulation" description="Balances, stakes and returns are play-money with no real-world value." disabled={busy} aria-invalid={errors.acceptTerms !== undefined} {...form.register("acceptTerms")} />
+        <Checkbox label="I understand BETNG is a simulation" description="Balances, stakes and returns are play-money with no real-world value." disabled={busy} aria-invalid={errors.acceptTerms !== undefined} {...form.register("acceptTerms")} />
         {errors.acceptTerms !== undefined && <p className="mt-1 text-sm text-danger">{errors.acceptTerms.message}</p>}
       </div>
-      <Button type="submit" full size="lg" loading={busy}>
+      <Button type="submit" fullWidth size="lg" loading={busy}>
         Create account
       </Button>
       <p className="text-center text-sm text-text-secondary">
@@ -240,7 +208,7 @@ function RegisterView({ onView, onPendingEmail }: AuthFlowProps): React.JSX.Elem
             onView("login");
           }}
         >
-          Log in
+          Sign in
         </TextLink>
       </p>
     </form>
@@ -299,7 +267,7 @@ function VerifyView({ onView, pendingEmail, onAuthenticated }: AuthFlowProps): R
 
   if (welcome !== undefined) return <Welcome name={welcome} />;
 
-  const codeError = error instanceof DataSourceError && error.code === "VALIDATION" ? error.message : undefined;
+  const codeError = error instanceof DataSourceError && error.code === "VALIDATION" ? (error.detail.fields?.code ?? "That code is not valid. Check it and try again.") : undefined;
 
   return (
     <form
@@ -317,14 +285,9 @@ function VerifyView({ onView, pendingEmail, onAuthenticated }: AuthFlowProps): R
           We sent a 6-digit code to <span className="font-semibold text-text-primary">{pendingEmail}</span>. It expires in 15 minutes.
         </p>
       </div>
-      {codeError === undefined && <FormError error={error} onRetry={() => void submit(code)} />}
+      {codeError === undefined && <FormError error={error} />}
       <CodeInput label="Verification code" length={6} value={code} onChange={setCode} onComplete={(value) => void submit(value)} error={codeError} disabled={busy} autoFocus />
-      <DemoHint>
-        <span>
-          Demo code: <span className="font-medium tabular text-text-primary">{DEMO.code}</span>
-        </span>
-      </DemoHint>
-      <Button type="submit" full size="lg" loading={busy} disabled={code.length !== 6}>
+      <Button type="submit" fullWidth size="lg" loading={busy} disabled={code.length !== 6}>
         Verify and continue
       </Button>
       <div className="flex items-center justify-between text-sm text-text-secondary">
@@ -364,7 +327,7 @@ function ForgotView({ onView }: AuthFlowProps): React.JSX.Element {
       await authSource.requestPasswordReset(values.email);
       setSentTo(values.email);
     } catch (cause) {
-      setError(cause);
+      setError(serverFailure("Password reset request", cause, form.setError, ["email"]));
     }
   });
 
@@ -377,7 +340,7 @@ function ForgotView({ onView }: AuthFlowProps): React.JSX.Element {
       className="mx-auto flex items-center gap-1.5 rounded-xs text-sm font-semibold text-brand hover:underline focus-ring"
     >
       <ArrowLeft className="size-3.5" aria-hidden />
-      Back to log in
+      Back to sign in
     </button>
   );
 
@@ -399,9 +362,9 @@ function ForgotView({ onView }: AuthFlowProps): React.JSX.Element {
   return (
     <form onSubmit={(event) => void submit(event)} noValidate className="space-y-4">
       <p className="text-base text-text-secondary">Enter the email you signed up with and we will send a reset link.</p>
-      <FormError error={error} onRetry={() => void submit()} />
+      <FormError error={error} />
       <Input label="Email" type="email" autoComplete="email" inputMode="email" disabled={form.formState.isSubmitting} error={form.formState.errors.email?.message} {...form.register("email")} />
-      <Button type="submit" full size="lg" loading={form.formState.isSubmitting}>
+      <Button type="submit" fullWidth size="lg" loading={form.formState.isSubmitting}>
         Send reset link
       </Button>
       {back}
@@ -410,11 +373,11 @@ function ForgotView({ onView }: AuthFlowProps): React.JSX.Element {
 }
 
 function ExpiredView(props: AuthFlowProps): React.JSX.Element {
-  const expired = useSession(authSource.session).session;
+  const expired = useSession(sessionStore).session;
 
   return (
     <div className="space-y-4">
-      <p className="text-base text-text-secondary">For your security you were signed out after a period of inactivity. Log in again to pick up where you left off — your bet slip is untouched.</p>
+      <p className="text-base text-text-secondary">Your session has ended. Sign in again to pick up where you left off. Your bet slip and this page are kept.</p>
       <LoginView {...props} lockedEmail={expired?.user.email} />
     </div>
   );

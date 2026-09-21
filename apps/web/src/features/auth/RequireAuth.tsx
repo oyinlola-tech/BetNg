@@ -1,36 +1,44 @@
-import { Lock } from "lucide-react";
-import { Button, EmptyState } from "@betng/ui-web";
+import { Button, Card, SessionExpiredState, UnauthorizedState } from "@betng/ui-web";
+import { INTENT_REASONS, type AuthIntentName } from "./auth.store";
 import { useAuth } from "./useAuth";
 
 export interface RequireAuthProps {
-  readonly title: string;
-  readonly description: string;
-  readonly reason: string;
+  readonly intent: AuthIntentName;
+  readonly description?: string;
   readonly children: React.ReactNode;
 }
 
-/** Account pages stay routable when signed out: they explain what is behind the door instead of redirecting. */
-export function RequireAuth({ title, description, reason, children }: RequireAuthProps): React.JSX.Element {
-  const { isAuthenticated, status, openAuth } = useAuth();
+/** Presentation only: the platform enforces access. Signed-out and expired visitors stay on the route they asked for. */
+export function RequireAuth({
+  intent,
+  description,
+  children,
+}: RequireAuthProps): React.JSX.Element {
+  const { status, openAuth } = useAuth();
+  const reason = INTENT_REASONS[intent];
 
-  if (isAuthenticated) return <>{children}</>;
+  if (status === "AUTHENTICATED") return <>{children}</>;
 
   return (
-    <div className="mx-auto max-w-md rounded-md border border-border bg-surface">
-      <EmptyState
-        icon={<Lock className="size-5" />}
-        title={status === "EXPIRED" ? "Your session has ended" : title}
-        description={status === "EXPIRED" ? "Log in again to pick up where you left off." : description}
-        action={
-          <div className="flex gap-2">
-            <Button
-              onClick={() => {
-                openAuth(status === "EXPIRED" ? "expired" : "login", { reason });
-              }}
-            >
-              Log in
-            </Button>
-            {status !== "EXPIRED" && (
+    <Card padding="none" className="mx-auto max-w-md">
+      {status === "EXPIRED" ? (
+        <SessionExpiredState
+          onSignIn={() => {
+            openAuth("expired", { reason });
+          }}
+        />
+      ) : (
+        <UnauthorizedState
+          description={description ?? reason}
+          action={
+            <div className="flex flex-wrap justify-center gap-2">
+              <Button
+                onClick={() => {
+                  openAuth("login", { reason });
+                }}
+              >
+                Sign in
+              </Button>
               <Button
                 variant="secondary"
                 onClick={() => {
@@ -39,10 +47,10 @@ export function RequireAuth({ title, description, reason, children }: RequireAut
               >
                 Create account
               </Button>
-            )}
-          </div>
-        }
-      />
-    </div>
+            </div>
+          }
+        />
+      )}
+    </Card>
   );
 }

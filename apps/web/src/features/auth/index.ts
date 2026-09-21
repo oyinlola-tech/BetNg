@@ -1,6 +1,9 @@
 export { AuthDialog } from "./AuthDialog";
 export { RequireAuth } from "./RequireAuth";
+export type { RequireAuthProps } from "./RequireAuth";
+export { AccountErrorState } from "./AccountErrorState";
 export { useAuth, useIsAuthenticated } from "./useAuth";
+export type { UseAuth } from "./useAuth";
 export { useAuthDialog } from "./auth.store";
-export type { AuthIntent, AuthView } from "./auth.store";
+export type { AuthIntent, AuthIntentName, AuthView } from "./auth.store";
 export { useLogoutFlow } from "./useLogoutFlow";
