@@ -12,7 +12,7 @@ from fastapi.testclient import TestClient
 from betng_simulation.app import create_app
 from betng_simulation.configs import (
     SEED_SECRET_PLACEHOLDER,
-    SEED_SECRET_VARIABLE,
+    SEED_VARIABLE_NAME,
     SERVICE_NAME,
     SERVICE_VERSION,
     load_seed_secret,
@@ -118,7 +118,7 @@ class TestSecretConfiguration:
     def test_development_may_run_without_a_secret(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        monkeypatch.delenv(SEED_SECRET_VARIABLE, raising=False)
+        monkeypatch.delenv(SEED_VARIABLE_NAME, raising=False)
 
         assert load_seed_secret("development") is None
         assert load_seed_secret("test") is None
@@ -128,9 +128,9 @@ class TestSecretConfiguration:
         self, monkeypatch: pytest.MonkeyPatch, value: str | None
     ) -> None:
         if value is None:
-            monkeypatch.delenv(SEED_SECRET_VARIABLE, raising=False)
+            monkeypatch.delenv(SEED_VARIABLE_NAME, raising=False)
         else:
-            monkeypatch.setenv(SEED_SECRET_VARIABLE, value)
+            monkeypatch.setenv(SEED_VARIABLE_NAME, value)
 
         with pytest.raises(ValueError) as raised:
             load_seed_secret("production")
@@ -141,7 +141,7 @@ class TestSecretConfiguration:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         assert len(SEED_SECRET_PLACEHOLDER) >= 32
-        monkeypatch.setenv(SEED_SECRET_VARIABLE, SEED_SECRET_PLACEHOLDER)
+        monkeypatch.setenv(SEED_VARIABLE_NAME, SEED_SECRET_PLACEHOLDER)
 
         with pytest.raises(ValueError):
             load_seed_secret("production")
@@ -149,14 +149,14 @@ class TestSecretConfiguration:
     def test_production_accepts_a_strong_secret(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        monkeypatch.setenv(SEED_SECRET_VARIABLE, SECRET)
+        monkeypatch.setenv(SEED_VARIABLE_NAME, SECRET)
 
         assert load_seed_secret("production") == SECRET
 
     def test_the_app_refuses_to_start_in_production_without_one(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        monkeypatch.delenv(SEED_SECRET_VARIABLE, raising=False)
+        monkeypatch.delenv(SEED_VARIABLE_NAME, raising=False)
         settings = ServiceSettings(
             service_name=SERVICE_NAME, version=SERVICE_VERSION, NODE_ENV="production"
         )
@@ -190,7 +190,7 @@ class TestSecretNeverLeaks:
         matches: FakeMatchReadModel,
         service_log: CapturingHandler,
     ) -> None:
-        monkeypatch.setenv(SEED_SECRET_VARIABLE, SECRET)
+        monkeypatch.setenv(SEED_VARIABLE_NAME, SECRET)
         match_id = new_match_id()
         payload = run_match_payload(match_id)
         del payload["matchId"]

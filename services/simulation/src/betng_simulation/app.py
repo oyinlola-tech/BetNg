@@ -19,7 +19,7 @@ from .configs import (
     DATABASE_SCHEMA,
     IDENTITY_PEER,
     MIGRATIONS_DIRECTORY,
-    SEED_SECRET_VARIABLE,
+    SEED_VARIABLE_NAME,
     load_seed_secret,
     load_simulation_settings,
     require_database_url,
@@ -84,7 +84,7 @@ def create_app(
                 "Seeds are not keyed: results are derivable from public inputs",
                 extra={
                     "event": "seed_secret_missing",
-                    "variable": SEED_SECRET_VARIABLE,
+                    "variable": SEED_VARIABLE_NAME,
                 },
             )
         try:

@@ -54,4 +54,11 @@ describe("parseFastbet", () => {
     expect(errorOf("3 ZZ")).toContain("not a code");
     expect(errorOf("home win")).not.toBe("");
   });
+
+  it("rejects a long run of spaces in linear time", () => {
+    const started = performance.now();
+
+    expect(parseFastbet(`1${" ".repeat(50_000)}!`, 10).ok).toBe(false);
+    expect(performance.now() - started).toBeLessThan(200);
+  });
 });

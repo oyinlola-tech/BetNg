@@ -11,7 +11,7 @@ DEFAULT_PORT = 3005
 DATABASE_SCHEMA = "simulation"
 DATABASE_URL_VARIABLE = "SIMULATION_DATABASE_URL"
 IDENTITY_PEER = "identity"
-SEED_SECRET_VARIABLE = "SIMULATION_SEED_SECRET"
+SEED_VARIABLE_NAME = "SIMULATION_SEED_SECRET"
 SEED_SECRET_MIN_LENGTH = 32
 #: Public (it is in `.env.example`), so refused in production.
 SEED_SECRET_PLACEHOLDER = "betng-local-development-seed-secret"
@@ -32,23 +32,21 @@ def require_database_url(settings: ServiceSettings) -> str:
 
 def load_seed_secret(environment: str) -> str | None:
     """Return the seed key; production refuses a missing, short or placeholder one."""
-    secret = os.environ.get(SEED_SECRET_VARIABLE) or None
+    secret = os.environ.get(SEED_VARIABLE_NAME) or None
 
     if environment != PRODUCTION:
         return secret
 
     if secret is None:
-        raise ValueError(f"{SEED_SECRET_VARIABLE} must be set in production.")
+        raise ValueError(f"{SEED_VARIABLE_NAME} must be set in production.")
 
     if len(secret) < SEED_SECRET_MIN_LENGTH:
         raise ValueError(
-            f"{SEED_SECRET_VARIABLE} must be at least {SEED_SECRET_MIN_LENGTH} "
+            f"{SEED_VARIABLE_NAME} must be at least {SEED_SECRET_MIN_LENGTH} "
             "characters."
         )
 
     if secret == SEED_SECRET_PLACEHOLDER:
-        raise ValueError(
-            f"{SEED_SECRET_VARIABLE} is still the development placeholder."
-        )
+        raise ValueError(f"{SEED_VARIABLE_NAME} is still the development placeholder.")
 
     return secret
