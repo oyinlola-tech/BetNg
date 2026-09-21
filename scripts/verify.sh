@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Frontend verification: build the shared packages, typecheck and lint every client, run the unit tests, build the browser apps.
+# Frontend verification: build the shared packages, typecheck and lint every client, run the unit and component tests, build the browser apps.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -19,10 +19,19 @@ for name in "${APPS[@]}" mobile; do pnpm --filter "@betng/${name}" typecheck; do
 step "Lint (frontend and shared packages)"
 pnpm lint:frontend
 
-step "Unit tests"
-pnpm exec vitest run
+step "Unit tests (data layer, contracts, SDK, realtime, mock platform)"
+pnpm exec vitest run --project unit packages
+
+step "Component tests (jsdom)"
+pnpm exec vitest run --project dom
 
 step "Production builds"
-for name in "${APPS[@]}"; do pnpm --filter "@betng/${name}" exec vite build; done
+for name in "${APPS[@]}"; do VITE_APP_ENV=production pnpm --filter "@betng/${name}" exec vite build; done
+
+step "Production bundles contain no development stand-in"
+if grep -rlE "betng-demo|betng-admin|demo@betng\.test" apps/{web,tv,shop,admin}/dist/assets >/dev/null 2>&1; then
+  echo "The mock is present in a production bundle." >&2
+  exit 1
+fi
 
 printf '\n\033[1;32mFrontend verified.\033[0m\n'

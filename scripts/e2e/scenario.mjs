@@ -119,7 +119,8 @@ async function scenario() {
 
   // 3–4. The scheduler has created fixtures and matches for the seeded leagues.
   const scheduled = await until("scheduler fixtures", async () => {
-    const { items } = await ok("GET", "/fixtures?limit=500");
+    const to = new Date(Date.now() + 2 * 3_600_000).toISOString();
+    const { items } = await ok("GET", `/fixtures?limit=500&to=${encodeURIComponent(to)}`);
 
     return items.length >= 40 ? items : undefined;
   });
@@ -369,6 +370,29 @@ async function scenario() {
 
   assert.equal(commission.length, 2);
   done(`commission ledger written for ${commission.length} shops from their realised result at the configured ${commission[0].shopSharePercent}%`);
+
+  const notes = await until("settlement notification", async () => {
+    const { items } = await ok("GET", "/users/me/notifications", { token: customerA.token });
+
+    return items.find((item) => item.betId === placed[0].id);
+  });
+
+  assert.equal(notes.kind, "BET_SETTLED");
+
+  const foreign = await call("GET", `/users/${customerA.user.id}/notifications`, { token: customerB.token });
+
+  assert.equal(foreign.status, 403);
+
+  const config = await ok("GET", "/config");
+  const clocked = await ok("GET", `/matches/${matchId}`);
+  const lineups = await ok("GET", `/matches/${matchId}/lineups`);
+  const scorers = JSON.parse(timelines[0]).filter((event) => event.type === "GOAL").map((event) => event.player);
+  const squad = [...lineups.home.starting, ...lineups.home.substitutes, ...lineups.away.starting, ...lineups.away.substitutes].map((p) => p.name);
+
+  assert.equal(config.currency.code, "NGN");
+  assert.equal(clocked.clock.period, "FULL_TIME");
+  assert.ok(scorers.every((name) => squad.includes(name)), "a scorer is not in the published lineups");
+  done("customer A was told their bet settled; another customer cannot read it; config, clock and lineups are served and the scorers are in the lineups");
 
   // 28. Analytics aggregate every accepted bet.
   const analysis = await ok("GET", `/admin/analytics/matches/${matchId}`, { token: admin.token });

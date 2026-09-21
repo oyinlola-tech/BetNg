@@ -23,13 +23,13 @@ if (existsSync(envFile)) process.loadEnvFile(envFile);
 else console.warn("No .env at the repository root; services fall back to their defaults. Copy .env.example to .env.");
 
 const TS_SERVICES = [
-  ["gateway", "@betng/gateway"],
-  ["match", "@betng/match-service"],
-  ["betting", "@betng/betting-service"],
-  ["wallet", "@betng/wallet-service"],
-  ["settlement", "@betng/settlement-service"],
-  ["event", "@betng/event-service"],
-  ["identity", "@betng/identity-service"],
+  ["gateway", "apps/gateway"],
+  ["match", "apps/services/match"],
+  ["betting", "apps/services/betting"],
+  ["wallet", "apps/services/wallet"],
+  ["settlement", "apps/services/settlement"],
+  ["event", "apps/services/event"],
+  ["identity", "apps/services/identity"],
 ];
 
 const PY_SERVICES = ["simulation", "odds", "risk", "analytics"];
@@ -40,7 +40,11 @@ const tint = process.stdout.isTTY ? (code, text) => `\x1b[${String(code)}m${text
 const targets = [];
 
 if (!args.has("--py-only")) {
-  for (const [name, filter] of TS_SERVICES) targets.push({ name, command: "pnpm", argv: ["--filter", filter, "dev"], cwd: root });
+  for (const [name, directory] of TS_SERVICES) {
+    const cwd = resolve(root, directory);
+
+    targets.push({ name, command: resolve(cwd, "node_modules/.bin/tsx"), argv: ["watch", "src/server.ts"], cwd });
+  }
 }
 
 if (!args.has("--ts-only")) {
@@ -82,21 +86,30 @@ function pipe(stream, label, sink) {
   });
 }
 
+// Each service runs in its own process group so a watcher's grandchildren stop with it.
+function signalGroup(child, signal) {
+  try {
+    process.kill(-child.pid, signal);
+  } catch {
+    child.kill(signal);
+  }
+}
+
 function stop(signal) {
   if (stopping) return;
 
   stopping = true;
-  for (const child of children.values()) child.kill(signal);
+  for (const child of children.values()) signalGroup(child, signal);
 
   // A service that ignores the signal must not keep the terminal hostage.
   setTimeout(() => {
-    for (const child of children.values()) child.kill("SIGKILL");
+    for (const child of children.values()) signalGroup(child, "SIGKILL");
   }, 5000).unref();
 }
 
 targets.forEach((target, index) => {
   const label = tint(COLORS[index % COLORS.length], `${target.name.padEnd(width)} |`);
-  const child = spawn(target.command, target.argv, { cwd: target.cwd, env: process.env, stdio: ["ignore", "pipe", "pipe"] });
+  const child = spawn(target.command, target.argv, { cwd: target.cwd, env: process.env, stdio: ["ignore", "pipe", "pipe"], detached: true });
 
   children.set(target.name, child);
   pipe(child.stdout, label, process.stdout);
