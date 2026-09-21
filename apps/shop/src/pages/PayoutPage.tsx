@@ -1,3 +1,4 @@
+import { getTicketPrinter } from "../services/ticketPrinter";
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
@@ -111,7 +112,7 @@ function Payout(): React.JSX.Element {
                       variant="secondary"
                       icon={<Printer className="size-4" />}
                       onClick={() => {
-                        window.print();
+                        void getTicketPrinter().print({ kind: "payout-receipt" });
                       }}
                     >
                       Print receipt

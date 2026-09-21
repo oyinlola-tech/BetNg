@@ -1,3 +1,4 @@
+import { getTicketPrinter } from "../services/ticketPrinter";
 import { useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
@@ -56,7 +57,7 @@ function TicketView(): React.JSX.Element {
             autoFocus
             icon={<Printer className="size-4" />}
             onClick={() => {
-              window.print();
+              void getTicketPrinter().print({ kind: "ticket", reference: t.code });
             }}
           >
             Print

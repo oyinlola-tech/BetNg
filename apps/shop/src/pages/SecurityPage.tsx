@@ -3,7 +3,7 @@ import { Info, TimerOff } from "lucide-react";
 import { formatDateTime } from "@betng/ui-core";
 import { Button, CodeInput, Panel, PasswordInput, ThemeSwitcher, Tooltip } from "@betng/ui-web";
 import { PageHeader } from "../components/PageHeader";
-import { isMock } from "../configs/app.config";
+import { isMock } from "../services/dataSource";
 import { useShopSession } from "../hooks/useShopSession";
 import { shopSource } from "../services/dataSource";
 
@@ -70,7 +70,7 @@ export function SecurityPage(): React.JSX.Element {
           <p className="text-base text-text-secondary">
             Signed in as <span className="font-medium text-text-primary">{session?.cashier.displayName}</span>. The session ends on its own at <span className="font-medium text-text-primary">{session === undefined ? "" : formatDateTime(session.expiresAt)}</span> and whenever this browser tab closes.
           </p>
-          {isMock && (
+          {isMock() && (
             <Button
               variant="secondary"
               className="mt-3"

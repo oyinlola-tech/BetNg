@@ -1,3 +1,4 @@
+import { getTicketPrinter } from "../services/ticketPrinter";
 import { useState } from "react";
 import { Printer } from "lucide-react";
 import type { ShopDailyReport } from "@betng/contracts";
@@ -40,7 +41,7 @@ function DailyReport(): React.JSX.Element {
               size="sm"
               icon={<Printer className="size-3.5" />}
               onClick={() => {
-                window.print();
+                void getTicketPrinter().print({ kind: "report" });
               }}
             >
               Print

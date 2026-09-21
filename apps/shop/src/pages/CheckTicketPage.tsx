@@ -13,10 +13,10 @@ import { useShopSession } from "../hooks/useShopSession";
 import { verdictFor, type CheckVerdict } from "../lib/ticket";
 
 const VERDICT: Readonly<Record<CheckVerdict | "NOT_FOUND", { readonly word: string; readonly band: string; readonly icon: React.ReactNode }>> = {
-  WINNING: { word: "Winning", band: "bg-success text-white", icon: <CircleCheckBig aria-hidden /> },
-  LOSING: { word: "Losing", band: "bg-danger text-white", icon: <CircleX aria-hidden /> },
+  WINNING: { word: "Winning", band: "bg-success text-text-on-status", icon: <CircleCheckBig aria-hidden /> },
+  LOSING: { word: "Losing", band: "bg-danger text-text-on-status", icon: <CircleX aria-hidden /> },
   OPEN: { word: "Open", band: "bg-brand text-text-on-brand", icon: <CircleDashed aria-hidden /> },
-  VOID: { word: "Void", band: "bg-warning text-white", icon: <CircleSlash aria-hidden /> },
+  VOID: { word: "Void", band: "bg-warning text-text-on-status", icon: <CircleSlash aria-hidden /> },
   ALREADY_PAID: { word: "Already paid", band: "bg-text-primary text-background", icon: <HandCoins aria-hidden /> },
   CANCELLED: { word: "Cancelled", band: "bg-text-secondary text-background", icon: <Ban aria-hidden /> },
   EXPIRED: { word: "Expired", band: "bg-text-secondary text-background", icon: <TimerOff aria-hidden /> },

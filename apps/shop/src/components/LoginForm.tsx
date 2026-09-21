@@ -5,7 +5,7 @@ import { z } from "zod";
 import { LogIn, WifiOff } from "lucide-react";
 import { DataSourceError } from "@betng/ui-core";
 import { Button, CodeInput, Input, PasswordInput, presentError } from "@betng/ui-web";
-import { isMock } from "../configs/app.config";
+import { isMock } from "../services/dataSource";
 import { shopSource } from "../services/dataSource";
 
 /* Mirrors `shopLoginRequestSchema`; the terminal always asks for the PIN, which the contract leaves optional. */
@@ -75,7 +75,7 @@ export function LoginForm({ fixed, submitLabel = "Sign in", onSuccess }: LoginFo
         {isSubmitting ? "Signing in" : submitLabel}
       </Button>
 
-      {isMock && fixed === undefined && (
+      {isMock() && fixed === undefined && (
         <div className="rounded-sm border border-dashed border-border-strong px-3 py-2.5 text-sm text-text-secondary">
           <p className="caps-label mb-1">Demo shop</p>
           <p>

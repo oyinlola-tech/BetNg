@@ -2,6 +2,7 @@ import { Check, Minus, X } from "lucide-react";
 import type { Ticket, TicketSelection } from "@betng/contracts";
 import { formatDateTime, formatKickoffTime, formatMoney, formatOdds } from "@betng/ui-core";
 import { BrandLogo, cn } from "@betng/ui-web";
+import { encodeCode39 } from "../lib/code39";
 import { TICKET_STATUS } from "../lib/ticket";
 import { TicketStatusBadge } from "./TicketStatusBadge";
 
@@ -12,23 +13,17 @@ const OUTCOME: Readonly<Record<TicketSelection["outcome"], { readonly label: str
   VOID: { label: "Void", className: "text-warning", icon: <Minus className="size-3" aria-hidden /> },
 };
 
-function Barcode({ code }: { readonly code: string }): React.JSX.Element {
-  const bars = [...code.replace("-", "")].flatMap((char) => {
-    const n = char.charCodeAt(0);
+/** Drawn only from the reference the platform issued; nothing is rendered when it cannot be encoded. */
+function Barcode({ reference }: { readonly reference: string }): React.JSX.Element | null {
+  const code = encodeCode39(reference);
 
-    return [1 + (n % 3), 1 + ((n >> 2) % 2), 1 + ((n >> 3) % 3), 1 + ((n >> 1) % 2)];
-  });
-  let x = 0;
+  if (code === undefined) return null;
 
   return (
-    <svg viewBox={`0 0 ${String(bars.reduce((a, b) => a + b, 0))} 24`} preserveAspectRatio="none" className="h-9 w-full text-text-primary" role="img" aria-label={`Barcode for ticket ${code}`}>
-      {bars.map((width, index) => {
-        const rect = index % 2 === 0 ? <rect key={index} x={x} y={0} width={width} height={24} fill="currentColor" /> : null;
-
-        x += width;
-
-        return rect;
-      })}
+    <svg viewBox={`-10 0 ${String(code.width + 20)} 24`} preserveAspectRatio="none" className="h-9 w-full text-text-primary" role="img" aria-label={`Barcode for ticket ${reference}`}>
+      {code.bars.map((bar) => (
+        <rect key={bar.x} x={bar.x} y={0} width={bar.width} height={24} fill="currentColor" />
+      ))}
     </svg>
   );
 }
@@ -99,7 +94,7 @@ export function TicketReceipt({ ticket, className }: { readonly ticket: Ticket; 
       <dl className="space-y-1 border-t border-dashed border-border-strong px-5 py-3">
         <Row label={`Total odds (${String(ticket.selections.length)})`}>{formatOdds(ticket.totalOdds)}</Row>
         <Row label="Stake">{formatMoney(ticket.stake)}</Row>
-        <Row label="Potential return" strong={ticket.payout === undefined}>
+        <Row label="Potential payout" strong={ticket.payout === undefined}>
           {formatMoney(ticket.potentialPayout)}
         </Row>
         {ticket.payout !== undefined && (
@@ -111,7 +106,7 @@ export function TicketReceipt({ ticket, className }: { readonly ticket: Ticket; 
       </dl>
 
       <footer className="px-5 pb-5">
-        <Barcode code={ticket.code} />
+        <Barcode reference={ticket.code} />
         <p className="mt-2 text-center text-xs text-text-muted">
           Collect by {formatDateTime(ticket.expiresAt)}. Simulated ticket: play money only, no cash value.
         </p>

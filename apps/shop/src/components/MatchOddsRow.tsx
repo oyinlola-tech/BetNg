@@ -1,7 +1,8 @@
+import { LiveMinute } from "./LiveMinute";
 import { memo } from "react";
 import { ChevronDown, Lock, Timer } from "lucide-react";
-import { canBet, formatKickoffTime, isInPlay, matchClock, type MarketKind, type MarketView, type MatchMarketsView, type MatchSummary, type SelectionView } from "@betng/ui-core";
-import { Countdown, MarketCard, OddsButton, PhaseBadge, Skeleton, TeamBadge, cn, useNow } from "@betng/ui-web";
+import { canBet, formatKickoffTime, isInPlay, type MarketKind, type MarketView, type MatchMarketsView, type MatchSummary, type SelectionView } from "@betng/ui-core";
+import { Countdown, MarketCard, OddsButton, PhaseBadge, Skeleton, TeamBadge, cn } from "@betng/ui-web";
 
 export interface MatchOddsRowProps {
   readonly match: MatchSummary;
@@ -14,12 +15,6 @@ export interface MatchOddsRowProps {
 }
 
 const WIDE: ReadonlySet<MarketKind> = new Set(["DOUBLE_CHANCE", "GOAL_SPREAD", "CORRECT_SCORE"]);
-
-function LiveMinute({ kickoffAt }: { readonly kickoffAt: string }): React.JSX.Element {
-  const now = useNow(1000);
-
-  return <span className="tabular">{matchClock(kickoffAt, now).minute}'</span>;
-}
 
 export const MatchOddsRow = memo(function MatchOddsRow({ match, markets, expanded, showLeague = false, onExpand, isSelected, onToggle }: MatchOddsRowProps): React.JSX.Element {
   const bettable = canBet(match.phase);
@@ -35,7 +30,7 @@ export const MatchOddsRow = memo(function MatchOddsRow({ match, markets, expande
           {live ? (
             <p className="flex items-center gap-1 font-semibold text-live">
               <span className="size-1.5 rounded-full bg-live animate-pulse-live" aria-hidden />
-              {match.phase === "HALFTIME" ? "HT" : <LiveMinute kickoffAt={match.kickoffAt} />}
+              {match.phase === "HALFTIME" ? "HT" : <LiveMinute clock={match.clock} />}
             </p>
           ) : (
             <p className="font-semibold tabular text-text-primary">{formatKickoffTime(match.kickoffAt)}</p>

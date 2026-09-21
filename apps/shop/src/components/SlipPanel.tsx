@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { ArrowRight, Lock, ReceiptText, RefreshCw, Trash2, TriangleAlert, X } from "lucide-react";
-import { QUICK_STAKES, STAKE_LIMITS, formatKickoffTime, formatMoney, formatMoneyCompact, formatOdds, parseStakeInput, slipTotals, validateSlip } from "@betng/ui-core";
+import { QUICK_STAKES, STAKE_LIMITS, formatKickoffTime, formatMoney, formatMoneyCompact, formatOdds, parseStakeInput, slipTotals, validateSlip, currentCurrency } from "@betng/ui-core";
 import { Button, EmptyState, Input, Modal, cn, presentError, useToast } from "@betng/ui-web";
 import { usePlaceTicket } from "../hooks/queries";
 import { useShortcuts } from "../hooks/useShortcuts";
@@ -199,7 +199,7 @@ export function SlipPanel({ className }: { readonly className?: string }): React
               <Input
                 ref={stakeRef}
                 label="Stake"
-                prefix="₦"
+                prefix={currentCurrency().symbol}
                 inputMode="decimal"
                 enterKeyHint="done"
                 autoComplete="off"
@@ -267,7 +267,7 @@ export function SlipPanel({ className }: { readonly className?: string }): React
                 <dd className="font-display font-semibold tabular">{formatOdds(totals.totalOdds)}</dd>
               </div>
               <div className="flex items-baseline justify-between">
-                <dt className="text-text-secondary">Potential return</dt>
+                <dt className="text-text-secondary">Estimated return</dt>
                 <dd className="font-display text-xl font-semibold tabular text-text-primary">{formatMoney(totals.potentialReturn)}</dd>
               </div>
             </dl>

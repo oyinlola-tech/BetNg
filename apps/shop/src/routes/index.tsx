@@ -4,6 +4,7 @@ import { LoadingState } from "@betng/ui-web";
 import { TerminalShell } from "../layouts/TerminalShell";
 import { DashboardPage } from "../pages/DashboardPage";
 import { TerminalPage, type TerminalMode } from "../pages/TerminalPage";
+import { BetSlipPage } from "../pages/BetSlipPage";
 import { VirtualLeaguePage } from "../pages/VirtualLeaguePage";
 
 const page = (load: () => Promise<{ readonly default: React.ComponentType }>): React.ComponentType => {
@@ -45,6 +46,7 @@ export const router = createBrowserRouter([
       { path: "betting/football", Component: terminal("football") },
       { path: "betting/virtual", Component: VirtualLeaguePage },
       { path: "betting/live", Component: terminal("live") },
+      { path: "betslip", Component: BetSlipPage },
       { path: "tickets/new", Component: VirtualLeaguePage },
       { path: "tickets/open", Component: OpenTicketsPage },
       { path: "tickets/check", Component: CheckTicketPage },

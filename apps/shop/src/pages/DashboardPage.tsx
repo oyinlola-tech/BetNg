@@ -1,8 +1,9 @@
+import { LiveMinute } from "../components/LiveMinute";
 import { Link, useNavigate } from "react-router";
 import { CalendarCheck, FilePlus2, HandCoins, Radio, ScanLine } from "lucide-react";
 import type { Ticket } from "@betng/contracts";
-import { formatMoney, formatRelative, formatSignedMoney, matchClock, toLocalDateKey } from "@betng/ui-core";
-import { DataTable, EmptyState, ErrorState, KpiCard, Panel, Skeleton, TeamBadge, cn, useNow, type Column } from "@betng/ui-web";
+import { formatMoney, formatRelative, formatSignedMoney, toLocalDateKey } from "@betng/ui-core";
+import { DataTable, EmptyState, ErrorState, KpiCard, Panel, Skeleton, TeamBadge, cn, type Column } from "@betng/ui-web";
 import { Kbd } from "../components/Kbd";
 import { PageHeader } from "../components/PageHeader";
 import { TicketStatusBadge } from "../components/TicketStatusBadge";
@@ -28,7 +29,6 @@ const COLUMNS: readonly Column<Ticket>[] = [
 
 function LiveStrip(): React.JSX.Element {
   const live = useMatches({ phases: ["LIVE", "HALFTIME"] });
-  const now = useNow(1000);
 
   if (live.isPending) return <Skeleton className="h-16" />;
   if (live.isError) return <ErrorState compact error={live.error} onRetry={() => void live.refetch()} />;
@@ -42,7 +42,7 @@ function LiveStrip(): React.JSX.Element {
             <span className="truncate font-semibold text-text-muted">{m.leagueCode}</span>
             <span className="flex items-center gap-1 font-semibold tabular text-live">
               <span className="size-1.5 rounded-full bg-live animate-pulse-live" aria-hidden />
-              {m.phase === "HALFTIME" ? "HT" : `${String(matchClock(m.kickoffAt, now).minute)}'`}
+              {m.phase === "HALFTIME" ? "HT" : <LiveMinute clock={m.clock} />}
             </span>
           </p>
           {([m.home, m.away] as const).map((team, i) => (

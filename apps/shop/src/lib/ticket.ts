@@ -1,3 +1,4 @@
+import { currentCurrency } from "@betng/ui-core";
 import type { Ticket, TicketStatus } from "@betng/contracts";
 import type { StatusTone } from "@betng/ui-web";
 
@@ -51,11 +52,12 @@ export function localDateKey(offsetDays = 0): string {
 }
 
 export function formatAxisMoney(minorUnits: number): string {
-  const naira = minorUnits / 100;
-  const abs = Math.abs(naira);
+  const { symbol, minorUnits: digits } = currentCurrency();
+  const major = minorUnits / 10 ** digits;
+  const abs = Math.abs(major);
 
-  if (abs >= 1_000_000) return `₦${(naira / 1_000_000).toFixed(abs % 1_000_000 === 0 ? 0 : 1)}m`;
-  if (abs >= 1_000) return `₦${(naira / 1_000).toFixed(abs % 1_000 === 0 ? 0 : 1)}k`;
+  if (abs >= 1_000_000) return `${symbol}${(major / 1_000_000).toFixed(abs % 1_000_000 === 0 ? 0 : 1)}m`;
+  if (abs >= 1_000) return `${symbol}${(major / 1_000).toFixed(abs % 1_000 === 0 ? 0 : 1)}k`;
 
-  return `₦${String(Math.round(naira))}`;
+  return `${symbol}${String(Math.round(major))}`;
 }

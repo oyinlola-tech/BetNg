@@ -1,3 +1,4 @@
+import { LiveMinute } from "../components/LiveMinute";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CornerDownLeft, ReceiptText } from "lucide-react";
 import {
@@ -8,7 +9,6 @@ import {
   formatOdds,
   isInPlay,
   isSelected as isSlipSelected,
-  matchClock,
   parseFastbet,
   slipTotals,
   type MarketView,
@@ -17,7 +17,7 @@ import {
   type MatchSummary,
   type SelectionView,
 } from "@betng/ui-core";
-import { Button, Countdown, EmptyState, ErrorState, LeagueMark, Sheet, SkeletonRows, cn, useMediaQuery, useNow } from "@betng/ui-web";
+import { Button, Countdown, EmptyState, ErrorState, LeagueMark, Sheet, SkeletonRows, cn, useMediaQuery } from "@betng/ui-web";
 import { Guard } from "../components/Guard";
 import { Kbd } from "../components/Kbd";
 import { SlipPanel } from "../components/SlipPanel";
@@ -127,12 +127,6 @@ function toWeeks(matches: readonly MatchSummary[]): readonly Week[] {
       return { key, matchday: first.matchday, kickoffAt: first.kickoffAt, bettingClosesAt: first.bettingClosesAt, matches: sorted, open: sorted.some((m) => canBet(m.phase)), live: sorted.some((m) => isInPlay(m.phase)) };
     })
     .sort((a, b) => a.kickoffAt.localeCompare(b.kickoffAt));
-}
-
-function LiveMinute({ kickoffAt }: { readonly kickoffAt: string }): React.JSX.Element {
-  const now = useNow(1000);
-
-  return <span className="tabular">{matchClock(kickoffAt, now).minute}'</span>;
 }
 
 function VirtualLeague(): React.JSX.Element {
@@ -388,7 +382,7 @@ function VirtualLeague(): React.JSX.Element {
                   Live
                 </span>
                 Week {liveWeek.matchday}
-                <span className="font-display text-md font-bold text-live">{liveWeek.matches.some((m) => m.phase === "LIVE") ? <LiveMinute kickoffAt={liveWeek.kickoffAt} /> : "HT"}</span>
+                <span className="font-display text-md font-bold text-live">{liveWeek.matches.some((m) => m.phase === "LIVE") ? <LiveMinute clock={liveWeek.matches.find((m) => m.phase === "LIVE")?.clock} /> : "HT"}</span>
               </h2>
               <ul className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 sm:grid-cols-3 lg:grid-cols-5">
                 {liveWeek.matches.map((m, i) => (

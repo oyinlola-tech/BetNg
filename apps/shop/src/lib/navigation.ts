@@ -1,5 +1,5 @@
 import type { ShopPermission } from "@betng/contracts";
-import { Banknote, BarChart3, CalendarCheck, CircleDot, ClipboardList, FilePlus2, FileText, Gauge, HandCoins, KeyRound, Radio, ReceiptText, ScanLine, Trophy, UserRound, type LucideIcon } from "lucide-react";
+import { Banknote, BarChart3, CalendarCheck, CircleDot, ClipboardList, FilePlus2, FileText, Gauge, HandCoins, KeyRound, Radio, Receipt, ReceiptText, ScanLine, Trophy, UserRound, type LucideIcon } from "lucide-react";
 
 export interface NavItem {
   readonly to: string;
@@ -28,6 +28,7 @@ export const NAVIGATION: readonly NavGroup[] = [
     label: "Tickets",
     items: [
       { to: "/tickets/new", label: "New Ticket", icon: FilePlus2, permission: "tickets:sell", shortcut: "F2" },
+      { to: "/betslip", label: "Bet Slip", icon: Receipt, permission: "tickets:sell" },
       { to: "/tickets/open", label: "Open Tickets", icon: ClipboardList, permission: "tickets:check" },
       { to: "/tickets/check", label: "Check Ticket", icon: ScanLine, permission: "tickets:check", shortcut: "F3" },
       { to: "/tickets/results", label: "Results", icon: CalendarCheck, shortcut: "F6" },
