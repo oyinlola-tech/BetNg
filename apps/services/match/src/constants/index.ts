@@ -1,9 +1,13 @@
 export {
+  HEAD_TO_HEAD_LIMIT,
   LIFECYCLE_STATUS,
+  LINEUPS,
   LIST_LIMIT,
   MATCH_COMMAND,
   MATCH_QUERY,
+  PUBLIC_CONFIG,
   SCHEDULER,
+  SEARCH,
 } from "./match.constant.js";
 export type { MatchCommandType, MatchQueryType } from "./match.constant.js";
 
@@ -14,6 +18,9 @@ export {
   LIFECYCLE_SERVICE_TOKEN,
   LOGGER_TOKEN,
   MATCH_REPOSITORY_TOKEN,
+  RISK_READER_TOKEN,
+  SEARCH_REPOSITORY_TOKEN,
+  SIMULATION_PEER_TOKEN,
   SIMULATION_READER_TOKEN,
   TIMING_TOKEN,
 } from "./match.token.js";

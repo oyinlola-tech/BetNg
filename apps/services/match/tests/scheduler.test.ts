@@ -10,6 +10,7 @@ import {
   placeBet,
   TIMELINE,
   transitionsOf,
+  testRedisUrl,
 } from "./helpers.js";
 import type { Harness } from "./helpers.js";
 
@@ -180,6 +181,7 @@ describe("match lifecycle", () => {
       "SECOND_HALF",
       "GOAL",
       "YELLOW_CARD",
+      "SUBSTITUTION",
       "GOAL",
       "MATCH_FINISHED",
       "SETTLEMENT_STARTED",
@@ -474,7 +476,7 @@ describe("match lifecycle", () => {
 describe("scheduler job", () => {
   it("runs overlapping ticks once and never ticks without the Redis lock", async () => {
     let ticks = 0;
-    const redis = createRedisConnection(process.env["REDIS_URL"] ?? "");
+    const redis = createRedisConnection(testRedisUrl());
     const job = createSchedulerJob({
       redis,
       logger: silentLogger as never,

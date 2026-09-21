@@ -17,6 +17,8 @@ export type {
   ItemsDto,
   ListFixturesQuery,
   ListResultsQuery,
+  PageDto,
+  PublicConfigDto,
   SeasonQuery,
   TeamDto,
 } from "./match.dto.js";

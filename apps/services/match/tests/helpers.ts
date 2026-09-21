@@ -12,6 +12,8 @@ import type {
   LiveEventInput,
   MarketsStatus,
   Peers,
+  SquadTeamRef,
+  TeamSquad,
 } from "../src/interfaces/index.js";
 
 const ROOT_ENV = resolve(import.meta.dirname, "../../../../.env");
@@ -28,6 +30,15 @@ function required(key: string): string {
     throw new Error(`${key} is not set; see .env.example.`);
 
   return value;
+}
+
+/** A Redis database of its own, so a test never contends for a lock a running platform holds. */
+export function testRedisUrl(): string {
+  const url = new URL(required("REDIS_URL"));
+
+  url.pathname = "/14";
+
+  return url.toString();
 }
 
 function testUrl(credentials?: {
@@ -133,6 +144,14 @@ export const TIMELINE: readonly TimelineEvent[] = [
     score: [1, 1],
   },
   {
+    minute: 80,
+    type: "SUBSTITUTION",
+    side: "AWAY",
+    player: "E. Sub",
+    secondaryPlayer: "D. Holder",
+    score: [1, 1],
+  },
+  {
     minute: 85,
     type: "GOAL",
     side: "HOME",
@@ -203,12 +222,54 @@ export async function commitSimulation(
   return simulationId;
 }
 
+const POSITIONS = [
+  "GK",
+  "DF",
+  "DF",
+  "DF",
+  "DF",
+  "MF",
+  "MF",
+  "MF",
+  "MF",
+] as const;
+
+/** The people `TIMELINE` names play for these sides, as the simulation guarantees for real squads. */
+export const HOME_STARTERS = ["A. Striker", "B. Winger"] as const;
+export const AWAY_STARTERS = ["C. Forward", "D. Holder"] as const;
+
+function fakeSquad(teamId: string, forwards: readonly string[]): TeamSquad {
+  const player = (
+    name: string,
+    shirt: number,
+    position: TeamSquad["starting"][number]["position"],
+  ) => ({
+    id: `${teamId}:${String(shirt)}`,
+    name,
+    shirt,
+    position,
+  });
+
+  return {
+    teamId,
+    formation: "4-4-2",
+    starting: [
+      ...POSITIONS.map((position, index) =>
+        player(`Starter ${String(index + 1)}`, index + 1, position),
+      ),
+      ...forwards.map((name, index) => player(name, index + 10, "FW")),
+    ],
+    substitutes: [player("E. Sub", 12, "FW"), player("F. Sub", 13, "MF")],
+  };
+}
+
 export interface FakePeers extends Peers {
   readonly calls: {
     readonly publishMarkets: string[];
     readonly marketsStatus: { matchId: string; status: MarketsStatus }[];
     readonly freezeExposure: string[];
     readonly runMatch: RunMatchRequest[];
+    readonly getSquads: { home: SquadTeamRef; away: SquadTeamRef }[];
     readonly settleMatch: string[];
     readonly voidMatch: { matchId: string; reason: string }[];
     readonly events: LiveEventInput[];
@@ -220,6 +281,7 @@ export interface FakePeers extends Peers {
     readonly settlement: Map<string, number>;
     audit: boolean;
     odds: boolean;
+    squads: boolean;
   };
 }
 
@@ -229,6 +291,7 @@ export function createFakePeers(superuser: PrismaClient): FakePeers {
     marketsStatus: [],
     freezeExposure: [],
     runMatch: [],
+    getSquads: [],
     settleMatch: [],
     voidMatch: [],
     events: [],
@@ -239,6 +302,7 @@ export function createFakePeers(superuser: PrismaClient): FakePeers {
     settlement: new Map(),
     audit: false,
     odds: false,
+    squads: false,
   };
   const shouldFail = (
     budget: Map<string, number>,
@@ -287,6 +351,16 @@ export function createFakePeers(superuser: PrismaClient): FakePeers {
           seed: "test-seed",
           result: { homeGoals: 2, awayGoals: 1, winner: "HOME", winningGap: 1 },
           eventCount: TIMELINE.length,
+        };
+      },
+      getSquads: async (teams) => {
+        calls.getSquads.push(teams);
+
+        if (fail.squads) throw new Error("simulation is down");
+
+        return {
+          home: fakeSquad(teams.home.teamId, HOME_STARTERS),
+          away: fakeSquad(teams.away.teamId, AWAY_STARTERS),
         };
       },
     },
@@ -384,7 +458,7 @@ export async function createHarness(): Promise<Harness> {
   const clock = createTestClock(new Date());
   const config = await loadMatchConfig({
     MATCH_DATABASE_URL: MATCH_URL,
-    REDIS_URL: required("REDIS_URL"),
+    REDIS_URL: testRedisUrl(),
     MATCH_PORT: String(TEST_PORT),
     HOST: "127.0.0.1",
     LOG_LEVEL: "error",

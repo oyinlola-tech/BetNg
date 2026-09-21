@@ -2,6 +2,7 @@ import {
   listMatchesQuerySchema,
   listTeamsQuerySchema,
   matchAdminActionRequestSchema,
+  searchQuerySchema,
   updateTeamRequestSchema,
 } from "@betng/contracts";
 import type {
@@ -11,7 +12,7 @@ import type {
   UpdateTeamRequest,
 } from "@betng/contracts";
 import { validate } from "@zudojs/validation";
-import type { ValidationSchema } from "@zudojs/validation";
+import type { ValidationSchema, z } from "@zudojs/validation";
 import {
   adminFixturesQuerySchema,
   createFixtureRequestSchema,
@@ -43,6 +44,11 @@ export const listFixturesQueryValidator: ValidationSchema<ListFixturesQuery> =
 
 export const listResultsQueryValidator: ValidationSchema<ListResultsQuery> =
   listResultsQuerySchema;
+
+export type SearchQuery = z.infer<typeof searchQuerySchema>;
+
+export const searchQueryValidator: ValidationSchema<SearchQuery> =
+  searchQuerySchema;
 
 export const seasonQueryValidator: ValidationSchema<SeasonQuery> =
   seasonQuerySchema;

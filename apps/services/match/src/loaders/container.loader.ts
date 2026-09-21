@@ -9,6 +9,9 @@ import {
   LIFECYCLE_SERVICE_TOKEN,
   LOGGER_TOKEN,
   MATCH_REPOSITORY_TOKEN,
+  RISK_READER_TOKEN,
+  SEARCH_REPOSITORY_TOKEN,
+  SIMULATION_PEER_TOKEN,
   SIMULATION_READER_TOKEN,
   TIMING_TOKEN,
 } from "../constants/index.js";
@@ -17,6 +20,9 @@ import type {
   Clock,
   IdentityPeer,
   MatchRepository,
+  RiskReader,
+  SearchRepository,
+  SimulationPeer,
   SimulationReader,
 } from "../interfaces/index.js";
 import type { LifecycleService } from "../services/index.js";
@@ -25,6 +31,9 @@ export interface ContainerLoaderConfig {
   readonly catalogue: CatalogueRepository;
   readonly matches: MatchRepository;
   readonly simulation: SimulationReader;
+  readonly squads: SimulationPeer;
+  readonly risk: RiskReader;
+  readonly search: SearchRepository;
   readonly lifecycle: LifecycleService;
   readonly identity: IdentityPeer;
   readonly timing: MatchTiming;
@@ -38,6 +47,9 @@ export function loadContainer(config: ContainerLoaderConfig): Container {
   container.registerValue(CATALOGUE_REPOSITORY_TOKEN, config.catalogue);
   container.registerValue(MATCH_REPOSITORY_TOKEN, config.matches);
   container.registerValue(SIMULATION_READER_TOKEN, config.simulation);
+  container.registerValue(SIMULATION_PEER_TOKEN, config.squads);
+  container.registerValue(RISK_READER_TOKEN, config.risk);
+  container.registerValue(SEARCH_REPOSITORY_TOKEN, config.search);
   container.registerValue(LIFECYCLE_SERVICE_TOKEN, config.lifecycle);
   container.registerValue(IDENTITY_PEER_TOKEN, config.identity);
   container.registerValue(TIMING_TOKEN, config.timing);

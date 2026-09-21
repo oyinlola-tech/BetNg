@@ -9,6 +9,9 @@ import {
   MATCH_COMMAND,
   MATCH_QUERY,
   MATCH_REPOSITORY_TOKEN,
+  RISK_READER_TOKEN,
+  SEARCH_REPOSITORY_TOKEN,
+  SIMULATION_PEER_TOKEN,
   SIMULATION_READER_TOKEN,
   TIMING_TOKEN,
 } from "../../constants/index.js";
@@ -22,8 +25,11 @@ import {
 import type { HandlerDependencies } from "./match.dependencies.js";
 import {
   GetAdminMatchHandler,
+  GetHeadToHeadHandler,
   GetMatchHandler,
+  GetMatchLineupsHandler,
   GetMatchStatsHandler,
+  GetPublicConfigHandler,
   GetStandingsHandler,
   ListAdminFixturesHandler,
   ListAdminTeamsHandler,
@@ -34,6 +40,7 @@ import {
   ListResultsHandler,
   ListScorersHandler,
   ListTeamsHandler,
+  SearchHandler,
 } from "./queries/index.js";
 
 export type {
@@ -54,6 +61,9 @@ export function registerMatchService(config: MatchServiceConfig): void {
     catalogue: container.resolve(CATALOGUE_REPOSITORY_TOKEN),
     matches: container.resolve(MATCH_REPOSITORY_TOKEN),
     simulation: container.resolve(SIMULATION_READER_TOKEN),
+    squads: container.resolve(SIMULATION_PEER_TOKEN),
+    risk: container.resolve(RISK_READER_TOKEN),
+    search: container.resolve(SEARCH_REPOSITORY_TOKEN),
     lifecycle: container.resolve(LIFECYCLE_SERVICE_TOKEN),
     identity: container.resolve(IDENTITY_PEER_TOKEN),
     timing: container.resolve(TIMING_TOKEN),
@@ -77,6 +87,19 @@ export function registerMatchService(config: MatchServiceConfig): void {
   queryBus.register(MATCH_QUERY.LIST_RESULTS, new ListResultsHandler(deps));
   queryBus.register(MATCH_QUERY.GET_STANDINGS, new GetStandingsHandler(deps));
   queryBus.register(MATCH_QUERY.LIST_SCORERS, new ListScorersHandler(deps));
+  queryBus.register(
+    MATCH_QUERY.GET_PUBLIC_CONFIG,
+    new GetPublicConfigHandler(deps),
+  );
+  queryBus.register(
+    MATCH_QUERY.GET_HEAD_TO_HEAD,
+    new GetHeadToHeadHandler(deps),
+  );
+  queryBus.register(
+    MATCH_QUERY.GET_MATCH_LINEUPS,
+    new GetMatchLineupsHandler(deps),
+  );
+  queryBus.register(MATCH_QUERY.SEARCH, new SearchHandler(deps));
   queryBus.register(
     MATCH_QUERY.LIST_ADMIN_TEAMS,
     new ListAdminTeamsHandler(deps),

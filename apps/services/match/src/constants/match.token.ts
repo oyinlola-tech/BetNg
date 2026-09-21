@@ -6,6 +6,9 @@ import type {
   Clock,
   IdentityPeer,
   MatchRepository,
+  RiskReader,
+  SearchRepository,
+  SimulationPeer,
   SimulationReader,
 } from "../interfaces/index.js";
 import type { LifecycleService } from "../services/lifecycle/index.js";
@@ -21,6 +24,16 @@ export const MATCH_REPOSITORY_TOKEN =
 
 export const SIMULATION_READER_TOKEN = createToken<SimulationReader>(
   "match.simulationReader",
+);
+
+export const SIMULATION_PEER_TOKEN = createToken<SimulationPeer>(
+  "match.simulationPeer",
+);
+
+export const RISK_READER_TOKEN = createToken<RiskReader>("match.riskReader");
+
+export const SEARCH_REPOSITORY_TOKEN = createToken<SearchRepository>(
+  "match.searchRepository",
 );
 
 export const LIFECYCLE_SERVICE_TOKEN = createToken<LifecycleService>(

@@ -5,6 +5,9 @@ import type {
   Clock,
   IdentityPeer,
   MatchRepository,
+  RiskReader,
+  SearchRepository,
+  SimulationPeer,
   SimulationReader,
 } from "../../interfaces/index.js";
 import type { LifecycleActor, LifecycleService } from "../lifecycle/index.js";
@@ -13,6 +16,9 @@ export interface HandlerDependencies {
   readonly catalogue: CatalogueRepository;
   readonly matches: MatchRepository;
   readonly simulation: SimulationReader;
+  readonly squads: SimulationPeer;
+  readonly risk: RiskReader;
+  readonly search: SearchRepository;
   readonly lifecycle: LifecycleService;
   readonly identity: IdentityPeer;
   readonly timing: MatchTiming;

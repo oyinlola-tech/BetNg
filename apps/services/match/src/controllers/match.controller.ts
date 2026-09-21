@@ -1,21 +1,32 @@
 import type {
   CompletedMatch,
   Fixture,
+  HeadToHead,
   League,
   Match,
   MatchEvent,
+  MatchLineups,
   MatchStats,
+  SearchResponse,
   Standings,
   TopScorer,
 } from "@betng/contracts";
-import { parseQuery, requireParam } from "@betng/service-kit";
+import { getRequestId, parseQuery, requireParam } from "@betng/service-kit";
 import type { HttpRouterContext } from "@betng/service-kit";
 import type { QueryBus } from "@zudojs/cqrs";
-import type { ItemsDto, TeamDto } from "../dtos/index.js";
+import type {
+  ItemsDto,
+  PageDto,
+  PublicConfigDto,
+  TeamDto,
+} from "../dtos/index.js";
 import { NotFoundError } from "../errors/index.js";
 import {
+  GetHeadToHeadQuery,
+  GetMatchLineupsQuery,
   GetMatchQuery,
   GetMatchStatsQuery,
+  GetPublicConfigQuery,
   GetStandingsQuery,
   ListFixturesQuery,
   ListLeaguesQuery,
@@ -24,6 +35,7 @@ import {
   ListResultsQuery,
   ListScorersQuery,
   ListTeamsQuery,
+  SearchQuery,
 } from "../services/match/queries/index.js";
 import {
   isUuid,
@@ -31,6 +43,7 @@ import {
   listMatchesQueryValidator,
   listResultsQueryValidator,
   listTeamsQueryValidator,
+  searchQueryValidator,
   seasonQueryValidator,
 } from "../validators/index.js";
 
@@ -41,15 +54,19 @@ export interface MatchController {
   ) => Promise<ItemsDto<TeamDto>>;
   readonly listFixtures: (
     context: HttpRouterContext,
-  ) => Promise<ItemsDto<Fixture>>;
-  readonly listMatches: (
-    context: HttpRouterContext,
-  ) => Promise<ItemsDto<Match>>;
+  ) => Promise<PageDto<Fixture>>;
+  readonly listMatches: (context: HttpRouterContext) => Promise<PageDto<Match>>;
   readonly getMatch: (context: HttpRouterContext) => Promise<Match>;
   readonly listMatchEvents: (
     context: HttpRouterContext,
   ) => Promise<ItemsDto<MatchEvent>>;
   readonly getMatchStats: (context: HttpRouterContext) => Promise<MatchStats>;
+  readonly getMatchLineups: (
+    context: HttpRouterContext,
+  ) => Promise<MatchLineups>;
+  readonly getHeadToHead: (context: HttpRouterContext) => Promise<HeadToHead>;
+  readonly search: (context: HttpRouterContext) => Promise<SearchResponse>;
+  readonly getPublicConfig: () => Promise<PublicConfigDto>;
   readonly listResults: (
     context: HttpRouterContext,
   ) => Promise<ItemsDto<CompletedMatch>>;
@@ -88,21 +105,19 @@ export function createMatchController(queryBus: QueryBus): MatchController {
       };
     },
 
-    listFixtures: async (context) => ({
-      items: await queryBus.execute<ListFixturesQuery, readonly Fixture[]>(
+    listFixtures: async (context) =>
+      queryBus.execute<ListFixturesQuery, PageDto<Fixture>>(
         new ListFixturesQuery(
           parseQuery(context.query, listFixturesQueryValidator),
         ),
       ),
-    }),
 
-    listMatches: async (context) => ({
-      items: await queryBus.execute<ListMatchesQuery, readonly Match[]>(
+    listMatches: async (context) =>
+      queryBus.execute<ListMatchesQuery, PageDto<Match>>(
         new ListMatchesQuery(
           parseQuery(context.query, listMatchesQueryValidator),
         ),
       ),
-    }),
 
     getMatch: async (context) =>
       queryBus.execute<GetMatchQuery, Match>(
@@ -119,6 +134,29 @@ export function createMatchController(queryBus: QueryBus): MatchController {
     getMatchStats: async (context) =>
       queryBus.execute<GetMatchStatsQuery, MatchStats>(
         new GetMatchStatsQuery(idParam(context, "match")),
+      ),
+
+    getMatchLineups: async (context) =>
+      queryBus.execute<GetMatchLineupsQuery, MatchLineups>(
+        new GetMatchLineupsQuery(
+          idParam(context, "match"),
+          getRequestId(context.request),
+        ),
+      ),
+
+    getHeadToHead: async (context) =>
+      queryBus.execute<GetHeadToHeadQuery, HeadToHead>(
+        new GetHeadToHeadQuery(idParam(context, "match")),
+      ),
+
+    search: async (context) =>
+      queryBus.execute<SearchQuery, SearchResponse>(
+        new SearchQuery(parseQuery(context.query, searchQueryValidator)),
+      ),
+
+    getPublicConfig: async () =>
+      queryBus.execute<GetPublicConfigQuery, PublicConfigDto>(
+        new GetPublicConfigQuery(),
       ),
 
     listResults: async (context) => {

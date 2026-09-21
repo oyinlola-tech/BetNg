@@ -1,5 +1,6 @@
 import type {
   LiveEventType,
+  MatchClock,
   MatchSide,
   RunMatchRequest,
   RunMatchResponse,
@@ -30,11 +31,40 @@ export interface OddsPeer {
   ): Promise<{ readonly updated: number }>;
 }
 
+export interface SquadPlayer {
+  readonly id: string;
+  readonly name: string;
+  readonly shirt: number;
+  readonly position: "GK" | "DF" | "MF" | "FW";
+}
+
+export interface TeamSquad {
+  readonly teamId: string;
+  readonly formation: string;
+  readonly starting: readonly SquadPlayer[];
+  readonly substitutes: readonly SquadPlayer[];
+}
+
+export interface Squads {
+  readonly home: TeamSquad;
+  readonly away: TeamSquad;
+}
+
+export interface SquadTeamRef {
+  readonly teamId: string;
+  readonly name: string;
+}
+
 export interface SimulationPeer {
   runMatch(
     request: RunMatchRequest,
     requestId: string,
   ): Promise<RunMatchResponse>;
+  /** Team ids and names only: squads are a property of the team, never of a match or its result. */
+  getSquads(
+    teams: { readonly home: SquadTeamRef; readonly away: SquadTeamRef },
+    requestId: string,
+  ): Promise<Squads>;
 }
 
 export interface RiskPeer {
@@ -71,6 +101,7 @@ export interface LiveEventInput {
   readonly side?: MatchSide;
   readonly score: { readonly home: number; readonly away: number };
   readonly description: string;
+  readonly clock?: MatchClock;
 }
 
 export interface EventPeer {

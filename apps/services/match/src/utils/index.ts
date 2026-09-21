@@ -18,12 +18,16 @@ export {
 export type { TeamRatingColumns } from "./teamStrength.util.js";
 export {
   alignToLeagueGrid,
+  eventClockAt,
   fullTimeMs,
   instantAtMinuteMs,
+  matchClockAt,
   minuteAtMs,
   revealInstantMs,
   secondHalfStartMs,
 } from "./timing.util.js";
+export { createTtlCache } from "./ttlCache.util.js";
+export type { TtlCache } from "./ttlCache.util.js";
 export { resolveWindow } from "./window.util.js";
 export type { KickoffWindow } from "./window.util.js";
-export { definedOnly } from "./object.util.js";
+export { definedOnly, toPage } from "./object.util.js";

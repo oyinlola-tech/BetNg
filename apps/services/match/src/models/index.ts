@@ -9,3 +9,4 @@ export {
   toMatchEvent,
   toTeam,
 } from "./match.model.js";
+export type { ClockContext } from "./match.model.js";

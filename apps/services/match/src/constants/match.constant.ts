@@ -11,6 +11,10 @@ export const MATCH_QUERY = Object.freeze({
   LIST_RESULTS: "match.listResults",
   GET_STANDINGS: "match.getStandings",
   LIST_SCORERS: "match.listScorers",
+  GET_PUBLIC_CONFIG: "match.getPublicConfig",
+  GET_HEAD_TO_HEAD: "match.getHeadToHead",
+  GET_MATCH_LINEUPS: "match.getMatchLineups",
+  SEARCH: "match.search",
   LIST_ADMIN_TEAMS: "match.listAdminTeams",
   LIST_ADMIN_FIXTURES: "match.listAdminFixtures",
   GET_ADMIN_MATCH: "match.getAdminMatch",
@@ -63,6 +67,51 @@ export const SCHEDULER = Object.freeze({
   BACKOFF_MAX_MS: 60_000,
   MAX_SIMULATION_ATTEMPTS: 5,
   SYSTEM_ACTOR: "system",
+});
+
+export const PUBLIC_CONFIG = Object.freeze({
+  CURRENCY: Object.freeze({
+    code: "NGN",
+    symbol: "₦",
+    minorUnits: 2,
+    locale: "en-NG",
+  }),
+  /** The client flag names (`packages/ui-core` FeatureFlags) plus the capabilities behind them. */
+  FEATURES: Object.freeze({
+    virtualFootballEnabled: true,
+    walletEnabled: true,
+    shopEnabled: true,
+    adminEnabled: true,
+    liveEnabled: true,
+    tvEnabled: true,
+    searchEnabled: true,
+    liveStream: true,
+    shopTickets: true,
+    notifications: true,
+    cashOut: false,
+  }),
+  MAX_SELECTIONS: 20,
+  COMPETITION_TIMEZONE: "UTC",
+});
+
+export const HEAD_TO_HEAD_LIMIT = 20;
+
+export const SEARCH = Object.freeze({
+  KINDS: Object.freeze([
+    "LEAGUE",
+    "TEAM",
+    "MATCH",
+    "PLAYER",
+    "MARKET",
+  ] as const),
+  DEFAULT_LIMIT: 20,
+  MAX_LIMIT: 50,
+  MATCH_WINDOW_MS: 2 * 60 * 60 * 1000,
+});
+
+export const LINEUPS = Object.freeze({
+  CACHE_TTL_MS: 10 * 60 * 1000,
+  CACHE_MAX_ENTRIES: 500,
 });
 
 export const LIST_LIMIT = Object.freeze({

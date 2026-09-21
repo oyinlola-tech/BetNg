@@ -22,6 +22,16 @@ export function registerMatchRoutes(
     json(controller.listMatchEvents),
   );
   router.get(`${API_PREFIX}/matches/:id/stats`, json(controller.getMatchStats));
+  router.get(
+    `${API_PREFIX}/matches/:id/lineups`,
+    json(controller.getMatchLineups),
+  );
+  router.get(
+    `${API_PREFIX}/matches/:id/head-to-head`,
+    json(controller.getHeadToHead),
+  );
+  router.get(`${API_PREFIX}/search`, json(controller.search));
+  router.get(`${API_PREFIX}/config`, json(controller.getPublicConfig));
   router.get(`${API_PREFIX}/results`, json(controller.listResults));
 }
 

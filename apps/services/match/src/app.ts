@@ -28,6 +28,8 @@ import {
   createCatalogueRepository,
   createLifecycleRepository,
   createMatchRepository,
+  createRiskReader,
+  createSearchRepository,
   createSimulationReader,
 } from "./repositories/index.js";
 import { registerAdminRoutes, registerMatchRoutes } from "./routes/index.js";
@@ -105,6 +107,9 @@ export function createApp(
     catalogue,
     matches,
     simulation,
+    squads: peers.simulation,
+    risk: createRiskReader(database.prisma),
+    search: createSearchRepository(database.prisma),
     lifecycle,
     identity: peers.identity,
     timing: config.timing,

@@ -1,14 +1,15 @@
 import { QueryHandler } from "@zudojs/cqrs";
 import type { Fixture } from "@betng/contracts";
 import { LIST_LIMIT, MATCH_QUERY } from "../../../../constants/index.js";
+import type { PageDto } from "../../../../dtos/index.js";
 import { toFixture } from "../../../../models/index.js";
-import { resolveWindow } from "../../../../utils/index.js";
+import { resolveWindow, toPage } from "../../../../utils/index.js";
 import type { HandlerDependencies } from "../../match.dependencies.js";
 import type { ListFixturesQuery } from "./listFixtures.query.js";
 
 export class ListFixturesHandler extends QueryHandler<
   ListFixturesQuery,
-  readonly Fixture[]
+  PageDto<Fixture>
 > {
   public readonly queryType = MATCH_QUERY.LIST_FIXTURES;
 
@@ -19,8 +20,9 @@ export class ListFixturesHandler extends QueryHandler<
     this.deps = deps;
   }
 
-  public async execute(query: ListFixturesQuery): Promise<readonly Fixture[]> {
+  public async execute(query: ListFixturesQuery): Promise<PageDto<Fixture>> {
     const { filter } = query;
+    const limit = filter.limit ?? LIST_LIMIT.MAX;
     const window = resolveWindow(
       filter,
       this.deps.clock(),
@@ -31,9 +33,10 @@ export class ListFixturesHandler extends QueryHandler<
       ...(filter.season === undefined ? {} : { season: filter.season }),
       ...(filter.matchday === undefined ? {} : { matchday: filter.matchday }),
       ...window,
-      limit: filter.limit ?? LIST_LIMIT.MAX,
+      limit: limit + 1,
     });
+    const page = toPage(fixtures, limit);
 
-    return fixtures.map(toFixture);
+    return { items: page.items.map(toFixture), truncated: page.truncated };
   }
 }

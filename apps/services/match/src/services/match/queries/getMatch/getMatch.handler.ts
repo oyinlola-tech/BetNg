@@ -21,6 +21,9 @@ export class GetMatchHandler extends QueryHandler<GetMatchQuery, Match> {
 
     if (found === undefined) throw new MatchNotFoundError(query.matchId);
 
-    return toMatch(found);
+    return toMatch(found, {
+      now: this.deps.clock(),
+      timing: this.deps.timing,
+    });
   }
 }

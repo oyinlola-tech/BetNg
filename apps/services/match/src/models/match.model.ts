@@ -13,6 +13,7 @@ import type {
   SimulationStatus,
   Team,
 } from "@betng/contracts";
+import type { MatchTiming } from "../configs/index.js";
 import type { AdminMatchDto, TeamDto } from "../dtos/index.js";
 import type {
   FixtureRecord,
@@ -23,6 +24,7 @@ import type {
   TeamRow,
   TransitionRecord,
 } from "../interfaces/index.js";
+import { matchClockAt } from "../utils/index.js";
 
 export function toLeague(row: LeagueRecord): League {
   return {
@@ -66,6 +68,11 @@ export function toFixture(row: Omit<FixtureRecord, "match">): Fixture {
   };
 }
 
+export interface ClockContext {
+  readonly now: Date;
+  readonly timing: MatchTiming;
+}
+
 type MatchColumns = Pick<
   MatchRecord,
   | "id"
@@ -79,7 +86,12 @@ type MatchColumns = Pick<
   | "updatedAt"
 >;
 
-export function toMatch(row: MatchColumns): Match {
+export function toMatch(
+  row: MatchColumns & {
+    readonly fixture: Pick<MatchRecord["fixture"], "kickoffAt">;
+  },
+  context: ClockContext,
+): Match {
   return {
     id: asId<"MatchId">(row.id),
     fixtureId: asId<"FixtureId">(row.fixtureId),
@@ -91,6 +103,15 @@ export function toMatch(row: MatchColumns): Match {
       ? {}
       : { completedAt: row.completedAt.toISOString() }),
     lifecycle: row.lifecycle,
+    clock: matchClockAt(
+      {
+        status: row.status,
+        kickoffMs: row.fixture.kickoffAt.getTime(),
+        everKickedOff: row.homeScore !== null,
+      },
+      context.now.getTime(),
+      context.timing,
+    ),
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };

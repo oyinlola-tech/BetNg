@@ -80,6 +80,25 @@ export function createMatchRepository(prisma: PrismaClient): MatchRepository {
         take: filter.limit,
       }),
 
+    listMeetings: async ({ teamIds: [first, second], excludeMatchId, limit }) =>
+      prisma.match.findMany({
+        where: {
+          id: { not: excludeMatchId },
+          status: "COMPLETED",
+          homeScore: { not: null },
+          awayScore: { not: null },
+          fixture: {
+            OR: [
+              { homeTeamId: first, awayTeamId: second },
+              { homeTeamId: second, awayTeamId: first },
+            ],
+          },
+        },
+        include: MATCH_INCLUDE,
+        orderBy: [{ fixture: { kickoffAt: "desc" } }, { id: "asc" }],
+        take: limit,
+      }),
+
     currentSeason: async (leagueId, now) => {
       const latest = await prisma.fixture.findFirst({
         where: { leagueId, kickoffAt: { lte: now } },

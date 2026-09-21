@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { asId, ErrorCodes, teamStrengthSchema } from "@betng/contracts";
 import type {
   LiveEventType,
+  MatchClock,
   MatchLifecycle,
   RunMatchResponse,
   TeamStrength,
@@ -33,8 +34,10 @@ import {
   backoffMs,
   buildSeason,
   errorMessage,
+  eventClockAt,
   failureReason,
   fullTimeMs,
+  matchClockAt,
   PeerAnswerError,
   revealInstantMs,
   toTeamStrength,
@@ -181,6 +184,7 @@ export function createLifecycleService(
       readonly side?: "HOME" | "AWAY";
       readonly score: { readonly home: number; readonly away: number };
       readonly description: string;
+      readonly clock: MatchClock;
     },
     requestId: string,
   ): Promise<void> {
@@ -215,6 +219,15 @@ export function createLifecycleService(
         minute: completed ? 90 : 0,
         score: { home: match.homeScore ?? 0, away: match.awayScore ?? 0 },
         description,
+        clock: matchClockAt(
+          {
+            status: match.status,
+            kickoffMs: match.fixture.kickoffAt.getTime(),
+            everKickedOff: match.homeScore !== null,
+          },
+          clock().getTime(),
+          timing,
+        ),
       },
       requestId,
     );
@@ -824,6 +837,7 @@ export function createLifecycleService(
           ...(event.side === null ? {} : { side: event.side }),
           score: { home: event.scoreHome, away: event.scoreAway },
           description: event.description.slice(0, 240),
+          clock: eventClockAt(kickoffMs, event, timing),
         },
         context.requestId,
       );

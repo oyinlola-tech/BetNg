@@ -1,4 +1,4 @@
-import type { MatchEventType } from "@betng/contracts";
+import type { MatchClock, MatchEventType, MatchStatus } from "@betng/contracts";
 import type { MatchTiming } from "../configs/index.js";
 
 const HALF_MINUTES = 45;
@@ -74,6 +74,56 @@ export function minuteAtMs(
   return Math.min(
     FULL_MINUTES,
     HALF_MINUTES + Math.floor((nowMs - restart) / spmMs),
+  );
+}
+
+/** The public clock. It runs only while the match is IN_PLAY, on the same instants the reveal step uses. */
+export function matchClockAt(
+  match: {
+    readonly status: MatchStatus;
+    readonly kickoffMs: number;
+    readonly everKickedOff: boolean;
+  },
+  nowMs: number,
+  timing: MatchTiming,
+): MatchClock {
+  const base = {
+    asOf: new Date(nowMs).toISOString(),
+    minuteLengthMs: Math.max(1, Math.round(timing.secondsPerMinute * 1000)),
+  };
+  const { status, kickoffMs } = match;
+
+  if (status === "COMPLETED" || (status === "CANCELLED" && match.everKickedOff))
+    return { period: "FULL_TIME", minute: FULL_MINUTES, ...base };
+
+  if (status !== "IN_PLAY" || nowMs < kickoffMs)
+    return { period: "PRE", minute: 0, ...base };
+
+  const minute = minuteAtMs(kickoffMs, nowMs, timing);
+
+  if (nowMs < kickoffMs + HALF_MINUTES * timing.secondsPerMinute * 1000)
+    return { period: "FIRST_HALF", minute, ...base };
+
+  if (nowMs < secondHalfStartMs(kickoffMs, timing))
+    return { period: "HALF_TIME", minute: HALF_MINUTES, ...base };
+
+  return { period: "SECOND_HALF", minute, ...base };
+}
+
+/** The clock an event carries on the live stream: the public clock at the instant that event is revealed. */
+export function eventClockAt(
+  kickoffMs: number,
+  event: { readonly minute: number; readonly type: MatchEventType },
+  timing: MatchTiming,
+): MatchClock {
+  return matchClockAt(
+    {
+      status: event.type === "FULL_TIME" ? "COMPLETED" : "IN_PLAY",
+      kickoffMs,
+      everKickedOff: true,
+    },
+    revealInstantMs(kickoffMs, event, timing),
+    timing,
   );
 }
 

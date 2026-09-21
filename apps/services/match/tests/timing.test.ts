@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_TIMING, readTiming } from "../src/configs/index.js";
 import {
   alignToLeagueGrid,
+  eventClockAt,
   fullTimeMs,
+  matchClockAt,
   minuteAtMs,
   revealInstantMs,
 } from "../src/utils/index.js";
@@ -113,5 +115,101 @@ describe("match timing", () => {
       expect(kickoff % cycleMs).toBe(stagger * 1000);
       expect(alignToLeagueGrid(kickoff, stagger, DEFAULT_TIMING)).toBe(kickoff);
     }
+  });
+});
+
+describe("match clock", () => {
+  const at = (
+    elapsedSeconds: number,
+    status: Parameters<typeof matchClockAt>[0]["status"] = "IN_PLAY",
+    everKickedOff = true,
+  ) =>
+    matchClockAt(
+      { status, kickoffMs: KICKOFF_MS, everKickedOff },
+      KICKOFF_MS + elapsedSeconds * 1000,
+      DEFAULT_TIMING,
+    );
+
+  it("is PRE until the match is in play, whatever the wall clock says", () => {
+    expect(at(-30, "BETTING_OPEN", false)).toEqual({
+      period: "PRE",
+      minute: 0,
+      asOf: "2026-09-21T11:59:30.000Z",
+      minuteLengthMs: 2000,
+    });
+    expect(at(-1)).toMatchObject({ period: "PRE", minute: 0 });
+    expect(at(20, "BETTING_CLOSED", false)).toMatchObject({
+      period: "PRE",
+      minute: 0,
+    });
+  });
+
+  it("walks the periods on the reveal step's instants", () => {
+    expect(at(0)).toMatchObject({ period: "FIRST_HALF", minute: 0 });
+    expect(at(41)).toMatchObject({ period: "FIRST_HALF", minute: 20 });
+    expect(at(89.9)).toMatchObject({ period: "FIRST_HALF", minute: 44 });
+    expect(at(90)).toMatchObject({ period: "HALF_TIME", minute: 45 });
+    expect(at(104.9)).toMatchObject({ period: "HALF_TIME", minute: 45 });
+    expect(at(105)).toMatchObject({ period: "SECOND_HALF", minute: 45 });
+    expect(at(155)).toMatchObject({ period: "SECOND_HALF", minute: 70 });
+    expect(at(400)).toMatchObject({ period: "SECOND_HALF", minute: 90 });
+  });
+
+  it("agrees with minuteAtMs for every second of a match", () => {
+    for (let second = 0; second <= 200; second += 1) {
+      expect(at(second).minute).toBe(expectedMinute(second));
+    }
+  });
+
+  it("is FULL_TIME once completed, and for a match voided after kick-off", () => {
+    expect(at(30, "COMPLETED")).toMatchObject({
+      period: "FULL_TIME",
+      minute: 90,
+    });
+    expect(at(30, "CANCELLED", true)).toMatchObject({ period: "FULL_TIME" });
+    expect(at(30, "CANCELLED", false)).toMatchObject({ period: "PRE" });
+  });
+
+  it("states the minute length of the configured timing", () => {
+    const fast = readTiming({ MATCH_SECONDS_PER_MINUTE: "0.5" });
+
+    expect(
+      matchClockAt(
+        { status: "IN_PLAY", kickoffMs: KICKOFF_MS, everKickedOff: true },
+        KICKOFF_MS + 10_000,
+        fast,
+      ),
+    ).toMatchObject({ period: "FIRST_HALF", minute: 20, minuteLengthMs: 500 });
+  });
+
+  it("stamps a live event with the clock of its reveal instant", () => {
+    const clock = (
+      minute: number,
+      type: Parameters<typeof eventClockAt>[1]["type"],
+    ) => eventClockAt(KICKOFF_MS, { minute, type }, DEFAULT_TIMING);
+
+    expect(clock(0, "KICK_OFF")).toMatchObject({
+      period: "FIRST_HALF",
+      minute: 0,
+      asOf: new Date(KICKOFF_MS).toISOString(),
+    });
+    expect(clock(10, "GOAL")).toMatchObject({
+      period: "FIRST_HALF",
+      minute: 10,
+      asOf: new Date(expectedInstant(10)).toISOString(),
+    });
+    expect(clock(45, "HALF_TIME")).toMatchObject({
+      period: "HALF_TIME",
+      minute: 45,
+    });
+    expect(clock(46, "SECOND_HALF")).toMatchObject({
+      period: "SECOND_HALF",
+      minute: 46,
+    });
+    expect(clock(90, "FULL_TIME")).toMatchObject({
+      period: "FULL_TIME",
+      minute: 90,
+      asOf: new Date(expectedInstant(90)).toISOString(),
+    });
   });
 });

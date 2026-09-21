@@ -109,6 +109,12 @@ export interface MatchRepository {
     readonly season?: number;
     readonly limit: number;
   }): Promise<readonly MatchRecord[]>;
+  /** COMPLETED meetings of two teams in either orientation, newest first. */
+  listMeetings(query: {
+    readonly teamIds: readonly [string, string];
+    readonly excludeMatchId: string;
+    readonly limit: number;
+  }): Promise<readonly MatchRecord[]>;
   currentSeason(leagueId: string, now: Date): Promise<number>;
   /** The scheduler's newest round in a league; rounds an admin added by hand are not part of the rotation. */
   latestScheduledRound(leagueId: string): Promise<RoundCursor | undefined>;
@@ -228,6 +234,54 @@ export interface SimulationReader {
     limit: number,
   ): Promise<readonly ScorerRow[]>;
   matchesWithResult(matchIds: readonly string[]): Promise<readonly string[]>;
+}
+
+export interface LeagueHit {
+  readonly id: string;
+  readonly name: string;
+  readonly country: string;
+}
+
+export interface TeamHit {
+  readonly id: string;
+  readonly name: string;
+  readonly leagueId: string;
+  readonly leagueName: string;
+}
+
+export interface MatchHit {
+  readonly id: string;
+  readonly homeName: string;
+  readonly awayName: string;
+  readonly leagueId: string;
+  readonly leagueCode: string;
+  readonly matchday: number;
+}
+
+/** `pattern` is an escaped ILIKE pattern and `prefix` its starts-with form; both are only ever bound, never spliced. */
+export interface SearchTerm {
+  readonly pattern: string;
+  readonly prefix: string;
+}
+
+export interface SearchRepository {
+  leagues(term: SearchTerm, limit: number): Promise<readonly LeagueHit[]>;
+  teams(term: SearchTerm, limit: number): Promise<readonly TeamHit[]>;
+  matches(
+    term: SearchTerm,
+    window: { readonly from: Date; readonly to: Date },
+    limit: number,
+  ): Promise<readonly MatchHit[]>;
+}
+
+export interface StakeLimitsRow {
+  readonly minStake: number;
+  readonly maxStakePerBet: number;
+}
+
+/** Reads the public stake bounds only; no decision, exposure or liability figure is read here. */
+export interface RiskReader {
+  activeStakeLimits(): Promise<StakeLimitsRow | undefined>;
 }
 
 export interface BettingReader {

@@ -6,10 +6,24 @@ import {
   teamColorsSchema,
   teamRatingsSchema,
 } from "@betng/contracts";
-import type { AdminFixture, MatchLifecycle, Team } from "@betng/contracts";
+import type {
+  AdminFixture,
+  MatchLifecycle,
+  PublicConfig,
+  Team,
+} from "@betng/contracts";
 import { z } from "@zudojs/validation";
 
 export type TeamDto = Team & { readonly code: string };
+
+export type PublicConfigDto = PublicConfig & {
+  readonly timing: {
+    readonly secondsPerMinute: number;
+    readonly halfTimeSeconds: number;
+    readonly bettingCloseLeadSeconds: number;
+    readonly roundCycleSeconds: number;
+  };
+};
 
 export interface AdminMatchDto extends AdminFixture {
   readonly fixtureId: string;
@@ -31,6 +45,11 @@ export interface AdminMatchDto extends AdminFixture {
 
 export interface ItemsDto<T> {
   readonly items: readonly T[];
+}
+
+/** `truncated`: more rows matched than `limit` returned. */
+export interface PageDto<T> extends ItemsDto<T> {
+  readonly truncated: boolean;
 }
 
 const season = z.coerce.number().int().min(1).max(100_000);
