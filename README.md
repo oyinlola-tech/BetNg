@@ -4,7 +4,7 @@
 </picture>
 
 <p align="center">
-  <img alt="Frontend tests: 641 passing" src="docs/images/badges/frontend-tests.svg">
+  <img alt="Frontend tests: 644 passing" src="docs/images/badges/frontend-tests.svg">
   <img alt="Platform tests: 1,578 passing" src="docs/images/badges/platform-tests.svg">
   <img alt="End-to-end scenario: 22 of 22 steps" src="docs/images/badges/scenario.svg">
   <img alt="TypeScript 7" src="docs/images/badges/typescript.svg">
@@ -39,7 +39,7 @@ It is a simulation that uses **play money only**. Nothing here is, or may be, co
 | **The platform decides** | Clock, phase, odds, market status, bet acceptance, payouts, balances, risk decisions and operator figures all come from the backend. The clients display them and never compute them. |
 | **Five clients, one model** | Web, mobile, TV, shop and admin all render the same canonical match, identified by one `match_id`. |
 | **Money is exact** | Integer kobo from the database to the pixel. No floating-point arithmetic touches an amount, and settlement pays on the odds stored at acceptance. |
-| **Built to be checked** | 2,219 automated tests across both halves, a 22-step end-to-end scenario against the real services, and a verification script that fails if a production bundle contains development code. |
+| **Built to be checked** | 2,222 automated tests across both halves, a 22-step end-to-end scenario against the real services, and a verification script that fails if a production bundle contains development code. |
 
 ## Screens
 
@@ -257,7 +257,7 @@ The numbers in the badges above come from these runs, recorded on 2026-09-21. Ev
 
 | Suite | Result |
 | --- | --- |
-| Frontend unit, contract and data layer (`pnpm test:unit`) | 280 tests in 25 files |
+| Frontend unit, contract and data layer (`vitest run --project unit packages`) | 283 tests in 25 files |
 | Components and apps in jsdom (`pnpm test:dom`) | 327 tests in 38 files |
 | Browser end to end (`pnpm test:e2e`) | 34 tests across desktop, mobile and TV |
 | TypeScript services (`vitest --project unit apps`) | 386 tests in 29 files |

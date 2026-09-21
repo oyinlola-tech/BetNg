@@ -258,7 +258,7 @@ const BADGES = [
   ["licence", "licence", "MIT", "#2457F5"],
   ["play-money", "money", "play money only", "#9C5207"],
   ["platform-tests", "platform tests", "1,578 passing", "#0E7553"],
-  ["frontend-tests", "frontend tests", "641 passing", "#0E7553"],
+  ["frontend-tests", "frontend tests", "644 passing", "#0E7553"],
   ["scenario", "end-to-end scenario", "22 / 22 steps", "#0E7553"],
   ["typescript", "TypeScript", "7", "#3178C6"],
   ["python", "Python", "3.14", "#3776AB"],

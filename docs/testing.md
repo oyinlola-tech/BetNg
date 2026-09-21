@@ -75,7 +75,7 @@ Recorded on 2026-09-21. Screenshots are the apps running against the real platfo
 
 | Suite | Result |
 | --- | --- |
-| `pnpm test:unit` | 280 tests in 25 files |
+| `vitest run --project unit packages` (inside `pnpm verify`) | 283 tests in 25 files |
 | `pnpm test:dom` | 327 tests in 38 files |
 | `pnpm test:e2e` | 34 tests (desktop, mobile, TV) |
 | TypeScript services | 386 tests in 29 files |
