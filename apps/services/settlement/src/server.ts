@@ -3,7 +3,9 @@ import { createApp } from "./app.js";
 import { loadSettlementConfig } from "./configs/index.js";
 
 await runService(async () => {
-  const config = await loadSettlementConfig();
+  const app = createApp(await loadSettlementConfig());
 
-  return createApp(config);
+  await app.prepare();
+
+  return app;
 });

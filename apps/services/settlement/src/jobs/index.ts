@@ -1,6 +1,2 @@
-/**
- * Background jobs. Settlement will run as a job triggered by a match
- * completing; the job arrives with the algorithm it would run.
- */
-
-export {};
+export { createMaintenanceJob } from "./maintenance.job.js";
+export type { MaintenanceJob, MaintenanceJobOptions } from "./maintenance.job.js";
