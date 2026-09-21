@@ -54,12 +54,12 @@ export function resetDataHealth(): void {
   publish({ failing: false, lastSuccessAt: undefined, realtimeDownSince: undefined });
 }
 
-/** Polled reads failing long enough, or the live stream down long enough, makes the picture stale. */
-export function freshness(health: DataHealth, now: number): Freshness {
+/** Polled reads failing long enough makes the picture stale; so does the live stream being down, for screens fed by it. */
+export function freshness(health: DataHealth, now: number, fedByRealtime = false): Freshness {
   const readsStale =
     health.failing && (health.lastSuccessAt === undefined || now - health.lastSuccessAt >= STALE_AFTER_MS);
   const realtimeStale =
-    health.realtimeDownSince !== undefined && now - health.realtimeDownSince >= STALE_AFTER_MS;
+    fedByRealtime && health.realtimeDownSince !== undefined && now - health.realtimeDownSince >= STALE_AFTER_MS;
 
   if (readsStale || realtimeStale) return "stale";
   if (health.failing) return "delayed";
@@ -71,6 +71,11 @@ export function freshness(health: DataHealth, now: number): Freshness {
 /** Live-stream data stops being extrapolated once it is stale: a clock must not run on unseen. */
 export function liveClockNow(realtimeDownSince: number | undefined, now: number): number {
   return realtimeDownSince === undefined ? now : Math.min(now, realtimeDownSince + STALE_AFTER_MS);
+}
+
+/** The same for polled data: while reads fail, a clock stops once the last good read is stale. */
+export function polledClockNow(health: DataHealth, now: number): number {
+  return health.failing && health.lastSuccessAt !== undefined ? Math.min(now, health.lastSuccessAt + STALE_AFTER_MS) : now;
 }
 
 export function useDataHealth(): DataHealth {

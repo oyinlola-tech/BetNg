@@ -2,14 +2,16 @@ import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { ChevronRight, ChevronsLeft, ChevronsRight, LogOut, Menu, Search, X } from "lucide-react";
-import { Avatar, BrandLogo, ConnectionStrip, Dropdown, IconButton, StatusBadge, ThemeSwitcher, cn, useMediaQuery } from "@betng/ui-web";
+import { createSessionMonitor, type SessionMonitor } from "@betng/ui-core";
+import { Avatar, BrandLogo, ConnectionStrip, DevelopmentBanner, Dropdown, IconButton, SessionTimeoutWarning, StatusBadge, ThemeSwitcher, cn, useFlag, useMediaQuery } from "@betng/ui-web";
 import { LoginForm } from "../components/LoginForm";
+import { TwoFactorRequired } from "../components/TwoFactorRequired";
 import { useAdminSync } from "../hooks/queries";
 import { useAdmin, useConnection } from "../hooks/useAdmin";
 import { useLastUpdated } from "../hooks/useLastUpdated";
 import { NAV, ROLE_LABELS, crumbsFor, type NavGroup } from "../lib/navigation";
 import { keys } from "../lib/queryKeys";
-import { adminSource, env } from "../services/runtime";
+import { adminSource, env, session } from "../services/runtime";
 import { CommandPalette } from "./CommandPalette";
 
 const COLLAPSE_KEY = "betng.admin.sidebar";
@@ -178,10 +180,49 @@ function SessionExpiredOverlay({ email }: { readonly email: string | undefined }
   );
 }
 
+/* No refresh route exists for operator sessions, so the warning can only tell them to sign in again. */
+function SessionWarning({ onSignOut }: { readonly onSignOut: () => void }): React.JSX.Element | null {
+  const [monitor, setMonitor] = useState<SessionMonitor>();
+
+  useEffect(() => {
+    const next = createSessionMonitor(session);
+
+    setMonitor(next);
+
+    return () => {
+      next.dispose();
+    };
+  }, []);
+
+  return monitor === undefined ? null : <SessionTimeoutWarning monitor={monitor} onSignOut={onSignOut} />;
+}
+
 export function AdminShell(): React.JSX.Element {
+  const { admin } = useAdmin();
+  const client = useQueryClient();
+  const [continuedWithout2fa, setContinuedWithout2fa] = useState(false);
+
+  if (admin !== undefined && !admin.twoFactorEnabled && !continuedWithout2fa) {
+    return (
+      <TwoFactorRequired
+        email={admin.email}
+        onSignOut={() => {
+          client.clear();
+          void adminSource.logout();
+        }}
+        {...(env.dataSource === "mock" ? { onContinueInDevelopment: () => setContinuedWithout2fa(true) } : {})}
+      />
+    );
+  }
+
+  return <Console />;
+}
+
+function Console(): React.JSX.Element {
   useAdminSync();
 
   const { admin, status } = useAdmin();
+  const complianceEnabled = useFlag("complianceEnabled");
   const connection = useConnection();
   const lastUpdatedAt = useLastUpdated();
   const client = useQueryClient();
@@ -193,8 +234,12 @@ export function AdminShell(): React.JSX.Element {
   const granted = admin?.permissions;
 
   const groups = useMemo(
-    () => NAV.map((group) => ({ ...group, items: group.items.filter((item) => item.permission === undefined || granted?.includes(item.permission) === true) })).filter((group) => group.items.length > 0),
-    [granted],
+    () =>
+      NAV.map((group) => ({
+        ...group,
+        items: group.items.filter((item) => (item.permission === undefined || granted?.includes(item.permission) === true) && (item.flag === undefined || (item.flag === "complianceEnabled" && complianceEnabled))),
+      })).filter((group) => group.items.length > 0),
+    [granted, complianceEnabled],
   );
 
   useEffect(() => {
@@ -251,6 +296,7 @@ export function AdminShell(): React.JSX.Element {
       {!wide && <NavDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} groups={groups} />}
 
       <div className="flex min-w-0 flex-1 flex-col">
+        {env.dataSource === "mock" && <DevelopmentBanner />}
         <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-surface px-4 lg:px-6">
           {!wide && (
             <IconButton label="Open navigation" size="sm" onClick={() => setDrawerOpen(true)}>
@@ -269,7 +315,6 @@ export function AdminShell(): React.JSX.Element {
               <span className="hidden truncate md:block">Jump to</span>
               <kbd className="ml-auto hidden rounded-xs border border-border px-1 font-mono text-[10px] md:block">Ctrl K</kbd>
             </button>
-            {env.dataSource === "mock" && <span className="hidden rounded-xs border border-border-strong px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-caps text-text-secondary xl:block">Mock data</span>}
             <StatusBadge status={connection === "CONNECTED" ? "ONLINE" : connection === "OFFLINE" || connection === "FAILED" ? "OFFLINE" : "PENDING"} className="hidden xl:inline-flex">
               {connection === "CONNECTED" ? "Realtime connected" : connection === "OFFLINE" ? "Offline" : connection === "FAILED" ? "Realtime unavailable" : "Connecting"}
             </StatusBadge>
@@ -307,6 +352,7 @@ export function AdminShell(): React.JSX.Element {
       </div>
 
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} items={groups.flatMap((g) => g.items)} />
+      {status === "AUTHENTICATED" && <SessionWarning onSignOut={signOut} />}
       {status === "EXPIRED" && <SessionExpiredOverlay email={admin?.email} />}
     </div>
   );

@@ -23,6 +23,8 @@ import { useAsync } from "../hooks/useAsync";
 import { useLiveMatch } from "../hooks/useLiveMatch";
 import { useNow } from "../hooks/useNow";
 import { cn } from "../lib/cn";
+import { freshness, liveClockNow, useDataHealth } from "../lib/dataHealth";
+import { clockTime } from "../components/ConnectionPill";
 import { dataSource } from "../services/dataSource";
 
 const KEY_EVENTS = new Set<MatchEventView["kind"]>([
@@ -71,6 +73,7 @@ export function LiveScreen(): React.JSX.Element {
     5000,
   );
   const now = useNow(250);
+  const health = useDataHealth();
 
   useEffect(() => {
     if (matchId !== undefined) dataSource.recordView(matchId as never);
@@ -96,7 +99,8 @@ export function LiveScreen(): React.JSX.Element {
     );
   }
 
-  const clock = displayClock(match.clock, now);
+  const stale = freshness(health, now, true) === "stale";
+  const clock = displayClock(match.clock, liveClockNow(health.realtimeDownSince, now));
   const inPlay = isInPlay(match.phase);
   const events = match.events
     .filter((e) => KEY_EVENTS.has(e.kind))
@@ -115,7 +119,7 @@ export function LiveScreen(): React.JSX.Element {
               {match.leagueCode} · {formatMatchday(match.matchday)}
             </span>
           </div>
-          <div className="flex items-stretch overflow-hidden rounded-md bg-black/70 text-white backdrop-blur-sm">
+          <div className={cn("flex items-stretch overflow-hidden rounded-md bg-black/70 text-white backdrop-blur-sm", stale && "opacity-60")} aria-describedby={stale ? "tv-live-stale" : undefined}>
             <span className="flex items-center gap-[0.7rem] px-[1.2rem] py-[0.7rem] font-display text-[1.7rem] font-black">
               <TeamMark team={match.home} size="md" />
               {match.home.code}
@@ -130,7 +134,7 @@ export function LiveScreen(): React.JSX.Element {
             <span
               className={cn(
                 "flex items-center border-l border-white/15 px-[1.2rem] font-display text-[1.7rem] font-black tabular",
-                inPlay ? "text-live" : "text-white/70",
+                inPlay && !stale ? "text-live" : "text-white/70",
               )}
             >
               {match.phase === "HALFTIME"
@@ -171,14 +175,19 @@ export function LiveScreen(): React.JSX.Element {
             )}
           </div>
         )}
-        {connection !== "CONNECTED" && (
+        {(connection !== "CONNECTED" || stale) && (
           <div
+            id="tv-live-stale"
             role="status"
             className="absolute bottom-[1.4rem] right-[1.4rem] rounded-md bg-warning px-[1rem] py-[0.6rem] text-[1rem] font-bold text-text-on-status"
           >
-            {connection === "OFFLINE"
-              ? "Connection lost · showing last known state"
-              : "Reconnecting…"}
+            {stale
+              ? `Out of date · live updates stopped at ${clockTime(health.realtimeDownSince ?? now)}`
+              : connection === "OFFLINE" || connection === "FAILED"
+                ? "Connection lost · showing last known state"
+                : connection === "CONNECTING"
+                  ? "Connecting…"
+                  : "Reconnecting…"}
           </div>
         )}
         <BroadcastOverlay match={match} lastEvent={lastEvent} />

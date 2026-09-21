@@ -10,6 +10,9 @@ interface ImportMetaEnv {
   readonly VITE_FEATURE_FLAGS?: string;
   readonly VITE_REQUEST_TIMEOUT_MS?: string;
   readonly VITE_LOG_LEVEL?: string;
+  readonly VITE_PRINTER?: string;
+  readonly VITE_PRINTER_BRIDGE_URL?: string;
+  readonly VITE_FEATURE_CASH_SHIFTS?: string;
 }
 
 interface ImportMeta {

@@ -1,4 +1,3 @@
-import { getTicketPrinter } from "../services/ticketPrinter";
 import { useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
@@ -7,6 +6,7 @@ import { Button, ConfirmDialog, ErrorState, LoadingState, presentError, useToast
 import { Guard } from "../components/Guard";
 import { TicketReceipt } from "../components/TicketReceipt";
 import { useCancelTicket, useTicket } from "../hooks/queries";
+import { usePrintReceipt } from "../hooks/usePrint";
 import { useShopSession } from "../hooks/useShopSession";
 import { queryKeys } from "../lib/queryKeys";
 import { isPayable } from "../lib/ticket";
@@ -21,6 +21,7 @@ function TicketView(): React.JSX.Element {
   const ticket = useTicket(code);
   const cancel = useCancelTicket();
   const [cancelling, setCancelling] = useState(false);
+  const printer = usePrintReceipt();
 
   if (ticket.isPending) return <LoadingState label="Fetching ticket" />;
   if (ticket.isError) return <ErrorState error={ticket.error} onRetry={() => void ticket.refetch()} />;
@@ -55,9 +56,10 @@ function TicketView(): React.JSX.Element {
           <Button
             size="lg"
             autoFocus
+            loading={printer.printing}
             icon={<Printer className="size-4" />}
             onClick={() => {
-              void getTicketPrinter().print({ kind: "ticket", reference: t.code });
+              printer.print({ kind: "ticket", ticket: t });
             }}
           >
             Print

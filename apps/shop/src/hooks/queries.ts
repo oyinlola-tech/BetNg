@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { LeagueId, MatchId } from "@betng/contracts";
+import type { CashMovementRequest, CloseShiftRequest } from "@betng/contracts";
 import type { MatchFilter, PlaceTicketInput, TicketFilter } from "@betng/ui-core";
 import { queryKeys } from "../lib/queryKeys";
 import { dataSource, shopSource } from "../services/dataSource";
@@ -85,6 +86,50 @@ export function usePayoutTicket() {
 
 export function useCancelTicket() {
   return useMutation({ mutationFn: (input: { readonly code: string; readonly reason: string }) => shopSource.cancelTicket(input.code, input.reason) });
+}
+
+export function useCurrentShift(enabled = true) {
+  return useQuery({ queryKey: queryKeys.currentShift, queryFn: () => shopSource.shifts.getCurrent(), enabled, retry: false, refetchInterval: 30_000 });
+}
+
+export function useShifts(date: string | undefined, enabled = true) {
+  return useQuery({ queryKey: queryKeys.shifts(date), queryFn: () => shopSource.shifts.list(date), enabled, retry: false, placeholderData: (previous) => previous });
+}
+
+export function useOpenShift() {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: { readonly openingFloat: number; readonly key: string }) => shopSource.shifts.open(input.openingFloat, input.key),
+    onSuccess: (shift) => {
+      client.setQueryData(queryKeys.currentShift, shift);
+      void client.invalidateQueries({ queryKey: queryKeys.shop });
+    },
+  });
+}
+
+export function useRecordCash() {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: { readonly request: CashMovementRequest; readonly key: string }) => shopSource.shifts.recordCash(input.request, input.key),
+    onSuccess: (shift) => {
+      client.setQueryData(queryKeys.currentShift, shift);
+      void client.invalidateQueries({ queryKey: queryKeys.shop });
+    },
+  });
+}
+
+export function useCloseShift() {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: { readonly shiftId: string; readonly request: CloseShiftRequest; readonly key: string }) => shopSource.shifts.close(input.shiftId, input.request, input.key),
+    onSuccess: () => {
+      client.setQueryData(queryKeys.currentShift, null);
+      void client.invalidateQueries({ queryKey: queryKeys.shop });
+    },
+  });
 }
 
 /** Tickets settle and the float moves underneath the screens; one subscription keeps every shop query honest. */

@@ -12,4 +12,6 @@ export const queryKeys = {
   dailyReport: (date?: string) => ["shop", "report", date ?? "today"] as const,
   reportRange: (from: string, to: string) => ["shop", "reports", from, to] as const,
   cashiers: ["shop", "cashiers"] as const,
+  currentShift: ["shop", "shift", "current"] as const,
+  shifts: (date?: string) => ["shop", "shifts", date ?? "today"] as const,
 };

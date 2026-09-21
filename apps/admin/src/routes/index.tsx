@@ -1,14 +1,15 @@
 import { lazy, Suspense } from "react";
 import { Outlet, createBrowserRouter, type RouteObject } from "react-router";
 import type { AdminPermission } from "@betng/contracts";
+import type { FeatureFlag } from "@betng/ui-core";
 import { AdminSkeleton, RouteErrorBoundary } from "@betng/ui-web";
-import { RequirePermission } from "../components/Guard";
+import { RequireFlag, RequirePermission } from "../components/Guard";
 import { AdminShell } from "../layouts/AdminShell";
 import { logger } from "../services/runtime";
 
 type Loader = () => Promise<{ readonly default: React.ComponentType }>;
 
-function page(load: Loader, permission?: AdminPermission): React.ComponentType {
+function page(load: Loader, permission?: AdminPermission, flag?: FeatureFlag): React.ComponentType {
   const Loaded = lazy(load);
 
   return function Page() {
@@ -18,7 +19,9 @@ function page(load: Loader, permission?: AdminPermission): React.ComponentType {
       </Suspense>
     );
 
-    return permission === undefined ? content : <RequirePermission permission={permission}>{content}</RequirePermission>;
+    const guarded = permission === undefined ? content : <RequirePermission permission={permission}>{content}</RequirePermission>;
+
+    return flag === undefined ? guarded : <RequireFlag flag={flag}>{guarded}</RequireFlag>;
   };
 }
 
@@ -48,6 +51,9 @@ export const routes: RouteObject[] = [
         children: [
           { index: true, Component: page(pick(() => import("../pages/DashboardPage"), "DashboardPage")) },
           { path: "users", Component: page(pick(() => import("../pages/UsersPage"), "UsersPage"), "users:read") },
+          { path: "kyc", Component: page(pick(() => import("../pages/KycReviewPage"), "KycReviewPage"), "kyc:read", "complianceEnabled") },
+          { path: "responsible-gaming", Component: page(pick(() => import("../pages/ResponsibleGamingPage"), "ResponsibleGamingPage"), "users:read", "complianceEnabled") },
+          { path: "payments", Component: page(pick(() => import("../pages/PaymentsPage"), "PaymentsPage"), "payments:read", "complianceEnabled") },
           { path: "shops", Component: page(pick(() => import("../pages/ShopsPage"), "ShopsPage"), "shops:read") },
           { path: "shops/:shopId", Component: page(pick(() => import("../pages/ShopDetailPage"), "ShopDetailPage"), "shops:read") },
           { path: "cashiers", Component: page(pick(() => import("../pages/CashiersPage"), "CashiersPage"), "shops:read") },

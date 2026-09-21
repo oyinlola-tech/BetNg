@@ -1,5 +1,5 @@
-import { createMockAdminSource, createMockDataSource } from "@betng/mock-data";
-import type { AdminDataSource, BetNgDataSource, SessionStorage } from "@betng/ui-core";
+import { createMockAdminSource, createMockComplianceSource, createMockDataSource } from "@betng/mock-data";
+import type { AdminDataSource, BetNgDataSource, ComplianceDataSource, SessionStorage } from "@betng/ui-core";
 
 export interface DemoSignIn {
   readonly email: string;
@@ -11,6 +11,7 @@ export interface DemoSignIn {
 export interface MockSources {
   readonly dataSource: BetNgDataSource;
   readonly adminSource: AdminDataSource;
+  readonly compliance: ComplianceDataSource;
   readonly demoSignIns: readonly DemoSignIn[];
 }
 
@@ -34,9 +35,12 @@ export function createMockSources(storage: { readonly session: Required<SessionS
     dataSource.platform.setOnline(true);
   });
 
+  const adminSource = createMockAdminSource({ platform: dataSource.platform, storage: storage.local, sessionStorage: storage.session });
+
   return {
     dataSource,
-    adminSource: createMockAdminSource({ platform: dataSource.platform, storage: storage.local, sessionStorage: storage.session }),
+    adminSource,
+    compliance: createMockComplianceSource({ session: adminSource.session }),
     demoSignIns: DEMO_SIGN_INS,
   };
 }

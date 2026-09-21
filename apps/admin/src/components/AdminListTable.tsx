@@ -1,6 +1,6 @@
 import { X } from "lucide-react";
 import { Button, DataTable, SearchInput, Select, emptyPresets, type Column } from "@betng/ui-web";
-import { ANY, PAGE_SIZES, type AdminList, type AdminListResource, type AdminListRows } from "../hooks/useAdminList";
+import { ANY, PAGE_SIZES, type PagedList } from "../hooks/useAdminList";
 import { formatCount } from "../lib/format";
 
 export interface ListFilter {
@@ -10,23 +10,23 @@ export interface ListFilter {
   readonly options: readonly { readonly value: string; readonly label: string }[];
 }
 
-export interface AdminListTableProps<K extends AdminListResource> {
-  readonly list: AdminList<K>;
+export interface AdminListTableProps<T> {
+  readonly list: PagedList<T>;
   readonly caption: string;
   readonly noun: string;
-  readonly columns: readonly Column<AdminListRows[K]>[];
-  readonly rowKey: (row: AdminListRows[K]) => string;
+  readonly columns: readonly Column<T>[];
+  readonly rowKey: (row: T) => string;
   readonly search?: { readonly label: string; readonly placeholder: string };
   readonly filters?: readonly ListFilter[];
   readonly toolbarStart?: React.ReactNode;
-  readonly onRowClick?: (row: AdminListRows[K]) => void;
+  readonly onRowClick?: (row: T) => void;
   readonly selectedKey?: string | undefined;
-  readonly rowActions?: (row: AdminListRows[K]) => React.ReactNode;
-  readonly renderCard: (row: AdminListRows[K]) => React.ReactNode;
+  readonly rowActions?: (row: T) => React.ReactNode;
+  readonly renderCard: (row: T) => React.ReactNode;
 }
 
 /** The one table every server-driven admin list uses: the platform pages, sorts, searches and filters; this renders the page it answers. */
-export function AdminListTable<K extends AdminListResource>({ list, caption, noun, columns, rowKey, search, filters = [], toolbarStart, onRowClick, selectedKey, rowActions, renderCard }: AdminListTableProps<K>): React.JSX.Element {
+export function AdminListTable<T>({ list, caption, noun, columns, rowKey, search, filters = [], toolbarStart, onRowClick, selectedKey, rowActions, renderCard }: AdminListTableProps<T>): React.JSX.Element {
   const { query, state } = list;
   const total = query.data?.total;
   const preset = emptyPresets.noAdminRecords;

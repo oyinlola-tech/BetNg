@@ -1,8 +1,10 @@
+import { useEffect } from "react";
 import { WifiOff } from "lucide-react";
 import { useConnection } from "../hooks/useConnection";
-import { useDataHealth } from "../lib/dataHealth";
+import { useNow } from "../hooks/useNow";
+import { freshness, isRealtimeDown, reportConnection, useDataHealth } from "../lib/dataHealth";
 
-function clockTime(at: number): string {
+export function clockTime(at: number): string {
   return new Date(at).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 }
 
@@ -10,11 +12,23 @@ function clockTime(at: number): string {
 export function ConnectionPill(): React.JSX.Element | null {
   const connection = useConnection();
   const health = useDataHealth();
-  const socketDown = connection === "OFFLINE" || connection === "RECONNECTING" || connection === "FAILED";
+  const now = useNow(1000);
+  const socketDown = isRealtimeDown(connection);
+
+  useEffect(() => {
+    reportConnection(connection);
+  }, [connection]);
 
   if (!socketDown && !health.failing) return null;
 
-  const headline = connection === "OFFLINE" || connection === "FAILED" ? "Connection lost" : socketDown ? "Reconnecting" : "Updates delayed";
+  const stale = freshness(health, now) === "stale";
+  const headline = stale
+    ? "Data out of date"
+    : connection === "OFFLINE" || connection === "FAILED"
+      ? "Connection lost"
+      : socketDown
+        ? "Reconnecting"
+        : "Updates delayed";
 
   return (
     <div

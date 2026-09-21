@@ -11,6 +11,8 @@ interface ExpoExtra {
   readonly featureFlags?: string;
   readonly requestTimeoutMs?: string;
   readonly logLevel?: string;
+  readonly siteUrl?: string;
+  readonly checkoutHosts?: string;
 }
 
 const extra = (Constants.expoConfig?.extra ?? {}) as ExpoExtra;
@@ -26,6 +28,8 @@ const raw: RawEnv = {
   VITE_FEATURE_FLAGS: extra.featureFlags,
   VITE_REQUEST_TIMEOUT_MS: extra.requestTimeoutMs ?? "15000",
   VITE_LOG_LEVEL: extra.logLevel,
+  VITE_SITE_URL: extra.siteUrl,
+  VITE_CHECKOUT_HOSTS: extra.checkoutHosts,
 };
 
 export const env = readClientEnv(raw);

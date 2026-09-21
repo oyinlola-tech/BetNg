@@ -1,5 +1,6 @@
 import type { ShopPermission } from "@betng/contracts";
-import { Banknote, BarChart3, CalendarCheck, CircleDot, ClipboardList, FilePlus2, FileText, Gauge, HandCoins, KeyRound, Radio, Receipt, ReceiptText, ScanLine, Trophy, UserRound, type LucideIcon } from "lucide-react";
+import type { FeatureFlag } from "@betng/ui-core";
+import { Banknote, BarChart3, CalendarCheck, CircleDot, ClipboardList, FilePlus2, FileText, Gauge, HandCoins, KeyRound, Radio, Receipt, ReceiptText, Scale, ScanLine, Timer, Trophy, UserRound, type LucideIcon } from "lucide-react";
 
 export interface NavItem {
   readonly to: string;
@@ -7,6 +8,7 @@ export interface NavItem {
   readonly icon: LucideIcon;
   readonly permission?: ShopPermission;
   readonly shortcut?: string;
+  readonly flag?: FeatureFlag;
 }
 
 export interface NavGroup {
@@ -38,6 +40,7 @@ export const NAVIGATION: readonly NavGroup[] = [
     label: "Cashier",
     items: [
       { to: "/cashier/payout", label: "Payout", icon: HandCoins, permission: "tickets:payout", shortcut: "F4" },
+      { to: "/cashier/shift", label: "Shift", icon: Timer, permission: "tickets:sell", shortcut: "F7", flag: "cashShiftsEnabled" },
       { to: "/cashier/transactions", label: "Transactions", icon: ReceiptText, permission: "transactions:read" },
     ],
   },
@@ -47,6 +50,7 @@ export const NAVIGATION: readonly NavGroup[] = [
       { to: "/reports/daily", label: "Daily Report", icon: FileText, permission: "reports:read" },
       { to: "/reports/sales", label: "Sales", icon: BarChart3, permission: "reports:read" },
       { to: "/reports/payouts", label: "Payouts", icon: Banknote, permission: "reports:read" },
+      { to: "/reports/shifts", label: "Shift Reconciliation", icon: Scale, permission: "reports:read", flag: "cashShiftsEnabled" },
     ],
   },
   {

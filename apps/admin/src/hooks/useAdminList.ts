@@ -58,11 +58,9 @@ export interface AdminListState {
   readonly filters: Readonly<Record<string, string>>;
 }
 
-export interface AdminList<K extends AdminListResource> {
-  readonly resource: K;
+export interface ListParams {
   readonly state: AdminListState;
   readonly request: AdminListQuery;
-  readonly query: UseQueryResult<Page<RowOf<K>>>;
   readonly searchInput: string;
   readonly setSearchInput: (value: string) => void;
   readonly setPage: (page: number) => void;
@@ -73,6 +71,16 @@ export interface AdminList<K extends AdminListResource> {
   readonly isFiltered: boolean;
 }
 
+export interface PagedList<T> extends ListParams {
+  readonly query: UseQueryResult<Page<T>>;
+}
+
+export interface AdminList<K extends AdminListResource> extends PagedList<RowOf<K>> {
+  readonly resource: K;
+}
+
+export type ListParamsOptions = Pick<AdminListOptions, "defaults" | "filterKeys" | "fixedFilters">;
+
 const SEARCH_DEBOUNCE_MS = 300;
 
 function positiveInt(raw: string | null, fallback: number): number {
@@ -81,8 +89,9 @@ function positiveInt(raw: string | null, fallback: number): number {
   return Number.isInteger(value) && value > 0 ? value : fallback;
 }
 
-export function useAdminList<K extends AdminListResource>(resource: K, options: AdminListOptions = {}): AdminList<K> {
-  const { defaults = {}, filterKeys = [], fixedFilters, enabled = true, refetchInterval } = options;
+/** Page, size, sort, search and filters read from and written to the URL, so a view can be shared and survives reload. */
+export function useListParams(options: ListParamsOptions = {}): ListParams {
+  const { defaults = {}, filterKeys = [], fixedFilters } = options;
   const [params, setParams] = useSearchParams();
   const defaultPageSize = defaults.pageSize ?? 25;
 
@@ -169,21 +178,11 @@ export function useAdminList<K extends AdminListResource>(resource: K, options: 
     [page, pageSize, sortKey, direction, search, filters, JSON.stringify(fixedFilters ?? {})],
   );
 
-  const query = useQuery({
-    queryKey: keys.list(resource, request),
-    queryFn: () => adminSource.queryList(resource, request),
-    placeholderData: keepPreviousData,
-    enabled,
-    ...(refetchInterval === undefined ? {} : { refetchInterval: Math.max(5000, refetchInterval) }),
-  }) as UseQueryResult<Page<RowOf<K>>>;
-
   const isFiltered = search !== "" || filterKeys.some((key) => params.get(key) !== null);
 
   return {
-    resource,
     state: { page, pageSize, sort, search, filters },
     request,
-    query,
     searchInput,
     setSearchInput,
     setPage: (next) => {
@@ -208,4 +207,19 @@ export function useAdminList<K extends AdminListResource>(resource: K, options: 
     },
     isFiltered,
   };
+}
+
+export function useAdminList<K extends AdminListResource>(resource: K, options: AdminListOptions = {}): AdminList<K> {
+  const { enabled = true, refetchInterval } = options;
+  const params = useListParams(options);
+
+  const query = useQuery({
+    queryKey: keys.list(resource, params.request),
+    queryFn: () => adminSource.queryList(resource, params.request),
+    placeholderData: keepPreviousData,
+    enabled,
+    ...(refetchInterval === undefined ? {} : { refetchInterval: Math.max(5000, refetchInterval) }),
+  }) as UseQueryResult<Page<RowOf<K>>>;
+
+  return { ...params, resource, query };
 }

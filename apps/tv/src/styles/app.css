@@ -126,19 +126,32 @@
   @apply text-[0.8rem] font-semibold uppercase tracking-caps text-text-muted;
 }
 
-/* The remote focus ring: thick, high-contrast, and scaled slightly so it reads across a room. */
+/* The remote focus ring: a light inner band and a blue outer band, so it reads on any surface across a room. */
 @utility tv-focus {
   outline: none;
   transition:
     transform var(--bn-duration-base) var(--bn-ease-standard),
     box-shadow var(--bn-duration-base) var(--bn-ease-standard);
-  &:focus-visible,
+  &:focus,
   &[data-focused="true"] {
     box-shadow:
-      0 0 0 0.2rem var(--bn-background),
-      0 0 0 0.45rem var(--bn-focus-ring);
-    transform: scale(1.03);
+      0 0 0 0.15rem var(--bn-text-primary),
+      0 0 0 calc(0.15rem + var(--bn-tv-focus-ring, 0.3rem)) var(--bn-focus-ring);
+    transform: scale(var(--bn-tv-focus-scale, 1.03));
     z-index: 1;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    &:focus,
+    &[data-focused="true"] {
+      transform: none;
+    }
+  }
+  @media (forced-colors: active) {
+    &:focus,
+    &[data-focused="true"] {
+      outline: 0.3rem solid Highlight;
+      outline-offset: 0.15rem;
+    }
   }
 }
 

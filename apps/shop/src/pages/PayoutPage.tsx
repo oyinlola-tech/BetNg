@@ -1,4 +1,3 @@
-import { getTicketPrinter } from "../services/ticketPrinter";
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
@@ -11,6 +10,7 @@ import { PageHeader } from "../components/PageHeader";
 import { TicketScanner } from "../components/TicketScanner";
 import { TicketReceipt } from "../components/TicketReceipt";
 import { usePayoutTicket, useTicket } from "../hooks/queries";
+import { usePrintReceipt } from "../hooks/usePrint";
 import { queryKeys } from "../lib/queryKeys";
 import { TICKET_STATUS, isPayable } from "../lib/ticket";
 
@@ -41,12 +41,13 @@ function Payout(): React.JSX.Element {
   const [code, setCode] = useState(params.get("code") ?? "");
   const [confirming, setConfirming] = useState(false);
   const [pin, setPin] = useState("");
-  const [paid, setPaid] = useState<Ticket | undefined>();
+  const [paid, setPaid] = useState<{ readonly ticket: Ticket; readonly refund: boolean } | undefined>();
+  const printer = usePrintReceipt();
   const ticket = useTicket(code === "" ? undefined : code);
   const payout = usePayoutTicket();
-  const current = paid ?? ticket.data;
+  const current = paid?.ticket ?? ticket.data;
   const amount = current === undefined ? 0 : (current.payout ?? current.potentialPayout);
-  const refund = current?.status === "VOID";
+  const refund = paid?.refund ?? current?.status === "VOID";
   const pinRejected = payout.error instanceof DataSourceError && payout.error.code === "INVALID_CREDENTIALS";
 
   const confirm = (value: string): void => {
@@ -57,7 +58,7 @@ function Payout(): React.JSX.Element {
       {
         onSuccess: (next) => {
           client.setQueryData(queryKeys.ticket(next.code), next);
-          setPaid(next);
+          setPaid({ ticket: next, refund: current.status === "VOID" });
           setConfirming(false);
           toast({ tone: "success", title: `${formatMoney(next.payout ?? 0)} paid`, message: `Ticket ${next.code}` });
         },
@@ -74,7 +75,7 @@ function Payout(): React.JSX.Element {
     <div className="mx-auto max-w-4xl p-4 lg:p-6">
       <PageHeader title="Payout" description="Pay a winning ticket or refund a void one. Every payout needs your PIN." />
       <TicketScanner
-        key={paid?.code ?? "lookup"}
+        key={paid?.ticket.code ?? "lookup"}
         label="Ticket ID"
         actionLabel="Find"
         initial={code}
@@ -105,14 +106,15 @@ function Payout(): React.JSX.Element {
                     <BadgeCheck className="size-5 text-success" aria-hidden />
                     Payout complete
                   </p>
-                  <p className="mt-2 font-display text-4xl font-bold tabular text-text-primary">{formatMoney(paid.payout ?? 0)}</p>
+                  <p className="mt-2 font-display text-4xl font-bold tabular text-text-primary">{formatMoney(paid.ticket.payout ?? 0)}</p>
                   <p className="mt-1 text-sm text-text-secondary">Hand the cash to the customer and keep the ticket. The payout is in the transaction log under your name.</p>
                   <div className="mt-4 flex flex-wrap gap-2">
                     <Button
                       variant="secondary"
+                      loading={printer.printing}
                       icon={<Printer className="size-4" />}
                       onClick={() => {
-                        void getTicketPrinter().print({ kind: "payout-receipt" });
+                        printer.print({ kind: "payout", ticket: paid.ticket, refund: paid.refund });
                       }}
                     >
                       Print receipt

@@ -7,6 +7,7 @@ import { Countdown, ErrorPanel, Focusable, Skeleton, TeamMark } from "../compone
 import { useAsync } from "../hooks/useAsync";
 import { useNow } from "../hooks/useNow";
 import { cn } from "../lib/cn";
+import { polledClockNow, useDataHealth } from "../lib/dataHealth";
 import { dataSource } from "../services/dataSource";
 
 const PHASES: readonly MatchPhase[] = ["BETTING_OPEN", "BETTING_CLOSED", "LIVE", "HALFTIME"];
@@ -55,6 +56,7 @@ function previewCells(markets: MatchMarketsView | undefined): readonly LeadingCe
 export function BoardScreen(): React.JSX.Element {
   const [params] = useSearchParams();
   const now = useNow(1000);
+  const health = useDataHealth();
   const leagues = useAsync(() => dataSource.listLeagues(), [], 30_000);
   const inPlay = useAsync(() => dataSource.listMatches({ phases: ["LIVE", "HALFTIME"] }), [], 4000);
   const requested = params.get("league") ?? undefined;
@@ -105,7 +107,7 @@ export function BoardScreen(): React.JSX.Element {
   });
 
   const changed = (matchId: string, key: string): boolean => now - (seen.current.get(`${matchId}:${key}`)?.at ?? 0) < HIGHLIGHT_MS;
-  const clock = displayClock(week?.matches.find((m) => isInPlay(m.phase))?.clock, now);
+  const clock = displayClock(week?.matches.find((m) => isInPlay(m.phase))?.clock, polledClockNow(health, now));
   const halftime = week?.matches.every((m) => m.phase === "HALFTIME") ?? false;
   const headers = rows[0]?.cells ?? (week?.live === true ? leadingSelections(undefined, { home: 0, away: 0 }) : previewCells(undefined));
 

@@ -41,7 +41,7 @@ export function TicketReceipt({ ticket, className }: { readonly ticket: Ticket; 
   const meta = TICKET_STATUS[ticket.status];
 
   return (
-    <article data-print="ticket" aria-label={`Ticket ${ticket.code}`} className={cn("w-full max-w-sm rounded-md border border-border bg-surface text-base shadow-sm", className)}>
+    <article aria-label={`Ticket ${ticket.code}`} className={cn("w-full max-w-sm rounded-md border border-border bg-surface text-base shadow-sm", className)}>
       <header className="flex items-center justify-between px-5 pt-5">
         <BrandLogo size={26} />
         <TicketStatusBadge status={ticket.status} size="md" solid={ticket.status === "WON"} />

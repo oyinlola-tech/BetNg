@@ -1,11 +1,12 @@
 import { LogoMark } from "../components/BrandMarks";
 import { NavLink, Outlet, useLocation } from "react-router";
 import { Radio } from "lucide-react";
-import { ConnectionPill, ScreenBoundary } from "../components";
+import { ConnectionPill, DevelopmentBanner, ScreenBoundary } from "../components";
 import { useIdleBroadcast } from "../hooks/useIdleBroadcast";
 import { useNow } from "../hooks/useNow";
 import { cn } from "../lib/cn";
 import { useRemote } from "../navigation/useRemote";
+import { getRuntimeInfo } from "../services/dataSource";
 
 const NAV = [
   { to: "/", label: "Home", end: true },
@@ -23,6 +24,7 @@ export function Shell(): React.JSX.Element {
 
   const now = useNow(1000);
   const location = useLocation();
+  const mock = getRuntimeInfo().mode === "mock";
 
   return (
     <div className="flex h-dvh flex-col px-[3rem] py-[1.6rem]">
@@ -86,6 +88,7 @@ export function Shell(): React.JSX.Element {
         <Hint keys="↑ ↓ ← →" label="Move" />
         <Hint keys="OK" label="Select" />
         <Hint keys="Back" label="Previous screen" />
+        {mock && <DevelopmentBanner />}
         <span className="ml-auto">
           Virtual football · simulated · no real money
         </span>

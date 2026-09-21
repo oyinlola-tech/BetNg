@@ -1,4 +1,3 @@
-import { getTicketPrinter } from "../services/ticketPrinter";
 import { useState } from "react";
 import { Printer } from "lucide-react";
 import type { ShopDailyReport } from "@betng/contracts";
@@ -8,6 +7,7 @@ import { Guard } from "../components/Guard";
 import { PageHeader } from "../components/PageHeader";
 import { useDailyReport } from "../hooks/queries";
 import { localDateKey } from "../lib/ticket";
+import { printPage } from "../services/printing";
 
 const DAYS = Array.from({ length: 14 }, (_, i) => {
   const key = localDateKey(-i);
@@ -41,7 +41,7 @@ function DailyReport(): React.JSX.Element {
               size="sm"
               icon={<Printer className="size-3.5" />}
               onClick={() => {
-                void getTicketPrinter().print({ kind: "report" });
+                printPage();
               }}
             >
               Print

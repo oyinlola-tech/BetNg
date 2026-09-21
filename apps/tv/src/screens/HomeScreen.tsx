@@ -17,6 +17,7 @@ import {
 import { useAsync } from "../hooks/useAsync";
 import { useNow } from "../hooks/useNow";
 import { cn } from "../lib/cn";
+import { polledClockNow, useDataHealth } from "../lib/dataHealth";
 import { dataSource } from "../services/dataSource";
 
 function Rail({
@@ -47,13 +48,14 @@ function Rail({
 
 function Hero({ match }: { readonly match: MatchSummary }): React.JSX.Element {
   const now = useNow(500);
-  const clock = displayClock(match.clock, now);
+  const health = useDataHealth();
+  const clock = displayClock(match.clock, polledClockNow(health, now));
 
   return (
     <Focusable
       to={`/live/${match.id}`}
       autoFocusOnMount
-      className="relative block w-full overflow-hidden border border-border bg-surface text-left focus-visible:scale-100!"
+      className="relative block w-full overflow-hidden border border-border bg-surface text-left focus:transform-none!"
     >
       <div className="flex items-center gap-[1rem] border-b border-border px-[1.6rem] py-[0.8rem]">
         <LiveTag phase={match.phase} large />

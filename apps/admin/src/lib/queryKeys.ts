@@ -23,6 +23,7 @@ export const keys = {
   reports: (from: string, to: string) => ["admin", "reports", from, to] as const,
   audit: (query: object) => ["admin", "audit", query] as const,
   settings: ["admin", "settings"] as const,
+  compliance: (view: string, query: object = {}) => ["admin", "compliance", view, query] as const,
   leagues: ["public", "leagues"] as const,
   standings: (leagueId: string) => ["public", "standings", leagueId] as const,
   liveMatches: ["public", "matches", "live"] as const,

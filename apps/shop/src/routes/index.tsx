@@ -35,6 +35,9 @@ const SalesReportPage = page(() => import("../pages/TrendReportPage").then((m) =
 const PayoutsReportPage = page(() => import("../pages/TrendReportPage").then((m) => ({ default: () => <m.TrendReportPage measure="payouts" /> })));
 const ProfilePage = page(() => import("../pages/ProfilePage").then((m) => ({ default: m.ProfilePage })));
 const SecurityPage = page(() => import("../pages/SecurityPage").then((m) => ({ default: m.SecurityPage })));
+const ShiftPage = page(() => import("../pages/ShiftPage").then((m) => ({ default: m.ShiftPage })));
+const ShiftClosePage = page(() => import("../pages/ShiftClosePage").then((m) => ({ default: m.ShiftClosePage })));
+const ReconciliationPage = page(() => import("../pages/ReconciliationPage").then((m) => ({ default: m.ReconciliationPage })));
 const NotFoundPage = page(() => import("../pages/NotFoundPage").then((m) => ({ default: m.NotFoundPage })));
 
 export const router = createBrowserRouter([
@@ -54,9 +57,12 @@ export const router = createBrowserRouter([
       { path: "tickets/:code", Component: TicketPage },
       { path: "cashier/payout", Component: PayoutPage },
       { path: "cashier/transactions", Component: TransactionsPage },
+      { path: "cashier/shift", Component: ShiftPage },
+      { path: "cashier/shift/close", Component: ShiftClosePage },
       { path: "reports/daily", Component: DailyReportPage },
       { path: "reports/sales", Component: SalesReportPage },
       { path: "reports/payouts", Component: PayoutsReportPage },
+      { path: "reports/shifts", Component: ReconciliationPage },
       { path: "account/profile", Component: ProfilePage },
       { path: "account/security", Component: SecurityPage },
       { path: "*", Component: NotFoundPage },

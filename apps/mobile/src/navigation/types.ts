@@ -23,6 +23,8 @@ export type RootStackParamList = {
   Settings: undefined;
   History: undefined;
   Auth: { view: AuthView; email?: string };
+  Bet: { betId: string };
+  Payment: { reference: string };
 };
 
 declare global {

@@ -1,5 +1,7 @@
+import { CircleSlash } from "lucide-react";
 import type { AdminPermission } from "@betng/contracts";
-import { Button, ForbiddenState, Tooltip, type ButtonProps } from "@betng/ui-web";
+import type { FeatureFlag } from "@betng/ui-core";
+import { Button, EmptyState, ForbiddenState, Tooltip, useFlag, type ButtonProps } from "@betng/ui-web";
 import { useAdmin } from "../hooks/useAdmin";
 import { missingPermission } from "../lib/navigation";
 
@@ -34,4 +36,17 @@ export function GuardedButton({ permission, blockedReason, disabled, children, .
       {button}
     </Tooltip>
   );
+}
+
+export function NotAvailableYet({ title = "Not available yet", description }: { readonly title?: string; readonly description: string }): React.JSX.Element {
+  return <EmptyState icon={<CircleSlash className="size-5" />} title={title} description={description} />;
+}
+
+/** The platform switches whole areas on with a feature flag; a direct link to one that is off lands here. */
+export function RequireFlag({ flag, children }: { readonly flag: FeatureFlag; readonly children: React.ReactNode }): React.JSX.Element {
+  const enabled = useFlag(flag);
+
+  if (!enabled) return <NotAvailableYet description="The platform has not switched this area on for this environment. Nothing here can be read or changed until it does." />;
+
+  return <>{children}</>;
 }

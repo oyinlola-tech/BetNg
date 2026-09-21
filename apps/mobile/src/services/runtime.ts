@@ -3,20 +3,25 @@ import {
   DEFAULT_FLAGS,
   configureCurrency,
   configureDateTime,
+  createPlatformAccountServices,
   createPlatformAuthSource,
   createPlatformClients,
   createPlatformDataSource,
   createSessionStore,
   resolveFlags,
+  type AccountServicesSource,
   type AuthDataSource,
   type BetNgDataSource,
   type FeatureFlags,
   type PlatformConfigView,
-  type SessionStorage,
 } from "@betng/ui-core";
 import { env } from "../configs/env";
 import { logger } from "./logger";
 import { storage } from "./storage";
+import { secureStorage } from "../platform";
+import { withOfflineCache } from "../platform/cachedDataSource";
+import { createOfflineCache } from "../platform/offlineCache";
+import { createSecureSessionStorage } from "../platform/secureStorage";
 
 export interface RuntimeInfo {
   readonly flags: FeatureFlags;
@@ -24,23 +29,15 @@ export interface RuntimeInfo {
   readonly mode: "mock" | "platform";
 }
 
-/* The customer token is held in memory only: AsyncStorage is not an encrypted store. */
-function memoryStorage(): Required<SessionStorage> {
-  const values = new Map<string, string>();
-
-  return {
-    get: (key) => values.get(key) ?? null,
-    set: (key, value) => {
-      values.set(key, value);
-    },
-    remove: (key) => {
-      values.delete(key);
-    },
-  };
-}
+const SESSION_KEY = "betng.session.customer";
+const secureSession = createSecureSessionStorage(secureStorage, (operation) => {
+  logger.warn("flow", `Secure storage ${operation} failed.`);
+});
+const offlineCache = createOfflineCache(storage);
 
 let dataSource: BetNgDataSource | undefined;
 let authSource: AuthDataSource | undefined;
+let accountServices: AccountServicesSource | undefined;
 let info: RuntimeInfo | undefined;
 
 function required<T>(value: T | undefined): T {
@@ -57,22 +54,31 @@ export function getAuthSource(): AuthDataSource {
   return required(authSource);
 }
 
+export function getAccountServices(): AccountServicesSource {
+  return required(accountServices);
+}
+
 export function getRuntimeInfo(): RuntimeInfo {
   return required(info);
 }
 
 async function createSources(): Promise<RuntimeInfo["mode"]> {
+  if (!secureStorage.persistent) logger.warn("flow", "Secure storage is unavailable in this build; the session will not persist across restarts.");
+
+  await secureSession.hydrate([SESSION_KEY]);
+
   if (env.dataSource === "mock" && (__DEV__ || env.appEnv === "test")) {
     const { createMockSources } = await import("./mockSources");
-    const mock = createMockSources(storage);
+    const mock = createMockSources({ session: secureSession.storage, local: storage });
 
-    dataSource = mock.dataSource;
+    dataSource = withOfflineCache(mock.dataSource, offlineCache);
     authSource = mock.authSource;
+    accountServices = mock.accountServices;
 
     return "mock";
   }
 
-  const session = createSessionStore<CustomerSession>("betng.session.customer", memoryStorage());
+  const session = createSessionStore<CustomerSession>(SESSION_KEY, secureSession.storage);
   const { rest, realtime } = createPlatformClients({
     env,
     getToken: () => session.token(),
@@ -93,13 +99,17 @@ async function createSources(): Promise<RuntimeInfo["mode"]> {
     }
   });
 
-  dataSource = createPlatformDataSource({
-    rest,
-    realtime,
-    userId: () => session.snapshot().session?.user.id,
-    storage,
-  });
+  dataSource = withOfflineCache(
+    createPlatformDataSource({
+      rest,
+      realtime,
+      userId: () => session.snapshot().session?.user.id,
+      storage,
+    }),
+    offlineCache,
+  );
   authSource = createPlatformAuthSource(rest, session);
+  accountServices = createPlatformAccountServices(rest, session, { uploadHosts: env.uploadHosts });
 
   return "platform";
 }
