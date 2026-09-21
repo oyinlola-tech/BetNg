@@ -102,6 +102,8 @@ All payloads are validated by the callee. `requestId` travels in RPC metadata.
 | `identity.recordAudit` | any → identity | `{ actorId, actorRole, action, entityType, entityId, before?, after?, reason?, severity?, requestId }` → `{ id }` |
 | `simulation.calculateProbabilities` | odds → simulation | `{ home: TeamStrength, away: TeamStrength }` → `{ homeXg, awayXg, maxGoals, scoreMatrix: number[][], modelVersion, configurationVersion }` (`scoreMatrix[h][a]`, sums to 1) |
 | `simulation.runMatch` | match → simulation | `{ matchId, home: { teamId, name, shortName, strength: TeamStrength }, away: {…} }` → `{ simulationId, matchId, status, duplicate, modelVersion, configurationVersion, seed, result: { homeGoals, awayGoals, winner, winningGap }, eventCount }`. Second call for the same match returns the stored run with `duplicate: true`; it never re-simulates |
+| `simulation.getSquads` | match → simulation | `{ home: { teamId, name }, away: {…} }` → per side `{ teamId, formation, starting[11], substitutes[] }`, the same deterministic squads the timeline draws its players from; carries no match or result |
+| `identity.notify` | settlement → identity | `{ customerId, kind, title, body, data?, dedupeKey? }` → `{ id, duplicate }` (idempotent by `dedupeKey`) |
 | `odds.publishMarkets` | match → odds | `{ matchId, home: TeamStrength, away: TeamStrength }` → `{ matchId, markets: number, oddsVersion }` (idempotent) |
 | `odds.setMatchMarketsStatus` | match → odds | `{ matchId, status: "OPEN" \| "CLOSED" \| "SETTLED" \| "VOID" }` → `{ updated }` |
 | `risk.evaluate` | betting → risk | `{ actor: { kind, id, shopId? }, stake, legs: [{ matchId, marketId, selectionId, odds }] }` → `RiskDecision` `{ decisionId, decision: "ACCEPT"\|"LIMIT"\|"REJECT", reason, maxStake }` |
@@ -110,7 +112,7 @@ All payloads are validated by the callee. `requestId` travels in RPC metadata.
 | `betting.applySettlement` | settlement → betting | `{ betId, outcome: "WON"\|"LOST"\|"VOID", payout, legs: [{ selectionId, outcome, result }], settledAt }` → `{ betId, status }` (idempotent) |
 | `settlement.settleMatch` | match → settlement | `{ matchId }` → `{ matchId, status, betsTotal, betsSettled, duplicate }` |
 | `settlement.voidMatch` | match → settlement | `{ matchId, reason }` → same shape |
-| `event.publish` | match, odds → event | `{ matchId, type, minute, side?, score, description }` → `{ sequence }` |
+| `event.publish` | match, odds → event | `{ matchId, type, minute, side?, score, description, clock? }` → `{ sequence }` |
 
 `TeamStrength` = `{ attack, defence, midfield, goalkeeping, pace, finishing, possession, form, homeAdvantage }`; ratings 0–100, `form` −10…+10.
 
@@ -118,7 +120,8 @@ All payloads are validated by the callee. `requestId` travels in RPC metadata.
 
 ### match (`match` schema)
 Tables: `leagues` (+`slug`, `sport`, `status`), `teams` (+`city`, `stadium`, colours, the nine strength columns), `fixtures` (+`season`), `matches` (+`lifecycle`, per-state timestamps, running score, `revealed_sequence`, failure fields), `match_transitions`.
-Public: `GET /leagues`, `/teams`, `/fixtures`, `/matches` (`leagueId?`, `status?`, `matchday?`, `season?`, `from?`, `to?`, `limit?`; default window kick-off within −30 min … +30 min), `/matches/:id`, `/matches/:id/events`, `/matches/:id/stats`, `/results` (`leagueId?`, `limit?`; completed matches with `result: { homeGoals, awayGoals, winner, winningGap }`), `/leagues/:id/standings`, `/leagues/:id/scorers`.
+Public: `GET /leagues`, `/teams`, `/fixtures`, `/matches` (`leagueId?`, `status?`, `matchday?`, `season?`, `from?`, `to?`, `limit?`; default window kick-off within −30 min … +30 min), `/matches/:id`, `/matches/:id/events`, `/matches/:id/stats`, `/matches/:id/lineups`, `/matches/:id/head-to-head`, `/search`, `/config` (currency, features, live stake limits, timing), `/results` (`leagueId?`, `limit?`; completed matches with `result: { homeGoals, awayGoals, winner, winningGap }`), `/leagues/:id/standings`, `/leagues/:id/scorers`.
+Lists are ordered by kick-off (descending for `status=COMPLETED`) and answer `truncated`. A `Match` carries the platform `clock` (`period`, `minute`, `asOf`, `minuteLengthMs`), so no client derives a minute from kick-off time.
 Admin: `GET/POST /admin/leagues`, `GET/POST /admin/teams`, `PATCH /admin/teams/:id`, `GET/POST /admin/fixtures`, `GET /admin/matches/:id`, `POST /admin/matches/:id/actions` (`OPEN_BETTING`, `CLOSE_BETTING`, `START_SIMULATION` and `RERUN_SIMULATION` only when no result exists — otherwise `RESULT_IMMUTABLE` — and `VOID_MATCH`).
 
 ### simulation (`simulation` schema)
@@ -143,7 +146,7 @@ Routes: `POST/GET /bets`, `GET /bets/:id`; `POST/GET /shop/tickets`, `GET /shop/
 
 ### wallet (`wallet` schema)
 Tables: `wallet_accounts` (`owner_type` `CUSTOMER`|`SHOP`, `owner_id`), `wallet_transactions` (append-only, idempotency key per account). An account is opened on first access for an owner that exists in `identity` (customers get `WELCOME_GRANT_KOBO`, shops `SHOP_OPENING_FLOAT_KOBO`). There is no `ADMIN` owner type.
-Routes: `GET /wallets/:userId`, `/wallets/:userId/transactions`, `POST /wallets/deposit`, `/wallets/withdraw` (simulated top-up), `GET /shop/transactions`, `GET /admin/wallet/overview`.
+Routes: `GET /wallets/:userId`, `/wallets/:userId/transactions` (`?page=` answers a `Page<Transaction>` with filters and an allowlisted sort), `POST /wallets/deposit`, `/wallets/withdraw` (simulated top-up), `GET /shop/transactions`, `GET /admin/wallet/overview`.
 
 ### settlement (`settlement` schema)
 Tables: `settlements` (unique `bet_id, revision`), `settled_selections`, `match_settlements`, `operator_periods`, `operator_ledger_entries` (one per settlement, same transaction), `operator_ledger`, `commission_config`, `commission_ledger`.
@@ -151,8 +154,8 @@ Tables: `settlements` (unique `bet_id, revision`), `settled_selections`, `match_
 Routes: `GET /settlements`, `/settlements/:betId`; admin: `GET /admin/settlements`, `POST /admin/settlements/:id/retry`, `GET /admin/operator`, `GET /admin/operator/periods`, `POST /admin/operator/periods/close`, `GET/PUT /admin/commission/config`, `GET /admin/commission`.
 
 ### identity (`identity` schema)
-Tables: `customers`, `email_verifications`, `admin_users`, `shops`, `cashiers`, `sessions` (token hash only), `audit_logs`, `platform_settings`.
-Routes: `/auth/*`, `/shop/auth/*`, `/shop/cashiers`, `/admin/auth/*`, `/admin/users*`, `/admin/shops*`, `/admin/audit`, `/admin/settings` — see `docs/frontend-api.md`.
+Tables: `customers`, `email_verifications`, `admin_users`, `shops`, `cashiers`, `sessions` (token hash only), `audit_logs`, `platform_settings`, `notifications`, `login_throttles`.
+Routes: `/users/:id/notifications` (+`/read`; customer only, own id or `me`), `/auth/*`, `/shop/auth/*`, `/shop/cashiers`, `/admin/auth/*`, `/admin/users*`, `/admin/shops*`, `/admin/audit`, `/admin/settings` — see `docs/frontend-api.md`.
 
 ### analytics (read-only)
 Every figure is a SQL aggregate over `betting`, `settlement`, `risk`, `match`, `odds`, `identity`; formulas are in `docs/analytics.md`.

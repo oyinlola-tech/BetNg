@@ -33,7 +33,7 @@ Browser apps read these at build time through `readClientEnv` (`packages/ui-core
 | `VITE_WS_URL` | `ws://localhost:3008/live` | Public realtime endpoint. `VITE_LIVE_URL` is still accepted |
 | `VITE_REALTIME_TRANSPORT` | `websocket` | `websocket` or `sse` |
 | `VITE_REALTIME_AUTH` | `none` | How the session token reaches the realtime endpoint: `none`, `frame` (an `AUTH` frame after connect) or `query` (`?access_token=`) |
-| `VITE_DATA_SOURCE` | `mock` in development and test | `mock` or `platform`. **Ignored in `staging` and `production`, which always use the platform** |
+| `VITE_DATA_SOURCE` | `platform` | `platform` or `mock`. The mock is an explicit opt-in honoured only by a `development` or `test` build; **`staging` and `production` ignore it and always use the platform** |
 | `VITE_FEATURE_FLAGS` | none | Build-time flag overrides, e.g. `walletEnabled=false,tvEnabled=true`. Platform configuration wins over these |
 | `VITE_REQUEST_TIMEOUT_MS` | `10000` | Per-request timeout |
 | `VITE_LOG_LEVEL` | `info` (`warn` when deployed) | `debug` · `info` · `warn` · `error` |
@@ -106,24 +106,26 @@ The result is a `BetPlacementView`: `ACCEPTED`, `LIMITED` (the platform accepted
 
 `Match.status` and `Match.lifecycle` decide the phase (`resolvePhase`, `ui-core/src/phase.ts`); time is never an input. The minute comes from the platform's clock. No client computes a minute from kick-off time: a live match with no reported clock shows `LIVE` and no minute.
 
-## 6. Contracts awaiting backend confirmation
+## 6. Contract status
 
-Proposed shapes live in `packages/contracts/src/discovery/discovery.type.ts` with fixtures in `packages/contracts/tests/fixtures/wire.ts`. Until a route is served, the adapter answers an empty value and the screen shows its unavailable state.
+Shapes live in `packages/contracts/src/discovery/discovery.type.ts` with fixtures in `packages/contracts/tests/wireFixtures.ts`. Until a route is served the adapter answers an empty value and the screen shows its unavailable state, so each of these lights up with no client change.
 
-| Need | Proposed contract | Used by |
+| Need | Contract | Status |
 | --- | --- | --- |
-| Match clock | `clock: MatchClock { period, minute, addedMinutes?, asOf, minuteLengthMs? }` on `GET /matches`, `GET /matches/:id`, and on live frames. Without it the adapter reads period and minute from the platform's own events on a match page, and lists show `LIVE` without a minute | every live surface |
-| Interrupted matches | `Match.status` values `POSTPONED`, `SUSPENDED`, `DELAYED` and `statusReason` | match cards |
-| Lineups | `GET /matches/:id/lineups` → `MatchLineups` | match center |
-| Head to head | `GET /matches/:id/head-to-head` → `HeadToHead` | match center |
-| Search | `GET /search?q=&kinds=&limit=` → `SearchResponse` | global search |
-| Public configuration | `GET /config` → `PublicConfig` (currency, features, stake limits, competition timezone, maintenance) | all apps |
-| Paged transactions | `GET /wallets/:userId/transactions?page=&pageSize=&types=&statuses=&from=&to=&search=&sort=&direction=` → `Page<Transaction>`, with `status`, `description`, `betId` on each row. An unpaged `{ items }` answer is paged client-side as a stopgap | wallet, transactions |
-| Bet acceptance detail | On `POST /bets`: honour `idempotency-key`; answer a smaller `stake` when limited; refuse with `STAKE_LIMITED { maxStake }`, `ODDS_CHANGED { current }`, `MARKET_CLOSED { selectionIds }`, `RISK_REJECTED`, `INSUFFICIENT_FUNDS` | bet slip |
-| Team crest | optional `Team.crest { assetUrl?, shape?, pattern?, emblem?, accent? }`; without it clients draw the generated crest for the team id | every surface |
-| Market presentation | optional `Market.name`, `Market.group`, `Market.suspensionReason`, `Selection.status` | markets |
-| Realtime authentication and account channels | see [`realtime.md`](./realtime.md) | bets, wallet, notifications |
-| Server-driven admin lists | `page`, `pageSize`, `sort`, `direction`, `search` and per-list filters on every admin list, answering `Page<T>` | admin |
+| Match clock | `clock: MatchClock { period, minute, addedMinutes?, asOf, minuteLengthMs? }` on `GET /matches`, `GET /matches/:id` and live frames. Without it the adapter reads period and minute from the platform's own events on a match page, and list rows show `LIVE` without a minute | served, verified through the adapter |
+| Match list semantics | `GET /matches` and `/fixtures` accept `leagueId, status, season, matchday, from, to, limit (≤ 500)`; order is `kickoffAt` ascending, descending for `status=COMPLETED`; `truncated` says when a window was cut. The adapter pushes every filter down, one request per status | served |
+| Lineups | `GET /matches/:id/lineups` → `MatchLineups` | served, verified through the adapter |
+| Head to head | `GET /matches/:id/head-to-head` → `HeadToHead` | served, verified through the adapter |
+| Search | `GET /search?q=&kinds=&limit=` → `SearchResponse` (league, team and match hits) | served, verified through the adapter |
+| Public configuration | `GET /config` → `PublicConfig` (currency, features, stake limits, competition timezone, maintenance, plus `timing`) | served, verified through the adapter |
+| Paged transactions | `GET /wallets/:userId/transactions?page=&pageSize=&types=&statuses=&from=&to=&search=&sort=&direction=` → `Page<Transaction>`. An unpaged `{ items }` answer is paged by the adapter | served, verified through the adapter |
+| Notifications | `GET /users/:id/notifications`, `POST …/read` | served, verified through the adapter |
+| Bet submission | `idempotency-key` honoured end to end: a repeat answers the original bet and moves no money. Refusals `MARKET_CLOSED { selectionIds? }`, `ODDS_CHANGED { current }`, `STAKE_LIMITED { maxStake }`, `RISK_REJECTED`, `INSUFFICIENT_FUNDS`, `INVALID_BET` | served |
+| Interrupted matches | `Match.status` values `POSTPONED`, `SUSPENDED`, `DELAYED` and `statusReason`. The clients render them; the platform does not send them | not planned |
+| Team crest | optional `Team.crest { assetUrl?, shape?, pattern?, emblem?, accent? }`; without it clients draw the generated crest for the team id | optional |
+| Market presentation | optional `Market.name`, `Market.group`, `Market.suspensionReason`, `Selection.status`; without them the adapter names and groups by market type | optional |
+| Server-driven admin lists | `GET /admin/{users,shops,cashiers,teams,fixtures,settlements,simulations}?page=&pageSize=&sort=&direction=&search=&<filter>=` → `Page<T>`. Admin lists are unpaged `{ items }` today (audit is the exception), so the SDK cuts the page client-side; there is no cross-shop cashier route, so the adapter gathers cashiers per shop | open gap |
+| Realtime account channel | see [`realtime.md`](./realtime.md) | not planned |
 
 ## 7. Connecting a backend
 

@@ -5,7 +5,7 @@ Every public screen in web, mobile, TV, shop and admin reads matches, markets an
 - `createPlatformDataSource` (`packages/ui-core/src/adapters/platformDataSource.ts`) — the real one. It calls the gateway through `@betng/client-sdk` and subscribes to the event service over WebSocket.
 - `createMockDataSource` (`packages/mock-data`) — an in-process virtual season used until the routes below are served. Each mock method is annotated with the `@endpoint` it mirrors.
 
-Switch an app with `VITE_DATA_SOURCE=platform` (web, TV) or `expo.extra.dataSource: "platform"` (mobile). No code changes.
+Switch an app with `VITE_DATA_SOURCE=platform` plus `VITE_API_URL` / `VITE_WS_URL` (browser apps) or `expo.extra.dataSource: "platform"` (mobile). No code changes. Staging and production builds always use the platform and do not contain the mock. Environment, error model and contract status: [`api-integration.md`](./api-integration.md); realtime: [`realtime.md`](./realtime.md).
 
 All routes sit under `API_PREFIX = /api/v1`. Every response uses the envelope in `packages/contracts/src/common/envelope.type.ts`; list endpoints answer `{ items: T[] }`. Schemas referenced below live in `@betng/contracts`.
 
@@ -16,28 +16,32 @@ All routes sit under `API_PREFIX = /api/v1`. Every response uses the envelope in
 | GET    | `/leagues`                      | —                                                                                | `League[]`                                                                                                            | match                        | served                                                                         |
 | GET    | `/teams`                        | `leagueId?`                                                                      | `Team[]` — now with optional `city`, `stadium`, `colors`                                                              | match                        | served (new fields optional)                                                   |
 | GET    | `/fixtures`                     | —                                                                                | `Fixture[]` — now with optional `season`                                                                              | match                        | served (new field optional)                                                    |
-| GET    | `/matches`                      | `leagueId?`, `status?`                                                           | `Match[]`                                                                                                             | match                        | served                                                                         |
+| GET    | `/matches`                      | `leagueId?`, `status?`, `season?`, `matchday?`, `from?`, `to?`, `limit?` (≤ 500)   | `Match[]`, each with `clock` once served; `truncated` when the window was cut                                         | match                        | served; the adapter pushes every filter down, one request per status           |
 | GET    | `/matches/:id`                  | —                                                                                | `Match`                                                                                                               | match                        | served                                                                         |
-| GET    | `/matches/:id/events`           | —                                                                                | `MatchEvent[]` (`matchEventSchema`, now incl. `CORNER`, `SECOND_HALF`, `player`, `secondaryPlayer`, `score`)          | match                        | **to implement**                                                               |
-| GET    | `/matches/:id/stats`            | —                                                                                | `MatchStats` (`matchStatsSchema`)                                                                                     | match                        | **to implement**                                                               |
+| GET    | `/matches/:id/events`           | —                                                                                | `MatchEvent[]` (`matchEventSchema`, now incl. `CORNER`, `SECOND_HALF`, `player`, `secondaryPlayer`, `score`)          | match                        | served |
+| GET    | `/matches/:id/stats`            | —                                                                                | `MatchStats` (`matchStatsSchema`)                                                                                     | match                        | served |
 | GET    | `/matches/:id/odds`             | —                                                                                | `MatchOdds` — `marketTypeSchema` now includes `DOUBLE_CHANCE`, `CORRECT_SCORE`, `GOAL_SPREAD`; `Market.line` optional | odds                         | served (new kinds optional)                                                    |
-| GET    | `/leagues/:id/standings`        | `season?`                                                                        | `Standings` (`standingsSchema`)                                                                                       | match                        | **to implement** (client computes from `/matches?status=COMPLETED` until then) |
-| GET    | `/leagues/:id/scorers`          | `season?`                                                                        | `TopScorer[]` (`topScorerSchema`)                                                                                     | match                        | **to implement**                                                               |
-| POST   | `/bets`                         | `PlaceBetRequest` — legs may carry `marketType`, `marketLabel`, `selectionLabel` | `Bet`                                                                                                                 | betting                      | served; persist the label fields                                               |
+| GET    | `/matches/:id/lineups`          | —                                                                                | `MatchLineups` (`matchLineupsSchema`)                                                                                 | match                        | served                                                 |
+| GET    | `/matches/:id/head-to-head`     | —                                                                                | `HeadToHead` (`headToHeadSchema`)                                                                                     | match                        | served                                                 |
+| GET    | `/search`                       | `q`, `kinds?`, `limit?`                                                          | `SearchResponse` (`searchResponseSchema`)                                                                             | match                        | served                                   |
+| GET    | `/config`                       | —                                                                                | `PublicConfig` (`publicConfigSchema`) plus `timing`                                                                   | gateway                      | served                                          |
+| GET    | `/leagues/:id/standings`        | `season?`                                                                        | `Standings` (`standingsSchema`)                                                                                       | match                        | served |
+| GET    | `/leagues/:id/scorers`          | `season?`                                                                        | `TopScorer[]` (`topScorerSchema`)                                                                                     | match                        | served |
+| POST   | `/bets`                         | `PlaceBetRequest`; header `idempotency-key: <clientReference>`                   | `Bet` (200 with the original bet on a repeated key)                                                                   | betting                      | served; refusals carry `error.data` (`maxStake`, `current`, `selectionIds`)    |
 | GET    | `/bets`                         | `userId?`, `status?`                                                             | `Bet[]` — legs should carry `outcome`; bet should carry `payout`                                                      | betting                      | served; add `outcome`/`payout`                                                 |
 | GET    | `/bets/:id`                     | —                                                                                | `Bet`                                                                                                                 | betting                      | served                                                                         |
 | GET    | `/wallets/:userId`              | —                                                                                | `Wallet`                                                                                                              | wallet                       | served                                                                         |
-| GET    | `/wallets/:userId/transactions` | —                                                                                | `Transaction[]`                                                                                                       | wallet                       | served                                                                         |
+| GET    | `/wallets/:userId/transactions` | `page?`, `pageSize?`, `types?`, `statuses?`, `from?`, `to?`, `search?`, `sort?`, `direction?` | `Page<Transaction>` (an unpaged `{ items }` is paged by the adapter)                                     | wallet                       | served, paged                                            |
 | POST   | `/wallets/deposit`              | `DepositRequest`                                                                 | `{ wallet, transaction }`                                                                                             | wallet                       | served                                                                         |
 | POST   | `/wallets/withdraw`             | `WithdrawRequest`                                                                | `{ wallet, transaction }`                                                                                             | wallet                       | served                                                                         |
-| GET    | `/users/:id/notifications`      | —                                                                                | `Notification[]` (`notificationSchema`)                                                                               | new: notification (or event) | **to implement**                                                               |
-| POST   | `/users/:id/notifications/read` | `MarkNotificationsReadRequest`                                                   | `204`                                                                                                                 | same                         | **to implement**                                                               |
+| GET    | `/users/:id/notifications`      | —                                                                                | `Notification[]` (`notificationSchema`)                                                                               | identity | served |
+| POST   | `/users/:id/notifications/read` | `MarkNotificationsReadRequest`                                                   | `204`                                                                                                                 | identity                     | served |
 
 How the adapter treats a route that is not served yet: a `404`, `501` or `error.code = NOT_IMPLEMENTED` answer falls back to an empty value (`[]`, `undefined`) and the screen renders its empty state. Every other failure surfaces as a `DataSourceError` the screens present.
 
 ## Authentication, shop and admin routes
 
-None of these are served by the gateway yet. The contracts (`packages/contracts/src/{auth,shop,admin}`), SDK clients (`packages/client-sdk/src/rest/{auth,shop,admin}Client.ts`) and platform adapters (`packages/ui-core/src/adapters/platformAccountSources.ts`) are complete, so serving a route is the only step left. Mocks live in `packages/mock-data/src/{auth,shop,admin}` behind the same interfaces (`AuthDataSource`, `ShopDataSource`, `AdminDataSource`).
+All of these are served. The gateway's route table (`apps/gateway/src/routes/gateway.table.ts`) is the authoritative list of paths, owning services and required permissions; `docs/architecture.md` describes the services behind them.
 
 Rules every route below follows:
 
@@ -58,7 +62,7 @@ Rules every route below follows:
 | GET    | `/auth/me`              | —                         | `CustomerProfile`     |                                                                       |
 | POST   | `/auth/password/forgot` | `PasswordResetRequest`    | `204`                 | Always `204`, whether or not the address exists                       |
 
-Once these are served, `/bets`, `/wallets/*` and `/users/:id/notifications` should take the user from the token rather than the path or body.
+`/bets`, `/wallets/*` and `/users/:id/notifications` take the user from the token: a `userId` in a body is ignored, and a path id must be the caller's own (or `me`).
 
 ### Shop terminal (`/shop`) — cashier session required
 
@@ -118,6 +122,24 @@ Payout must be idempotent per ticket: a second attempt answers `409` with the ti
 | PATCH  | `/admin/settings`                                     | partial `PlatformSettings` + `reason`         | `PlatformSettings`             | `settings:write`     |
 
 Live Control reads the public `/matches` routes and the `WS /live` stream; it needs no admin-only route. The audit log must redact secrets in `before`/`after` server-side (password hashes, PINs, tokens); the client shows what it is given.
+
+## Routes added with the platform
+
+| Method | Path | Notes | Owner |
+| --- | --- | --- | --- |
+| GET | `/config` | `PublicConfig` plus `timing` | match |
+| GET | `/results` | `leagueId?`, `limit?` → `CompletedMatch[]` with `result { homeGoals, awayGoals, winner, winningGap }` | match |
+| GET | `/odds` | `matchIds=a,b,c` (≤ 60) → `{ items: MatchOdds[] }` | odds |
+| GET | `/matches/:id/lineups`, `/matches/:id/head-to-head`, `/search` | shapes in `packages/contracts/src/discovery` | match |
+| GET | `/wallets/:userId/transactions?page=…` | `transactionQuerySchema` → `Page<Transaction>`; unpaged call unchanged | wallet |
+| GET/PUT | `/admin/risk/limits`, GET `/admin/risk/exposure` | `RiskLimits`, `MatchExposure[]` (`risk:read` / `risk:write`) | risk |
+| GET | `/admin/analytics/overview`, `/breakdown`, `/sessions`, `/matches/:id`, `/accounts/:id`, `/shops/:id`, `/cashiers/:id` | `reports:read`; formulas in `docs/analytics.md` | analytics |
+| GET/POST | `/admin/operator`, `/admin/operator/periods`, `/admin/operator/periods/close` | operator ledger (`settlement:read` / `settlement:operate`) | settlement |
+| GET/PUT | `/admin/commission`, `/admin/commission/config` | commission ledger and its configuration | settlement |
+| GET/PUT | `/admin/odds/config`, `/admin/simulation/config` | versioned pricing and model configuration | odds, simulation |
+| GET/POST | `/admin/leagues`, `/admin/teams`, `/admin/fixtures` | catalogue and manual fixtures | match |
+
+`GET /matches` and `GET /fixtures` are windowed (default: kick-off within ±30 minutes; `from`, `to`, `season`, `matchday`, `status`, `limit` ≤ 500), ordered by kick-off (descending for `status=COMPLETED`) and answer `truncated` when the window held more rows. `Match` carries `lifecycle` and the platform `clock`. Domain refusals carry `error.data`: `ODDS_CHANGED` → `current[]`, `STAKE_LIMITED` → `maxStake`, `MARKET_CLOSED` → `selectionIds[]`. `POST /bets` and `POST /shop/tickets` honour an `idempotency-key` header.
 
 ## Live stream (`WS /live`)
 

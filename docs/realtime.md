@@ -41,7 +41,7 @@ The platform data source splits a match channel in two:
 - **Timeline events** (`KICKOFF`, `GOAL`, cards, `CORNER`, `SUBSTITUTION`, `HALF_TIME`, `SECOND_HALF`, `MATCH_FINISHED`) are appended to the match by the `watchMatch` controller, which also takes the running score, the clock period and the minute from them.
 - **Lifecycle signals** (`BETTING_OPENED`, `BETTING_CLOSED`, `ODDS_UPDATED`, `MARKET_UPDATED`, `SIMULATION_STARTED`, `SETTLEMENT_STARTED`, `SETTLEMENT_COMPLETED`, `MATCH_UPDATED`) carry no state the client trusts. Each one triggers a re-read of the match; apps also invalidate the odds, bet and wallet queries they affect.
 
-Account events on `user:{id}` invalidate bets, wallet and notifications. Balances, bet states and odds are always re-read, never patched from a frame.
+Account data (bets, wallet, notifications) has no realtime channel yet: the stream carries public match channels only. Until the event service authenticates connections, `subscribeAccount` re-reads on a 20 second timer and after every user action; when it does, setting `accountChannel: true` on the platform data source moves the same callback to `user:{id}` with no change in the apps. Balances, bet states and odds are always re-read, never patched from a frame.
 
 ## Resynchronisation
 
@@ -63,18 +63,17 @@ A later re-read supersedes an earlier one still in flight. An event the re-read 
 
 Match pages are pushed. Lists use TanStack Query with stale times and keep previous data while refreshing; intervals are modest (tens of seconds) because a realtime signal invalidates the relevant query. Nothing polls faster than it needs to, and nothing polls while the tab is hidden.
 
-## Awaiting backend confirmation
+## Status with the backend
 
-| Need | Proposal |
+| Item | Status |
 | --- | --- |
-| Authenticated connections | Accept the bearer token as an `AUTH { token }` first frame (`frame`) or `?access_token=` (`query`); answer `ERROR UNAUTHENTICATED` / `SESSION_EXPIRED`. Until then `VITE_REALTIME_AUTH=none` and only public match channels are used |
-| Account channel | `user:{userId}`, authorised to that user only, carrying `BET_UPDATED`, `WALLET_UPDATED`, `NOTIFICATION_CREATED` |
-| System channel | `system`, carrying `SYSTEM_STATUS_UPDATED` |
-| Odds and market updates | `ODDS_UPDATED` / `MARKET_UPDATED` on `match:{id}` with a `version` (the market's `oddsVersion`) |
-| Event identity | an `eventId` on every frame; today identity falls back to `channel#sequence` |
-| Match clock on frames | `clock` on timeline frames so a late joiner needs no REST read to know the period |
-| SSE | `GET <VITE_WS_URL>?channels=a,b` streaming the same `EVENT` frames as JSON `data:` lines, if SSE is to be offered |
-| Public endpoint | The realtime endpoint is reached directly today (`:3008/live`); it should sit behind the public edge with the gateway's origin and rate rules |
+| Public match channels, `sequence` per channel, `SUBSCRIBED.lastSequence`, `PING`/`PONG` | served; this is what the client runs on today |
+| `clock` on timeline frames (`event.clock`) | served; `watchMatch` prefers it over the clock it infers from the event |
+| Event identity | no `eventId` on frames; identity is `channel#sequence` |
+| `version` on `ODDS_UPDATED` / `MARKET_UPDATED` | not sent; an odds signal triggers a re-read, so ordering cannot go wrong |
+| Authenticated connections, `user:{id}` and `system` channels | not planned in the current backend pass. Keep `VITE_REALTIME_AUTH=none`. The client already supports `frame` (an `AUTH { token }` first frame) and `query` (`?access_token=`) for when they are |
+| SSE | the client supports it (`VITE_REALTIME_TRANSPORT=sse`, `GET <VITE_WS_URL>?channels=a,b` streaming the same `EVENT` frames as JSON `data:` lines); the event service serves WebSocket only |
+| Public endpoint | reached directly today (`:3008/live`); it belongs behind the public edge with the gateway's origin and rate rules |
 
 ## Tests
 
