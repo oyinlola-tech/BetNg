@@ -83,3 +83,6 @@ export type { AdminDataSource } from "./adminDataSource.type.js";
 
 export { createPlatformAdminSource, createPlatformAuthSource, createPlatformShopSource } from "./adapters/platformAccountSources.js";
 export { translateApiError } from "./adapters/errors.js";
+
+export { FASTBET_CODES, parseFastbet } from "./fastbet.js";
+export type { FastbetPick, FastbetResult } from "./fastbet.js";
