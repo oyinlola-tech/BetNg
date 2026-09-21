@@ -21,6 +21,6 @@ export {
   utcDateKey,
 } from "./period.util.js";
 
-export { toSafeNumber } from "./money.util.js";
+export { formatNaira, toSafeNumber } from "./money.util.js";
 
 export { chunk, mapWithConcurrency } from "./concurrency.util.js";

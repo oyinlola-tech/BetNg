@@ -1,10 +1,12 @@
 // Effects are idempotent on the callee (by bet, by wallet key); `effects_applied_at` is stamped only after all
-// succeeded. Shop tickets move no wallet money here, and nothing in this file can debit anyone.
+// succeeded. Shop tickets move no wallet money here, and nothing in this file can debit anyone. The customer is
+// told only after the stamp, and telling them is not an effect: it cannot fail or hold up a settlement.
 
 import type { Logger } from "@betng/service-kit";
 import { WALLET_KEY } from "../../constants/index.js";
 import type {
   BettingPeer,
+  SettlementNotifier,
   SettlementRepository,
   WalletCreditRequest,
   WalletPeer,
@@ -16,6 +18,7 @@ export interface EffectsApplierDependencies {
   readonly settlements: SettlementRepository;
   readonly betting: BettingPeer;
   readonly wallet: WalletPeer;
+  readonly notifier: SettlementNotifier;
   readonly logger: Logger;
 }
 
@@ -45,6 +48,7 @@ export class EffectsApplier {
   private readonly settlements: SettlementRepository;
   private readonly betting: BettingPeer;
   private readonly wallet: WalletPeer;
+  private readonly notifier: SettlementNotifier;
   private readonly logger: Logger;
 
   // The retry loop and a settle call must not apply the same settlement side by side.
@@ -54,6 +58,7 @@ export class EffectsApplier {
     this.settlements = dependencies.settlements;
     this.betting = dependencies.betting;
     this.wallet = dependencies.wallet;
+    this.notifier = dependencies.notifier;
     this.logger = dependencies.logger;
   }
 
@@ -108,5 +113,7 @@ export class EffectsApplier {
     }
 
     await this.settlements.stampEffects(settlement.id);
+
+    this.notifier.settled(settlement, requestId);
   }
 }

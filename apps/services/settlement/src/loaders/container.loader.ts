@@ -17,6 +17,7 @@ import type {
   CommissionRepository,
   OperatorRepository,
   PlatformReader,
+  SettlementNotifier,
   SettlementRepository,
   WalletPeer,
 } from "../interfaces/index.js";
@@ -30,6 +31,7 @@ export interface ContainerLoaderConfig {
   readonly betting: BettingPeer;
   readonly wallet: WalletPeer;
   readonly audit: AuditRecorder;
+  readonly notifier: SettlementNotifier;
   readonly logger: Logger;
 }
 
@@ -40,6 +42,7 @@ export function loadContainer(config: ContainerLoaderConfig): Container {
     settlements: config.settlements,
     betting: config.betting,
     wallet: config.wallet,
+    notifier: config.notifier,
     logger: config.logger,
   });
 

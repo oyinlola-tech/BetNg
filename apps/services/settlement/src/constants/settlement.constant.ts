@@ -67,6 +67,17 @@ export const WALLET_KEY = Object.freeze({
   refund: (betId: string): string => `settlement-refund:${betId}`,
 });
 
+/** identity.notify is idempotent on this key, so a re-applied settlement cannot notify twice. */
+export const NOTIFICATION_KEY = Object.freeze({
+  settlement: (betId: string): string => `settlement:${betId}`,
+});
+
+export const NOTIFICATION_DELIVERY = Object.freeze({
+  KIND: "BET_SETTLED",
+  CONCURRENCY: 4,
+  MAX_QUEUED: 2_000,
+});
+
 export const LIST_LIMIT = Object.freeze({
   SETTLEMENTS_DEFAULT: 50,
   SETTLEMENTS_MAX: 200,

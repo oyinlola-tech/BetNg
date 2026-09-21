@@ -2,10 +2,16 @@ import { createRpcClient } from "@betng/service-kit";
 import type { ServiceEndpoint } from "@betng/service-kit";
 import { createRPCMetadata } from "@zudojs/rpc";
 import type { RPCClient } from "@zudojs/rpc";
-import type { AuditEntry, IdentityPeer } from "../interfaces/index.js";
+import type {
+  AuditEntry,
+  CustomerNotification,
+  IdentityPeer,
+  NotifyResult,
+} from "../interfaces/index.js";
 
 export const IDENTITY_PROCEDURE = Object.freeze({
   RECORD_AUDIT: "identity.recordAudit",
+  NOTIFY: "identity.notify",
 });
 
 export interface IdentityClient extends IdentityPeer {
@@ -23,5 +29,9 @@ export function createIdentityClient(endpoint: ServiceEndpoint): IdentityClient 
         entry,
         { metadata: createRPCMetadata({ requestId: entry.requestId }) },
       ),
+    notify: async (notification, requestId) =>
+      client.call<CustomerNotification, NotifyResult>(IDENTITY_PROCEDURE.NOTIFY, notification, {
+        metadata: createRPCMetadata({ requestId }),
+      }),
   };
 }

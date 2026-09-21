@@ -10,6 +10,7 @@ import {
   createAuditRecorder,
   createBettingClient,
   createIdentityClient,
+  createSettlementNotifier,
   createWalletClient,
 } from "./clients/index.js";
 import type { SettlementConfig } from "./configs/index.js";
@@ -70,6 +71,7 @@ export function createApp(config: SettlementConfig, peers?: SettlementPeers): Se
     });
   }
 
+  const notifier = createSettlementNotifier(resolved.identity, logger);
   const commission = createCommissionRepository(database.prisma);
   const operator = createOperatorRepository(database.prisma);
 
@@ -81,6 +83,7 @@ export function createApp(config: SettlementConfig, peers?: SettlementPeers): Se
     betting: resolved.betting,
     wallet: resolved.wallet,
     audit: createAuditRecorder(resolved.identity, logger),
+    notifier,
     logger,
   });
 
@@ -111,7 +114,10 @@ export function createApp(config: SettlementConfig, peers?: SettlementPeers): Se
     },
   });
 
-  onShutdown.unshift(async () => maintenance.stop());
+  onShutdown.unshift(
+    async () => maintenance.stop(),
+    async () => notifier.idle(),
+  );
   onShutdown.push(
     async () => container.dispose(),
     async () => database.database.close(),

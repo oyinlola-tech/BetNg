@@ -8,3 +8,5 @@ export { createIdentityClient, IDENTITY_PROCEDURE } from "./identity.client.js";
 export type { IdentityClient } from "./identity.client.js";
 
 export { createAuditRecorder } from "./audit.recorder.js";
+
+export { createSettlementNotifier, notificationFor } from "./settlement.notifier.js";

@@ -1,3 +1,4 @@
+import type { SettlementRecord } from "../models/index.js";
 import type { BetOutcome, LegOutcome } from "../utils/index.js";
 
 export interface ApplySettlementRequest {
@@ -53,8 +54,34 @@ export interface AuditEntry {
   readonly requestId: string;
 }
 
+export interface CustomerNotification {
+  readonly customerId: string;
+  readonly kind: "BET_SETTLED";
+  readonly title: string;
+  readonly body: string;
+  readonly data: {
+    readonly betId: string;
+    readonly matchId?: string;
+    readonly outcome: BetOutcome;
+    readonly payout: number;
+  };
+  readonly dedupeKey: string;
+}
+
+export interface NotifyResult {
+  readonly id: string;
+  readonly duplicate: boolean;
+}
+
 export interface IdentityPeer {
   recordAudit(entry: AuditEntry): Promise<{ readonly id: string }>;
+  notify(notification: CustomerNotification, requestId: string): Promise<NotifyResult>;
+}
+
+export interface SettlementNotifier {
+  /** Best effort: returns at once, never throws, and a failed delivery is only logged. */
+  settled(settlement: SettlementRecord, requestId: string): void;
+  idle(): Promise<void>;
 }
 
 export interface AuditActor {

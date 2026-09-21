@@ -10,6 +10,7 @@ import type {
   ApplySettlementRequest,
   AuditEntry,
   BettingPeer,
+  CustomerNotification,
   IdentityPeer,
   WalletCreditRequest,
   WalletPeer,
@@ -226,7 +227,10 @@ export class FakePeers {
   public readonly walletCalls: WalletCreditRequest[] = [];
   public readonly credited = new Map<string, WalletCreditRequest>();
   public readonly audits: AuditEntry[] = [];
+  public readonly notifyCalls: CustomerNotification[] = [];
+  public readonly notified = new Map<string, string>();
 
+  public notifyFailure: Error | undefined;
   public walletFailure: Error | undefined;
   public bettingFailure: Error | undefined;
   public auditFailure: Error | undefined;
@@ -271,7 +275,33 @@ export class FakePeers {
 
       return { id: randomUUID() };
     },
+
+    // Idempotent by (customer, dedupeKey), like identity.notify.
+    notify: async (notification) => {
+      this.notifyCalls.push(notification);
+
+      if (this.notifyFailure !== undefined) {
+        throw this.notifyFailure;
+      }
+
+      const key = `${notification.customerId}:${notification.dedupeKey}`;
+      const existing = this.notified.get(key);
+
+      if (existing !== undefined) {
+        return { id: existing, duplicate: true };
+      }
+
+      const id = randomUUID();
+
+      this.notified.set(key, id);
+
+      return { id, duplicate: false };
+    },
   };
+
+  public notifyCallsFor(betId: string): CustomerNotification[] {
+    return this.notifyCalls.filter((call) => call.data.betId === betId);
+  }
 
   public walletCallsFor(betId: string): WalletCreditRequest[] {
     return this.walletCalls.filter((call) => call.idempotencyKey.endsWith(`:${betId}`));
