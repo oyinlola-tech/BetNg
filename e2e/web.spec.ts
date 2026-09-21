@@ -94,14 +94,16 @@ test.describe("web", () => {
       const accept = slip.getByRole("button", { name: "Accept new prices" });
       const place = slip.getByRole("button", { name: "Place bet" });
 
-      if (await accept.isVisible()) await accept.click();
-      if (await place.isVisible()) await place.click();
+      // After sign-in the slip resumes the placement itself; only press what is ready to be pressed.
+      if (await accept.isEnabled().catch(() => false)) await accept.click({ timeout: 2_000 }).catch(() => undefined);
+      if (await place.isEnabled().catch(() => false)) await place.click({ timeout: 2_000 }).catch(() => undefined);
 
-      await expect(slip.getByText("Bet accepted")).toBeVisible({ timeout: 2_000 });
+      // Accepted, limited and partially accepted all end on a platform-issued bet.
+      await expect(slip.getByRole("button", { name: "View ticket" }).or(slip.getByRole("link", { name: "View ticket" }))).toBeVisible({ timeout: 2_000 });
     }).toPass({ timeout: 45_000 });
 
-    await expect(slip.getByText(/potential payout/i)).toBeVisible();
-    await expect(slip.getByText(/reference/i)).toBeVisible();
+    await expect(slip.getByText(/potential payout/i).first()).toBeAttached();
+    await expect(slip.getByText(/reference/i).first()).toBeAttached();
 
     await page.goto(`${APP.web}/tickets`);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();

@@ -50,7 +50,17 @@ Four layers, each catching what the one below cannot. None of them talks to a re
 
 ### End to end
 
-`e2e/` drives the real apps in a browser: navigation, sign-in, a bet from selection to accepted ticket, wallet and transactions, results and standings, shop sale and ticket check, admin sign-in with permission denial, TV routes by remote, the mobile layout with bottom navigation and slip sheet, console and network error capture on every route, and axe accessibility checks on the critical flows.
+`e2e/support/fixtures.ts` fails any test whose page logs an error or warning, throws, or makes a failing request, and provides the axe (WCAG 2.1 A/AA, serious and critical) and horizontal-overflow checks.
+
+| Spec | Project | Covers |
+| --- | --- | --- |
+| `web.spec.ts` | desktop | header and league bar built from platform data; search through the platform (button and Ctrl+K); the match center tabs; a bet from a price to a platform-accepted ticket, with sign-in on the way, the slip kept, a moved price accepted before placing, then tickets and transactions; standings and results filters in the URL; the private-page gate and the 404; accessibility on home and a match in both themes |
+| `web.mobile.spec.ts` | mobile | bottom navigation and the More sheet; the sticky slip bar opening the slip sheet; 44px touch targets; no horizontal scroll at 412px and at 320px on every main surface; accessibility on Live |
+| `shop.spec.ts` | desktop | the sign-in gate and a refused sign-in; a sale from an open week to the platform's ticket and a check of that reference; a cashier denied reports; an owner through every area; accessibility on the dashboard |
+| `admin.spec.ts` | desktop | the second factor; every one of the 19 areas opened with no error state and no control that sets a score or a winner; a support role denied Risk in the navigation and on a direct address; a destructive action behind a confirmation that needs a reason; accessibility on the dashboard in both themes |
+| `tv.tv.spec.ts` | tv | every route (including Broadcast) with no betting, text input or account controls; the remote (arrows move focus, Enter opens, Back returns); no overflow and readable type at 1080p; accessibility on Home and Table |
+
+The suite runs against the development stand-in so it is deterministic; the adapter's behaviour against the real platform is covered by the unit and contract layers and by `scripts/smoke-platform.mjs`.
 
 ## Conventions
 
