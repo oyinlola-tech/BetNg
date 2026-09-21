@@ -1,14 +1,12 @@
 // Renders design proof sheets straight from the token and brand packages, so the images cannot drift from the code.
-import { existsSync, mkdirSync } from "node:fs";
-import { resolve } from "node:path";
-import { pathToFileURL } from "node:url";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { chromium } from "@playwright/test";
 import { darkTheme, lightTheme, typeRole } from "../../packages/design-tokens/dist/index.js";
 import { CREST_EMBLEMS, CREST_PATTERNS, CREST_SHAPES, FOOTBALL_EVENT_ICON, FOOTBALL_ICONS, crestFor, crestSvg, footballIconSvg } from "../../packages/brand/dist/index.js";
 
 const OUT = "docs/images/design";
 const FONTS = "packages/ui-web/node_modules/@fontsource-variable";
-const font = (family, file) => `@font-face{font-family:'${family}';src:url('${pathToFileURL(resolve(FONTS, file)).href}') format('woff2');font-weight:100 900}`;
+const font = (family, file) => `@font-face{font-family:'${family}';src:url(data:font/woff2;base64,${readFileSync(`${FONTS}/${file}`).toString("base64")}) format('woff2');font-weight:100 900}`;
 const BASE = `${font("Inter", "inter/files/inter-latin-wght-normal.woff2")}${font("Archivo", "archivo/files/archivo-latin-wght-normal.woff2")}
 *{box-sizing:border-box}body{margin:0;font-family:Inter,sans-serif}
 .sheet{padding:32px;display:inline-block;width:1280px}
@@ -75,9 +73,12 @@ function crests(t) {
 }
 
 function icons(t) {
-  const byName = Object.fromEntries(Object.entries(FOOTBALL_EVENT_ICON).map(([kind, name]) => [name, kind]));
+  const byName = {};
+
+  for (const [kind, name] of Object.entries(FOOTBALL_EVENT_ICON)) byName[name] = [...(byName[name] ?? []), kind];
+
   const cards = { yellowCard: t.warning, redCard: t.danger };
-  const cells = Object.keys(FOOTBALL_ICONS).map((name) => `<div style="width:140px;border:1px solid ${t.border};border-radius:10px;background:${t.surface};padding:16px 10px;display:flex;flex-direction:column;align-items:center;gap:10px"><div style="display:flex;align-items:flex-end;gap:12px;color:${t.textPrimary}">${footballIconSvg(name, { size: 40, cardFill: cards[name] })}${footballIconSvg(name, { size: 20, cardFill: cards[name] })}${footballIconSvg(name, { size: 16, cardFill: cards[name] })}</div><div style="font:600 12px Inter;color:${t.textPrimary}">${name}</div><div style="font:10px 'DejaVu Sans Mono',monospace;color:${t.textMuted}">${byName[name] ?? "interface"}</div></div>`).join("");
+  const cells = Object.keys(FOOTBALL_ICONS).map((name) => `<div style="width:140px;border:1px solid ${t.border};border-radius:10px;background:${t.surface};padding:16px 10px;display:flex;flex-direction:column;align-items:center;gap:10px"><div style="display:flex;align-items:flex-end;gap:12px;color:${t.textPrimary}">${footballIconSvg(name, { size: 40, cardFill: cards[name] })}${footballIconSvg(name, { size: 20, cardFill: cards[name] })}${footballIconSvg(name, { size: 16, cardFill: cards[name] })}</div><div style="font:600 12px Inter;color:${t.textPrimary}">${name}</div><div style="font:10px 'DejaVu Sans Mono',monospace;color:${t.textMuted}">${(byName[name] ?? ["general"]).join(" · ")}</div></div>`).join("");
 
   return `<div class="sheet" style="background:${t.background}"><style>.h{color:${t.textMuted}}.h:before{background:${t.brand}}svg{display:block}</style><div class="h">23 football icons · 40 / 20 / 16 px · FOOTBALL_ICONS, mapped to event kinds</div><div style="display:flex;flex-wrap:wrap;gap:12px">${cells}</div></div>`;
 }
