@@ -8,6 +8,11 @@ export function loadClients(config: ServiceConfig): UpstreamClients {
     betting: createServiceClient(config.services.betting),
     wallet: createServiceClient(config.services.wallet),
     settlement: createServiceClient(config.services.settlement),
+    simulation: createServiceClient(config.services.simulation),
     odds: createServiceClient(config.services.odds),
+    risk: createServiceClient(config.services.risk),
+    analytics: createServiceClient(config.services.analytics),
+    identity: createServiceClient(config.services.identity),
+    event: createServiceClient(config.services.event),
   };
 }

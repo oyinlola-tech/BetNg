@@ -94,8 +94,8 @@ class OddsRepository(Protocol):
         """Return markets that are not yet settled or void, newest match first."""
         ...
 
-    async def list_snapshots(self, market_id: str) -> list[SnapshotRecord]:
-        """Return a market's snapshot history, oldest first."""
+    async def list_snapshots(self, market_id: str, limit: int) -> list[SnapshotRecord]:
+        """Return up to ``limit`` of a market's snapshots, oldest first."""
         ...
 
     async def opening_odds(self, market_ids: list[str]) -> dict[str, Decimal]:

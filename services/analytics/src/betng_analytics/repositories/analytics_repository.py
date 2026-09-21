@@ -46,7 +46,7 @@ _SUBJECT_COLUMNS: dict[str, str] = {
     "CASHIER": "cashier_id",
 }
 
-_SESSION_UNITS: dict[str, str] = {"HOUR": "hour", "DAY": "day"}
+_CLOCK_SESSIONS = frozenset({"HOUR", "DAY"})
 
 
 class PostgresAnalyticsReader(AnalyticsReader):
@@ -231,9 +231,9 @@ class PostgresAnalyticsReader(AnalyticsReader):
     ) -> list[Row]:
         params: sql.Params = {"limit": limit}
 
-        if kind in _SESSION_UNITS:
+        if kind in _CLOCK_SESSIONS:
             params["tz"] = self._timezone
-            query = sql.bucket_sessions_sql(_SESSION_UNITS[kind], scope, params)
+            query = sql.bucket_sessions_sql(kind, scope, params)
         elif kind == "CUSTOM":
             del params["limit"]
             query = sql.overview_sql(scope, params)

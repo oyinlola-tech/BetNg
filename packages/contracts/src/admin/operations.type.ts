@@ -21,6 +21,7 @@ export const adminPermissionSchema = z.enum([
   "odds:read",
   "odds:write",
   "risk:read",
+  "risk:write",
   "simulation:read",
   "simulation:operate",
   "settlement:read",

@@ -61,6 +61,16 @@ export function createErrorHandler(logger: Logger): ServiceErrorHandler {
     const details =
       exposed && isErrorDetails(status.details) ? status.details : undefined;
 
+    // A domain error may carry a plain object instead of field issues; it travels as `error.data`.
+    const data =
+      exposed &&
+      details === undefined &&
+      typeof status.details === "object" &&
+      status.details !== null &&
+      !Array.isArray(status.details)
+        ? (status.details as Readonly<Record<string, unknown>>)
+        : undefined;
+
     const body = buildErrorBody({
       code:
         typeof status.code === "string" && status.code.length > 0
@@ -74,6 +84,7 @@ export function createErrorHandler(logger: Logger): ServiceErrorHandler {
           : OPAQUE_ERROR_MESSAGE,
       requestId,
       ...(details === undefined ? {} : { details }),
+      ...(data === undefined ? {} : { data }),
     });
 
     const write = status.statusCode >= 500 ? logger.error : logger.warn;
@@ -87,6 +98,12 @@ export function createErrorHandler(logger: Logger): ServiceErrorHandler {
       error: error instanceof Error ? error.message : String(error),
     });
 
-    return createResponseContext({ status: status.statusCode }).json(body);
+    const response = createResponseContext({ status: status.statusCode });
+
+    for (const [name, value] of Object.entries(status.headers ?? {})) {
+      response.setHeader(name, value);
+    }
+
+    return response.json(body);
   };
 }

@@ -9,12 +9,15 @@ from fastapi import Request
 
 from ..errors import ForbiddenError, UnauthenticatedError
 
+ADMIN_ACTOR_KIND = "ADMIN"
+
 
 def require_permission(permission: str) -> Callable[[Request], Actor]:
-    """Build a FastAPI dependency that yields the actor holding ``permission``.
+    """Build a FastAPI dependency that yields the admin holding ``permission``.
 
-    The gateway already checked; the service re-checks so a route is never
-    protected by its proxy alone.
+    The gateway already checked; the service re-checks both the actor kind and
+    the permission so a route is never protected by its proxy alone. Who the
+    actor is comes only from the asserted headers, never from a path or body.
     """
 
     def dependency(request: Request) -> Actor:
@@ -23,7 +26,7 @@ def require_permission(permission: str) -> Callable[[Request], Actor]:
         if actor is None:
             raise UnauthenticatedError
 
-        if permission not in actor.permissions:
+        if actor.kind != ADMIN_ACTOR_KIND or permission not in actor.permissions:
             raise ForbiddenError(permission)
 
         return actor

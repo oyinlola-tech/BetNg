@@ -1,30 +1,91 @@
 """Odds HTTP handlers.
 
-REST is the odds service's *secondary* API: it exists for debugging, manual
-inspection and analytics. The betting service reaches odds by RPC, because a
-price lookup on the bet-placement path wants a typed procedure and a deadline,
-not a resource URL. See `docs/api/rpc.md`.
-
-Both doors dispatch onto the same buses, so there is one implementation of
-each operation.
+The controller turns a validated request into a command or a query and holds
+no domain logic. The public reads take no actor at all: there is no per-user
+price, so there is nothing an identity could change.
 """
 
 from __future__ import annotations
 
-from betng_service_kit import CommandBus, QueryBus
+from dataclasses import dataclass
+from uuid import UUID
 
-from ..dtos import CalculateOddsRequest, MatchOdds
-from ..services.odds.commands import GenerateOddsCommand
-from ..services.odds.queries import GetMatchOddsQuery
+from betng_service_kit import Actor, CommandBus, QueryBus
+
+from ..dtos import (
+    AdminMarketOdds,
+    AdminMarketOddsList,
+    MarketAdminActionRequest,
+    MatchOdds,
+    MatchOddsList,
+    OddsSnapshotList,
+    PricingConfigurationView,
+    UpdatePricingConfigurationRequest,
+)
+from ..services.odds.commands import (
+    ApplyMarketActionCommand,
+    UpdatePricingConfigurationCommand,
+)
+from ..services.odds.queries import (
+    GetBulkOddsQuery,
+    GetMatchOddsQuery,
+    GetPricingConfigurationQuery,
+    ListAdminOddsQuery,
+    ListMarketSnapshotsQuery,
+)
+from ..validators import parse_match_ids
 
 
+@dataclass(frozen=True)
 class OddsController:
-    def __init__(self, command_bus: CommandBus, query_bus: QueryBus) -> None:
-        self._command_bus = command_bus
-        self._query_bus = query_bus
+    """REST entry points, dispatching onto the same buses RPC uses."""
 
-    async def get_match_odds(self, match_id: str) -> MatchOdds:
-        return await self._query_bus.execute(GetMatchOddsQuery(match_id))
+    command_bus: CommandBus
+    query_bus: QueryBus
 
-    async def generate_odds(self, request: CalculateOddsRequest) -> MatchOdds:
-        return await self._command_bus.execute(GenerateOddsCommand(request))
+    async def get_match_odds(self, match_id: UUID) -> MatchOdds:
+        """Return one match's markets."""
+        return await self.query_bus.execute(GetMatchOddsQuery(str(match_id)))
+
+    async def get_bulk_odds(self, raw_match_ids: str) -> MatchOddsList:
+        """Return the markets of several matches."""
+        return await self.query_bus.execute(
+            GetBulkOddsQuery(parse_match_ids(raw_match_ids))
+        )
+
+    async def list_admin_odds(self, match_id: UUID | None) -> AdminMarketOddsList:
+        """Return the admin trading view."""
+        return await self.query_bus.execute(
+            ListAdminOddsQuery(None if match_id is None else str(match_id))
+        )
+
+    async def apply_market_action(
+        self,
+        market_id: UUID,
+        request: MarketAdminActionRequest,
+        actor: Actor,
+        request_id: str,
+    ) -> AdminMarketOdds:
+        """Suspend or resume one market."""
+        return await self.command_bus.execute(
+            ApplyMarketActionCommand(str(market_id), request, actor, request_id)
+        )
+
+    async def get_pricing_configuration(self) -> PricingConfigurationView:
+        """Return the active pricing configuration."""
+        return await self.query_bus.execute(GetPricingConfigurationQuery())
+
+    async def update_pricing_configuration(
+        self,
+        request: UpdatePricingConfigurationRequest,
+        actor: Actor,
+        request_id: str,
+    ) -> PricingConfigurationView:
+        """Store a new pricing configuration version."""
+        return await self.command_bus.execute(
+            UpdatePricingConfigurationCommand(request, actor, request_id)
+        )
+
+    async def list_market_snapshots(self, market_id: UUID) -> OddsSnapshotList:
+        """Return a market's snapshot history."""
+        return await self.query_bus.execute(ListMarketSnapshotsQuery(str(market_id)))

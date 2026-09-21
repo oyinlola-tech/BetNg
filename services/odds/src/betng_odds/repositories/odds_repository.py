@@ -361,14 +361,14 @@ class PostgresOddsRepository(OddsRepository):
 
             return await self._with_selections(connection, await cursor.fetchall())
 
-    async def list_snapshots(self, market_id: str) -> list[SnapshotRecord]:
-        """Return a market's snapshot history, oldest first."""
+    async def list_snapshots(self, market_id: str, limit: int) -> list[SnapshotRecord]:
+        """Return up to ``limit`` of a market's snapshots, oldest first."""
         async with transaction(self.pool) as connection:
             cursor = await connection.execute(
                 "SELECT id, market_id, match_id, odds_version, reason, prices, "
                 "created_at FROM odds.odds_snapshots WHERE market_id = %s "
-                "ORDER BY odds_version",
-                (market_id,),
+                "ORDER BY odds_version LIMIT %s",
+                (market_id, limit),
             )
 
             return [

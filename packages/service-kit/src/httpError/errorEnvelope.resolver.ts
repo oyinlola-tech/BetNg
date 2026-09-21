@@ -17,6 +17,7 @@ export interface StatusCarrying {
   readonly message?: unknown;
   readonly expose?: unknown;
   readonly details?: unknown;
+  readonly headers?: Readonly<Record<string, string>>;
 }
 
 const MAX_UNWRAP_DEPTH = 8;

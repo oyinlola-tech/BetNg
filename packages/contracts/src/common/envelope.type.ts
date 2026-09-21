@@ -20,6 +20,8 @@ export interface ErrorResponse {
     readonly message: string;
     readonly requestId: string;
     readonly details?: readonly ErrorDetail[];
+    /** Machine-readable context for a domain error, e.g. `{ maxStake }` on STAKE_LIMITED or `{ current }` on ODDS_CHANGED. */
+    readonly data?: Readonly<Record<string, unknown>>;
   };
 }
 
@@ -34,6 +36,7 @@ export const errorResponseSchema = z.object({
     message: z.string(),
     requestId: z.string(),
     details: z.array(errorDetailSchema).optional(),
+    data: z.record(z.string(), z.unknown()).optional(),
   }),
 });
 

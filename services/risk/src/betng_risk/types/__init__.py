@@ -1,5 +1,35 @@
-"""Service-local type aliases.
+"""Service-local row and record types."""
 
-The risk domain's shapes are part of the shared contract, so they live in
-``dtos`` and mirror ``@betng/contracts``.
-"""
+from .risk_type import (
+    AuditEntry,
+    BookRows,
+    BookTotals,
+    DecisionRecord,
+    DecisionTally,
+    LimitsDraft,
+    LimitsRecord,
+    MarketBookRow,
+    MarketRow,
+    MarketTypeRow,
+    MatchBookRow,
+    MatchRow,
+    SelectionBookRow,
+    SelectionRow,
+)
+
+__all__ = [
+    "AuditEntry",
+    "BookRows",
+    "BookTotals",
+    "DecisionRecord",
+    "DecisionTally",
+    "LimitsDraft",
+    "LimitsRecord",
+    "MarketBookRow",
+    "MarketRow",
+    "MarketTypeRow",
+    "MatchBookRow",
+    "MatchRow",
+    "SelectionBookRow",
+    "SelectionRow",
+]

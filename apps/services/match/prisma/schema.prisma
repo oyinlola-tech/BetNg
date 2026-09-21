@@ -1,18 +1,17 @@
-// BetNG match service schema.
+// BetNG match service schema (`match` schema of the `betng` database).
 //
-// This service owns leagues, teams, fixtures, matches and match events, and nothing else. It connects to `betng_match`
-// with its own login and holds no credentials for another service's
-// database, which is what makes the ownership boundary in
-// `docs/architecture.md` enforceable rather than a convention.
+// This service owns the catalogue (leagues, teams), fixtures, matches and the
+// lifecycle transition log. Match events and results belong to the simulation
+// service (`simulation.match_events`, `simulation.match_results`) and are read
+// cross-schema, never copied here: a match row carries only the *revealed*
+// running score.
 //
-// Identifiers belonging to another service appear as plain columns rather
-// than foreign keys: the referenced table is in a different database, so the
-// constraint could not be enforced and pretending otherwise would mislead.
-// Referential integrity across services is the API's job.
+// The column names below are part of the shared read model in
+// `docs/architecture.md` §8: other services read them, so they may be added to
+// but not renamed or retyped.
 //
 // Prisma 7 no longer takes the connection URL here: migrations read it from
 // `prisma.config.ts`, and the client is built with a driver adapter.
-// Migrations live in `prisma/migrations`; see `docs/development.md`.
 
 generator client {
   provider = "prisma-client-js"
@@ -23,14 +22,26 @@ datasource db {
   provider = "postgresql"
 }
 
-/// A competition the platform runs.
+enum LeagueStatus {
+  ACTIVE
+  SUSPENDED
+  ARCHIVED
+
+  @@map("league_status")
+}
+
+/// A competition the platform runs. The scheduler creates rounds only for ACTIVE leagues.
 model League {
-  id        String   @id @default(uuid()) @db.Uuid
-  name      String   @db.VarChar(120)
-  /// Short display code, e.g. BVPL.
-  code      String   @unique @db.VarChar(8)
-  country   String   @db.VarChar(60)
-  createdAt DateTime @default(now()) @map("created_at")
+  id             String       @id @default(uuid()) @db.Uuid
+  name           String       @db.VarChar(120)
+  code           String       @unique @db.VarChar(8)
+  slug           String       @unique @db.VarChar(40)
+  country        String       @db.VarChar(60)
+  sport          String       @default("football") @db.VarChar(32)
+  status         LeagueStatus @default(ACTIVE)
+  /// Offset of this league's kick-offs within the round cycle, so leagues do not all start together.
+  staggerSeconds Int          @default(0) @map("stagger_seconds")
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
 
   teams    Team[]
   fixtures Fixture[]
@@ -38,21 +49,43 @@ model League {
   @@map("leagues")
 }
 
-/// A team competing in a league.
+enum TeamStatus {
+  ACTIVE
+  INACTIVE
+
+  @@map("team_status")
+}
+
+/// A team and its simulation inputs. Ratings are properties of the team, never of a bettor.
 model Team {
-  id        String   @id @default(uuid()) @db.Uuid
-  leagueId  String   @map("league_id") @db.Uuid
-  name      String   @db.VarChar(120)
-  shortName String   @map("short_name") @db.VarChar(8)
-  /// Simulated strength, 0-100. Read by the simulation service as one input
-  /// to match probability. A property of the team, never of a bettor.
-  strength  Int
-  createdAt DateTime @default(now()) @map("created_at")
+  id             String     @id @default(uuid()) @db.Uuid
+  leagueId       String     @map("league_id") @db.Uuid
+  name           String     @db.VarChar(120)
+  shortName      String     @map("short_name") @db.VarChar(12)
+  code           String     @db.VarChar(4)
+  city           String     @default("") @db.VarChar(60)
+  stadium        String     @default("") @db.VarChar(80)
+  colorPrimary   String     @default("#1F2937") @map("color_primary") @db.VarChar(7)
+  colorSecondary String     @default("#FFFFFF") @map("color_secondary") @db.VarChar(7)
+  status         TeamStatus @default(ACTIVE)
+  strength       Int
+  attack         Int
+  defence        Int
+  midfield       Int
+  goalkeeping    Int
+  pace           Int
+  finishing      Int
+  possession     Int
+  form           Int        @default(0)
+  homeAdvantage  Int        @default(55) @map("home_advantage")
+  createdAt      DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime   @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   league       League    @relation(fields: [leagueId], references: [id], onDelete: Cascade)
   homeFixtures Fixture[] @relation("HomeTeam")
   awayFixtures Fixture[] @relation("AwayTeam")
 
+  @@unique([leagueId, code])
   @@index([leagueId])
   @@map("teams")
 }
@@ -61,30 +94,27 @@ model Team {
 model Fixture {
   id              String   @id @default(uuid()) @db.Uuid
   leagueId        String   @map("league_id") @db.Uuid
-  /// One-based matchday within the league's season.
+  season          Int      @default(1)
   matchday        Int
   homeTeamId      String   @map("home_team_id") @db.Uuid
   awayTeamId      String   @map("away_team_id") @db.Uuid
-  kickoffAt       DateTime @map("kickoff_at")
-  /// After this instant the betting service rejects new bets.
-  bettingClosesAt DateTime @map("betting_closes_at")
-  createdAt       DateTime @default(now()) @map("created_at")
+  kickoffAt       DateTime @map("kickoff_at") @db.Timestamptz(3)
+  bettingClosesAt DateTime @map("betting_closes_at") @db.Timestamptz(3)
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
 
   league   League @relation(fields: [leagueId], references: [id], onDelete: Cascade)
   homeTeam Team   @relation("HomeTeam", fields: [homeTeamId], references: [id])
   awayTeam Team   @relation("AwayTeam", fields: [awayTeamId], references: [id])
   match    Match?
 
-  @@unique([leagueId, matchday, homeTeamId, awayTeamId])
+  @@unique([leagueId, season, matchday, homeTeamId, awayTeamId])
+  @@index([leagueId, season, matchday])
+  @@index([kickoffAt])
   @@index([bettingClosesAt])
   @@map("fixtures")
 }
 
-/// The lifecycle states a match moves through, in order.
-///
-/// The ordering encodes the platform's central integrity rule: betting
-/// closes before the simulation runs, so no accepted bet can influence the
-/// result. See docs/architecture.md.
+/// The public projection of `Match.lifecycle`. See docs/architecture.md §5.
 enum MatchStatus {
   SCHEDULED
   BETTING_OPEN
@@ -98,56 +128,50 @@ enum MatchStatus {
 
 /// One virtual match.
 model Match {
-  id          String      @id @default(uuid()) @db.Uuid
-  fixtureId   String      @unique @map("fixture_id") @db.Uuid
-  status      MatchStatus @default(SCHEDULED)
-  /// Set only once status is COMPLETED.
-  homeScore   Int?        @map("home_score")
-  awayScore   Int?        @map("away_score")
-  /// When the simulation produced the result.
-  completedAt DateTime?   @map("completed_at")
-  createdAt   DateTime    @default(now()) @map("created_at")
-  updatedAt   DateTime    @updatedAt @map("updated_at")
+  id                  String      @id @default(uuid()) @db.Uuid
+  fixtureId           String      @unique @map("fixture_id") @db.Uuid
+  status              MatchStatus @default(SCHEDULED)
+  /// Canonical state; a CHECK constraint restricts it to the §5 values.
+  lifecycle           String      @default("FIXTURE_CREATED") @db.VarChar(32)
+  /// The revealed running score: null before kick-off, final only once COMPLETED.
+  homeScore           Int?        @map("home_score")
+  awayScore           Int?        @map("away_score")
+  /// Highest `simulation.match_events.sequence` already revealed.
+  revealedSequence    Int         @default(0) @map("revealed_sequence")
+  bettingOpenedAt     DateTime?   @map("betting_opened_at") @db.Timestamptz(3)
+  bettingClosedAt     DateTime?   @map("betting_closed_at") @db.Timestamptz(3)
+  simulationStartedAt DateTime?   @map("simulation_started_at") @db.Timestamptz(3)
+  completedAt         DateTime?   @map("completed_at") @db.Timestamptz(3)
+  settledAt           DateTime?   @map("settled_at") @db.Timestamptz(3)
+  voidedAt            DateTime?   @map("voided_at") @db.Timestamptz(3)
+  failureReason       String?     @map("failure_reason") @db.VarChar(240)
+  failureCount        Int         @default(0) @map("failure_count")
+  /// Earliest instant the scheduler may try this match's pending step again. Doubles as the
+  /// lease a worker holds while a peer call is in flight.
+  nextAttemptAt       DateTime?   @map("next_attempt_at") @db.Timestamptz(3)
+  createdAt           DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  fixture Fixture      @relation(fields: [fixtureId], references: [id], onDelete: Cascade)
-  events  MatchEvent[]
+  fixture     Fixture           @relation(fields: [fixtureId], references: [id], onDelete: Cascade)
+  transitions MatchTransition[]
 
+  @@index([lifecycle])
   @@index([status])
   @@map("matches")
 }
 
-enum MatchEventType {
-  KICK_OFF
-  GOAL
-  YELLOW_CARD
-  RED_CARD
-  SUBSTITUTION
-  HALF_TIME
-  FULL_TIME
+/// Append-only log of lifecycle transitions, written in the same transaction as the state change.
+model MatchTransition {
+  id        String   @id @default(uuid()) @db.Uuid
+  matchId   String   @map("match_id") @db.Uuid
+  fromState String?  @map("from_state") @db.VarChar(32)
+  toState   String   @map("to_state") @db.VarChar(32)
+  at        DateTime @default(now()) @db.Timestamptz(3)
+  actor     String   @db.VarChar(80)
+  reason    String?  @db.VarChar(240)
 
-  @@map("match_event_type")
-}
+  match Match @relation(fields: [matchId], references: [id], onDelete: Restrict)
 
-enum MatchSide {
-  HOME
-  AWAY
-
-  @@map("match_side")
-}
-
-/// One entry on a played match's timeline, produced by the simulation.
-model MatchEvent {
-  id          String         @id @default(uuid()) @db.Uuid
-  matchId     String         @map("match_id") @db.Uuid
-  type        MatchEventType
-  /// Match minute, 0-120.
-  minute      Int
-  /// Absent for an event belonging to neither side, e.g. HALF_TIME.
-  side        MatchSide?
-  description String         @db.VarChar(240)
-
-  match Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
-
-  @@index([matchId, minute])
-  @@map("match_events")
+  @@index([matchId, at])
+  @@map("match_transitions")
 }

@@ -264,8 +264,18 @@ def breakdown_sql(dimension: ReaderDimension, scope: BetScope, params: Params) -
     """
 
 
-def bucket_sessions_sql(unit: str, scope: BetScope, params: Params) -> str:
-    """Sessions cut by the clock: ``unit`` is ``hour`` or ``day``."""
+#: session kind -> the `date_trunc` unit and step it is cut by. The only source
+#: of the unit that reaches the statement text.
+_BUCKET_UNITS: Final[dict[str, str]] = {"HOUR": "hour", "DAY": "day"}
+
+#: wallet owner kinds a transaction count may be asked for.
+_WALLET_OWNERS: Final[dict[str, str]] = {"CUSTOMER": "CUSTOMER", "SHOP": "SHOP"}
+
+
+def bucket_sessions_sql(kind: str, scope: BetScope, params: Params) -> str:
+    """Sessions cut by the clock: ``kind`` is ``HOUR`` or ``DAY``."""
+    unit = _BUCKET_UNITS[kind]
+
     return f"""
     WITH {scoped_cte(scope, params)},
     bucketed AS (
@@ -483,7 +493,8 @@ def subject_label_sql(kind: str) -> str:
     return _SUBJECT_LABELS[kind]
 
 
-def _wallet_transactions(owner_type: str, window: Window, params: Params) -> str:
+def _wallet_transactions(kind: str, window: Window, params: Params) -> str:
+    owner_type = _WALLET_OWNERS[kind]
     conditions = " AND ".join(
         [
             f"a.owner_type::text = '{owner_type}'",

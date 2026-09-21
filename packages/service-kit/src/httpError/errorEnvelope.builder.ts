@@ -7,6 +7,7 @@ export interface ErrorBodyOptions {
   readonly message: string;
   readonly requestId: string;
   readonly details?: readonly ErrorDetail[];
+  readonly data?: Readonly<Record<string, unknown>>;
 }
 
 export function buildErrorBody(options: ErrorBodyOptions): ErrorResponse {
@@ -16,6 +17,7 @@ export function buildErrorBody(options: ErrorBodyOptions): ErrorResponse {
       message: options.message,
       requestId: options.requestId,
       ...(options.details === undefined ? {} : { details: options.details }),
+      ...(options.data === undefined ? {} : { data: options.data }),
     },
   };
 }

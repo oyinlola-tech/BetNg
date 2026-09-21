@@ -1,18 +1,18 @@
-// BetNG betting service schema.
+// BetNG betting service schema: the `betting` schema of the `betng` database.
 //
-// This service owns bets and their selections, and nothing else. It connects to `betng_betting`
-// with its own login and holds no credentials for another service's
-// database, which is what makes the ownership boundary in
-// `docs/architecture.md` enforceable rather than a convention.
+// This service is the only writer of these tables; every other service reads
+// them (risk for exposure, settlement for the accepted price, analytics for
+// aggregates), so the column names and types are the contract in
+// `docs/architecture.md` §8.
 //
-// Identifiers belonging to another service appear as plain columns rather
-// than foreign keys: the referenced table is in a different database, so the
-// constraint could not be enforced and pretending otherwise would mislead.
-// Referential integrity across services is the API's job.
+// Identifiers owned by another service are plain columns rather than foreign
+// keys: the owning schema belongs to another login. What a bet needs from
+// those rows is copied onto it at acceptance, so a bet stays readable and
+// payable whatever later happens to the match or the market.
 //
-// Prisma 7 no longer takes the connection URL here: migrations read it from
-// `prisma.config.ts`, and the client is built with a driver adapter.
-// Migrations live in `prisma/migrations`; see `docs/development.md`.
+// Migrations read the URL from `prisma.config.ts`; the client is built with a
+// driver adapter. Constraints and triggers Prisma cannot express live in the
+// hand-written `bet_integrity` migration.
 
 generator client {
   provider = "prisma-client-js"
@@ -23,75 +23,145 @@ datasource db {
   provider = "postgresql"
 }
 
-/// What a bet is currently worth to its holder.
 enum BetStatus {
   PENDING
   WON
   LOST
   VOID
+  CANCELLED
 
   @@map("bet_status")
 }
 
-/// One accepted bet slip.
+enum BetChannel {
+  ONLINE
+  SHOP
+
+  @@map("bet_channel")
+}
+
+enum SelectionOutcome {
+  PENDING
+  WON
+  LOST
+  VOID
+
+  @@map("selection_outcome")
+}
+
+enum TicketStatus {
+  OPEN
+  WON
+  LOST
+  VOID
+  CANCELLED
+  PAID
+  EXPIRED
+
+  @@map("ticket_status")
+}
+
+/// One accepted slip. Written once; afterwards only its resolution changes.
 model Bet {
-  id       String    @id @default(uuid()) @db.Uuid
-  userId   String    @map("user_id") @db.Uuid
+  id      String     @id @db.Uuid
+  /// The customer, for an online bet. Null for a shop ticket.
+  userId  String?    @map("user_id") @db.Uuid
+  channel BetChannel
+  shopId    String?  @map("shop_id") @db.Uuid
+  cashierId String?  @map("cashier_id") @db.Uuid
 
-  /// Stake in minor units. Integer for the same reason the wallet uses one:
-  /// a fraction of a kobo cannot be represented, so it cannot be mis-rounded.
+  /// Kobo.
   stake    BigInt
-  currency String    @default("NGN") @db.Char(3)
+  currency String  @default("NGN") @db.Char(3)
 
-  /// Product of every selection's odds. `Decimal` rather than a float,
-  /// because odds are exact decimal quantities a customer was shown and
-  /// binary floating point cannot represent 1.10 exactly.
-  totalOdds Decimal  @map("total_odds") @db.Decimal(12, 4)
-  /// `stake * totalOdds`, floored to minor units. Stored rather than
-  /// recomputed, so what was promised at placement is what is paid.
-  potentialPayout BigInt @map("potential_payout")
+  /// Product of the accepted leg odds, rounded down to 2 dp. Display only:
+  /// the payout is computed from the legs' integer hundredths.
+  totalOdds       Decimal @map("total_odds") @db.Decimal(12, 2)
+  /// What a win pays, fixed at acceptance.
+  potentialPayout BigInt  @map("potential_payout")
 
-  status   BetStatus @default(PENDING)
+  status BetStatus @default(PENDING)
+  /// What settlement actually paid. Null until resolved.
+  payout BigInt?
 
-  /// Caller-supplied key making placement idempotent. A retried request
-  /// must not place the same slip twice.
-  idempotencyKey String @unique @map("idempotency_key") @db.VarChar(120)
+  riskDecisionId String? @map("risk_decision_id") @db.Uuid
+  /// Scoped to the actor, so one caller's key can never collide with another's.
+  idempotencyKey String  @unique @map("idempotency_key") @db.VarChar(200)
 
-  /// What the risk service decided when the slip was offered, and whether
-  /// it actually assessed it. Recorded because "accepted" and "assessed and
-  /// approved" are different claims and an audit must tell them apart.
-  riskAction   String?  @map("risk_action") @db.VarChar(32)
-  riskAssessed Boolean  @default(false) @map("risk_assessed")
-
-  placedAt  DateTime  @default(now()) @map("placed_at")
-  /// Set once, by the settlement service, when the match completes.
-  settledAt DateTime? @map("settled_at")
+  placedAt    DateTime  @map("placed_at") @db.Timestamptz(3)
+  settledAt   DateTime? @map("settled_at") @db.Timestamptz(3)
+  cancelledAt DateTime? @map("cancelled_at") @db.Timestamptz(3)
 
   selections BetSelection[]
+  ticket     Ticket?
 
-  @@index([userId, status])
+  @@index([userId, placedAt(sort: Desc)])
   @@index([status, placedAt])
+  @@index([shopId, placedAt(sort: Desc)])
   @@map("bets")
 }
 
-/// One leg of a bet: the outcome backed, at the price offered.
+/// One leg, at the price and market version the platform accepted it at.
 model BetSelection {
-  id          String  @id @default(uuid()) @db.Uuid
-  betId       String  @map("bet_id") @db.Uuid
+  id          String @id @default(uuid()) @db.Uuid
+  betId       String @map("bet_id") @db.Uuid
+  matchId     String @map("match_id") @db.Uuid
+  marketId    String @map("market_id") @db.Uuid
+  selectionId String @map("selection_id") @db.Uuid
+  leagueId    String @map("league_id") @db.Uuid
 
-  /// Identifiers owned by the match and odds services. Plain columns, not
-  /// foreign keys: those tables live in other databases.
-  matchId     String  @map("match_id") @db.Uuid
-  marketId    String  @map("market_id") @db.Uuid
-  selectionId String  @map("selection_id") @db.Uuid
+  marketType    String   @map("market_type") @db.VarChar(32)
+  selectionCode String   @map("selection_code") @db.VarChar(32)
+  line          Decimal? @db.Decimal(4, 1)
 
-  /// The price when the bet was accepted. Captured here rather than read
-  /// back at settlement, so a later re-price cannot change what was agreed.
-  odds        Decimal @db.Decimal(12, 4)
+  /// Settlement pays on these two columns, never on the current price.
+  odds        Decimal @db.Decimal(8, 2)
+  oddsVersion Int     @map("odds_version")
 
-  bet Bet @relation(fields: [betId], references: [id], onDelete: Cascade)
+  marketLabel    String   @map("market_label") @db.VarChar(64)
+  selectionLabel String   @map("selection_label") @db.VarChar(64)
+  matchLabel     String   @map("match_label") @db.VarChar(160)
+  leagueName     String   @map("league_name") @db.VarChar(120)
+  kickoffAt      DateTime @map("kickoff_at") @db.Timestamptz(3)
+
+  outcome SelectionOutcome @default(PENDING)
+  result  String?          @db.VarChar(16)
+
+  bet Bet @relation(fields: [betId], references: [id], onDelete: Restrict)
 
   @@unique([betId, selectionId])
-  @@index([matchId])
+  @@index([matchId, outcome])
+  @@index([selectionId])
   @@map("bet_selections")
+}
+
+/// The over-the-counter face of a shop bet. One per shop bet.
+model Ticket {
+  id    String @id @default(uuid()) @db.Uuid
+  betId String @unique @map("bet_id") @db.Uuid
+  /// What is printed on the slip and typed back in at the counter.
+  code  String @unique @db.VarChar(16)
+
+  shopId      String @map("shop_id") @db.Uuid
+  shopCode    String @map("shop_code") @db.VarChar(20)
+  cashierId   String @map("cashier_id") @db.Uuid
+  cashierName String @map("cashier_name") @db.VarChar(60)
+
+  customerName  String? @map("customer_name") @db.VarChar(80)
+  customerPhone String? @map("customer_phone") @db.VarChar(20)
+
+  status TicketStatus @default(OPEN)
+  paidAt DateTime?    @map("paid_at") @db.Timestamptz(3)
+  /// The cashier who paid it out.
+  paidBy String?      @map("paid_by") @db.Uuid
+
+  expiresAt    DateTime @map("expires_at") @db.Timestamptz(3)
+  cancelReason String?  @map("cancel_reason") @db.VarChar(160)
+  createdAt    DateTime @map("created_at") @db.Timestamptz(3)
+
+  bet Bet @relation(fields: [betId], references: [id], onDelete: Restrict)
+
+  @@index([shopId, createdAt(sort: Desc)])
+  @@index([shopId, status])
+  @@map("tickets")
 }
