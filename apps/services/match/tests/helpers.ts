@@ -148,7 +148,8 @@ export interface FakePeers extends Peers {
     readonly events: LiveEventInput[];
     readonly audits: AuditInput[];
   };
-  readonly fail: { simulation: number; settlement: number; audit: boolean; odds: boolean };
+  /** Failures are injected per match: rows left by earlier runs are ticked too and must not consume them. */
+  readonly fail: { readonly simulation: Map<string, number>; readonly settlement: Map<string, number>; audit: boolean; odds: boolean };
 }
 
 export function createFakePeers(superuser: PrismaClient): FakePeers {
@@ -162,7 +163,14 @@ export function createFakePeers(superuser: PrismaClient): FakePeers {
     events: [],
     audits: [],
   };
-  const fail = { simulation: 0, settlement: 0, audit: false, odds: false };
+  const fail: FakePeers["fail"] = { simulation: new Map(), settlement: new Map(), audit: false, odds: false };
+  const shouldFail = (budget: Map<string, number>, matchId: string): boolean => {
+    const left = budget.get(matchId) ?? 0;
+
+    budget.set(matchId, Math.max(0, left - 1));
+
+    return left > 0;
+  };
 
   return {
     calls,
@@ -185,10 +193,7 @@ export function createFakePeers(superuser: PrismaClient): FakePeers {
       runMatch: async (request): Promise<RunMatchResponse> => {
         calls.runMatch.push(request);
 
-        if (fail.simulation > 0) {
-          fail.simulation -= 1;
-          throw new Error("simulation is down");
-        }
+        if (shouldFail(fail.simulation, request.matchId)) throw new Error("simulation is down");
 
         const simulationId = await commitSimulation(superuser, request.matchId);
 
@@ -216,10 +221,7 @@ export function createFakePeers(superuser: PrismaClient): FakePeers {
       settleMatch: async (matchId) => {
         calls.settleMatch.push(matchId);
 
-        if (fail.settlement > 0) {
-          fail.settlement -= 1;
-          throw new Error("settlement is down");
-        }
+        if (shouldFail(fail.settlement, matchId)) throw new Error("settlement is down");
 
         return { matchId, status: "COMPLETED", betsTotal: 1, betsSettled: 1, duplicate: false };
       },

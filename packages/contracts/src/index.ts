@@ -213,3 +213,5 @@ export * from "./shop/index.js";
 export * from "./admin/index.js";
 
 export * from "./platform/index.js";
+
+export * from "./discovery/index.js";

@@ -367,7 +367,7 @@ describe("admin routes", () => {
     await harness.app.lifecycle.tick();
     harness.clock.set(fixture.bettingClosesAt);
     await harness.app.lifecycle.tick();
-    harness.peers.fail.simulation = 2;
+    harness.peers.fail.simulation.set(fixture.matchId, 2);
     harness.clock.set(fixture.kickoffAt);
     await harness.app.lifecycle.tick();
     expect(await lifecycleOf(harness, fixture.matchId)).toBe("SIMULATION_FAILED");

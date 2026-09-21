@@ -157,7 +157,7 @@ describe("match lifecycle", () => {
     harness.clock.set(fixture.bettingClosesAt);
     await lifecycle.tick();
 
-    harness.peers.fail.simulation = 1;
+    harness.peers.fail.simulation.set(fixture.matchId, 1);
     harness.clock.set(fixture.kickoffAt);
     await lifecycle.tick();
 
@@ -202,7 +202,7 @@ describe("match lifecycle", () => {
     harness.clock.set(fixture.bettingClosesAt);
     await lifecycle.tick();
 
-    harness.peers.fail.simulation = 5;
+    harness.peers.fail.simulation.set(fixture.matchId, 5);
 
     let now = fixture.kickoffAt.getTime();
 
@@ -234,7 +234,7 @@ describe("match lifecycle", () => {
     harness.clock.set(fixture.kickoffAt);
     await lifecycle.tick();
 
-    harness.peers.fail.settlement = 2;
+    harness.peers.fail.settlement.set(fixture.matchId, 2);
     harness.clock.set(atMinute(fixture, 90));
     await lifecycle.tick();
 
