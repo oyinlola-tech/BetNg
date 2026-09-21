@@ -11,6 +11,7 @@ import { useRemote } from "../navigation/useRemote";
 
 const NAV = [
   { to: "/", label: "Home", end: true },
+  { to: "/board", label: "Board" },
   { to: "/live", label: "Live" },
   { to: "/matchday", label: "Matchday" },
   { to: "/results", label: "Results" },
@@ -28,14 +29,14 @@ export function Shell(): React.JSX.Element {
 
   return (
     <div className="flex h-dvh flex-col px-[3rem] py-[1.6rem]">
-      <header className="flex items-center gap-[2rem]">
-        <div className="flex items-center gap-[0.7rem]">
+      <header className="flex items-center gap-[1.4rem] whitespace-nowrap">
+        <div className="flex shrink-0 items-center gap-[0.7rem]">
           <LogoMark className="size-[2.2rem]" />
           <span className="font-display text-[1.5rem] font-black tracking-tight">
             BetNG <span className="text-live">LIVE</span>
           </span>
         </div>
-        <nav aria-label="Sections" className="flex gap-[0.4rem]">
+        <nav aria-label="Sections" className="flex gap-[0.2rem]">
           {NAV.map((item) => (
             <NavLink
               key={item.to}
@@ -55,7 +56,7 @@ export function Shell(): React.JSX.Element {
             </NavLink>
           ))}
         </nav>
-        <div className="ml-auto flex items-center gap-[0.8rem]">
+        <div className="ml-auto flex shrink-0 items-center gap-[0.8rem]">
           <button
             type="button"
             data-tv-focusable=""

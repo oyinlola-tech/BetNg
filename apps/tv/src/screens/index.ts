@@ -6,3 +6,4 @@ export { MatchdayScreen } from "./MatchdayScreen";
 export { ResultsScreen } from "./ResultsScreen";
 export { StandingsScreen } from "./StandingsScreen";
 export { UpcomingScreen } from "./UpcomingScreen";
+export { BoardScreen } from "./BoardScreen";

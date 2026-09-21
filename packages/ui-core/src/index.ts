@@ -86,3 +86,6 @@ export { translateApiError } from "./adapters/errors.js";
 
 export { FASTBET_CODES, parseFastbet } from "./fastbet.js";
 export type { FastbetPick, FastbetResult } from "./fastbet.js";
+
+export { TOTAL_LINES, leadingSelections } from "./leading.js";
+export type { LeadingCell } from "./leading.js";

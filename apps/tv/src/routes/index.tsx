@@ -1,5 +1,6 @@
 import { createBrowserRouter, Navigate } from "react-router";
 import {
+  BoardScreen,
   HomeScreen,
   LiveIndexScreen,
   LiveScreen,
@@ -16,6 +17,7 @@ export const router = createBrowserRouter([
     Component: Shell,
     children: [
       { index: true, Component: HomeScreen },
+      { path: "board", Component: BoardScreen },
       { path: "live", Component: LiveIndexScreen },
       { path: "live/:matchId", Component: LiveScreen },
       { path: "matchday", Component: MatchdayScreen },

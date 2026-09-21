@@ -43,9 +43,15 @@ describe("parseFastbet", () => {
   });
 
   it("explains what is wrong instead of guessing", () => {
-    expect(parseFastbet("", 10)).toMatchObject({ ok: false });
-    expect(parseFastbet("11 1", 10)).toMatchObject({ ok: false, error: expect.stringContaining("no event 11") });
-    expect(parseFastbet("3 ZZ", 10)).toMatchObject({ ok: false, error: expect.stringContaining("not a code") });
-    expect(parseFastbet("home win", 10)).toMatchObject({ ok: false });
+    const errorOf = (input: string): string => {
+      const result = parseFastbet(input, 10);
+
+      return result.ok ? "" : result.error;
+    };
+
+    expect(errorOf("")).not.toBe("");
+    expect(errorOf("11 1")).toContain("no event 11");
+    expect(errorOf("3 ZZ")).toContain("not a code");
+    expect(errorOf("home win")).not.toBe("");
   });
 });

@@ -10,7 +10,7 @@ const TABLE_HOLD_MS = 14_000;
 
 type Stage = "LIVE" | "RESULTS" | "TABLE" | "NEXT";
 
-/* Runs the channel: live match → results → table → next kick-off → live, forever, unless a viewer takes over. */
+/* Runs the channel: live week board → results → table → next kick-off → board, forever, unless a viewer takes over. */
 export function useBroadcastDirector(): void {
   const [on] = useBroadcastMode();
   const navigate = useNavigate();
@@ -43,7 +43,7 @@ export function useBroadcastDirector(): void {
 
     const now = Date.now();
     const current = stage.current;
-    const path = location.pathname;
+    const path = location.pathname + location.search;
     const go = (to: string): void => {
       if (path !== to) void navigate(to, { replace: true });
     };
@@ -61,7 +61,7 @@ export function useBroadcastDirector(): void {
             matchId: pick.id,
             leagueId: pick.leagueId,
           };
-          go(`/live/${pick.id}`);
+          go(`/board?league=${pick.leagueId}`);
           return;
         }
 
@@ -87,7 +87,7 @@ export function useBroadcastDirector(): void {
             matchId: pick.id,
             leagueId: pick.leagueId,
           };
-          go(`/live/${pick.id}`);
+          go(`/board?league=${pick.leagueId}`);
           return;
         }
         if (now - current.since > RESULTS_HOLD_MS) {
@@ -108,7 +108,7 @@ export function useBroadcastDirector(): void {
             matchId: pick.id,
             leagueId: pick.leagueId,
           };
-          go(`/live/${pick.id}`);
+          go(`/board?league=${pick.leagueId}`);
           return;
         }
         if (now - current.since > TABLE_HOLD_MS) {
@@ -125,10 +125,10 @@ export function useBroadcastDirector(): void {
             matchId: pick.id,
             leagueId: pick.leagueId,
           };
-          go(`/live/${pick.id}`);
+          go(`/board?league=${pick.leagueId}`);
         }
         return;
       }
     }
-  }, [on, live.data, finished.data, location.pathname, navigate]);
+  }, [on, live.data, finished.data, location.pathname, location.search, navigate]);
 }
