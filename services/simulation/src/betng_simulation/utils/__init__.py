@@ -6,6 +6,7 @@ from .configuration_util import (
     parameters_of,
     parameters_to_json,
 )
+from .squad_util import to_team_squad
 
 __all__ = [
     "TUNABLE_FIELDS",
@@ -14,4 +15,5 @@ __all__ = [
     "parameters_of",
     "parameters_to_json",
     "to_admin_run",
+    "to_team_squad",
 ]

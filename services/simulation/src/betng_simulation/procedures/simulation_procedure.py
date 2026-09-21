@@ -4,14 +4,15 @@ from typing import Any
 
 from betng_service_kit import CommandBus, QueryBus, RpcProcedure, RpcServer
 
-from ..dtos import CalculateProbabilitiesRequest, RunMatchRequest
+from ..dtos import CalculateProbabilitiesRequest, GetSquadsRequest, RunMatchRequest
 from ..services.simulation.commands import RunMatchCommand
-from ..services.simulation.queries import CalculateProbabilitiesQuery
+from ..services.simulation.queries import CalculateProbabilitiesQuery, GetSquadsQuery
 
 
 class SimulationProcedure:
     RUN_MATCH = "simulation.runMatch"
     CALCULATE_PROBABILITIES = "simulation.calculateProbabilities"
+    GET_SQUADS = "simulation.getSquads"
 
 
 def create_simulation_rpc_server(
@@ -32,6 +33,11 @@ def create_simulation_rpc_server(
 
         return response.model_dump(by_alias=True, mode="json")
 
+    async def get_squads(payload: GetSquadsRequest) -> dict[str, Any]:
+        response = await query_bus.execute(GetSquadsQuery(payload))
+
+        return response.model_dump(by_alias=True, mode="json")
+
     server.register(
         RpcProcedure(
             name=SimulationProcedure.RUN_MATCH,
@@ -44,6 +50,14 @@ def create_simulation_rpc_server(
             name=SimulationProcedure.CALCULATE_PROBABILITIES,
             handler=calculate_probabilities,
             payload_model=CalculateProbabilitiesRequest,
+        )
+    )
+
+    server.register(
+        RpcProcedure(
+            name=SimulationProcedure.GET_SQUADS,
+            handler=get_squads,
+            payload_model=GetSquadsRequest,
         )
     )
 

@@ -15,6 +15,7 @@ class SimulationQuery:
     LIST_MATCH_EVENTS: Final = "simulation.listMatchEvents"
     LIST_ADMIN_RUNS: Final = "simulation.listAdminRuns"
     GET_CONFIGURATION: Final = "simulation.getConfiguration"
+    GET_SQUADS: Final = "simulation.getSquads"
 
 
 class SimulationPermission:

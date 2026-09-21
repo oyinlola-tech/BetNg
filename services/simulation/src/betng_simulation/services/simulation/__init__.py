@@ -20,6 +20,7 @@ from .queries import (
     CalculateProbabilitiesHandler,
     GetConfigurationHandler,
     GetMatchRunHandler,
+    GetSquadsHandler,
     ListAdminRunsHandler,
     ListMatchEventsHandler,
 )
@@ -56,3 +57,4 @@ def register_simulation_service(
     query_bus.register(ListMatchEventsHandler(repository))
     query_bus.register(ListAdminRunsHandler(repository, match_read_model))
     query_bus.register(GetConfigurationHandler(repository))
+    query_bus.register(GetSquadsHandler())

@@ -24,6 +24,14 @@ from .simulation_dto import (
     RunMatchResponse,
     SimulationRunView,
 )
+from .squad_dto import (
+    GetSquadsRequest,
+    LineupPositionDto,
+    SquadPlayerView,
+    SquadsResponse,
+    SquadTeamRef,
+    TeamSquadView,
+)
 from .team_dto import SimulationTeamDto, TeamStrengthDto
 
 __all__ = [
@@ -35,7 +43,9 @@ __all__ = [
     "CalculateProbabilitiesRequest",
     "ContractModel",
     "EventScore",
+    "GetSquadsRequest",
     "IsoTimestamp",
+    "LineupPositionDto",
     "MatchEventList",
     "MatchEventView",
     "MatchResultView",
@@ -52,5 +62,9 @@ __all__ = [
     "SimulationAdminAction",
     "SimulationRunView",
     "SimulationTeamDto",
+    "SquadPlayerView",
+    "SquadTeamRef",
+    "SquadsResponse",
+    "TeamSquadView",
     "TeamStrengthDto",
 ]

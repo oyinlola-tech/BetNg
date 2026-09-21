@@ -15,7 +15,7 @@ from .models import (
     TeamStrength,
     Winner,
 )
-from .players import Player, Squad, squad_for
+from .players import STARTING_FORMATION, Player, Position, Squad, squad_for
 from .probabilities import (
     calculate_probabilities,
     expected_goals,
@@ -26,12 +26,14 @@ from .seeds import create_prng, derive_seed, seed_material
 
 __all__ = [
     "MODEL_VERSION",
+    "STARTING_FORMATION",
     "EventType",
     "MatchEventDraft",
     "MatchResult",
     "MatchStats",
     "ModelConfiguration",
     "Player",
+    "Position",
     "ProbabilityMatrix",
     "Side",
     "SideStats",
