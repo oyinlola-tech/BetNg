@@ -69,7 +69,7 @@ jobs:
           echo "${GITLEAKS_SHA256}  ${RUNNER_TEMP}/${archive}" | sha256sum -c -
           tar -xzf "${RUNNER_TEMP}/${archive}" -C "${RUNNER_TEMP}" gitleaks
       - name: Scan history
-        run: "${RUNNER_TEMP}/gitleaks" git --redact --no-banner --exit-code 1 .
+        run: '"${RUNNER_TEMP}/gitleaks" git --redact --no-banner --exit-code 1 .'
 
   trivy-fs:
     runs-on: ubuntu-24.04
