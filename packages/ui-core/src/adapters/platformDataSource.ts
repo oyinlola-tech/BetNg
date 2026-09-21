@@ -3,6 +3,7 @@ import {
   accountChannel,
   type BetNgRestClient,
   type ConnectionStatus,
+  type MatchWindowQuery,
   type RealtimeClient,
   type RealtimeEvent,
 } from "@betng/client-sdk";
@@ -31,6 +32,7 @@ import type {
 import { DataSourceError } from "../dataSource.type.js";
 import { translateApiError } from "./errors.js";
 import { formatScore } from "../format.js";
+import { localDayRange } from "../datetime.js";
 import { currentCurrency } from "../money.js";
 import { isFinished, resolvePhase } from "../phase.js";
 import { computeStandings } from "../standings.js";
@@ -45,6 +47,7 @@ import type {
   MarketGroupKey,
   MatchClockView,
   MatchLineupsView,
+  MatchPhase,
   PlatformConfigView,
   LeagueView,
   MarketKind,
@@ -69,6 +72,9 @@ export interface KeyValueStorage {
 export interface PlatformDataSourceOptions {
   readonly rest: BetNgRestClient;
   readonly realtime: RealtimeClient;
+  /** True once the realtime endpoint authenticates connections and serves `user:{id}`. Until then account data is re-read on a timer. */
+  readonly accountChannel?: boolean;
+  readonly accountRefreshMs?: number;
   /** A fixed demo user, or a getter reading the signed-in customer; `undefined` means signed out. */
   readonly userId: string | (() => string | undefined);
   readonly storage?: KeyValueStorage;
@@ -88,6 +94,20 @@ const MARKET_NAMES: Readonly<Record<MarketKind, string>> = {
   BOTH_TEAMS_TO_SCORE: "Both Teams To Score",
   CORRECT_SCORE: "Correct Score",
   GOAL_SPREAD: "Goal Spread",
+};
+
+const MAX_WINDOW = 500;
+
+/** The platform status a phase is read under. Several phases share one; the phase filter is applied again after the read. */
+const STATUS_FOR_PHASE: Readonly<Partial<Record<MatchPhase, string>>> = {
+  SCHEDULED: "SCHEDULED",
+  BETTING_OPEN: "BETTING_OPEN",
+  BETTING_CLOSED: "BETTING_CLOSED",
+  LIVE: "IN_PLAY",
+  HALFTIME: "IN_PLAY",
+  FINISHED: "COMPLETED",
+  SETTLED: "COMPLETED",
+  CANCELLED: "CANCELLED",
 };
 
 const MARKET_GROUPS: Readonly<Record<MarketKind, MarketGroupKey>> = {
@@ -173,6 +193,7 @@ const SIGNALS: Readonly<Partial<Record<string, MatchSignal>>> = {
 
 function toLiveEventView(event: LiveEvent): MatchEventView | undefined {
   const kind = TIMELINE_KINDS[event.type];
+  const wire = event as LiveEvent & { readonly clock?: MatchClock | undefined };
 
   if (kind === undefined) return undefined;
 
@@ -186,6 +207,7 @@ function toLiveEventView(event: LiveEvent): MatchEventView | undefined {
     score: event.score,
     description: event.description,
     occurredAt: event.occurredAt,
+    ...(wire.clock === undefined ? {} : { clock: wire.clock }),
   };
 }
 
@@ -300,22 +322,46 @@ export function createPlatformDataSource(
 
   let leaguesCache: Promise<readonly League[]> | undefined;
   let teamsCache: Promise<readonly Team[]> | undefined;
-  let fixturesCache: Promise<readonly Fixture[]> | undefined;
+  let minuteLengthMs: number | undefined;
+
+  /** A clock without its own pace takes the platform's configured one. */
+  const paced = (clock: MatchClock): MatchClockView =>
+    clock.minuteLengthMs !== undefined || minuteLengthMs === undefined
+      ? clock
+      : { ...clock, minuteLengthMs };
+
+  const fixtureIndex = new Map<string, Fixture>();
+  let fixtureLoad: Promise<void> | undefined;
+  let fixtureMissAt = 0;
 
   const leagues = (): Promise<readonly League[]> =>
     (leaguesCache ??= required(() => rest.listLeagues()));
   const teams = (): Promise<readonly Team[]> =>
     (teamsCache ??= required(() => rest.listTeams()));
-  const fixtures = (): Promise<readonly Fixture[]> =>
-    (fixturesCache ??= required(() => rest.listFixtures()));
+
+  /** The platform windows its lists, so fixtures are indexed as they are seen rather than read once. */
+  async function loadFixtures(query: MatchWindowQuery): Promise<void> {
+    for (const f of await required(() => rest.listFixtures(query))) {
+      fixtureIndex.set(f.id, f);
+    }
+  }
+
+  const fixtures = async (): Promise<readonly Fixture[]> => {
+    await (fixtureLoad ??= loadFixtures({ limit: MAX_WINDOW }));
+
+    return [...fixtureIndex.values()];
+  };
 
   async function fixtureFor(match: Match): Promise<Fixture> {
-    let found = (await fixtures()).find((f) => f.id === match.fixtureId);
+    if (!fixtureIndex.has(match.fixtureId)) await fixtures();
 
-    if (found === undefined) {
-      fixturesCache = undefined;
-      found = (await fixtures()).find((f) => f.id === match.fixtureId);
+    if (!fixtureIndex.has(match.fixtureId) && Date.now() - fixtureMissAt > 5_000) {
+      fixtureMissAt = Date.now();
+      fixtureLoad = loadFixtures({ limit: MAX_WINDOW });
+      await fixtureLoad;
     }
+
+    const found = fixtureIndex.get(match.fixtureId);
 
     if (found === undefined) {
       throw new DataSourceError("NOT_FOUND", "The match's fixture is unknown.");
@@ -357,7 +403,7 @@ export function createPlatformDataSource(
       bettingClosesAt: fixture.bettingClosesAt,
       status: match.status,
       phase,
-      ...(match.clock === undefined ? {} : { clock: match.clock }),
+      ...(match.clock === undefined ? {} : { clock: paced(match.clock) }),
       ...(match.lifecycle === undefined ? {} : { lifecycle: match.lifecycle }),
       ...(match.statusReason === undefined
         ? {}
@@ -596,6 +642,11 @@ export function createPlatformDataSource(
     BET_REFUND: "Refund",
   };
 
+  /** A type the contract does not list yet still reads as words rather than an empty cell. */
+  const transactionLabel = (type: string): string =>
+    TRANSACTION_LABELS[type as Transaction["type"]] ??
+    type.charAt(0) + type.slice(1).toLowerCase().replaceAll("_", " ");
+
   function toTransactionView(t: Transaction): TransactionView {
     const wire = t as Transaction & {
       readonly status?: TransactionView["status"];
@@ -609,7 +660,7 @@ export function createPlatformDataSource(
       amount: t.amount,
       balanceAfter: t.balanceAfter,
       ...(t.reference === undefined ? {} : { reference: t.reference }),
-      description: wire.description ?? TRANSACTION_LABELS[t.type],
+      description: wire.description ?? transactionLabel(t.type),
       createdAt: t.createdAt,
       currency: t.currency,
       ...(wire.status === undefined ? {} : { status: wire.status }),
@@ -742,26 +793,56 @@ export function createPlatformDataSource(
     },
 
     listMatches: async (filter: MatchFilter = {}) => {
-      const matches = await required(() =>
-        rest.listMatches(
-          filter.leagueId === undefined ? {} : { leagueId: filter.leagueId },
-        ),
-      );
-      const views = await Promise.all(matches.map(toSummary));
       const { phases, matchday, season, teamId, date } = filter;
+      const window: MatchWindowQuery = {
+        ...(filter.leagueId === undefined ? {} : { leagueId: filter.leagueId }),
+        ...(season === undefined ? {} : { season }),
+        ...(matchday === undefined ? {} : { matchday }),
+        ...(date === undefined ? {} : localDayRange(date)),
+        limit: MAX_WINDOW,
+      };
+      const statuses =
+        phases === undefined
+          ? [undefined]
+          : [
+              ...new Set(
+                phases.flatMap((phase) => STATUS_FOR_PHASE[phase] ?? []),
+              ),
+            ];
+
+      const [pages] = await Promise.all([
+        Promise.all(
+          statuses.map((status) =>
+            required(() =>
+              rest.listMatches(status === undefined ? window : { ...window, status }),
+            ),
+          ),
+        ),
+        loadFixtures(window),
+      ]);
+      const latestFirst = phases?.every(isFinished) === true;
+      const unique = new Map(pages.flat().map((m) => [m.id, m]));
+      const settled = await Promise.allSettled(
+        [...unique.values()].map(toSummary),
+      );
+      // A row whose fixture lies outside the fixture window is left out rather than failing the list.
+      const views = settled.flatMap((r) =>
+        r.status === "fulfilled" ? [r.value] : [],
+      );
 
       return views
         .filter((m) => phases === undefined || phases.includes(m.phase))
-        .filter((m) => matchday === undefined || m.matchday === matchday)
-        .filter((m) => season === undefined || m.season === season)
         .filter(
           (m) =>
             teamId === undefined ||
             m.home.id === teamId ||
             m.away.id === teamId,
         )
-        .filter((m) => date === undefined || m.kickoffAt.slice(0, 10) === date)
-        .sort((a, b) => a.kickoffAt.localeCompare(b.kickoffAt))
+        .sort((a, b) =>
+          latestFirst
+            ? b.kickoffAt.localeCompare(a.kickoffAt)
+            : a.kickoffAt.localeCompare(b.kickoffAt),
+        )
         .slice(0, filter.limit ?? Number.POSITIVE_INFINITY);
     },
 
@@ -858,7 +939,17 @@ export function createPlatformDataSource(
           ...(query.kinds === undefined ? {} : { kinds: query.kinds }),
           ...(query.limit === undefined ? {} : { limit: query.limit }),
         }),
-      );
+      ).catch((cause: unknown) => {
+        if (cause instanceof DataSourceError && cause.code === "NOT_FOUND") {
+          throw new DataSourceError(
+            "NOT_IMPLEMENTED",
+            "Search is not available yet.",
+            cause.detail,
+          );
+        }
+
+        throw cause;
+      });
 
       return {
         term: wire.term,
@@ -878,6 +969,10 @@ export function createPlatformDataSource(
       const wire = await optional(() => rest.getPublicConfig(), undefined);
 
       if (wire === undefined) return { currency: currentCurrency(), features: {} };
+
+      const seconds = (wire as { timing?: { secondsPerMinute?: unknown } }).timing?.secondsPerMinute;
+
+      if (typeof seconds === "number" && seconds > 0) minuteLengthMs = seconds * 1000;
 
       return {
         currency: wire.currency,
@@ -1085,10 +1180,17 @@ export function createPlatformDataSource(
         typeof options.userId === "function"
           ? options.userId()
           : options.userId;
-      const release =
-        id === undefined
-          ? undefined
-          : ensureLive().subscribe(accountChannel(id), notifyAccount);
+      let release: (() => void) | undefined;
+
+      if (id !== undefined && options.accountChannel === true) {
+        release = ensureLive().subscribe(accountChannel(id), notifyAccount);
+      } else if (id !== undefined) {
+        const timer = setInterval(listener, options.accountRefreshMs ?? 20_000);
+
+        release = () => {
+          clearInterval(timer);
+        };
+      }
 
       return () => {
         accountListeners.delete(listener);

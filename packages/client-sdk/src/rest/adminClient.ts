@@ -76,7 +76,34 @@ export interface CommissionConfigView {
   readonly shops: readonly CommissionConfig[];
 }
 
+export interface AdminListRows {
+  readonly users: AdminCustomer;
+  readonly shops: AdminShopSummary;
+  readonly cashiers: AdminCashierSummary;
+  readonly teams: AdminTeam;
+  readonly fixtures: AdminFixture;
+  readonly settlements: AdminSettlement;
+  readonly simulations: AdminSimulationRun;
+}
+
+export type AdminListResource = keyof AdminListRows;
+
+/** Paging, sorting and filtering are the platform's job; a client sends the query and renders the page it gets back. */
+export interface AdminListQuery {
+  readonly page?: number;
+  readonly pageSize?: number;
+  readonly sort?: string;
+  readonly direction?: "asc" | "desc";
+  readonly search?: string;
+  readonly filters?: Readonly<Record<string, string | undefined>>;
+}
+
 export interface BetNgAdminClient {
+  queryList<K extends AdminListResource>(
+    resource: K,
+    query?: AdminListQuery,
+  ): Promise<Page<AdminListRows[K]>>;
+
   login(request: AdminLoginRequest): Promise<AdminSession>;
   logout(): Promise<void>;
   session(): Promise<AdminSession>;
@@ -142,6 +169,26 @@ export function createAdminClient(request: Requester): BetNgAdminClient {
   const list = async <T>(path: string): Promise<readonly T[]> => (await request<ListResponse<T>>("GET", path)).items;
 
   return {
+    queryList: async <K extends AdminListResource>(resource: K, query: AdminListQuery = {}) => {
+      const { filters = {}, ...paging } = query;
+      const page = paging.page ?? 1;
+      const pageSize = paging.pageSize ?? 25;
+      const answer = await request<Page<AdminListRows[K]> | ListResponse<AdminListRows[K]>>(
+        "GET",
+        `${base}/${resource}${buildQuery({ ...filters, ...paging, page, pageSize })}`,
+      );
+
+      if ("total" in answer) return answer;
+
+      // A service that does not page yet answers every row; the page is cut here so the table still works.
+      return {
+        items: answer.items.slice((page - 1) * pageSize, page * pageSize),
+        page,
+        pageSize,
+        total: answer.items.length,
+      };
+    },
+
     login: async (body) => request<AdminSession>("POST", `${base}/auth/login`, body),
     logout: async () => {
       await request<unknown>("POST", `${base}/auth/logout`);

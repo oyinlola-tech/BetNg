@@ -10,6 +10,7 @@ export interface ColorTheme {
   readonly textMuted: string;
   readonly textOnBrand: string;
   readonly textOnLive: string;
+  readonly textOnStatus: string;
 
   readonly border: string;
   readonly borderStrong: string;
@@ -26,8 +27,17 @@ export interface ColorTheme {
   readonly dangerSubtle: string;
   readonly warning: string;
   readonly warningSubtle: string;
+  readonly info: string;
+  readonly infoSubtle: string;
+  /** Reserved for in-play state and nothing else. */
   readonly live: string;
   readonly liveSubtle: string;
+  readonly pending: string;
+  readonly pendingSubtle: string;
+  readonly void: string;
+  readonly voidSubtle: string;
+  readonly suspended: string;
+  readonly suspendedSubtle: string;
 
   readonly overlay: string;
   readonly skeleton: string;
@@ -47,9 +57,10 @@ export const lightTheme: ColorTheme = Object.freeze({
 
   textPrimary: "#14130F",
   textSecondary: "#4B4840",
-  textMuted: "#726D62",
+  textMuted: "#696459",
   textOnBrand: "#FFFFFF",
   textOnLive: "#FFFFFF",
+  textOnStatus: "#FFFFFF",
 
   border: "#E3DFD6",
   borderStrong: "#CBC5B8",
@@ -60,11 +71,11 @@ export const lightTheme: ColorTheme = Object.freeze({
   brandActive: "#173BAA",
   brandSubtle: "#EAF0FF",
 
-  success: "#12805C",
+  success: "#0E7553",
   successSubtle: "#E6F5EF",
   danger: "#C92A2A",
   dangerSubtle: "#FBEAEA",
-  warning: "#B25E09",
+  warning: "#9C5207",
   warningSubtle: "#FDF1E2",
   info: "#0B6B94",
   infoSubtle: "#E4F1F7",
@@ -72,7 +83,7 @@ export const lightTheme: ColorTheme = Object.freeze({
   liveSubtle: "#FDE9EC",
   pending: "#5A6170",
   pendingSubtle: "#ECEDF0",
-  void: "#6E6A62",
+  void: "#64605A",
   voidSubtle: "#ECE9E2",
   suspended: "#A4480F",
   suspendedSubtle: "#FBEDE3",
@@ -94,9 +105,10 @@ export const darkTheme: ColorTheme = Object.freeze({
 
   textPrimary: "#F2F4F7",
   textSecondary: "#B2BAC6",
-  textMuted: "#7B8595",
-  textOnBrand: "#FFFFFF",
-  textOnLive: "#FFFFFF",
+  textMuted: "#8690A0",
+  textOnBrand: "#071230",
+  textOnLive: "#2B060B",
+  textOnStatus: "#0A0C10",
 
   border: "#222732",
   borderStrong: "#323946",
@@ -105,7 +117,7 @@ export const darkTheme: ColorTheme = Object.freeze({
   brand: "#4C7DFF",
   brandHover: "#6B93FF",
   brandActive: "#3A69EB",
-  brandSubtle: "#16233F",
+  brandSubtle: "#111B33",
 
   success: "#2FBF83",
   successSubtle: "#0F2A21",

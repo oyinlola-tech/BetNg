@@ -16,6 +16,9 @@ export type { BetNgAuthClient } from "./authClient.js";
 export type { BetNgShopClient, TicketQuery } from "./shopClient.js";
 export type {
   AdminFixtureQuery,
+  AdminListQuery,
+  AdminListResource,
+  AdminListRows,
   AnalyticsBreakdownQuery,
   AnalyticsSessionQuery,
   AnalyticsWindow,

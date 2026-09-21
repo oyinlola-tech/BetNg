@@ -4,6 +4,7 @@ import type { AdminDataSource } from "../adminDataSource.type.js";
 import type { AuthDataSource } from "../authDataSource.type.js";
 import type { ShopDataSource } from "../shopDataSource.type.js";
 import type { SessionLike, SessionStore } from "../session.js";
+import { DataSourceError } from "../dataSource.type.js";
 import { translateApiError } from "./errors.js";
 
 function guarded<S extends SessionLike>(session: SessionStore<S>) {
@@ -127,8 +128,34 @@ export function createPlatformAdminSource(rest: BetNgRestClient, session: Sessio
       .map(([name, method]) => [name, (...args: unknown[]) => run(() => (method as (...a: unknown[]) => Promise<unknown>)(...args))]),
   ) as unknown as Omit<AdminDataSource, "session" | "login" | "logout" | "subscribe">;
 
+  /** There is no cross-shop cashier route yet, so that one list is gathered per shop. */
+  const queryList: AdminDataSource["queryList"] = async (resource, query = {}) => {
+    if (resource !== "cashiers") return run(() => rest.admin.queryList(resource, query));
+
+    try {
+      return await run(() => rest.admin.queryList(resource, query));
+    } catch (cause) {
+      if (!(cause instanceof DataSourceError) || cause.code !== "NOT_FOUND") throw cause;
+    }
+
+    const shops = await run(() => rest.admin.listShops());
+    const all = (await Promise.all(shops.map((shop) => run(() => rest.admin.listCashiers(shop.id))))).flat();
+    const needle = query.search?.trim().toLowerCase() ?? "";
+    const filters = Object.entries(query.filters ?? {}).filter(([, value]) => value !== undefined && value !== "");
+    const rows = all.filter(
+      (row) =>
+        (needle === "" || Object.values(row).join(" ").toLowerCase().includes(needle)) &&
+        filters.every(([key, value]) => !(key in row) || String((row as Record<string, unknown>)[key]) === value),
+    );
+    const page = query.page ?? 1;
+    const pageSize = query.pageSize ?? 25;
+
+    return { items: rows.slice((page - 1) * pageSize, page * pageSize), page, pageSize, total: rows.length } as never;
+  };
+
   return {
     ...wrapped,
+    queryList,
     session,
     login: async (request) => {
       const next = await run(() => rest.admin.login(request));

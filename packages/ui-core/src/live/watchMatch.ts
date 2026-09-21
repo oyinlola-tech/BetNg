@@ -36,6 +36,8 @@ function clockAfter(
   current: MatchClockView | undefined,
   event: MatchEventView,
 ): MatchClockView {
+  if (event.clock !== undefined) return event.clock;
+
   return {
     ...current,
     period: PERIOD_AFTER[event.kind] ?? current?.period ?? "FIRST_HALF",

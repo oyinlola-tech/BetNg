@@ -17,6 +17,10 @@ const TONE: Record<StatusTone, string> = {
   brand: "bg-brand-subtle text-brand",
   live: "bg-live-subtle text-live",
   neutral: "bg-surface-sunken text-text-muted",
+  info: "bg-info-subtle text-info",
+  pending: "bg-pending-subtle text-pending",
+  void: "bg-void-subtle text-void",
+  suspended: "bg-suspended-subtle text-suspended",
 };
 
 export function ActivityFeed({ items, className }: { readonly items: readonly ActivityItem[]; readonly className?: string }): React.JSX.Element {

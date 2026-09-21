@@ -7,10 +7,10 @@ export const LOGO_B_PATH =
 
 export const LOGO_CUT_PATH = "M8 44L56 16l2.4 4.2L10.4 48.2z";
 
-export const WORDMARK = { text: "Bet", accent: "NG" } as const;
+export const WORDMARK = { text: "BET", accent: "NG" } as const;
 
 export function logoSvg(options: { readonly tile: string; readonly ink: string; readonly size?: number }): string {
   const size = options.size ?? 64;
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${String(size)}" height="${String(size)}" viewBox="${LOGO_VIEWBOX}" role="img" aria-label="BetNG"><path d="${LOGO_TILE_PATH}" fill="${options.tile}"/><path d="${LOGO_B_PATH}" fill="${options.ink}"/><path d="${LOGO_CUT_PATH}" fill="${options.tile}" opacity="0.92"/></svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${String(size)}" height="${String(size)}" viewBox="${LOGO_VIEWBOX}" role="img" aria-label="BETNG"><path d="${LOGO_TILE_PATH}" fill="${options.tile}"/><path d="${LOGO_B_PATH}" fill="${options.ink}"/><path d="${LOGO_CUT_PATH}" fill="${options.tile}" opacity="0.92"/></svg>`;
 }

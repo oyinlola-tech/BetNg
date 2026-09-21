@@ -46,14 +46,15 @@ function validUrl(value: string, protocols: readonly string[]): boolean {
 
 /**
  * Reads a browser app's build-time environment. Only the public gateway and
- * the public realtime endpoint are ever configured here; staging and
- * production builds always use the platform, whatever `VITE_DATA_SOURCE` says.
+ * the public realtime endpoint are ever configured here. The platform is the
+ * default everywhere; the mock is an explicit opt-in that only a development
+ * or test build honours.
  */
 export function readClientEnv(raw: RawEnv): ClientEnv {
   const problems: string[] = [];
   const appEnv = oneOf(text(raw, "VITE_APP_ENV"), ENVIRONMENTS, raw["PROD"] === true ? "production" : "development");
   const deployed = appEnv === "production" || appEnv === "staging";
-  const requested = oneOf(text(raw, "VITE_DATA_SOURCE"), ["mock", "platform"] as const, deployed ? "platform" : "mock");
+  const requested = oneOf(text(raw, "VITE_DATA_SOURCE"), ["mock", "platform"] as const, "platform");
 
   if (deployed && requested === "mock") problems.push("VITE_DATA_SOURCE=mock is ignored outside development and test.");
 

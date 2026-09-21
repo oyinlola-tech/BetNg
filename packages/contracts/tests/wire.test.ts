@@ -16,7 +16,7 @@ import {
   transactionSchema,
   walletSchema,
 } from "../src/index.js";
-import * as wire from "./fixtures/wire.js";
+import * as wire from "./wireFixtures.js";
 
 const cases = [
   ["match response", matchSchema, wire.matchResponse],

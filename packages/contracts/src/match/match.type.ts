@@ -34,6 +34,25 @@ export const matchScoreSchema = z.object({
   away: z.int().min(0),
 });
 
+export const clockPeriodSchema = z.enum([
+  "PRE",
+  "FIRST_HALF",
+  "HALF_TIME",
+  "SECOND_HALF",
+  "FULL_TIME",
+]);
+
+/** The platform clock: carried by `GET /matches` and `GET /matches/:id` so no client derives a minute from kick-off time. */
+export const matchClockSchema = z.object({
+  period: clockPeriodSchema,
+  minute: z.int().min(0).max(130),
+  addedMinutes: z.int().min(0).max(30).optional(),
+  asOf: isoTimestampSchema,
+  minuteLengthMs: z.int().min(1).optional(),
+});
+
+export type MatchClock = z.infer<typeof matchClockSchema>;
+
 export interface Match {
   readonly id: MatchId;
   readonly fixtureId: FixtureId;
@@ -41,6 +60,7 @@ export interface Match {
   readonly score?: MatchScore;
   readonly completedAt?: string;
   readonly lifecycle?: string | undefined;
+  readonly clock?: MatchClock | undefined;
   readonly createdAt: string;
   readonly updatedAt: string;
 }
@@ -52,6 +72,7 @@ export const matchSchema = z.object({
   score: matchScoreSchema.optional(),
   completedAt: isoTimestampSchema.optional(),
   lifecycle: z.string().max(32).optional(),
+  clock: matchClockSchema.optional(),
   createdAt: isoTimestampSchema,
   updatedAt: isoTimestampSchema,
 });

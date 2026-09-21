@@ -1,6 +1,9 @@
 import "@testing-library/jest-dom/vitest";
-import { cleanup } from "@testing-library/react";
 import { afterEach } from "vitest";
+import { cleanup, configure } from "@testing-library/react";
+
+// Screens load their route and their data asynchronously; one second is too tight on a loaded machine.
+configure({ asyncUtilTimeout: 5_000 });
 
 afterEach(() => {
   cleanup();

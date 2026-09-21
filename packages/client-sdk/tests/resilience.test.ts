@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { BetNgApiError, codeForStatus } from "../src/rest/restError.js";
+import { codeForStatus, type BetNgApiError } from "../src/rest/restError.js";
 import { createRequester } from "../src/rest/request.js";
 
 const config = { gatewayUrl: "http://gateway.test", liveUrl: "ws://live.test" };

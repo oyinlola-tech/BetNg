@@ -23,6 +23,7 @@ import { hash, rng, uuidFrom } from "../prng.js";
 import { statusAt } from "../season.js";
 import { fixtureWindow, ledgerEntries, marketOddsFor, reportDays, riskOverview, serviceHealth, settlementsFor, toAdminFixture, toSimulationRun, tradingMarkets, type MatchOverride, type Overrides } from "./derive.js";
 import { accountAnalysis, analyticsBreakdown, analyticsOverview, analyticsSessions, commissionFor, exposureBoard, operatorPeriods, operatorSummary, type Directory } from "./insight.js";
+import { pageRows } from "./queryList.js";
 import { ADMINS, ADMIN_PASSWORD, ADMIN_TOTP, DEFAULT_SETTINGS, ratingsFor, seedCashiers, seedCustomers, seedShops } from "./seed.js";
 
 export interface MockAdminOptions {
@@ -290,8 +291,33 @@ export function createMockAdminSource(options: MockAdminOptions): AdminDataSourc
     return trimmed;
   };
 
-  return {
+  const source: AdminDataSource = {
     session,
+
+    /** @endpoint GET /api/v1/admin/<resource>?page=&pageSize=&sort=&direction=&search=&<filter>= → Page<row> */
+    queryList: async (resource, query = {}) => {
+      const filters = query.filters ?? {};
+      const rows = async (): Promise<readonly object[]> => {
+        switch (resource) {
+          case "users":
+            return source.listCustomers();
+          case "shops":
+            return source.listShops();
+          case "cashiers":
+            return (await Promise.all((await source.listShops()).map((shop) => source.listCashiers(shop.id)))).flat();
+          case "teams":
+            return source.listTeams(filters["leagueId"]);
+          case "fixtures":
+            return source.listFixtures(filters["leagueId"] === undefined ? {} : { leagueId: filters["leagueId"] });
+          case "settlements":
+            return source.listSettlements();
+          case "simulations":
+            return source.listSimulations();
+        }
+      };
+
+      return pageRows(await rows(), query) as never;
+    },
 
     /** @endpoint POST /api/v1/admin/auth/login → AdminSession */
     login: async (request) => {
@@ -921,4 +947,6 @@ export function createMockAdminSource(options: MockAdminOptions): AdminDataSourc
       return next;
     },
   };
+
+  return source;
 }

@@ -11,6 +11,9 @@ export {
 export type { ApiFailureKind, RequestOptions } from "./rest/index.js";
 export type {
   AdminFixtureQuery,
+  AdminListQuery,
+  AdminListResource,
+  AdminListRows,
   AnalyticsBreakdownQuery,
   AnalyticsSessionQuery,
   AnalyticsWindow,

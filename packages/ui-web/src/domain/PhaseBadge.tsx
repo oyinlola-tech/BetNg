@@ -9,8 +9,6 @@ import { cn } from "../lib/cn";
 import { LiveDot } from "./LiveDot";
 import { TONE_SOLID, TONE_SUBTLE } from "./tone";
 
-export { LiveDot } from "./LiveDot";
-
 type PhaseIcon = React.ComponentType<{
   readonly className?: string;
   readonly "aria-hidden"?: boolean;

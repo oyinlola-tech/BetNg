@@ -16,6 +16,7 @@
   --color-text-muted: var(--bn-text-muted);
   --color-text-on-brand: var(--bn-text-on-brand);
   --color-text-on-live: var(--bn-text-on-live);
+  --color-text-on-status: var(--bn-text-on-status);
   --color-border: var(--bn-border);
   --color-border-strong: var(--bn-border-strong);
   --color-focus-ring: var(--bn-focus-ring);

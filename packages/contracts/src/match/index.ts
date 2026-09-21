@@ -33,6 +33,8 @@ export type { Fixture } from "./fixture.type.js";
 export {
   listMatchesQuerySchema,
   listTeamsQuerySchema,
+  clockPeriodSchema,
+  matchClockSchema,
   matchSchema,
   matchScoreSchema,
   matchStatusSchema,
@@ -41,6 +43,7 @@ export type {
   ListMatchesQuery,
   ListTeamsQuery,
   Match,
+  MatchClock,
   MatchScore,
   MatchStatus,
 } from "./match.type.js";

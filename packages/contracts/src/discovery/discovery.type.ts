@@ -13,24 +13,8 @@ import {
 } from "../common/index.js";
 import { matchScoreSchema, matchSideSchema } from "../match/index.js";
 
-export const clockPeriodSchema = z.enum([
-  "PRE",
-  "FIRST_HALF",
-  "HALF_TIME",
-  "SECOND_HALF",
-  "FULL_TIME",
-]);
-
-/** `GET /matches/:id` and the live stream carry this so no client derives a minute from kick-off time. */
-export const matchClockSchema = z.object({
-  period: clockPeriodSchema,
-  minute: z.int().min(0).max(130),
-  addedMinutes: z.int().min(0).max(30).optional(),
-  asOf: isoTimestampSchema,
-  minuteLengthMs: z.int().min(1).optional(),
-});
-
-export type MatchClock = z.infer<typeof matchClockSchema>;
+export { clockPeriodSchema, matchClockSchema } from "../match/match.type.js";
+export type { MatchClock } from "../match/match.type.js";
 
 export const lineupPlayerSchema = z.object({
   id: z.string().min(1).max(64),

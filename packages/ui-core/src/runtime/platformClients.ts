@@ -32,7 +32,12 @@ export function createPlatformClients(options: PlatformClientOptions): PlatformC
     getToken: options.getToken,
     onUnauthorized: options.onUnauthorized,
     onRequestError: (failure) => {
-      const level = failure.status >= 500 || failure.status === 0 ? "error" : "warn";
+      const level =
+        failure.status >= 500 || failure.status === 0
+          ? "error"
+          : failure.status === 404
+            ? "info"
+            : "warn";
 
       logger?.[level]("api", `${failure.method} ${failure.path} failed`, { ...failure });
     },

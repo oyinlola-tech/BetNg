@@ -109,7 +109,7 @@ export function useDocumentMeta(meta: DocumentMeta): void {
         : { url: ogUrl ?? canonical }),
       ...(ogType === undefined ? {} : { type: ogType }),
       ...(ogSiteName === undefined ? {} : { siteName: ogSiteName }),
-    } as DocumentMetaOpenGraph;
+    };
 
     for (const key of Object.keys(openGraph) as (keyof DocumentMetaOpenGraph)[]) {
       const value = openGraph[key];

@@ -30,13 +30,13 @@ const SOLID: Record<StateTone, string> = {
   brand: "bg-brand text-text-on-brand",
   neutral: "bg-text-secondary text-background",
   muted: "bg-text-muted text-background",
-  success: "bg-success text-white",
-  warning: "bg-warning text-white",
-  danger: "bg-danger text-white",
-  info: "bg-info text-white",
-  pending: "bg-pending text-white",
-  void: "bg-void text-white",
-  suspended: "bg-suspended text-white",
+  success: "bg-success text-text-on-status",
+  warning: "bg-warning text-text-on-status",
+  danger: "bg-danger text-text-on-status",
+  info: "bg-info text-text-on-status",
+  pending: "bg-pending text-text-on-status",
+  void: "bg-void text-text-on-status",
+  suspended: "bg-suspended text-text-on-status",
 };
 
 export function Badge({

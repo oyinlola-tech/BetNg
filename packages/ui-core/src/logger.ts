@@ -21,7 +21,8 @@ export interface Logger {
   readonly addSink: (sink: LogSink) => () => void;
 }
 
-const SENSITIVE = /pass(word)?|pin|token|secret|authorization|cookie|otp|code|balance|amount|stake|email|phone/i;
+const SENSITIVE =
+  /pass(word|code)?|(^|_)pin($|_)|pin$|token|secret|authorization|cookie|otp|verification|balance|amount|stake|payout|email|phone/i;
 const LEVELS: readonly LogLevel[] = ["debug", "info", "warn", "error"];
 
 export function redact(value: unknown, depth = 0): unknown {
@@ -42,7 +43,6 @@ export function redact(value: unknown, depth = 0): unknown {
 export const consoleSink: LogSink = (entry) => {
   const line = `[${entry.category}] ${entry.message}`;
 
-  // eslint-disable-next-line no-console
   console[entry.level === "debug" ? "log" : entry.level](line, entry.context ?? "");
 };
 

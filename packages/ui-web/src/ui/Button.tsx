@@ -40,11 +40,11 @@ const VARIANTS: Record<ButtonVariant, string> = {
   ghost:
     "border-transparent bg-transparent text-text-secondary enabled:hover:bg-surface-hover enabled:hover:text-text-primary enabled:active:bg-surface-sunken",
   danger: cn(
-    "border-danger bg-danger text-white enabled:hover:opacity-90 enabled:active:opacity-100",
+    "border-danger bg-danger text-text-on-status enabled:hover:opacity-90 enabled:active:opacity-100",
     FILLED,
   ),
   success: cn(
-    "border-success bg-success text-white enabled:hover:opacity-90 enabled:active:opacity-100",
+    "border-success bg-success text-text-on-status enabled:hover:opacity-90 enabled:active:opacity-100",
     FILLED,
   ),
   link: "border-transparent bg-transparent text-brand underline-offset-2 enabled:hover:text-brand-hover enabled:hover:underline",

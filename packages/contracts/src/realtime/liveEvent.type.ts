@@ -4,7 +4,12 @@ import {
   isoTimestampSchema,
   type MatchId,
 } from "../common/index.js";
-import { matchScoreSchema, matchSideSchema } from "../match/index.js";
+import {
+  matchClockSchema,
+  matchScoreSchema,
+  matchSideSchema,
+  type MatchClock,
+} from "../match/index.js";
 
 export const liveEventTypeSchema = z.enum([
   "MATCH_STARTED",
@@ -43,6 +48,7 @@ export interface LiveEvent {
   readonly score: { readonly home: number; readonly away: number };
   readonly description: string;
   readonly occurredAt: string;
+  readonly clock?: MatchClock | undefined;
 }
 
 export const liveEventSchema = z.object({
@@ -54,6 +60,7 @@ export const liveEventSchema = z.object({
   score: matchScoreSchema,
   description: z.string().max(240),
   occurredAt: isoTimestampSchema,
+  clock: matchClockSchema.optional(),
 });
 
 export { MATCH_CHANNEL_PATTERN, matchChannel } from "../runtime.js";

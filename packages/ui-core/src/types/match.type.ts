@@ -71,6 +71,8 @@ export interface MatchEventView {
   readonly description: string;
   readonly occurredAt: string;
   readonly detail?: Readonly<Record<string, string | number | boolean>>;
+  /** The clock the platform reported with this event, when it sends one. */
+  readonly clock?: MatchClockView;
 }
 
 export interface SideStats {
