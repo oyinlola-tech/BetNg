@@ -73,7 +73,8 @@ Recorded on 2026-09-21 with every app running against the real platform (live ma
 
 <table>
   <tr><td width="50%"><img alt="Home, light" src="images/screens/web/home-light.webp"><br><sub>Home, light</sub></td><td width="50%"><img alt="Home, dark" src="images/screens/web/home-dark.webp"><br><sub>Home, dark</sub></td></tr>
-  <tr><td width="50%"><img alt="Live" src="images/screens/web/live-light.webp"><br><sub>Live</sub></td><td width="50%"><img alt="Virtual football lobby" src="images/screens/web/virtuals.webp"><br><sub>Virtual football lobby</sub></td></tr>
+  <tr><td width="50%"><img alt="Live" src="images/screens/web/live-light.webp"><br><sub>Live</sub></td><td width="50%"><img alt="Live, dark" src="images/screens/web/live-dark.webp"><br><sub>Live, dark</sub></td></tr>
+  <tr><td width="50%"><img alt="Virtual football lobby" src="images/screens/web/virtuals.webp"><br><sub>Virtual football lobby</sub></td><td width="50%"></td></tr>
   <tr><td width="50%"><img alt="Match center: overview" src="images/screens/web/match-overview-light.webp"><br><sub>Match center: overview</sub></td><td width="50%"><img alt="Timeline" src="images/screens/web/match-timeline.webp"><br><sub>Timeline</sub></td></tr>
   <tr><td width="50%"><img alt="Stats" src="images/screens/web/match-stats.webp"><br><sub>Stats</sub></td><td width="50%"><img alt="Lineups" src="images/screens/web/match-lineups.webp"><br><sub>Lineups</sub></td></tr>
   <tr><td width="50%"><img alt="Markets" src="images/screens/web/match-markets.webp"><br><sub>Markets</sub></td><td width="50%"><img alt="Head to head" src="images/screens/web/match-h2h.webp"><br><sub>Head to head</sub></td></tr>
