@@ -9,6 +9,10 @@ export interface BetNgClientConfig {
   /** Retries for idempotent reads that failed in transit or with 502/503/504. Defaults to 2. */
   readonly retries?: number;
   readonly realtimeTransport?: "websocket" | "sse";
+  /** `include` when the platform issues an HttpOnly session cookie; the token is then never visible to JavaScript. */
+  readonly credentials?: "omit" | "same-origin" | "include";
+  /** Double-submit CSRF: the readable cookie the platform sets, echoed in a header on every state-changing request. */
+  readonly csrf?: { readonly cookie: string; readonly header: string };
   /** Called for every failed request with no body or credential in it, for a client's logger. */
   readonly onRequestError?: (failure: RequestFailure) => void;
 }

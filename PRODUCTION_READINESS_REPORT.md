@@ -798,7 +798,7 @@ CREATE TABLE wallet.payment_references (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL,
   reference TEXT UNIQUE NOT NULL,
-  gateway TEXT NOT NULL, -- 'paystack' | 'flutterwave'
+  gateway TEXT NOT NULL, -- 'paystack' | 'flutterwave' | 'bachs'
   type TEXT NOT NULL,    -- 'deposit' | 'withdrawal'
   amount BIGINT NOT NULL,
   currency TEXT NOT NULL DEFAULT 'NGN',

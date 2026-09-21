@@ -7,6 +7,9 @@ export {
   codeForStatus,
   createRestClient,
   isErrorResponse,
+  validated,
+  validatedList,
+  validatedPage,
 } from "./rest/index.js";
 export type { ApiFailureKind, RequestOptions } from "./rest/index.js";
 export type {
@@ -22,6 +25,18 @@ export type {
   OperatorLedger,
   BetNgAdminClient,
   BetNgAuthClient,
+  BetNgAccountClient,
+  BetNgComplianceClient,
+  BetNgDevicesClient,
+  BetNgKycClient,
+  BetNgLimitsClient,
+  BetNgPaymentsClient,
+  BetNgSecurityClient,
+  AdminPaymentQuery,
+  CompliancePageQuery,
+  IdempotentOptions,
+  LoginResult,
+  PageShape,
   BetNgRestClient,
   BetNgShopClient,
   LedgerEntry,

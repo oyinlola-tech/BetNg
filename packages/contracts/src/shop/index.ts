@@ -39,3 +39,4 @@ export type {
   TicketSelection,
   TicketStatus,
 } from "./shop.type.js";
+export * from "./shift.type.js";

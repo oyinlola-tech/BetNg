@@ -31,6 +31,8 @@ import {
 import { createAuthClient, type BetNgAuthClient } from "./authClient.js";
 import { createShopClient, type BetNgShopClient } from "./shopClient.js";
 import { createAdminClient, type BetNgAdminClient } from "./adminClient.js";
+import { createAccountClient, type BetNgAccountClient } from "./accountClient.js";
+import { createComplianceClient, type BetNgComplianceClient } from "./complianceClient.js";
 
 export interface LedgerEntry {
   readonly wallet: Wallet;
@@ -124,6 +126,8 @@ export interface BetNgRestClient {
   readonly auth: BetNgAuthClient;
   readonly shop: BetNgShopClient;
   readonly admin: BetNgAdminClient;
+  readonly account: BetNgAccountClient;
+  readonly compliance: BetNgComplianceClient;
 }
 
 export function createRestClient(config: BetNgClientConfig): BetNgRestClient {
@@ -133,6 +137,8 @@ export function createRestClient(config: BetNgClientConfig): BetNgRestClient {
     auth: createAuthClient(request),
     shop: createShopClient(request),
     admin: createAdminClient(request),
+    account: createAccountClient(request),
+    compliance: createComplianceClient(request),
 
     listLeagues: async () =>
       (await request<ListResponse<League>>("GET", `${API_PREFIX}/leagues`))

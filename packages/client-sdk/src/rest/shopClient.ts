@@ -1,6 +1,8 @@
 import { API_PREFIX } from "@betng/contracts/runtime";
+import { cashierShiftSchema, type CashMovementRequest, type CashierShift, type CloseShiftRequest, type OpenShiftRequest } from "@betng/contracts";
 import type { CancelTicketRequest, Cashier, PayoutTicketRequest, PlaceTicketRequest, ShopDailyReport, ShopLoginRequest, ShopSession, ShopTransaction, Ticket } from "@betng/contracts";
 import { buildQuery, type ListResponse, type Requester } from "./request.js";
+import { validated, validatedList } from "./validated.js";
 
 export interface TicketQuery {
   readonly status?: string;
@@ -21,6 +23,12 @@ export interface BetNgShopClient {
   getDailyReport(date?: string): Promise<ShopDailyReport>;
   listDailyReports(from: string, to: string): Promise<readonly ShopDailyReport[]>;
   listCashiers(): Promise<readonly Cashier[]>;
+  /** Pending backend: cashier shifts and the cash drawer. */
+  getCurrentShift(): Promise<CashierShift | null>;
+  openShift(request: OpenShiftRequest, idempotencyKey: string): Promise<CashierShift>;
+  recordCashMovement(request: CashMovementRequest, idempotencyKey: string): Promise<CashierShift>;
+  closeShift(shiftId: string, request: CloseShiftRequest, idempotencyKey: string): Promise<CashierShift>;
+  listShifts(date?: string): Promise<readonly CashierShift[]>;
 }
 
 export function createShopClient(request: Requester): BetNgShopClient {
@@ -41,5 +49,14 @@ export function createShopClient(request: Requester): BetNgShopClient {
     getDailyReport: async (date) => request<ShopDailyReport>("GET", `${base}/reports/daily${buildQuery({ date })}`),
     listDailyReports: async (from, to) => (await request<ListResponse<ShopDailyReport>>("GET", `${base}/reports/daily/range${buildQuery({ from, to })}`)).items,
     listCashiers: async () => (await request<ListResponse<Cashier>>("GET", `${base}/cashiers`)).items,
+    getCurrentShift: async () => {
+      const reply = await request<{ readonly shift: unknown }>("GET", `${base}/shifts/current`);
+
+      return reply.shift === null ? null : validated(cashierShiftSchema, reply.shift);
+    },
+    openShift: async (body, idempotencyKey) => validated(cashierShiftSchema, await request("POST", `${base}/shifts`, body, { idempotencyKey })),
+    recordCashMovement: async (body, idempotencyKey) => validated(cashierShiftSchema, await request("POST", `${base}/shifts/current/cash`, body, { idempotencyKey })),
+    closeShift: async (shiftId, body, idempotencyKey) => validated(cashierShiftSchema, await request("POST", `${base}/shifts/${encodeURIComponent(shiftId)}/close`, body, { idempotencyKey })),
+    listShifts: async (date) => validatedList(cashierShiftSchema, await request("GET", `${base}/shifts${buildQuery({ date })}`)),
   };
 }

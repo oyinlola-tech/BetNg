@@ -58,6 +58,18 @@ function retryAfter(response: Response): number | undefined {
   return Number.isFinite(seconds) && seconds > 0 ? seconds : undefined;
 }
 
+function readCookie(name: string): string | undefined {
+  if (typeof document === "undefined") return undefined;
+
+  for (const part of document.cookie.split(";")) {
+    const [key, ...value] = part.trim().split("=");
+
+    if (key === name) return decodeURIComponent(value.join("="));
+  }
+
+  return undefined;
+}
+
 const wait = (ms: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -91,6 +103,7 @@ export function createRequester(config: BetNgClientConfig): Requester {
     options.signal?.addEventListener("abort", abort, { once: true });
 
     const token = config.getToken?.();
+    const csrf = method !== "GET" && config.csrf !== undefined ? readCookie(config.csrf.cookie) : undefined;
 
     try {
       const response = await fetch(new URL(path, config.gatewayUrl), {
@@ -103,7 +116,9 @@ export function createRequester(config: BetNgClientConfig): Requester {
           ...(options.idempotencyKey === undefined
             ? {}
             : { [IDEMPOTENCY_HEADER]: options.idempotencyKey }),
+          ...(csrf === undefined || config.csrf === undefined ? {} : { [config.csrf.header]: csrf }),
         },
+        ...(config.credentials === undefined ? {} : { credentials: config.credentials }),
         ...(body === undefined ? {} : { body: JSON.stringify(body) }),
         signal: controller.signal,
       });
@@ -125,7 +140,7 @@ export function createRequester(config: BetNgClientConfig): Requester {
       }
 
       if (!response.ok) {
-        if (response.status === 401 && token !== undefined) {
+        if (response.status === 401 && (token !== undefined || config.credentials === "include")) {
           config.onUnauthorized?.();
         }
 

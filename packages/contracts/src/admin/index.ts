@@ -24,3 +24,4 @@ export type {
   SimulationRun,
 } from "./admin.type.js";
 export * from "./operations.type.js";
+export * from "./compliance.type.js";
