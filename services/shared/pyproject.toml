@@ -7,7 +7,9 @@ dependencies = [
     "fastapi>=0.120",
     "httpx>=0.28",
     "pydantic>=2.10",
+    "psycopg[binary,pool]>=3.2",
     "pydantic-settings>=2.7",
+    "redis>=5",
 ]
 
 [build-system]

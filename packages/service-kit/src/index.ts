@@ -76,11 +76,14 @@ export {
   createServiceDatabase,
   createServiceClient,
   databaseProbe,
+  databaseSchema,
   redisProbe,
   serviceProbe,
+  withRedisLock,
 } from "./clients/index.js";
 export type {
   RedisConnection,
+  RedisLockOptions,
   ServiceDatabase,
   ServiceClient,
   ServiceProbeOptions,
@@ -123,8 +126,18 @@ export {
   unprocessableEntity,
 } from "@zudojs/http";
 export type {
+  HttpMiddleware,
   HttpRequestContext,
   HttpResponseContext,
   HttpRouter,
   HttpRouterContext,
 } from "@zudojs/http";
+
+export {
+  ACTOR_HEADER_PREFIX,
+  ACTOR_HEADERS,
+  actorHeaders,
+  readActor,
+  requireActor,
+} from "./actor/index.js";
+export type { Actor, ActorKind, ActorRequirement } from "./actor/index.js";

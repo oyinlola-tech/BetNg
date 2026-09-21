@@ -211,3 +211,5 @@ export type {
 export * from "./auth/index.js";
 export * from "./shop/index.js";
 export * from "./admin/index.js";
+
+export * from "./platform/index.js";

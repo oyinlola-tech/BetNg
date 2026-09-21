@@ -28,6 +28,9 @@ DEFAULT_PORTS: dict[str, int] = {
     "simulation": 3005,
     "odds": 3006,
     "risk": 3007,
+    "event": 3008,
+    "analytics": 3009,
+    "identity": 3010,
 }
 
 
@@ -59,9 +62,28 @@ class ServiceSettings(BaseSettings):
         default="http://localhost:3001", alias="MATCH_SERVICE_URL"
     )
 
+    event_service_url: str = Field(
+        default="http://localhost:3008", alias="EVENT_SERVICE_URL"
+    )
+    betting_service_url: str = Field(
+        default="http://localhost:3002", alias="BETTING_SERVICE_URL"
+    )
+    identity_service_url: str = Field(
+        default="http://localhost:3010", alias="IDENTITY_SERVICE_URL"
+    )
+
+    redis_url: str | None = Field(default=None, alias="REDIS_URL")
+
     service_timeout_ms: int = Field(default=5000, alias="SERVICE_TIMEOUT_MS")
 
     port_override: int | None = Field(default=None, alias="PORT")
+
+    @cached_property
+    def database_url(self) -> str | None:
+        """This service's PostgreSQL URL, from ``<SERVICE>_DATABASE_URL``."""
+        import os
+
+        return os.environ.get(f"{self.service_name.upper()}_DATABASE_URL") or None
 
     @cached_property
     def port(self) -> int:

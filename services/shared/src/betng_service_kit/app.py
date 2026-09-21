@@ -12,6 +12,9 @@ each stays idiomatic in its own language.
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from contextlib import AbstractAsyncContextManager
+
 from fastapi import APIRouter, FastAPI
 
 from .config import ServiceSettings
@@ -29,6 +32,7 @@ def create_service_app(
     routers: list[APIRouter] | None = None,
     probes: list[DependencyProbe] | None = None,
     rpc_server: RpcServer | None = None,
+    lifespan: Callable[[FastAPI], AbstractAsyncContextManager[None]] | None = None,
 ) -> FastAPI:
     configure_logging(
         settings.service_name,
@@ -44,6 +48,8 @@ def create_service_app(
         # The docs are development aids, not a public surface.
         docs_url="/docs" if settings.environment != "production" else None,
         redoc_url=None,
+        # Where a service opens its pool, applies migrations and starts jobs.
+        lifespan=lifespan,
     )
 
     # Registration order is reversed at request time, so the correlation

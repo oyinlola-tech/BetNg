@@ -21,6 +21,7 @@
   },
   "scripts": {
     "build": "pnpm -r run build",
+    "db:bootstrap": "bash scripts/db-bootstrap.sh",
     "db:generate": "pnpm -r --filter './apps/services/*' run db:generate",
     "db:migrate": "pnpm -r --filter './apps/services/*' run db:migrate",
     "db:migrate:dev": "pnpm -r --filter './apps/services/*' run db:migrate:dev",

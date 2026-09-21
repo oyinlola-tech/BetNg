@@ -1,3 +1,25 @@
-from .odds_interface import OddsPricer
+"""Protocols the handlers depend on."""
 
-__all__ = ["OddsPricer"]
+from .odds_interface import (
+    AuditRecorder,
+    ConfigurationCommitGuard,
+    EventPublisher,
+    ExposureReader,
+    MarketCommitGuard,
+    MatchDirectory,
+    OddsRepository,
+    ProbabilityModel,
+    StatusDecision,
+)
+
+__all__ = [
+    "AuditRecorder",
+    "ConfigurationCommitGuard",
+    "EventPublisher",
+    "ExposureReader",
+    "MarketCommitGuard",
+    "MatchDirectory",
+    "OddsRepository",
+    "ProbabilityModel",
+    "StatusDecision",
+]

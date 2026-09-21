@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "BetNG settlement service \u2014 Resolves bets against completed match results.",
+  "description": "BetNG settlement service — Resolves bets against completed match results.",
   "zudojs": {
     "features": [
       "database"
@@ -28,7 +28,10 @@
     "@zudojs/container": "1.1.2",
     "@zudojs/cqrs": "1.1.1",
     "@zudojs/database": "1.2.1",
-    "@zudojs/errors": "1.2.0"
+    "@zudojs/errors": "1.2.0",
+    "@zudojs/events": "1.2.0",
+    "@zudojs/rpc": "1.3.0",
+    "@zudojs/validation": "1.0.3"
   },
   "devDependencies": {
     "@types/node": "^26.6.2",

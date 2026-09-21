@@ -1,0 +1,94 @@
+"""Probability to price.
+
+``odds = 1 / (p * (1 + margin))``, rounded to two places and clamped to the
+configured bounds. The margin and the bounds come from the pricing
+configuration; nothing here holds a tunable. All arithmetic is ``Decimal`` so
+the same inputs give the same price on every machine.
+"""
+
+from __future__ import annotations
+
+from decimal import ROUND_HALF_UP, Decimal
+from typing import Final
+
+from .pricing_type import (
+    MarketProbabilities,
+    PricedMarket,
+    PricedSelection,
+    PricingConfiguration,
+)
+
+ODDS_QUANTUM: Final = Decimal("0.01")
+
+
+class MissingMarginError(KeyError):
+    """The configuration has no margin for a market type being priced."""
+
+
+def price_selection(
+    probability: Decimal, margin: Decimal, min_odds: Decimal, max_odds: Decimal
+) -> Decimal:
+    """Return the decimal odds for one probability under one margin."""
+    implied = probability * (1 + margin)
+
+    if implied <= 0:
+        return max_odds
+
+    odds = (1 / implied).quantize(ODDS_QUANTUM, rounding=ROUND_HALF_UP)
+
+    return min(max(odds, min_odds), max_odds)
+
+
+def price_market(
+    market: MarketProbabilities, configuration: PricingConfiguration
+) -> PricedMarket:
+    """Apply the configured margin of a market's type to each selection."""
+    try:
+        margin = configuration.margins[market.type]
+    except KeyError:
+        raise MissingMarginError(market.type) from None
+
+    return PricedMarket(
+        type=market.type,
+        name=market.name,
+        line=market.line,
+        selections=tuple(
+            PricedSelection(
+                code=selection.code,
+                label=selection.label,
+                probability=selection.probability,
+                odds=price_selection(
+                    selection.probability,
+                    margin,
+                    configuration.min_odds,
+                    configuration.max_odds,
+                ),
+            )
+            for selection in market.selections
+        ),
+    )
+
+
+def price_markets(
+    markets: tuple[MarketProbabilities, ...], configuration: PricingConfiguration
+) -> tuple[PricedMarket, ...]:
+    """Price every market of a match under one configuration."""
+    return tuple(price_market(market, configuration) for market in markets)
+
+
+def overround(odds: list[Decimal], probabilities: list[Decimal]) -> Decimal:
+    """Return the book's margin actually present in a set of prices.
+
+    The sum of implied probabilities over the sum of model probabilities,
+    minus one. For a market whose probabilities sum to one this is the usual
+    overround; dividing keeps it meaningful for DOUBLE_CHANCE, which sums to
+    two.
+    """
+    fair = sum(probabilities, Decimal(0))
+
+    if fair <= 0:
+        return Decimal(0)
+
+    implied = sum((1 / price for price in odds), Decimal(0))
+
+    return implied / fair - 1

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "BetNG match service \u2014 Leagues, teams, fixtures, matchdays and the match lifecycle.",
+  "description": "BetNG match service — Leagues, teams, fixtures, matchdays and the match lifecycle.",
   "zudojs": {
     "features": [
       "database"
@@ -29,6 +29,8 @@
     "@zudojs/cqrs": "1.1.1",
     "@zudojs/database": "1.2.1",
     "@zudojs/errors": "1.2.0",
+    "@zudojs/events": "1.2.0",
+    "@zudojs/rpc": "1.3.0",
     "@zudojs/validation": "1.0.3"
   },
   "devDependencies": {

@@ -11,7 +11,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PYTHON="${PYTHON:-python3}"
 
-for service in simulation odds risk; do
+for service in simulation odds risk analytics; do
   directory="${ROOT}/services/${service}"
 
   echo "==> ${service}"

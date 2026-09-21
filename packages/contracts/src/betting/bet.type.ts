@@ -18,7 +18,17 @@ import {
 } from "../common/index.js";
 import { betSelectionSchema, type BetSelection } from "./betSelection.type.js";
 
-export const betStatusSchema = z.enum(["PENDING", "WON", "LOST", "VOID"]);
+export const betStatusSchema = z.enum([
+  "PENDING",
+  "WON",
+  "LOST",
+  "VOID",
+  "CANCELLED",
+]);
+
+export const betChannelSchema = z.enum(["ONLINE", "SHOP"]);
+
+export type BetChannel = z.infer<typeof betChannelSchema>;
 
 export type BetStatus = z.infer<typeof betStatusSchema>;
 
@@ -35,6 +45,7 @@ export interface Bet {
   readonly settledAt?: string;
   /** The amount actually paid, in minor units, once settled. Zero for a loss. */
   readonly payout?: number | undefined;
+  readonly channel?: BetChannel | undefined;
 }
 
 export const betSchema = z.object({
@@ -49,10 +60,12 @@ export const betSchema = z.object({
   placedAt: isoTimestampSchema,
   settledAt: isoTimestampSchema.optional(),
   payout: minorUnitsSchema.min(0).optional(),
+  channel: betChannelSchema.optional(),
 });
 
 export const placeBetRequestSchema = z.object({
-  userId: brandedIdSchema<"UserId">(),
+  /** Ignored by the platform: the bettor is the authenticated actor. */
+  userId: brandedIdSchema<"UserId">().optional(),
   selections: z.array(betSelectionSchema).min(1).max(20),
   stake: minorUnitsSchema.min(1),
   currency: currencySchema.default("NGN"),

@@ -26,6 +26,8 @@ export interface ServiceRequest {
   readonly path: string;
   readonly body?: unknown;
   readonly requestId: string;
+  /** Extra headers, e.g. the actor headers the gateway asserts. */
+  readonly headers?: Readonly<Record<string, string>>;
 }
 
 export interface ServiceClient {
@@ -57,6 +59,7 @@ export function createServiceClient(endpoint: ServiceEndpoint): ServiceClient {
           ...(options.body === undefined
             ? {}
             : { "content-type": "application/json" }),
+          ...options.headers,
         },
         ...(options.body === undefined
           ? {}

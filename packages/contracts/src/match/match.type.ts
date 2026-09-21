@@ -40,6 +40,8 @@ export interface Match {
   readonly status: MatchStatus;
   readonly score?: MatchScore;
   readonly completedAt?: string;
+  /** The canonical lifecycle state; see `matchLifecycleSchema`. */
+  readonly lifecycle?: string | undefined;
   readonly createdAt: string;
   readonly updatedAt: string;
 }
@@ -50,6 +52,7 @@ export const matchSchema = z.object({
   status: matchStatusSchema,
   score: matchScoreSchema.optional(),
   completedAt: isoTimestampSchema.optional(),
+  lifecycle: z.string().max(32).optional(),
   createdAt: isoTimestampSchema,
   updatedAt: isoTimestampSchema,
 });
@@ -57,6 +60,11 @@ export const matchSchema = z.object({
 export const listMatchesQuerySchema = z.object({
   leagueId: brandedIdSchema<"LeagueId">().optional(),
   status: matchStatusSchema.optional(),
+  season: z.coerce.number().int().min(1).optional(),
+  matchday: z.coerce.number().int().min(1).optional(),
+  from: isoTimestampSchema.optional(),
+  to: isoTimestampSchema.optional(),
+  limit: z.coerce.number().int().min(1).max(500).optional(),
 });
 
 export type ListMatchesQuery = z.infer<typeof listMatchesQuerySchema>;

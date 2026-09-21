@@ -10,7 +10,7 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 failed=0
 
-for service in simulation odds risk; do
+for service in simulation odds risk analytics; do
   directory="${ROOT}/services/${service}"
 
   if [[ ! -x "${directory}/.venv/bin/python" ]]; then

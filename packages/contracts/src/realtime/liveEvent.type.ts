@@ -30,6 +30,12 @@ export const liveEventTypeSchema = z.enum([
   "HALF_TIME",
   "SECOND_HALF",
   "MATCH_FINISHED",
+  "BETTING_OPENED",
+  "BETTING_CLOSED",
+  "ODDS_UPDATED",
+  "SIMULATION_STARTED",
+  "SETTLEMENT_STARTED",
+  "SETTLEMENT_COMPLETED",
 ]);
 
 export type LiveEventType = z.infer<typeof liveEventTypeSchema>;

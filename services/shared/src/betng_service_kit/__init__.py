@@ -13,6 +13,7 @@ Domain logic belongs in the services, never here.
 
 from .app import create_service_app
 from .config import DEFAULT_PORTS, ServiceSettings, load_settings
+from .actor import ACTOR_HEADERS, Actor, read_actor
 from .container import Container, RegistrationNotFoundError, Token
 from .cqrs import (
     Command,
@@ -26,6 +27,7 @@ from .cqrs import (
     QueryBus,
     QueryHandler,
 )
+from .database import Pool, apply_migrations, create_pool, database_probe
 from .errors import (
     CONFLICT,
     INTERNAL_ERROR,
@@ -60,6 +62,13 @@ from .rpc import (
 from .middleware import REQUEST_ID_HEADER, get_request_id
 
 __all__ = [
+    "ACTOR_HEADERS",
+    "Actor",
+    "Pool",
+    "apply_migrations",
+    "create_pool",
+    "database_probe",
+    "read_actor",
     "CONFLICT",
     "Command",
     "CommandBus",

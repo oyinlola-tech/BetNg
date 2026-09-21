@@ -18,6 +18,14 @@ export interface BetSelection {
    * settlement time, so a later re-price cannot change what was agreed.
    */
   readonly odds: number;
+  /** The market version the price was accepted at. Set by the platform. */
+  readonly oddsVersion?: number | undefined;
+  readonly selectionCode?: string | undefined;
+  readonly line?: number | undefined;
+  readonly matchLabel?: string | undefined;
+  readonly leagueName?: string | undefined;
+  readonly kickoffAt?: string | undefined;
+  readonly result?: string | undefined;
   /** Denormalised labels, written by the betting service at acceptance so a
    *  bet reads correctly even after the match's markets are gone. */
   readonly marketType?: string | undefined;
@@ -32,6 +40,13 @@ export const betSelectionSchema = z.object({
   marketId: brandedIdSchema<"MarketId">(),
   selectionId: brandedIdSchema<"SelectionId">(),
   odds: decimalOddsSchema,
+  oddsVersion: z.int().min(1).optional(),
+  selectionCode: z.string().max(32).optional(),
+  line: z.number().optional(),
+  matchLabel: z.string().max(160).optional(),
+  leagueName: z.string().max(120).optional(),
+  kickoffAt: z.iso.datetime().optional(),
+  result: z.string().max(16).optional(),
   marketType: z.string().max(32).optional(),
   marketLabel: z.string().max(64).optional(),
   selectionLabel: z.string().max(64).optional(),

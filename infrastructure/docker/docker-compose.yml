@@ -1,7 +1,7 @@
 # BetNG local development infrastructure.
 #
-# Only what the foundation actually needs: PostgreSQL for the four services
-# that own data, and Redis for the two that are configured to use it.
+# PostgreSQL is the authority for every service; Redis carries locks, the
+# gateway's session cache and rate limits, and nothing that must survive a restart.
 #
 # There is no Kafka, no Kubernetes, no Elasticsearch and no metrics stack,
 # because nothing in this phase uses them. Infrastructure arrives when a
@@ -20,8 +20,8 @@ services:
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-betng}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-betng_local_dev}
-      # The init script creates one database per owning service; this is
-      # only the database `psql` connects to first.
+      # The bootstrap script creates the `betng` database; this is only the
+      # database `psql` connects to first.
       POSTGRES_DB: postgres
     ports:
       # 55432, not 5432: a developer machine commonly already runs
@@ -31,14 +31,14 @@ services:
       - "${POSTGRES_PORT:-55432}:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      # Runs once, on an empty data directory, to create one database per
-      # data-owning service. Ownership is enforced by credentials, not by
-      # convention: a service has no login for a database it does not own.
-      - ../postgres/init-databases.sql:/docker-entrypoint-initdb.d/10-databases.sql:ro
+      # Runs once, on an empty data directory: the `betng` database, one schema
+      # and one login per owning service. `pnpm db:bootstrap` applies the same
+      # idempotent script to a server that already has data.
+      - ../postgres/bootstrap.sql:/docker-entrypoint-initdb.d/10-bootstrap.sql:ro
     healthcheck:
       # `pg_isready` answers before the init scripts have run, so the check
       # queries a table the last init script creates instead.
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-betng} -d betng_match"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-betng} -d betng"]
       interval: 5s
       timeout: 5s
       retries: 20

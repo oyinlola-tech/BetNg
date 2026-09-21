@@ -18,7 +18,9 @@
     "@betng/contracts": "workspace:*",
     "@betng/service-kit": "workspace:*",
     "@zudojs/container": "1.1.2",
-    "@zudojs/errors": "1.2.0"
+    "@zudojs/errors": "1.2.0",
+    "@zudojs/rpc": "1.3.0",
+    "@zudojs/validation": "1.0.3"
   },
   "devDependencies": {
     "@types/node": "^26.6.2",

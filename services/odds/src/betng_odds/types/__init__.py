@@ -1,5 +1,27 @@
-"""Service-local type aliases.
+"""Service-local records.
 
-The odds domain's shapes are part of the shared contract, so they live in
-``dtos`` and mirror ``@betng/contracts``.
+The wire shapes live in ``dtos`` and mirror ``@betng/contracts``; these are
+the typed rows behind them.
 """
+
+from .odds_type import (
+    AuditEntry,
+    ConfigurationRecord,
+    MarketRecord,
+    MatchInfo,
+    PublishOutcome,
+    SelectionExposure,
+    SelectionRecord,
+    SnapshotRecord,
+)
+
+__all__ = [
+    "AuditEntry",
+    "ConfigurationRecord",
+    "MarketRecord",
+    "MatchInfo",
+    "PublishOutcome",
+    "SelectionExposure",
+    "SelectionRecord",
+    "SnapshotRecord",
+]

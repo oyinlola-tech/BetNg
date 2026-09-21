@@ -21,7 +21,12 @@ import {
   createRouter,
   HttpMiddlewarePipeline,
 } from "@zudojs/http";
-import type { HttpRequestContext, HttpRouter, HttpServer } from "@zudojs/http";
+import type {
+  HttpMiddleware,
+  HttpRequestContext,
+  HttpRouter,
+  HttpServer,
+} from "@zudojs/http";
 import type { Server } from "node:http";
 import type { RPCServer } from "@zudojs/rpc";
 import type { Logger } from "@zudojs/logger";
@@ -56,6 +61,14 @@ export interface ServiceServerOptions {
    * alone.
    */
   readonly server?: Server;
+  /**
+   * Extra pipeline stages, run in order after correlation and access logging
+   * and before the router. The gateway's CORS and authentication live here.
+   */
+  readonly middlewares?: readonly {
+    readonly name: string;
+    readonly middleware: HttpMiddleware;
+  }[];
 }
 
 export interface ServiceServer {
@@ -85,6 +98,10 @@ export function createServiceServer(
   const pipeline = new HttpMiddlewarePipeline();
   pipeline.use(createRequestIdMiddleware(), { name: "request-id" });
   pipeline.use(createAccessLogMiddleware(logger), { name: "access-log" });
+
+  for (const entry of options.middlewares ?? []) {
+    pipeline.use(entry.middleware, { name: entry.name });
+  }
   pipeline.use(
     async (context) => {
       const result = await router.dispatch(context.request, {

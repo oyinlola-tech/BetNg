@@ -35,9 +35,10 @@ const TS_SERVICES = [
   ["wallet", "@betng/wallet-service"],
   ["settlement", "@betng/settlement-service"],
   ["event", "@betng/event-service"],
+  ["identity", "@betng/identity-service"],
 ];
 
-const PY_SERVICES = ["simulation", "odds", "risk"];
+const PY_SERVICES = ["simulation", "odds", "risk", "analytics"];
 
 const COLORS = [36, 32, 33, 35, 34, 96, 92, 93, 95];
 const tint = process.stdout.isTTY ? (code, text) => `\x1b[${String(code)}m${text}\x1b[0m` : (_code, text) => text;
