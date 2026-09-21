@@ -125,17 +125,17 @@ REST through the gateway for state, one WebSocket to the event service for live 
 
 ## 20. Verification status
 
-`pnpm verify` on 2026-09-20, exit 0:
+`pnpm verify` on 2026-09-21, exit 0:
 
 | Step | Result |
 | --- | --- |
 | Build shared packages (contracts, client-sdk, design-tokens, brand, ui-core, mock-data) | pass |
 | Typecheck ui-web, web, tv, shop, admin, mobile (`tsc --noEmit`, strict, TypeScript 7.0.2) | pass |
 | `pnpm lint:frontend` (ESLint 10, type-aware, React hooks rules) over the five apps and the shared packages | 0 findings |
-| `vitest run` | 65 tests in 8 files, all pass |
+| `vitest run` | 76 tests in 10 files, all pass |
 | `vite build` for web, tv, shop, admin | pass |
 
-Checked in a browser (headless Chromium, scripted): web sign-in, registration, verification and wrong-code paths, bet placed automatically after sign-in with the slip intact, gated pages signed out; shop sale, check, payout, second payout refused, cashier denied a report, session expiry keeping route and slip; admin 2FA sign-in, a support role denied Risk, a shop suspension appearing in the audit log, a toast rendering above an open modal; TV home and live at 1920×1080. Screenshots are in `docs/screenshots/` (`web-*`, `web-auth-*`, `tv-*`, `shop-*`, `admin-*`).
+Checked in a browser (headless Chromium, scripted): web sign-in, registration, verification and wrong-code paths, bet placed automatically after sign-in with the slip intact, gated pages signed out; shop sale, check, payout, second payout refused, cashier denied a report, session expiry keeping route and slip; admin 2FA sign-in, a support role denied Risk, a shop suspension appearing in the audit log, a toast rendering above an open modal; TV home, live and the week board at 1920×1080; the shop week grid in both themes, including cell selection and Fastbet entry (`5 GG, 8 O2.5` added two bets; `12 1` was rejected with a reason). Screenshots are in `docs/screenshots/` (`web-*`, `web-auth-*`, `tv-*`, `shop-*`, `admin-*`).
 
 Not verified or not done:
 
