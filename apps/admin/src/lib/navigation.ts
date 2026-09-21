@@ -1,6 +1,5 @@
 import type { AdminPermission } from "@betng/contracts";
 import {
-  Activity,
   Banknote,
   BarChart3,
   CalendarDays,
@@ -38,10 +37,10 @@ export interface NavGroup {
 
 export const NAV: readonly NavGroup[] = [
   { label: "Overview", items: [{ to: "/", label: "Dashboard", icon: LayoutDashboard }] },
+  { label: "Customers", items: [{ to: "/users", label: "Users", icon: Users, permission: "users:read" }] },
   {
-    label: "People & Shops",
+    label: "Retail",
     items: [
-      { to: "/users", label: "Users", icon: Users, permission: "users:read" },
       { to: "/shops", label: "Shops", icon: Store, permission: "shops:read" },
       { to: "/cashiers", label: "Cashiers", icon: UserSquare, permission: "shops:read" },
     ],
@@ -61,13 +60,13 @@ export const NAV: readonly NavGroup[] = [
       { to: "/markets", label: "Markets", icon: ListChecks, permission: "odds:read" },
       { to: "/odds", label: "Odds", icon: Gauge, permission: "odds:read" },
       { to: "/risk", label: "Risk", icon: ShieldAlert, permission: "risk:read" },
+      { to: "/live", label: "Live Control", icon: Radio, permission: "fixtures:read" },
     ],
   },
   {
     label: "Operations",
     items: [
       { to: "/simulation", label: "Simulation", icon: Cpu, permission: "simulation:read" },
-      { to: "/live", label: "Live Control", icon: Radio, permission: "fixtures:read" },
       { to: "/settlement", label: "Settlement", icon: CircleDollarSign, permission: "settlement:read" },
     ],
   },
@@ -79,7 +78,7 @@ export const NAV: readonly NavGroup[] = [
     ],
   },
   {
-    label: "Platform",
+    label: "System",
     items: [
       { to: "/audit", label: "Audit Logs", icon: ScrollText, permission: "audit:read" },
       { to: "/health", label: "System Health", icon: HeartPulse, permission: "health:read" },
@@ -88,7 +87,33 @@ export const NAV: readonly NavGroup[] = [
   },
 ];
 
-export const ActivityIcon = Activity;
+const DETAIL_LABELS: Readonly<Record<string, string>> = {
+  shops: "Shop detail",
+  leagues: "League detail",
+  matches: "Match control",
+  teams: "Team",
+};
+
+export interface Crumb {
+  readonly label: string;
+  readonly to?: string;
+}
+
+export function crumbsFor(pathname: string): readonly Crumb[] {
+  const [section, detail] = pathname.split("/").filter((part) => part !== "");
+
+  if (section === undefined) return [{ label: "Overview" }, { label: "Dashboard" }];
+
+  for (const group of NAV) {
+    const item = group.items.find((candidate) => candidate.to === `/${section}`);
+
+    if (item === undefined) continue;
+
+    return detail === undefined ? [{ label: group.label }, { label: item.label }] : [{ label: group.label }, { label: item.label, to: item.to }, { label: DETAIL_LABELS[section] ?? "Detail" }];
+  }
+
+  return [{ label: "Not found" }];
+}
 
 export const ROLE_LABELS: Readonly<Record<string, string>> = {
   SUPER_ADMIN: "Super admin",
@@ -96,3 +121,7 @@ export const ROLE_LABELS: Readonly<Record<string, string>> = {
   RISK_ANALYST: "Risk analyst",
   SUPPORT: "Support",
 };
+
+export function missingPermission(permission: AdminPermission): string {
+  return `Requires the “${permission}” permission`;
+}

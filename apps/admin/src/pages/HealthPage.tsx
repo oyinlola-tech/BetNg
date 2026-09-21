@@ -1,102 +1,113 @@
-import { useEffect, useRef, useState } from "react";
+import { RefreshCw } from "lucide-react";
 import type { ServiceHealth } from "@betng/contracts";
-import { ErrorState, KpiCard, Panel, SkeletonRows, Sparkline, StatusBadge, cn, useNow } from "@betng/ui-web";
-import { Mono } from "../components/Bits";
+import { formatAge } from "@betng/ui-core";
+import { Button, EmptyState, ErrorState, Panel, StaleBadge, StatusBadge, TableSkeleton, cn, useNow } from "@betng/ui-web";
+import { Mono, Unavailable } from "../components/Bits";
 import { PageHeader } from "../components/PageHeader";
 import { useServiceHealth } from "../hooks/queries";
+import { useConnection } from "../hooks/useAdmin";
 import { HEALTH } from "../lib/format";
 
-const STALE_MS = 20_000;
-const SAMPLES = 24;
+const STALE_MS = 45_000;
 
-function useLatencyHistory(services: readonly ServiceHealth[] | undefined, stamp: number): Readonly<Record<string, readonly number[]>> {
-  const history = useRef<Record<string, number[]>>({});
-  const [, force] = useState(0);
+const RULE: Readonly<Record<ServiceHealth["status"], string>> = { ok: "border-l-transparent", degraded: "border-l-warning", unavailable: "border-l-danger" };
 
-  useEffect(() => {
-    if (services === undefined) return;
-
-    for (const s of services) history.current[s.service] = [...(history.current[s.service] ?? []), s.latencyMs].slice(-SAMPLES);
-
-    force((n) => n + 1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stamp]);
-
-  return history.current;
-}
-
-function heartbeat(checkedAt: string, now: number): string {
-  const seconds = Math.max(0, Math.round((now - Date.parse(checkedAt)) / 1000));
-
-  return seconds < 2 ? "just now" : seconds < 90 ? `${String(seconds)}s ago` : `${String(Math.round(seconds / 60))} min ago`;
-}
+const CONNECTION: Readonly<Record<string, { readonly status: string; readonly label: string }>> = {
+  CONNECTED: { status: "HEALTHY", label: "Connected" },
+  CONNECTING: { status: "PENDING", label: "Connecting" },
+  RECONNECTING: { status: "DEGRADED", label: "Reconnecting" },
+  OFFLINE: { status: "OFFLINE", label: "Offline" },
+  FAILED: { status: "ERROR", label: "Unavailable" },
+};
 
 export function HealthPage(): React.JSX.Element {
   const health = useServiceHealth();
+  const connection = useConnection();
   const now = useNow(1000);
-  const history = useLatencyHistory(health.data, health.dataUpdatedAt);
   const services = health.data;
-
-  if (services === undefined) return health.error !== null ? <ErrorState error={health.error} onRetry={() => void health.refetch()} /> : <SkeletonRows rows={8} />;
-
-  const count = (status: ServiceHealth["status"]): number => services.filter((s) => s.status === status).length;
-  const worst = count("unavailable") > 0 ? "unavailable" : count("degraded") > 0 ? "degraded" : "ok";
+  const realtime = CONNECTION[connection] ?? { status: "PENDING", label: connection };
 
   return (
     <>
       <PageHeader
         title="System health"
-        description="Liveness, latency and last heartbeat for every platform service. Refreshes every five seconds."
-        actions={<StatusBadge tone={HEALTH[worst].tone}>{worst === "ok" ? "All services healthy" : worst === "degraded" ? "Degraded performance" : "Service outage"}</StatusBadge>}
+        description="Service status as the platform reports it, refreshed every 15 seconds. Only what the platform sends is shown; there is no infrastructure detail on this screen."
+        actions={
+          <>
+            {health.dataUpdatedAt > 0 && <span className="text-sm tabular text-text-muted">Checked {formatAge(new Date(health.dataUpdatedAt).toISOString(), now)}</span>}
+            <Button variant="secondary" size="sm" loading={health.isFetching} leadingIcon={<RefreshCw className="size-3.5" aria-hidden />} onClick={() => void health.refetch()}>
+              Refresh
+            </Button>
+          </>
+        }
       />
-      <div className="mb-4 grid grid-cols-3 gap-3">
-        <KpiCard label="Healthy" value={String(count("ok"))} hint={`of ${String(services.length)} services`} />
-        <KpiCard label="Degraded" value={String(count("degraded"))} hint="serving, but slow or partial" />
-        <KpiCard label="Offline" value={String(count("unavailable"))} hint="no heartbeat" />
-      </div>
       <Panel flush>
-        <div className="overflow-x-auto scrollbar-thin">
-          <table className="w-full min-w-[640px] text-left text-base">
-            <caption className="sr-only">Service health</caption>
-            <thead>
-              <tr className="caps-label border-b border-border">
-                <th scope="col" className="px-4 py-2 font-semibold">Service</th>
-                <th scope="col" className="px-4 py-2 font-semibold">Health</th>
-                <th scope="col" className="px-4 py-2 text-right font-semibold">Latency</th>
-                <th scope="col" className="px-4 py-2 font-semibold">Recent latency</th>
-                <th scope="col" className="px-4 py-2 font-semibold">Last heartbeat</th>
-                <th scope="col" className="px-4 py-2 font-semibold">Version</th>
-              </tr>
-            </thead>
-            <tbody>
-              {services.map((service) => {
-                const view = HEALTH[service.status];
-                const stale = now - Date.parse(service.checkedAt) > STALE_MS;
-                const samples = history[service.service] ?? [];
-
-                return (
-                  <tr key={service.service} className={cn("border-b border-border last:border-b-0", service.status === "unavailable" && "bg-danger-subtle", service.status === "degraded" && "bg-warning-subtle")}>
-                    <th scope="row" className={cn("border-l-2 px-4 py-2.5 font-medium capitalize", service.status === "unavailable" ? "border-l-danger" : service.status === "degraded" ? "border-l-warning" : "border-l-transparent")}>
-                      {service.service}
+        {services === undefined ? (
+          health.error !== null ? (
+            <ErrorState error={health.error} onRetry={() => void health.refetch()} />
+          ) : (
+            <TableSkeleton rows={9} columns={5} />
+          )
+        ) : (
+          <div className="overflow-x-auto scrollbar-thin">
+            <table className="w-full min-w-[640px] text-left text-base">
+              <caption className="sr-only">Service health</caption>
+              <thead>
+                <tr className="border-b border-border">
+                  {["Service", "Status", "Latency", "Last checked", "Version"].map((heading) => (
+                    <th key={heading} scope="col" className={cn("caps-label px-4 py-2", heading === "Latency" && "text-right")}>
+                      {heading}
                     </th>
-                    <td className="px-4 py-2.5">
-                      <StatusBadge tone={view.tone}>{view.label}</StatusBadge>
-                    </td>
-                    <td className="px-4 py-2.5 text-right tabular">{service.status === "unavailable" ? <span className="text-text-muted">—</span> : `${String(service.latencyMs)} ms`}</td>
-                    <td className="px-4 py-2.5">{samples.length > 1 ? <Sparkline values={samples} width={96} height={22} /> : <span className="text-sm text-text-muted">collecting…</span>}</td>
-                    <td className={cn("px-4 py-2.5 tabular", stale ? "font-medium text-warning" : "text-text-secondary")}>
-                      {heartbeat(service.checkedAt, now)}
-                      {stale && <span className="sr-only"> (stale)</span>}
-                    </td>
-                    <td className="px-4 py-2.5">
-                      <Mono>v{service.version}</Mono>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b border-border">
+                  <th scope="row" className="border-l-2 border-l-transparent px-4 py-2.5 font-medium">
+                    Realtime
+                    <span className="block text-sm font-normal text-text-muted">This console's own connection</span>
+                  </th>
+                  <td className="px-4 py-2.5">
+                    <StatusBadge status={realtime.status}>{realtime.label}</StatusBadge>
+                  </td>
+                  <td className="px-4 py-2.5 text-right">
+                    <Unavailable what="Latency" />
+                  </td>
+                  <td className="px-4 py-2.5 text-text-secondary">Live</td>
+                  <td className="px-4 py-2.5">
+                    <Unavailable what="The version" />
+                  </td>
+                </tr>
+                {services.map((service) => {
+                  const view = HEALTH[service.status];
+
+                  return (
+                    <tr key={service.service} className="border-b border-border last:border-b-0">
+                      <th scope="row" className={cn("border-l-2 px-4 py-2.5 font-medium capitalize", RULE[service.status])}>
+                        {service.service}
+                      </th>
+                      <td className="px-4 py-2.5">
+                        <StatusBadge status={view.status}>{view.label}</StatusBadge>
+                      </td>
+                      <td className="px-4 py-2.5 text-right tabular">{service.status === "unavailable" ? <span className="text-text-muted">no answer</span> : `${String(service.latencyMs)} ms`}</td>
+                      <td className="px-4 py-2.5">
+                        <span className="flex flex-wrap items-center gap-2 tabular text-text-secondary">
+                          {formatAge(service.checkedAt, now)}
+                          <StaleBadge updatedAt={service.checkedAt} staleAfterMs={STALE_MS} />
+                        </span>
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <Mono>{service.version}</Mono>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            {services.length === 0 && <EmptyState compact title="No services reported" description="The platform answered an empty service list." />}
+            <p className="border-t border-border px-4 py-2 text-sm text-text-muted">Uptime is not provided by the platform, so it is not shown.</p>
+          </div>
+        )}
       </Panel>
     </>
   );
