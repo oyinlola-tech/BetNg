@@ -1,2 +1,3 @@
-export { proxyRead, proxyWrite } from "./proxy.controller.js";
-export type { ProxyHandler } from "./proxy.controller.js";
+export { createProxyHandler } from "./proxy.controller.js";
+export type { ProxyDependencies, ProxyHandler } from "./proxy.controller.js";
+export { createHealthController } from "./health.controller.js";

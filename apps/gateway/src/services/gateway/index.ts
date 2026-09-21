@@ -1,43 +1,4 @@
-/**
- * The gateway application service.
- *
- * The gateway has no CQRS handlers of its own: it holds no domain state,
- * so there is nothing for a command or a query to act on. What it does
- * have is one operation — forward a request to the service that owns the
- * data and hand back the answer — and that lives here.
- */
-
-import { getRequestId } from "@betng/service-kit";
-import type { HttpRouterContext, ServiceResponse } from "@betng/service-kit";
-import type { UpstreamClients, UpstreamName } from "../../interfaces/index.js";
-
-export interface ForwardOptions {
-  readonly upstream: UpstreamName;
-  readonly method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
-  readonly path: string;
-  readonly body?: unknown;
-}
-
-/**
- * Forwards a request to an upstream service.
- *
- * The caller's correlation identifier travels with the call, so one
- * request can be followed from the gateway's log line through the
- * upstream's. An unreachable upstream becomes a 503 carrying
- * `UPSTREAM_UNAVAILABLE`; the client never sees a raw fetch failure.
- */
-export async function forward<T>(
-  clients: UpstreamClients,
-  context: HttpRouterContext,
-  options: ForwardOptions,
-): Promise<ServiceResponse<T>> {
-  return clients[options.upstream].request<T>({
-    method: options.method,
-    path: options.path,
-    requestId: getRequestId(context.request),
-    ...(options.body === undefined ? {} : { body: options.body }),
-  });
-}
+import type { HttpRouterContext } from "@betng/service-kit";
 
 /**
  * Rebuilds the upstream path from the inbound request.

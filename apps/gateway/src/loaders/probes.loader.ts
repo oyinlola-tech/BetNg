@@ -1,10 +1,4 @@
-/**
- * The gateway's readiness probes.
- *
- * Identity and match are required: without them nobody can sign in or see a fixture. The rest degrade the
- * gateway rather than stop it, because most of the API still works when, say, analytics is down. Redis is
- * optional too: it carries the session cache and login throttling, and both fall back safely without it.
- */
+// Identity and match are required; every other upstream only degrades the gateway.
 
 import { redisProbe, serviceProbe } from "@betng/service-kit";
 import type { DependencyProbe, RedisConnection } from "@betng/service-kit";

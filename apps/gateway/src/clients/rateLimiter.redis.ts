@@ -1,11 +1,6 @@
-/**
- * Fixed-window request throttling on Redis, for the credential routes.
- *
- * It fails open: when Redis is unreachable the request goes through and a warning is logged, because the
- * identity service enforces its own per-account lockout and refusing every login is the worse failure.
- */
+// Fails open when Redis is down: identity enforces its own per-account lockout.
 
-import { tooManyRequests } from "@zudojs/http";
+import { tooManyRequests } from "@betng/service-kit";
 import { ErrorCodes } from "@betng/contracts";
 import type { Logger, RedisConnection } from "@betng/service-kit";
 import type { RateLimiter } from "../interfaces/index.js";

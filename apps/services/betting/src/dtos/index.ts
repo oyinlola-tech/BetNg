@@ -1,1 +1,6 @@
-export type { BetListDto } from "./betting.dto.js";
+export {
+  effectiveTicketStatus,
+  toBetDto,
+  toTicketDto,
+} from "./betting.dto.js";
+export type { BetListDto, TicketListDto } from "./betting.dto.js";

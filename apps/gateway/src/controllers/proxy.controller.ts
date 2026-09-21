@@ -1,63 +1,97 @@
-/**
- * The gateway's forwarding handlers.
- *
- * Each handler names one upstream and forwards the request unchanged. The
- * gateway does not re-validate a domain payload: the owning service is the
- * authority on what it accepts, and duplicating its schema here would mean
- * two places to change and one of them eventually forgotten.
- *
- * What the gateway does own is the API surface — which routes exist, at
- * which version, and which service answers them.
- */
+// The upstream request is built from scratch: no inbound header is forwarded, so a client cannot forge `x-betng-*`.
 
-import { createResponseContext, readJsonBody } from "@betng/service-kit";
-import type { HttpResponseContext, HttpRouterContext } from "@betng/service-kit";
-import { forward, upstreamPath } from "../services/index.js";
-import type { UpstreamClients, UpstreamName } from "../interfaces/index.js";
+import { ErrorCodes } from "@betng/contracts";
+import {
+  actorHeaders,
+  createResponseContext,
+  forbidden,
+  getRequestId,
+  readJsonBody,
+  unauthorized,
+} from "@betng/service-kit";
+import type { Actor, HttpResponseContext, HttpRouterContext } from "@betng/service-kit";
+import { upstreamPath } from "../services/index.js";
+import type {
+  ActorResolver,
+  GatewayRoute,
+  RateLimiter,
+  UpstreamClients,
+} from "../interfaces/index.js";
 
-export type ProxyHandler = (
-  context: HttpRouterContext,
-) => Promise<HttpResponseContext>;
+const BEARER = /^Bearer ([A-Za-z0-9._~+/=-]{16,512})$/;
+const SAFE_IDEMPOTENCY_KEY = /^[A-Za-z0-9_.:-]{8,120}$/;
 
-export function proxyRead(
-  clients: UpstreamClients,
-  upstream: UpstreamName,
-): ProxyHandler {
-  return async (context) => {
-    const response = await forward<unknown>(clients, context, {
-      upstream,
-      method: "GET",
-      path: upstreamPath(context),
-    });
+export type ProxyHandler = (context: HttpRouterContext) => Promise<HttpResponseContext>;
 
-    return createResponseContext({ status: response.status }).json(
-      response.data,
-    );
-  };
+export interface ProxyDependencies {
+  readonly clients: UpstreamClients;
+  readonly actors: ActorResolver;
+  readonly limiter: RateLimiter;
 }
 
-/**
- * Builds a handler that forwards a write to an upstream service.
- *
- * The upstream's status is passed through unchanged, so a validation
- * failure reaches the client as the 422 the owning service decided on
- * rather than being flattened into a generic gateway error.
- */
-export function proxyWrite(
-  clients: UpstreamClients,
-  upstream: UpstreamName,
-  method: "POST" | "PUT" | "PATCH" | "DELETE" = "POST",
-): ProxyHandler {
+function bearerToken(context: HttpRouterContext): string | undefined {
+  return BEARER.exec(context.request.getHeader("authorization") ?? "")?.[1];
+}
+
+function signInRequired(): never {
+  throw unauthorized("Sign in to continue.", { code: ErrorCodes.UNAUTHENTICATED, expose: true });
+}
+
+async function authorise(
+  route: GatewayRoute,
+  context: HttpRouterContext,
+  actors: ActorResolver,
+): Promise<{ readonly actor?: Actor; readonly token?: string }> {
+  if (route.access.type === "public") return {};
+
+  const token = bearerToken(context) ?? signInRequired();
+
+  if (route.access.type === "token") return { token };
+
+  const actor = await actors.resolve(token, getRequestId(context.request));
+
+  const allowed =
+    route.access.kinds.includes(actor.kind) &&
+    (route.access.permission === undefined || actor.permissions.includes(route.access.permission));
+
+  if (!allowed) {
+    throw forbidden("You do not have permission to do this.", { code: ErrorCodes.FORBIDDEN, expose: true });
+  }
+
+  return { actor };
+}
+
+export function createProxyHandler(route: GatewayRoute, dependencies: ProxyDependencies): ProxyHandler {
+  const { clients, actors, limiter } = dependencies;
+
   return async (context) => {
-    const response = await forward<unknown>(clients, context, {
-      upstream,
-      method,
+    if (route.rateLimit !== undefined) {
+      const address = context.request.remoteAddress ?? "unknown";
+
+      await limiter.hit(`${route.path}:${address}`, route.rateLimit);
+    }
+
+    const { actor, token } = await authorise(route, context, actors);
+    const idempotencyKey = context.request.getHeader("idempotency-key");
+
+    const headers: Record<string, string> = {
+      ...(actor === undefined ? {} : actorHeaders(actor)),
+      ...(token === undefined ? {} : { authorization: `Bearer ${token}` }),
+      ...(idempotencyKey !== undefined && SAFE_IDEMPOTENCY_KEY.test(idempotencyKey)
+        ? { "idempotency-key": idempotencyKey }
+        : {}),
+    };
+
+    const response = await clients[route.upstream].request<unknown>({
+      method: route.method,
       path: upstreamPath(context),
-      body: readJsonBody(context.request),
+      requestId: getRequestId(context.request),
+      headers,
+      ...(route.method === "GET" ? {} : { body: readJsonBody(context.request) ?? {} }),
     });
 
-    return createResponseContext({ status: response.status }).json(
-      response.data,
-    );
+    const reply = createResponseContext({ status: response.status });
+
+    return response.status === 204 || response.data === "" ? reply : reply.json(response.data);
   };
 }

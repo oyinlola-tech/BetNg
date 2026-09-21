@@ -1,11 +1,6 @@
-/**
- * Gateway-only settings, read once from the environment.
- */
-
 export interface GatewaySettings {
-  /** Browser origins allowed to call the API. Never `*`: the API carries bearer tokens. */
   readonly corsOrigins: readonly string[];
-  /** How long a resolved session is reused before identity is asked again. Bounds how long a revoked session keeps working. */
+  /** Also the longest a revoked session keeps working. */
   readonly actorCacheSeconds: number;
   readonly loginRateLimit: { readonly limit: number; readonly windowSeconds: number };
 }

@@ -15,6 +15,7 @@ export async function loadBettingConfig(
     version: SERVICE_VERSION,
     defaultPort: DEFAULT_PORT,
     databaseUrlKey: "BETTING_DATABASE_URL",
+    usesRedis: true,
     ...(env === undefined ? {} : { env }),
   });
 }

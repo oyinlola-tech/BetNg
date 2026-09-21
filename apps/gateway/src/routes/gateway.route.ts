@@ -1,47 +1,40 @@
-/**
- * The gateway's route table.
- *
- * This is the platform's public API surface: every route BetNG exposes to
- * the outside world, at `/api/v1`, with the service that answers it named
- * beside it. Reading this file tells you what the platform offers and who
- * owns each part of it.
- *
- * The paths match the upstream services' own paths exactly, so a route can
- * move behind or out from behind the gateway without a client noticing.
- */
+import { API_PREFIX, ErrorCodes } from "@betng/contracts";
+import { forbidden, getRequestId, json, unauthorized } from "@betng/service-kit";
+import type { HttpRouter, HttpRouterContext } from "@betng/service-kit";
+import { createHealthController, createProxyHandler } from "../controllers/index.js";
+import type { ProxyDependencies } from "../controllers/index.js";
+import type { GatewayRoute } from "../interfaces/index.js";
 
-import { API_PREFIX } from "@betng/contracts";
-import type { HttpRouter } from "@betng/service-kit";
-import { proxyRead, proxyWrite } from "../controllers/index.js";
-import type { UpstreamClients } from "../interfaces/index.js";
+const BEARER = /^Bearer ([A-Za-z0-9._~+/=-]{16,512})$/;
 
-export function registerGatewayRoutes(
-  router: HttpRouter,
-  clients: UpstreamClients,
-): void {
-  router.get(`${API_PREFIX}/leagues`, proxyRead(clients, "match"));
-  router.get(`${API_PREFIX}/teams`, proxyRead(clients, "match"));
-  router.get(`${API_PREFIX}/fixtures`, proxyRead(clients, "match"));
-  router.get(`${API_PREFIX}/matches`, proxyRead(clients, "match"));
-  router.get(`${API_PREFIX}/matches/:id`, proxyRead(clients, "match"));
+export interface GatewayRouteOptions extends ProxyDependencies {
+  readonly table: readonly GatewayRoute[];
+  readonly version: string;
+}
 
-  router.get(`${API_PREFIX}/matches/:id/odds`, proxyRead(clients, "odds"));
+export function registerGatewayRoutes(router: HttpRouter, options: GatewayRouteOptions): void {
+  for (const route of options.table) {
+    router.on(route.method, `${API_PREFIX}${route.path}`, createProxyHandler(route, options));
+  }
 
-  router.post(`${API_PREFIX}/bets`, proxyWrite(clients, "betting"));
-  router.get(`${API_PREFIX}/bets`, proxyRead(clients, "betting"));
-  router.get(`${API_PREFIX}/bets/:id`, proxyRead(clients, "betting"));
+  const health = createHealthController(options.clients, options.version);
 
-  router.get(`${API_PREFIX}/wallets/:userId`, proxyRead(clients, "wallet"));
   router.get(
-    `${API_PREFIX}/wallets/:userId/transactions`,
-    proxyRead(clients, "wallet"),
-  );
-  router.post(`${API_PREFIX}/wallets/deposit`, proxyWrite(clients, "wallet"));
-  router.post(`${API_PREFIX}/wallets/withdraw`, proxyWrite(clients, "wallet"));
+    `${API_PREFIX}/admin/health/services`,
+    json(async (context: HttpRouterContext) => {
+      const token = BEARER.exec(context.request.getHeader("authorization") ?? "")?.[1];
 
-  router.get(`${API_PREFIX}/settlements`, proxyRead(clients, "settlement"));
-  router.get(
-    `${API_PREFIX}/settlements/:betId`,
-    proxyRead(clients, "settlement"),
+      if (token === undefined) {
+        throw unauthorized("Sign in to continue.", { code: ErrorCodes.UNAUTHENTICATED, expose: true });
+      }
+
+      const actor = await options.actors.resolve(token, getRequestId(context.request));
+
+      if (actor.kind !== "ADMIN" || !actor.permissions.includes("health:read")) {
+        throw forbidden("You do not have permission to do this.", { code: ErrorCodes.FORBIDDEN, expose: true });
+      }
+
+      return health(context);
+    }),
   );
 }

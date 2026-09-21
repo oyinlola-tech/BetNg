@@ -1,18 +1,16 @@
-/**
- * CORS for the browser clients.
- *
- * Only configured origins are echoed back; anything else gets no CORS headers, so the browser blocks it. The
- * API authenticates with a bearer header, not cookies, so credentials mode stays off.
- */
+// Errors are rendered inside this middleware so that a 401 still carries CORS headers and the browser can read it.
 
 import { createResponseContext } from "@betng/service-kit";
-import type { HttpMiddleware } from "@betng/service-kit";
+import type { HttpMiddleware, ServiceErrorHandler } from "@betng/service-kit";
 
 const ALLOWED_METHODS = "GET, POST, PUT, PATCH, DELETE, OPTIONS";
 const ALLOWED_HEADERS = "authorization, content-type, idempotency-key, x-request-id";
 const EXPOSED_HEADERS = "x-request-id, retry-after";
 
-export function createCorsMiddleware(origins: readonly string[]): HttpMiddleware {
+export function createCorsMiddleware(
+  origins: readonly string[],
+  renderError: ServiceErrorHandler,
+): HttpMiddleware {
   const allowed = new Set(origins);
 
   return async (context, next) => {
@@ -34,7 +32,9 @@ export function createCorsMiddleware(origins: readonly string[]): HttpMiddleware
       return preflight;
     }
 
-    const response = await next();
+    const response = await next().catch((error: unknown) =>
+      renderError(error, context.request),
+    );
 
     if (permitted) {
       response

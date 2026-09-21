@@ -1,5 +1,4 @@
--- CreateSchema
-CREATE SCHEMA IF NOT EXISTS "betting";
+-- The `betting` schema is created by infrastructure/postgres/bootstrap.sql; this login cannot create schemas.
 
 -- CreateEnum
 CREATE TYPE "bet_status" AS ENUM ('PENDING', 'WON', 'LOST', 'VOID', 'CANCELLED');

@@ -1,64 +1,49 @@
 /**
- * The betting service's RPC client for the risk service.
+ * The RPC client for the risk service.
  *
- * Betting calls risk while a market is still open, to learn what the book is
- * carrying. That call is a typed computation with a deadline, not a resource
- * to browse — and risk must never be reachable from a public client, so RPC
- * rather than a gateway-forwarded REST route.
- *
- * The answer is advisory. Risk reports an action; deciding what to do about
- * it belongs to betting. Risk cannot alter a bet, a price or a result.
+ * Risk answers one question before a stake is accepted: accept, limit or
+ * reject. It cannot touch a price, a match or a result, and betting never
+ * accepts a slip risk has not assessed — an unusable answer is a failure,
+ * not an acceptance.
  */
 
-import { createRpcClient } from "@betng/service-kit";
-import type { ServiceEndpoint } from "@betng/service-kit";
-import { createRPCMetadata, RPCClient } from "@zudojs/rpc";
+import { riskDecisionSchema } from "@betng/contracts";
+import type { RiskDecision, RiskEvaluateRequest } from "@betng/contracts";
+import { createRPCMetadata } from "@zudojs/rpc";
+import type { RPCClient } from "@zudojs/rpc";
+import { validate } from "@zudojs/validation";
+import { classifyPeerFailure, PeerUnavailableError } from "../errors/index.js";
+import type { RiskPeer } from "../interfaces/index.js";
 
 export const RISK_PROCEDURE = Object.freeze({
-  CALCULATE_EXPOSURE: "risk.calculateExposure",
-  CALCULATE_LIABILITY: "risk.calculateLiability",
+  EVALUATE: "risk.evaluate",
 });
 
-export interface ExposureRequest {
-  readonly matchId: string;
-  readonly marketId: string;
-  readonly selections: readonly {
-    readonly selectionId: string;
-    readonly stake: number;
-    readonly liability: number;
-  }[];
-  readonly currency: string;
-}
-
-export interface ExposureReport {
-  readonly matchId: string;
-  readonly marketId: string;
-  readonly worstCaseLiability: number;
-  readonly worstCaseSelectionId: string;
-  readonly totalStake: number;
-  readonly currency: string;
-  readonly action: "ACCEPT" | "REVIEW" | "SUSPEND_MARKET";
-  readonly evaluatedAt: string;
-}
-
-export interface RiskClient {
-  readonly calculateExposure: (
-    request: ExposureRequest,
-    requestId: string,
-  ) => Promise<ExposureReport>;
-  readonly raw: RPCClient;
-}
-
-export function createRiskClient(endpoint: ServiceEndpoint): RiskClient {
-  const client = createRpcClient(endpoint);
-
+export function createRiskPeer(client: RPCClient): RiskPeer {
   return {
-    raw: client,
-    calculateExposure: async (request, requestId) =>
-      client.call<ExposureRequest, ExposureReport>(
-        RISK_PROCEDURE.CALCULATE_EXPOSURE,
-        request,
-        { metadata: createRPCMetadata({ requestId }) },
-      ),
+    evaluate: async (request, requestId) => {
+      let answer: unknown;
+
+      try {
+        answer = await client.call<RiskEvaluateRequest, unknown>(
+          RISK_PROCEDURE.EVALUATE,
+          request,
+          { metadata: createRPCMetadata({ requestId }) },
+        );
+      } catch (error) {
+        throw classifyPeerFailure("risk", error);
+      }
+
+      const decision = validate(riskDecisionSchema, answer);
+
+      if (!decision.success) {
+        throw new PeerUnavailableError(
+          "risk",
+          new Error("The decision did not match the contract."),
+        );
+      }
+
+      return decision.data satisfies RiskDecision;
+    },
   };
 }

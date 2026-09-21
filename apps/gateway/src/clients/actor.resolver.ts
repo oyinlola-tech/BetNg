@@ -1,10 +1,4 @@
-/**
- * Turns a bearer token into an actor by asking the identity service.
- *
- * The gateway is the only place a session token is looked at. A resolved actor is cached briefly in Redis under
- * the token's SHA-256 (never the token itself), so a burst of requests costs one identity call and a revoked
- * session stops working within `cacheSeconds`. Without Redis every request asks identity.
- */
+// Resolved actors are cached in Redis under the token's SHA-256, never the token.
 
 import { createHash } from "node:crypto";
 import { ErrorCodes } from "@betng/contracts";
@@ -19,6 +13,8 @@ const SESSION_CODES: readonly string[] = [
   ErrorCodes.UNAUTHENTICATED,
   ErrorCodes.SESSION_EXPIRED,
   ErrorCodes.FORBIDDEN,
+  "ERR_RPC_UNAUTHORIZED",
+  "ERR_RPC_FORBIDDEN",
 ];
 
 interface AuthenticateResult {
@@ -81,7 +77,7 @@ export function createActorResolver(options: ActorResolverOptions): ActorResolve
     try {
       await redis.client.set(key, JSON.stringify(actor), { expiration: { type: "EX", value: ttl } });
     } catch {
-      /* The cache is an optimisation; identity remains the authority. */
+      /* cache only */
     }
   }
 

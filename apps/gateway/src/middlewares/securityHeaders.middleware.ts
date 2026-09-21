@@ -1,7 +1,3 @@
-/**
- * Response headers for a JSON API: no sniffing, no framing, no caching of personal data by intermediaries.
- */
-
 import type { HttpMiddleware } from "@betng/service-kit";
 
 export function createSecurityHeadersMiddleware(): HttpMiddleware {
