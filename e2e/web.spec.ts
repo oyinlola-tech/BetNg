@@ -95,8 +95,11 @@ test.describe("web", () => {
       const place = slip.getByRole("button", { name: "Place bet" });
 
       // After sign-in the slip resumes the placement itself; only press what is ready to be pressed.
-      if (await accept.isEnabled().catch(() => false)) await accept.click({ timeout: 2_000 }).catch(() => undefined);
-      if (await place.isEnabled().catch(() => false)) await place.click({ timeout: 2_000 }).catch(() => undefined);
+      for (const button of [accept, place]) {
+        const ready = (await button.isVisible()) && (await button.isEnabled({ timeout: 500 }).catch(() => false));
+
+        if (ready) await button.click({ timeout: 2_000 }).catch(() => undefined);
+      }
 
       // Accepted, limited and partially accepted all end on a platform-issued bet.
       await expect(slip.getByRole("button", { name: "View ticket" }).or(slip.getByRole("link", { name: "View ticket" }))).toBeVisible({ timeout: 2_000 });
