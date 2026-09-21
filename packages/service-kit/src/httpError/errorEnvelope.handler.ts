@@ -61,7 +61,7 @@ export function createErrorHandler(logger: Logger): ServiceErrorHandler {
     const details =
       exposed && isErrorDetails(status.details) ? status.details : undefined;
 
-    // A domain error may carry a plain object instead of field issues; it travels as `error.data`.
+    // A plain-object `details` travels as `error.data`.
     const data =
       exposed &&
       details === undefined &&

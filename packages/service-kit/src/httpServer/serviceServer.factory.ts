@@ -32,6 +32,7 @@ import type { RPCServer } from "@zudojs/rpc";
 import type { Logger } from "@zudojs/logger";
 import type { ServiceConfig } from "../serviceConfig/index.js";
 import type { DependencyProbe } from "../healthProbe/index.js";
+import { assertInternalTokenConfigured } from "../internalAuth/index.js";
 import { registerRpcRoute } from "../rpc/index.js";
 import { createErrorHandler } from "../httpError/index.js";
 import {
@@ -61,10 +62,7 @@ export interface ServiceServerOptions {
    * alone.
    */
   readonly server?: Server;
-  /**
-   * Extra pipeline stages, run in order after correlation and access logging
-   * and before the router. The gateway's CORS and authentication live here.
-   */
+  /** Run after access logging and before the router. */
   readonly middlewares?: readonly {
     readonly name: string;
     readonly middleware: HttpMiddleware;
@@ -85,6 +83,8 @@ export function createServiceServer(
   options: ServiceServerOptions,
 ): ServiceServer {
   const { config, logger } = options;
+
+  assertInternalTokenConfigured();
 
   const router = createRouter(createRouterFallbacks());
   registerHealthRoutes(router, config, options.probes ?? []);

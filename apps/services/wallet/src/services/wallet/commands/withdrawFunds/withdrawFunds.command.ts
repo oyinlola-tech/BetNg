@@ -1,23 +1,21 @@
 import { Command } from "@zudojs/cqrs";
-import type { Currency } from "@betng/contracts";
 import { WALLET_COMMAND } from "../../../../constants/index.js";
 
-/** Asks for a simulated withdrawal. No payment provider is involved. */
 export class WithdrawFundsCommand extends Command<"wallet.withdrawFunds"> {
-  public readonly userId: string;
+  public readonly customerId: string;
 
   public readonly amount: number;
 
-  public readonly currency: Currency;
+  public readonly idempotencyKey: string;
 
   public constructor(payload: {
-    readonly userId: string;
+    readonly customerId: string;
     readonly amount: number;
-    readonly currency: Currency;
+    readonly idempotencyKey: string;
   }) {
     super(WALLET_COMMAND.WITHDRAW_FUNDS);
-    this.userId = payload.userId;
+    this.customerId = payload.customerId;
     this.amount = payload.amount;
-    this.currency = payload.currency;
+    this.idempotencyKey = payload.idempotencyKey;
   }
 }

@@ -4,7 +4,7 @@ import { MATCH_QUERY } from "../../../../constants/index.js";
 export class ListTeamsQuery extends Query<"match.listTeams"> {
   public readonly leagueId: string | undefined;
 
-  public constructor(leagueId?: string) {
+  public constructor(leagueId: string | undefined) {
     super(MATCH_QUERY.LIST_TEAMS);
     this.leagueId = leagueId;
   }

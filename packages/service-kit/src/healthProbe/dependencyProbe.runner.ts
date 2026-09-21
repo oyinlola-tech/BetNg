@@ -28,11 +28,19 @@ async function runProbe(probe: DependencyProbe): Promise<DependencyCheck> {
       name: probe.name,
       status: probe.optional === true ? "degraded" : "unavailable",
       latencyMs: Math.round(performance.now() - startedAt),
-      error: error instanceof Error ? error.message : String(error),
+      error: redact(error instanceof Error ? error.message : String(error)),
     };
   } finally {
     clearTimeout(timer);
   }
+}
+
+/** `/ready` can be reachable from outside; addresses and credentials must not be in it. */
+function redact(message: string): string {
+  return (message.split("\n")[0] ?? "")
+    .replace(/\b[a-z][a-z0-9+.-]*:\/\/\S+/gi, "<url>")
+    .replace(/\b(?:\d{1,3}\.){3}\d{1,3}(?::\d+)?\b/g, "<address>")
+    .slice(0, 160);
 }
 
 function foldStatus(

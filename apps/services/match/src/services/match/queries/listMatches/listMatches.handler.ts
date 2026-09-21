@@ -1,31 +1,35 @@
 import { QueryHandler } from "@zudojs/cqrs";
 import type { Match } from "@betng/contracts";
-import { MATCH_QUERY } from "../../../../constants/index.js";
-import type {
-  MatchFilter,
-  MatchRepository,
-} from "../../../../interfaces/index.js";
+import { LIST_LIMIT, MATCH_QUERY } from "../../../../constants/index.js";
+import { toMatch } from "../../../../models/index.js";
+import { resolveWindow } from "../../../../utils/index.js";
+import type { HandlerDependencies } from "../../match.dependencies.js";
 import type { ListMatchesQuery } from "./listMatches.query.js";
 
-export class ListMatchesHandler extends QueryHandler<
-  ListMatchesQuery,
-  readonly Match[]
-> {
+export class ListMatchesHandler extends QueryHandler<ListMatchesQuery, readonly Match[]> {
   public readonly queryType = MATCH_QUERY.LIST_MATCHES;
 
-  private readonly matches: MatchRepository;
+  private readonly deps: HandlerDependencies;
 
-  public constructor(matches: MatchRepository) {
+  public constructor(deps: HandlerDependencies) {
     super();
-    this.matches = matches;
+    this.deps = deps;
   }
 
   public async execute(query: ListMatchesQuery): Promise<readonly Match[]> {
-    const filter: MatchFilter = {
-      ...(query.leagueId === undefined ? {} : { leagueId: query.leagueId }),
-      ...(query.status === undefined ? {} : { status: query.status }),
-    };
+    const { filter } = query;
+    const recentResults = filter.status === "COMPLETED" && filter.from === undefined && filter.to === undefined;
+    const window = resolveWindow(filter, this.deps.clock(), recentResults || filter.matchday !== undefined);
+    const matches = await this.deps.matches.listMatches({
+      ...(filter.leagueId === undefined ? {} : { leagueId: filter.leagueId }),
+      ...(filter.status === undefined ? {} : { status: filter.status }),
+      ...(filter.season === undefined ? {} : { season: filter.season }),
+      ...(filter.matchday === undefined ? {} : { matchday: filter.matchday }),
+      ...window,
+      newestFirst: recentResults,
+      limit: filter.limit ?? LIST_LIMIT.DEFAULT,
+    });
 
-    return this.matches.listMatches(filter);
+    return matches.map(toMatch);
   }
 }

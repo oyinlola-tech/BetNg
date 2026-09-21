@@ -1,1 +1,1 @@
-export { createInMemoryWalletRepository } from "./wallet.repository.js";
+export { createWalletRepository } from "./wallet.repository.js";

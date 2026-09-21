@@ -1,22 +1,20 @@
 /**
  * The settlement service's PostgreSQL connection.
  *
- * The service connects to `SETTLEMENT_DATABASE_URL` and to nothing else,
- * with a login that has rights to settlement records and no other service's tables. The
- * boundary is enforced by the database, not by convention: a query outside
- * it is refused.
+ * The service logs in with a role that may write the `settlement` schema and read the others. Settlements
+ * and ledger rows are append-only in the database itself (triggers reject UPDATE and DELETE), so the audit
+ * trail for money paid out does not depend on this code behaving.
  *
- * Settlement records are the audit trail for money paid out. The database
- * refuses to update or delete one; a correction is a new record at the next
- * revision.
- *
- * Prisma 7 takes a driver adapter rather than a URL, and `@zudojs/database`
- * wraps the resulting client to give every BetNG service the same connection
- * lifecycle, transaction handling and health check.
+ * Prisma 7 takes a driver adapter rather than a URL; the adapter needs the schema passed separately, which
+ * `databaseSchema` reads from the URL's `?schema=` parameter.
  */
 
 import { PrismaPg } from "@prisma/adapter-pg";
-import { createServiceDatabase, databaseProbe } from "@betng/service-kit";
+import {
+  createServiceDatabase,
+  databaseProbe,
+  databaseSchema,
+} from "@betng/service-kit";
 import type { DependencyProbe, ServiceDatabase } from "@betng/service-kit";
 import { PrismaClient } from "../generated/prisma/client.js";
 
@@ -28,7 +26,10 @@ export interface SettlementDatabase {
 
 export function createSettlementDatabase(databaseUrl: string): SettlementDatabase {
   const prisma = new PrismaClient({
-    adapter: new PrismaPg({ connectionString: databaseUrl }),
+    adapter: new PrismaPg(
+      { connectionString: databaseUrl },
+      { schema: databaseSchema(databaseUrl) },
+    ),
   });
 
   const database = createServiceDatabase(prisma);

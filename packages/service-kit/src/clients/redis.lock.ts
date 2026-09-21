@@ -1,9 +1,4 @@
-/**
- * A short-lived distributed lock on Redis (`SET key token NX PX ttl`, released only by its holder).
- *
- * Used where two processes must not do the same thing at once: the match scheduler's tick and bet placement on
- * one match. It is coordination only: losing Redis loses the lock, never data, and PostgreSQL stays the authority.
- */
+// Coordination only: losing Redis loses the lock, never data.
 
 import type { RedisConnection } from "./redis.client.js";
 
@@ -11,12 +6,10 @@ const RELEASE = `if redis.call("get", KEYS[1]) == ARGV[1] then return redis.call
 
 export interface RedisLockOptions {
   readonly ttlMs: number;
-  /** How long to keep trying before giving up. 0 tries once. */
   readonly waitMs?: number;
   readonly retryEveryMs?: number;
 }
 
-/** Runs `task` while holding `key`. Resolves `undefined`, without running it, when the lock could not be taken. */
 export async function withRedisLock<T>(
   connection: RedisConnection,
   key: string,

@@ -1,23 +1,21 @@
 import { QueryHandler } from "@zudojs/cqrs";
 import type { League } from "@betng/contracts";
 import { MATCH_QUERY } from "../../../../constants/index.js";
-import type { MatchRepository } from "../../../../interfaces/index.js";
+import { toLeague } from "../../../../models/index.js";
+import type { HandlerDependencies } from "../../match.dependencies.js";
 import type { ListLeaguesQuery } from "./listLeagues.query.js";
 
-export class ListLeaguesHandler extends QueryHandler<
-  ListLeaguesQuery,
-  readonly League[]
-> {
+export class ListLeaguesHandler extends QueryHandler<ListLeaguesQuery, readonly League[]> {
   public readonly queryType = MATCH_QUERY.LIST_LEAGUES;
 
-  private readonly matches: MatchRepository;
+  private readonly deps: HandlerDependencies;
 
-  public constructor(matches: MatchRepository) {
+  public constructor(deps: HandlerDependencies) {
     super();
-    this.matches = matches;
+    this.deps = deps;
   }
 
-  public async execute(): Promise<readonly League[]> {
-    return this.matches.listLeagues();
+  public async execute(_query: ListLeaguesQuery): Promise<readonly League[]> {
+    return (await this.deps.catalogue.listLeagues()).map(toLeague);
   }
 }

@@ -21,6 +21,7 @@ import {
 } from "@zudojs/rpc";
 import { readJsonBody } from "../httpRequest/index.js";
 import { getRequestId } from "../httpMiddleware/index.js";
+import { isInternalRequest } from "../internalAuth/index.js";
 import { RPC_PATH } from "./rpcTransport.http.js";
 
 function isRpcRequest(value: unknown): value is RPCRequest {
@@ -49,6 +50,15 @@ export function registerRpcRoute(
   logger: Logger,
 ): void {
   router.post(RPC_PATH, async (context) => {
+    if (!isInternalRequest(context.request)) {
+      return createResponseContext({ status: 404 }).json(
+        createRPCErrorResponse("", {
+          code: "RPC_INVALID_REQUEST",
+          message: "Not found.",
+        }),
+      );
+    }
+
     const frame = readJsonBody(context.request);
 
     if (!isRpcRequest(frame)) {

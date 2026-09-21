@@ -13,6 +13,7 @@
  * envelope without a protobuf toolchain.
  */
 
+import { internalHeaders } from "../internalAuth/index.js";
 import { REQUEST_ID_HEADER } from "@betng/contracts";
 import {
   RPCTransportError,
@@ -79,6 +80,7 @@ export function createHttpRpcTransport(
           headers: {
             "content-type": "application/json",
             accept: "application/json",
+            ...internalHeaders(),
             ...(typeof correlationId === "string"
               ? { [REQUEST_ID_HEADER]: correlationId }
               : {}),

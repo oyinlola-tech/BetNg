@@ -1,5 +1,13 @@
-export { GetWalletQuery, GetWalletHandler } from "./getWallet/index.js";
+export { GetWalletHandler, GetWalletQuery } from "./getWallet/index.js";
 export {
-  ListTransactionsQuery,
+  GetWalletOverviewHandler,
+  GetWalletOverviewQuery,
+} from "./getWalletOverview/index.js";
+export {
+  ListShopTransactionsHandler,
+  ListShopTransactionsQuery,
+} from "./listShopTransactions/index.js";
+export {
   ListTransactionsHandler,
+  ListTransactionsQuery,
 } from "./listTransactions/index.js";

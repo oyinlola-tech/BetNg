@@ -1,6 +1,23 @@
-/**
- * Persistence models. They arrive with the settlement schema; until
- * then a settlement is exactly its contract shape.
- */
+export type {
+  AdminSettlementRecord,
+  AdminSettlementStatus,
+  BetChannel,
+  BetLegRecord,
+  BetRecord,
+  MatchSettlementRecord,
+  MatchSettlementStatus,
+  MatchState,
+  NewSettlement,
+  SettledLegRecord,
+  SettlementRecord,
+} from "./settlement.model.js";
 
-export {};
+export type {
+  ClosedPeriodResult,
+  CommissionConfigRecord,
+  CommissionLedgerRecord,
+  OperatorPeriodKind,
+  OperatorPeriodRecord,
+  OperatorPeriodStatus,
+  OperatorSummaryRecord,
+} from "./operator.model.js";

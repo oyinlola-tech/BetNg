@@ -1,11 +1,22 @@
 import { Query } from "@zudojs/cqrs";
 import { WALLET_QUERY } from "../../../../constants/index.js";
+import type { OwnerType } from "../../../../interfaces/index.js";
 
 export class ListTransactionsQuery extends Query<"wallet.listTransactions"> {
-  public readonly userId: string;
+  public readonly ownerType: OwnerType;
 
-  public constructor(userId: string) {
+  public readonly ownerId: string;
+
+  public readonly limit: number;
+
+  public constructor(payload: {
+    readonly ownerType: OwnerType;
+    readonly ownerId: string;
+    readonly limit: number;
+  }) {
     super(WALLET_QUERY.LIST_TRANSACTIONS);
-    this.userId = userId;
+    this.ownerType = payload.ownerType;
+    this.ownerId = payload.ownerId;
+    this.limit = payload.limit;
   }
 }

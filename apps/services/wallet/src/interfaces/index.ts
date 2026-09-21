@@ -1,5 +1,16 @@
 export type {
-  LedgerEntry,
-  LedgerResult,
+  AccountRecord,
+  CreditType,
+  DebitType,
+  EntryRecord,
+  LedgerEntryType,
+  OverviewRecord,
+  OwnerType,
+  PlatformEntryRecord,
+  PostEntryInput,
+  PostEntryResult,
+  ShopEntryRecord,
+  ShopEntryType,
+  TimeRange,
   WalletRepository,
 } from "./wallet.interface.js";

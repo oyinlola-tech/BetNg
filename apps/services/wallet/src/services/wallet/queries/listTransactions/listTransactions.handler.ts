@@ -1,12 +1,14 @@
 import { QueryHandler } from "@zudojs/cqrs";
-import type { Transaction } from "@betng/contracts";
 import { WALLET_QUERY } from "../../../../constants/index.js";
-import type { WalletRepository } from "../../../../interfaces/index.js";
+import type {
+  EntryRecord,
+  WalletRepository,
+} from "../../../../interfaces/index.js";
 import type { ListTransactionsQuery } from "./listTransactions.query.js";
 
 export class ListTransactionsHandler extends QueryHandler<
   ListTransactionsQuery,
-  readonly Transaction[]
+  readonly EntryRecord[]
 > {
   public readonly queryType = WALLET_QUERY.LIST_TRANSACTIONS;
 
@@ -19,7 +21,12 @@ export class ListTransactionsHandler extends QueryHandler<
 
   public async execute(
     query: ListTransactionsQuery,
-  ): Promise<readonly Transaction[]> {
-    return this.wallets.listTransactions(query.userId);
+  ): Promise<readonly EntryRecord[]> {
+    const account = await this.wallets.getOrOpenAccount(
+      query.ownerType,
+      query.ownerId,
+    );
+
+    return this.wallets.listEntries(account.id, query.limit);
   }
 }
