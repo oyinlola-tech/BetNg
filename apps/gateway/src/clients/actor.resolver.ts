@@ -72,10 +72,9 @@ export function createActorResolver(options: ActorResolverOptions): ActorResolve
 
     if (ttl <= 0) return;
 
-    try {
-      await redis.client.set(key, JSON.stringify(actor), { expiration: { type: "EX", value: ttl } });
-    } catch {
-    }
+    await redis.client
+      .set(key, JSON.stringify(actor), { expiration: { type: "EX", value: ttl } })
+      .catch(() => undefined);
   }
 
   return {
