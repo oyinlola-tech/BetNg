@@ -64,3 +64,75 @@ With the development stand-in (`VITE_DATA_SOURCE=mock`; the web, shop and admin 
 | Admin | `ops@betng.test` (super admin, code `246810`), `operations@`, `risk@`, `support@betng.test`, password `betng-admin` |
 
 Against a local platform the backend's seed provides its own accounts (see the platform README); the super admin there needs a real authenticator code.
+
+## Screens
+
+Recorded on 2026-09-21 with every app running against the real platform (live matches, a real customer, cashier and super admin), by `scripts/docs/capture-screens.mjs`.
+
+### Web
+
+<table>
+  <tr><td width="50%"><img alt="Home, light" src="images/screens/web/home-light.webp"><br><sub>Home, light</sub></td><td width="50%"><img alt="Home, dark" src="images/screens/web/home-dark.webp"><br><sub>Home, dark</sub></td></tr>
+  <tr><td width="50%"><img alt="Live" src="images/screens/web/live-light.webp"><br><sub>Live</sub></td><td width="50%"><img alt="Virtual football lobby" src="images/screens/web/virtuals.webp"><br><sub>Virtual football lobby</sub></td></tr>
+  <tr><td width="50%"><img alt="Match center: overview" src="images/screens/web/match-overview-light.webp"><br><sub>Match center: overview</sub></td><td width="50%"><img alt="Timeline" src="images/screens/web/match-timeline.webp"><br><sub>Timeline</sub></td></tr>
+  <tr><td width="50%"><img alt="Stats" src="images/screens/web/match-stats.webp"><br><sub>Stats</sub></td><td width="50%"><img alt="Lineups" src="images/screens/web/match-lineups.webp"><br><sub>Lineups</sub></td></tr>
+  <tr><td width="50%"><img alt="Markets" src="images/screens/web/match-markets.webp"><br><sub>Markets</sub></td><td width="50%"><img alt="Head to head" src="images/screens/web/match-h2h.webp"><br><sub>Head to head</sub></td></tr>
+  <tr><td width="50%"><img alt="Results" src="images/screens/web/results.webp"><br><sub>Results</sub></td><td width="50%"><img alt="Standings" src="images/screens/web/standings.webp"><br><sub>Standings</sub></td></tr>
+  <tr><td width="50%"><img alt="Search" src="images/screens/web/search.webp"><br><sub>Search</sub></td><td width="50%"><img alt="Bet slip with an estimated return" src="images/screens/web/betslip-ready.webp"><br><sub>Bet slip with an estimated return</sub></td></tr>
+  <tr><td width="50%"><img alt="Bet accepted by the platform" src="images/screens/web/betslip-accepted.webp"><br><sub>Bet accepted by the platform</sub></td><td width="50%"><img alt="Tickets" src="images/screens/web/tickets.webp"><br><sub>Tickets</sub></td></tr>
+  <tr><td width="50%"><img alt="Wallet" src="images/screens/web/wallet.webp"><br><sub>Wallet</sub></td><td width="50%"><img alt="Transactions" src="images/screens/web/transactions.webp"><br><sub>Transactions</sub></td></tr>
+  <tr><td width="50%"><img alt="Notifications" src="images/screens/web/notifications.webp"><br><sub>Notifications</sub></td><td width="50%"><img alt="Account" src="images/screens/web/account.webp"><br><sub>Account</sub></td></tr>
+</table>
+
+<details>
+<summary>The full home page</summary>
+
+<img alt="The whole home page, top to footer" src="images/screens/web/home-full.webp">
+
+</details>
+
+### Web on a phone
+
+The web app at phone width. The native Expo client shares the view models, crests and icons; it has been typechecked and linted, not yet captured on a device.
+
+<table>
+  <tr><td width="33%"><img alt="Home" src="images/screens/mobile/home-light.webp"><br><sub>Home</sub></td><td width="33%"><img alt="Home, dark" src="images/screens/mobile/home-dark.webp"><br><sub>Home, dark</sub></td><td width="33%"><img alt="Live" src="images/screens/mobile/live-light.webp"><br><sub>Live</sub></td></tr>
+  <tr><td width="33%"><img alt="Live, dark" src="images/screens/mobile/live-dark.webp"><br><sub>Live, dark</sub></td><td width="33%"><img alt="Match center" src="images/screens/mobile/match.webp"><br><sub>Match center</sub></td><td width="33%"><img alt="Standings" src="images/screens/mobile/standings.webp"><br><sub>Standings</sub></td></tr>
+  <tr><td width="33%"><img alt="Sticky slip bar" src="images/screens/mobile/slip-bar.webp"><br><sub>Sticky slip bar</sub></td><td width="33%"><img alt="Slip sheet" src="images/screens/mobile/slip-sheet.webp"><br><sub>Slip sheet</sub></td><td width="33%"><img alt="More" src="images/screens/mobile/more-sheet.webp"><br><sub>More</sub></td></tr>
+</table>
+
+### TV
+
+<table>
+  <tr><td width="50%"><img alt="Home" src="images/screens/tv/home.webp"><br><sub>Home</sub></td><td width="50%"><img alt="Board" src="images/screens/tv/board.webp"><br><sub>Board</sub></td></tr>
+  <tr><td width="50%"><img alt="Live" src="images/screens/tv/live.webp"><br><sub>Live</sub></td><td width="50%"><img alt="Match" src="images/screens/tv/match.webp"><br><sub>Match</sub></td></tr>
+  <tr><td width="50%"><img alt="Results" src="images/screens/tv/results.webp"><br><sub>Results</sub></td><td width="50%"><img alt="Table" src="images/screens/tv/standings.webp"><br><sub>Table</sub></td></tr>
+  <tr><td width="50%"><img alt="Next" src="images/screens/tv/upcoming.webp"><br><sub>Next</sub></td><td width="50%"><img alt="Auto broadcast" src="images/screens/tv/broadcast.webp"><br><sub>Auto broadcast</sub></td></tr>
+</table>
+
+### Shop
+
+<table>
+  <tr><td width="50%"><img alt="Sign-in" src="images/screens/shop/login.webp"><br><sub>Sign-in</sub></td><td width="50%"><img alt="Dashboard" src="images/screens/shop/dashboard-light.webp"><br><sub>Dashboard</sub></td></tr>
+  <tr><td width="50%"><img alt="Dashboard, dark" src="images/screens/shop/dashboard-dark.webp"><br><sub>Dashboard, dark</sub></td><td width="50%"><img alt="Virtual football week grid" src="images/screens/shop/week-grid-light.webp"><br><sub>Virtual football week grid</sub></td></tr>
+  <tr><td width="50%"><img alt="Week grid, dark" src="images/screens/shop/week-grid-dark.webp"><br><sub>Week grid, dark</sub></td><td width="50%"><img alt="Slip" src="images/screens/shop/slip.webp"><br><sub>Slip</sub></td></tr>
+  <tr><td width="50%"><img alt="Ticket issued by the platform" src="images/screens/shop/ticket.webp"><br><sub>Ticket issued by the platform</sub></td><td width="50%"><img alt="Check ticket" src="images/screens/shop/check-ticket.webp"><br><sub>Check ticket</sub></td></tr>
+</table>
+
+### Admin
+
+<table>
+  <tr><td width="50%"><img alt="Sign-in with a second factor" src="images/screens/admin/login.webp"><br><sub>Sign-in with a second factor</sub></td><td width="50%"><img alt="Dashboard" src="images/screens/admin/dashboard-light.webp"><br><sub>Dashboard</sub></td></tr>
+  <tr><td width="50%"><img alt="Dashboard, dark" src="images/screens/admin/dashboard-dark.webp"><br><sub>Dashboard, dark</sub></td><td width="50%"><img alt="Matches" src="images/screens/admin/matches.webp"><br><sub>Matches</sub></td></tr>
+  <tr><td width="50%"><img alt="Match control: only the allowed operations" src="images/screens/admin/match-control.webp"><br><sub>Match control: only the allowed operations</sub></td><td width="50%"><img alt="Risk" src="images/screens/admin/risk.webp"><br><sub>Risk</sub></td></tr>
+  <tr><td width="50%"><img alt="Risk, dark" src="images/screens/admin/risk-dark.webp"><br><sub>Risk, dark</sub></td><td width="50%"><img alt="Simulation" src="images/screens/admin/simulation.webp"><br><sub>Simulation</sub></td></tr>
+  <tr><td width="50%"><img alt="Settlement" src="images/screens/admin/settlement.webp"><br><sub>Settlement</sub></td><td width="50%"><img alt="Wallet and ledgers" src="images/screens/admin/wallet.webp"><br><sub>Wallet and ledgers</sub></td></tr>
+  <tr><td width="50%"><img alt="Reports" src="images/screens/admin/reports.webp"><br><sub>Reports</sub></td><td width="50%"><img alt="Audit log" src="images/screens/admin/audit.webp"><br><sub>Audit log</sub></td></tr>
+  <tr><td width="50%"><img alt="System health" src="images/screens/admin/health.webp"><br><sub>System health</sub></td><td width="50%"><img alt="Users" src="images/screens/admin/users.webp"><br><sub>Users</sub></td></tr>
+  <tr><td width="50%"><img alt="Shops" src="images/screens/admin/shops.webp"><br><sub>Shops</sub></td></tr>
+</table>
+
+### Proof
+
+
+![Playwright suites across desktop, mobile and TV](images/proof/e2e-tests.webp)

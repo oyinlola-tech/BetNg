@@ -153,3 +153,15 @@ python3 -m venv .venv && .venv/bin/pip install -e ../shared -e '.[dev]'
 ```
 
 The tests use the dedicated database `betng_test_analytics`. As the superuser they create every table analytics reads with the columns of the shared read model (docs/architecture.md §8) and insert their rows into a random hour of the twentieth century, which they delete afterwards; the service under test connects as `betng_analytics`.
+
+## Proof
+
+Recorded on 2026-09-21. Screenshots are the apps running against the real platform; terminal images are real command output rendered by `scripts/docs/render-terminal.mjs`, and design sheets are rendered from the packages themselves by `scripts/docs/render-design-sheets.mjs`.
+
+![Python suites: analytics 120 tests](../../docs/images/proof/backend-python-tests.webp)
+
+![Platform scenario, step 18 reconciles analytics](../../docs/images/proof/backend-e2e-scenario.webp)
+
+<table>
+  <tr><td width="50%"><img alt="Admin dashboard" src="../../docs/images/screens/admin/dashboard-light.webp"><br><sub>Overview in the admin console</sub></td><td width="50%"><img alt="Admin reports" src="../../docs/images/screens/admin/reports.webp"><br><sub>Breakdowns in the admin console</sub></td></tr>
+</table>

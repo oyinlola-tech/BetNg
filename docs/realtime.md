@@ -78,3 +78,24 @@ Match pages are pushed. Lists use TanStack Query with stale times and keep previ
 ## Tests
 
 `packages/client-sdk/tests/realtime.test.ts` (status walk, backoff stop on close, resubscribe after reconnect, `PONG`, exactly-once and in-order delivery, gap report, version ordering, channel release, frame and query authentication, rejected session, connection replacement, SSE reopen on channel change), `packages/ui-core/tests/watchMatch.test.ts` (phase from events alone, duplicates ignored, the five resync triggers, no double append) and `packages/ui-core/tests/platformDataSource.test.ts` (timeline versus signal routing, desync to `MATCH_UPDATED`).
+
+## Proof
+
+Recorded on 2026-09-21. Screenshots are the apps running against the real platform; terminal images are real command output rendered by `scripts/docs/render-terminal.mjs`, and design sheets are rendered from the packages themselves by `scripts/docs/render-design-sheets.mjs`.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="images/diagrams/realtime-dark.svg">
+  <img alt="Realtime pipeline" src="images/diagrams/realtime-light.svg" width="100%">
+</picture>
+
+![Realtime client and watchMatch tests passing](images/proof/realtime-tests.webp)
+
+Live frames arriving from the running platform through the same client (`realtime (12s)` line):
+
+![Smoke check showing live frames](images/proof/smoke-platform.webp)
+
+The minute, score and events on screen come from the platform's clock and stream:
+
+<table>
+  <tr><td width="50%"><img alt="TV match with live events" src="images/screens/tv/match.webp"><br><sub>TV: live events</sub></td><td width="50%"><img alt="Admin showing realtime connected" src="images/screens/admin/dashboard-light.webp"><br><sub>Admin: realtime connected</sub></td></tr>
+</table>

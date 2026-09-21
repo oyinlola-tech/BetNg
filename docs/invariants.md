@@ -37,3 +37,22 @@ Tests: `services/simulation/tests/test_rest.py`, `test_seed_secret.py`, `apps/se
 - The demo accounts and logged verification codes are opt-in (`SEED_DEMO_DATA`, `LOG_VERIFICATION_CODES`) and ignored in production.
 
 Tests: `apps/gateway/tests/gateway.test.ts`, `apps/services/identity/tests/*`, e2e step 22.
+
+## Proof
+
+Recorded on 2026-09-21. Screenshots are the apps running against the real platform; terminal images are real command output rendered by `scripts/docs/render-terminal.mjs`, and design sheets are rendered from the packages themselves by `scripts/docs/render-design-sheets.mjs`.
+
+`pnpm e2e` asserts most of the invariants together against the real services; the step numbers in the table above refer to this run:
+
+![Platform scenario: 22 of 22 steps](images/proof/backend-e2e-scenario.webp)
+
+![TypeScript service suites, including the files named in the table](images/proof/backend-ts-tests.webp)
+
+![Python service suites, including the files named in the table](images/proof/backend-python-tests.webp)
+
+Invariants 13 and 14 seen from the clients: the admin console offers no control that sets a result (checked on every screen by `apps/admin/tests/safety/forbiddenControls.test.tsx` and `e2e/admin.spec.ts`), settlement figures are the platform's, and a negative operator result would be shown as it is:
+
+<table>
+  <tr><td width="50%"><img alt="Match control with only the allowed operations" src="images/screens/admin/match-control.webp"><br><sub>Match control</sub></td><td width="50%"><img alt="Settlement from recorded results" src="images/screens/admin/settlement.webp"><br><sub>Settlement</sub></td></tr>
+  <tr><td width="50%"><img alt="Simulation runs" src="images/screens/admin/simulation.webp"><br><sub>Simulation</sub></td><td width="50%"><img alt="Separate ledgers" src="images/screens/admin/wallet.webp"><br><sub>Customer, shop and operator ledgers</sub></td></tr>
+</table>

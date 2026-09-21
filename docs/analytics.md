@@ -102,3 +102,20 @@ A till view of one shop, always the calling cashier's (`x-betng-shop-id`); a sho
 - `payouts` = `SUM(bets.payout)` over tickets with `paid_at` on that day; `cancellations` = tickets whose bet has `cancelled_at` on that day.
 - `net = sales − payouts`: cash taken minus cash paid over the counter that day. This is a till figure, not the operator result.
 - `byCashier`: sales by selling cashier, payouts by paying cashier (`paid_by`). `byLeague`: tickets and sales by the leagues of their legs (a multiple counts under each league it touches).
+
+## Proof
+
+Recorded on 2026-09-21. Screenshots are the apps running against the real platform; terminal images are real command output rendered by `scripts/docs/render-terminal.mjs`, and design sheets are rendered from the packages themselves by `scripts/docs/render-design-sheets.mjs`.
+
+Step 18 of the platform scenario reconciles analytics with the database (total stake, total payout and operator result over every accepted bet):
+
+![Platform scenario including the analytics reconciliation](images/proof/backend-e2e-scenario.webp)
+
+![Python suites: analytics 120 tests](images/proof/backend-python-tests.webp)
+
+The figures as the admin console shows them from the running platform, with nothing computed in the browser:
+
+<table>
+  <tr><td width="50%"><img alt="Dashboard figures from analytics" src="images/screens/admin/dashboard-light.webp"><br><sub>Dashboard</sub></td><td width="50%"><img alt="Reports and breakdowns" src="images/screens/admin/reports.webp"><br><sub>Reports</sub></td></tr>
+  <tr><td width="50%"><img alt="Operator ledger" src="images/screens/admin/wallet.webp"><br><sub>Operator ledger</sub></td><td width="50%"><img alt="Exposure" src="images/screens/admin/risk.webp"><br><sub>Exposure</sub></td></tr>
+</table>

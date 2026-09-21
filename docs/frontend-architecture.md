@@ -112,3 +112,32 @@ Route-level code splitting, the mock excluded from deployed bundles, variable fo
 ## 10. SEO
 
 Public web routes set title, description, canonical and Open Graph tags per route (`useDocumentMeta`). Account, wallet, tickets and transactions are `noindex`. Shop and admin are `noindex, nofollow` at the document level.
+
+## Proof
+
+Recorded on 2026-09-21. Screenshots are the apps running against the real platform; terminal images are real command output rendered by `scripts/docs/render-terminal.mjs`, and design sheets are rendered from the packages themselves by `scripts/docs/render-design-sheets.mjs`.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="images/diagrams/frontend-layers-dark.svg">
+  <img alt="Frontend layers from component to gateway" src="images/diagrams/frontend-layers-light.svg" width="100%">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="images/diagrams/system-dark.svg">
+  <img alt="The whole system" src="images/diagrams/system-light.svg" width="100%">
+</picture>
+
+`pnpm verify` builds, typechecks, lints and tests every client, builds four production bundles, and fails if any of them contains the development stand-in:
+
+![pnpm verify passing](images/proof/verify.webp)
+
+![Unit and contract tests passing](images/proof/unit-tests.webp)
+
+![Component and app tests passing](images/proof/component-tests.webp)
+
+The same canonical match, seen on four surfaces from one platform:
+
+<table>
+  <tr><td width="50%"><img alt="Web match center" src="images/screens/web/match-overview-dark.webp"><br><sub>Web</sub></td><td width="50%"><img alt="TV match" src="images/screens/tv/match.webp"><br><sub>TV</sub></td></tr>
+  <tr><td width="50%"><img alt="Shop dashboard" src="images/screens/shop/dashboard-light.webp"><br><sub>Shop</sub></td><td width="50%"><img alt="Admin matches" src="images/screens/admin/matches.webp"><br><sub>Admin</sub></td></tr>
+</table>

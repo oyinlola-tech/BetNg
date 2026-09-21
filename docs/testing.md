@@ -68,3 +68,38 @@ The suite runs against the development stand-in so it is deterministic; the adap
 - Query by role and accessible name. `data-testid` only where neither is practical.
 - Time is injected (`now` props, fake timers). No test sleeps.
 - A bug fix comes with the test that would have caught it.
+
+## Proof
+
+Recorded on 2026-09-21. Screenshots are the apps running against the real platform; terminal images are real command output rendered by `scripts/docs/render-terminal.mjs`, and design sheets are rendered from the packages themselves by `scripts/docs/render-design-sheets.mjs`.
+
+| Suite | Result |
+| --- | --- |
+| `pnpm test:unit` | 280 tests in 25 files |
+| `pnpm test:dom` | 327 tests in 38 files |
+| `pnpm test:e2e` | 34 tests (desktop, mobile, TV) |
+| TypeScript services | 386 tests in 29 files |
+| Python services | 1,192 tests |
+| `pnpm e2e` (platform scenario) | 22 of 22 steps |
+
+![pnpm verify](images/proof/verify.webp)
+
+![Unit tests](images/proof/unit-tests.webp)
+
+![Component tests](images/proof/component-tests.webp)
+
+![Playwright tests](images/proof/e2e-tests.webp)
+
+![Contract tests](images/proof/contract-tests.webp)
+
+![Realtime tests](images/proof/realtime-tests.webp)
+
+![Data layer tests](images/proof/data-layer-tests.webp)
+
+![Design token and brand tests](images/proof/design-tests.webp)
+
+![TypeScript service tests](images/proof/backend-ts-tests.webp)
+
+![Python service tests](images/proof/backend-python-tests.webp)
+
+![Platform end-to-end scenario](images/proof/backend-e2e-scenario.webp)

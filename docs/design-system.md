@@ -86,3 +86,30 @@ Geometry lives in `packages/brand/src/footballIcons.ts` (`FOOTBALL_ICONS`, `FOOT
 1. A new value is a token first (`design-tokens`), then a Tailwind name in `theme.css`, then used.
 2. A new component goes in the folder for its domain, is exported from that folder's `index.ts`, gets a test under `packages/ui-web/tests`, and is described in `design.md` if it changes how something looks or behaves.
 3. An app keeps a component only when its interaction is genuinely specific to that app.
+
+## Proof
+
+Recorded on 2026-09-21. Screenshots are the apps running against the real platform; terminal images are real command output rendered by `scripts/docs/render-terminal.mjs`, and design sheets are rendered from the packages themselves by `scripts/docs/render-design-sheets.mjs`.
+
+<table>
+  <tr><td width="50%"><img alt="Light colour tokens" src="images/design/colours-light.webp"><br><sub>Colour tokens, light</sub></td><td width="50%"><img alt="Dark colour tokens" src="images/design/colours-dark.webp"><br><sub>Colour tokens, dark</sub></td></tr>
+</table>
+
+![Type roles](images/design/type-roles.webp)
+
+<table>
+  <tr><td width="50%"><img alt="Crest system, light" src="images/design/crests-light.webp"><br><sub>Crests, light</sub></td><td width="50%"><img alt="Crest system, dark" src="images/design/crests-dark.webp"><br><sub>Crests, dark</sub></td></tr>
+  <tr><td width="50%"><img alt="Football icons, light" src="images/design/icons-light.webp"><br><sub>Icons, light</sub></td><td width="50%"><img alt="Football icons, dark" src="images/design/icons-dark.webp"><br><sub>Icons, dark</sub></td></tr>
+</table>
+
+The components in use, against the real platform:
+
+<table>
+  <tr><td width="50%"><img alt="Match timeline with football icons" src="images/screens/web/match-timeline.webp"><br><sub>MatchTimeline with the football icons</sub></td><td width="50%"><img alt="Stats panel" src="images/screens/web/match-stats.webp"><br><sub>StatsPanel</sub></td></tr>
+  <tr><td width="50%"><img alt="Markets and odds buttons" src="images/screens/web/match-markets.webp"><br><sub>MarketList and OddsButton</sub></td><td width="50%"><img alt="League table" src="images/screens/web/standings.webp"><br><sub>LeagueTable</sub></td></tr>
+  <tr><td width="50%"><img alt="Transactions table" src="images/screens/web/transactions.webp"><br><sub>DataTable, server pages</sub></td><td width="50%"><img alt="Bottom sheet" src="images/screens/mobile/more-sheet.webp"><br><sub>BottomSheet</sub></td></tr>
+</table>
+
+![Component and app tests passing](images/proof/component-tests.webp)
+
+![Design token contrast and brand tests passing](images/proof/design-tests.webp)

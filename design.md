@@ -153,3 +153,37 @@ A control plane: neutral, tabular, audited. KPIs from platform analytics, server
 ## 20. Accessibility
 
 Semantic landmarks and heading order, keyboard operation everywhere, visible focus, native `dialog` for modal surfaces with focus return, `aria-live` for connection and toasts, tabs with `tablist` / `tab` / `tabpanel`, tables with `scope` and `aria-sort`, labelled icon buttons, 4.5:1 text contrast in both themes, no colour-only state, reduced motion honoured.
+
+## Proof
+
+Recorded on 2026-09-21. Screenshots are the apps running against the real platform; terminal images are real command output rendered by `scripts/docs/render-terminal.mjs`, and design sheets are rendered from the packages themselves by `scripts/docs/render-design-sheets.mjs`.
+
+### Colour, in both themes, with contrast against the surface
+
+<table>
+  <tr><td width="50%"><img alt="Light theme colour tokens with contrast ratios" src="docs/images/design/colours-light.webp"><br><sub>Light</sub></td><td width="50%"><img alt="Dark theme colour tokens with contrast ratios" src="docs/images/design/colours-dark.webp"><br><sub>Dark</sub></td></tr>
+</table>
+
+Every text, status and on-fill pairing is held to WCAG AA in both themes by `packages/design-tokens/tests/contrast.test.ts`:
+
+![Design token and brand tests passing](docs/images/proof/design-tests.webp)
+
+### Type roles
+
+![Every type role rendered in Inter and Archivo](docs/images/design/type-roles.webp)
+
+### Crests and football icons
+
+![The crest system: 8 shapes by 10 patterns, and one crest at every supported size](docs/images/design/crests-light.webp)
+
+<table>
+  <tr><td width="50%"><img alt="Football icons, light" src="docs/images/design/icons-light.webp"><br><sub>Football icons, light</sub></td><td width="50%"><img alt="Football icons, dark" src="docs/images/design/icons-dark.webp"><br><sub>Football icons, dark</sub></td></tr>
+</table>
+
+### The reference applied
+
+<table>
+  <tr><td width="50%"><img alt="Web home in the light theme" src="docs/images/screens/web/home-light.webp"><br><sub>Web, light</sub></td><td width="50%"><img alt="Match center in the dark theme" src="docs/images/screens/web/match-overview-dark.webp"><br><sub>Match center, dark</sub></td></tr>
+  <tr><td width="50%"><img alt="TV board" src="docs/images/screens/tv/board.webp"><br><sub>TV: the ten-foot layer</sub></td><td width="50%"><img alt="Shop week grid" src="docs/images/screens/shop/week-grid-light.webp"><br><sub>Shop: dense and keyboard first</sub></td></tr>
+  <tr><td width="50%"><img alt="Admin risk board" src="docs/images/screens/admin/risk.webp"><br><sub>Admin: neutral, tabular</sub></td><td width="50%"><img alt="Web slip as a bottom sheet on a phone" src="docs/images/screens/mobile/slip-sheet.webp"><br><sub>Phone: bottom sheet</sub></td></tr>
+</table>

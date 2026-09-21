@@ -37,3 +37,13 @@ cd services/simulation
 python -m venv .venv && source .venv/bin/activate
 pip install -e ../shared -e '.[dev]'
 ```
+
+## Proof
+
+Recorded on 2026-09-21. Screenshots are the apps running against the real platform; terminal images are real command output rendered by `scripts/docs/render-terminal.mjs`, and design sheets are rendered from the packages themselves by `scripts/docs/render-design-sheets.mjs`.
+
+Every Python service is built on this kit; their suites and health probes:
+
+![Python service suites](../../docs/images/proof/backend-python-tests.webp)
+
+![Health probes of every service, including the four Python ones](../../docs/images/screens/admin/health.webp)

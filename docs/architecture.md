@@ -85,7 +85,7 @@ Payout arithmetic is integer-only: with each leg's odds as integer hundredths `h
 
 Every transition is a row in `match.match_transitions` (`match_id, from_state, to_state, at, actor, reason`).
 
-**Timing** (env, defaults match `packages/ui-core/src/timing.ts`): `MATCH_SECONDS_PER_MINUTE=2`, `MATCH_HALF_TIME_SECONDS=15`, `BETTING_CLOSE_LEAD_SECONDS=10`, `ROUND_CYCLE_SECONDS=240`, leagues staggered by `LEAGUE_STAGGER_SECONDS=60`, `UPCOMING_ROUNDS=3`. Minute `m` of the first half is revealed at `kickoff + m*spm`; second-half minute at `kickoff + 45*spm + half_time + (m-45)*spm`; full time at `kickoff + 90*spm + half_time`.
+**Timing** (env; clients read it from `GET /config` and the match `clock`, and the development stand-in in `packages/mock-data/src/timing.ts` uses the same defaults): `MATCH_SECONDS_PER_MINUTE=2`, `MATCH_HALF_TIME_SECONDS=15`, `BETTING_CLOSE_LEAD_SECONDS=10`, `ROUND_CYCLE_SECONDS=240`, leagues staggered by `LEAGUE_STAGGER_SECONDS=60`, `UPCOMING_ROUNDS=3`. Minute `m` of the first half is revealed at `kickoff + m*spm`; second-half minute at `kickoff + 45*spm + half_time + (m-45)*spm`; full time at `kickoff + 90*spm + half_time`.
 
 **Result secrecy.** The result exists from kick-off but is revealed over the match. Public routes return only events whose reveal instant has passed and the score implied by them. No gateway-exposed route, admin included, returns a score, result or unrevealed event for a match that is not `COMPLETED`.
 
@@ -243,3 +243,29 @@ Enumerations stored in these columns: `bets.status` `PENDING|WON|LOST|VOID|CANCE
 ## 9. Audit actions
 
 `simulation_started`, `simulation_completed`, `simulation_failed`, `risk_configuration_changed`, `odds_configuration_changed`, `market_suspended`, `market_resumed`, `match_cancelled`, `settlement_started`, `settlement_completed`, `settlement_failed`, `manual_correction`, `commission_configuration_changed`, `simulation_configuration_changed`, `team_strength_changed`, `period_closed`, plus identity's own (`admin_login`, `customer_status_changed`, `shop_created`, …). System actors use `actorId = "system"`, `actorRole = "SYSTEM"`. A configuration change fails if its audit entry cannot be written; a lifecycle audit entry is best effort and logged on failure.
+
+## Proof
+
+Recorded on 2026-09-21. Screenshots are the apps running against the real platform; terminal images are real command output rendered by `scripts/docs/render-terminal.mjs`, and design sheets are rendered from the packages themselves by `scripts/docs/render-design-sheets.mjs`.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="images/diagrams/system-dark.svg">
+  <img alt="Services, public edge and storage" src="images/diagrams/system-light.svg" width="100%">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="images/diagrams/lifecycle-dark.svg">
+  <img alt="Match lifecycle and public status" src="images/diagrams/lifecycle-light.svg" width="100%">
+</picture>
+
+All eleven services reporting healthy to the admin console on the running platform:
+
+![System health: every service healthy](images/screens/admin/health.webp)
+
+The whole platform from source, end to end:
+
+![Platform scenario: 22 of 22 steps](images/proof/backend-e2e-scenario.webp)
+
+![TypeScript service suites](images/proof/backend-ts-tests.webp)
+
+![Python service suites](images/proof/backend-python-tests.webp)

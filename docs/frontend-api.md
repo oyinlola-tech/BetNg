@@ -143,21 +143,33 @@ Live Control reads the public `/matches` routes and the `WS /live` stream; it ne
 
 ## Live stream (`WS /live`)
 
-Protocol in `packages/contracts/src/realtime/liveProtocol.type.ts`; client in `packages/client-sdk/src/live/liveClient.core.ts`.
+Protocol in `packages/contracts/src/realtime/liveProtocol.type.ts`; client in `packages/client-sdk/src/realtime` (see [`realtime.md`](./realtime.md)).
 
 - Client sends `SUBSCRIBE { channel: "match:<matchId>" }`; server answers `SUBSCRIBED { lastSequence }`.
-- Server pushes `EVENT { channel, event: LiveEvent }` with a strictly increasing per-match `sequence` and the running `score`.
-- The frontend never trusts the stream as the source of truth: it reads `GET /matches/:id` (+ `/events`, `/stats`) first, applies events whose `sequence` is exactly `last + 1`, and re-reads on a gap or after a reconnect (`packages/ui-core/src/live/watchMatch.ts`).
-- Event `type` → UI kind mapping: `KICKOFF`/`MATCH_STARTED` → `KICK_OFF`, `MATCH_FINISHED` → `FULL_TIME`, all others 1:1.
+- Server pushes `EVENT { channel, event: LiveEvent }` with a strictly increasing per-match `sequence`, the running `score` and, when present, the platform `clock`.
+- The frontend never trusts the stream as the source of truth: it reads `GET /matches/:id` (+ `/events`, `/stats`) first, applies events in sequence, and re-reads on a gap, on a lifecycle signal, at full time and after a reconnect (`packages/ui-core/src/live/watchMatch.ts`).
+- Timeline frames (`KICKOFF`, `GOAL`, cards, `CORNER`, `SUBSTITUTION`, `HALF_TIME`, `SECOND_HALF`, `MATCH_FINISHED`) are appended to the match. Lifecycle frames (`BETTING_OPENED`, `BETTING_CLOSED`, `ODDS_UPDATED`, `SIMULATION_STARTED`, `SETTLEMENT_*`) only trigger a re-read.
 
-## Match timing the clients assume
+## Match clock and phase
 
-`packages/ui-core/src/timing.ts` (`VIRTUAL_TIMING`): 2 real seconds per match minute, a 15 s half-time, betting closes 10 s before kick-off, settlement 8 s after full time. The clock is derived from `Fixture.kickoffAt`, so the platform only has to schedule kick-offs on that cadence; nothing else has to be pushed for the clock to be right on every client.
-
-## Presentation phases derived on the client
-
-`MatchStatus` (contract) → `MatchPhase` (UI): `SCHEDULED`, `BETTING_OPEN`, `BETTING_CLOSED` map 1:1; `IN_PLAY` becomes `LIVE` or `HALFTIME` from the clock; `COMPLETED` becomes `FINISHED` then `SETTLED` after the settlement delay. See `packages/ui-core/src/phase.ts`.
+The clients take both from the platform. `Match.clock` (`period`, `minute`, `asOf`, optional `minuteLengthMs`) is served on `GET /matches`, `GET /matches/:id` and live frames; `GET /config` carries the round `timing`. `resolvePhase` (`packages/ui-core/src/phase.ts`) maps `Match.status`, `Match.lifecycle` and the clock period to the presentation phase, and takes no time input: `IN_PLAY` is `LIVE` until the platform reports half time, and `COMPLETED` is `SETTLED` only once the lifecycle says `SETTLEMENT_COMPLETED`. No client computes a minute from kick-off time. The timing model used to simulate matches lives only in the development stand-in (`packages/mock-data/src/timing.ts`).
 
 ## Simulated-money rule
 
 Every amount is play-money in kobo. The UI labels wallet, stake and return values as simulated; the platform must never wire these routes to a payment provider.
+
+## Proof
+
+Recorded on 2026-09-21. Screenshots are the apps running against the real platform; terminal images are real command output rendered by `scripts/docs/render-terminal.mjs`, and design sheets are rendered from the packages themselves by `scripts/docs/render-design-sheets.mjs`.
+
+Every route above that the clients read, exercised through the platform adapter against the running platform:
+
+![Smoke check against the live platform](images/proof/smoke-platform.webp)
+
+![Contract fixture tests passing](images/proof/contract-tests.webp)
+
+<table>
+  <tr><td width="50%"><img alt="Search route" src="images/screens/web/search.webp"><br><sub>`GET /search`</sub></td><td width="50%"><img alt="Head to head route" src="images/screens/web/match-h2h.webp"><br><sub>`GET /matches/:id/head-to-head`</sub></td></tr>
+  <tr><td width="50%"><img alt="Lineups route" src="images/screens/web/match-lineups.webp"><br><sub>`GET /matches/:id/lineups`</sub></td><td width="50%"><img alt="Paged transactions route" src="images/screens/web/transactions.webp"><br><sub>`GET /wallets/:userId/transactions?page=`</sub></td></tr>
+  <tr><td width="50%"><img alt="Notifications route" src="images/screens/web/notifications.webp"><br><sub>`GET /users/:id/notifications`</sub></td><td width="50%"><img alt="Bets route" src="images/screens/web/tickets.webp"><br><sub>`GET /bets`</sub></td></tr>
+</table>

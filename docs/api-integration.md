@@ -137,3 +137,23 @@ Shapes live in `packages/contracts/src/discovery/discovery.type.ts` with fixture
 ## 8. GraphQL and RPC
 
 REST is the contract today. Because screens depend only on the data-source interfaces, a read-heavy page can move to GraphQL by changing the adapter method behind it; no component changes. Clients never call RPC; it is a backend-to-backend concern behind the gateway.
+
+## Proof
+
+Recorded on 2026-09-21. Screenshots are the apps running against the real platform; terminal images are real command output rendered by `scripts/docs/render-terminal.mjs`, and design sheets are rendered from the packages themselves by `scripts/docs/render-design-sheets.mjs`.
+
+The clients' own adapter reading the running platform: configuration, leagues, a live match with its clock, markets, lineups, head to head, standings, search, and live frames over the WebSocket, with no failed request:
+
+![Smoke check against the live platform](images/proof/smoke-platform.webp)
+
+The payloads the clients are built against, parsed with the platform's own schemas:
+
+![Contract fixture tests passing](images/proof/contract-tests.webp)
+
+Money, clock and phase, the platform adapter (idempotent bet submission, refusals as results, paging fallbacks) and the requester's error mapping and retries:
+
+![Data layer tests passing](images/proof/data-layer-tests.webp)
+
+A bet placed through this path on the real platform, accepted with the platform's reference and payout:
+
+![Bet accepted by the platform](images/screens/web/betslip-accepted.webp)
