@@ -29,8 +29,15 @@ export function invalidRequest(message: string): HttpError {
   });
 }
 
-export function marketClosed(message: string): HttpError {
-  return conflict(message, { code: ErrorCodes.MARKET_CLOSED, expose: true });
+export function marketClosed(
+  message: string,
+  selectionIds: readonly string[] = [],
+): HttpError {
+  return conflict(message, {
+    code: ErrorCodes.MARKET_CLOSED,
+    expose: true,
+    ...(selectionIds.length === 0 ? {} : { details: { selectionIds } }),
+  });
 }
 
 export function oddsChanged(current: readonly CurrentPrice[]): HttpError {

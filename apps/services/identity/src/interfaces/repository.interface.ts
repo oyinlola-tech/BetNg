@@ -8,6 +8,7 @@ import type {
   Customer,
   EmailVerification,
   LoginThrottle,
+  Notification,
   Session,
   SessionKind,
   Shop,
@@ -175,6 +176,26 @@ export interface AuditLogRepository {
   page(filter: AuditLogFilter): Promise<{ readonly items: readonly AuditLog[]; readonly total: number }>;
 }
 
+export interface NewNotification {
+  readonly customerId: string;
+  readonly kind: string;
+  readonly title: string;
+  readonly body: string;
+  readonly data: Readonly<Record<string, unknown>> | undefined;
+  readonly dedupeKey: string | undefined;
+}
+
+export interface NotificationRepository {
+  /** With a `dedupeKey` already used for the customer, nothing is written and the first row comes back. */
+  createOnce(
+    notification: NewNotification,
+  ): Promise<{ readonly notification: Notification; readonly duplicate: boolean }>;
+  listForCustomer(customerId: string, limit: number): Promise<readonly Notification[]>;
+  /** `ids` undefined marks every unread row. Rows of another customer never match. */
+  markRead(customerId: string, ids: readonly string[] | undefined, at: Date): Promise<number>;
+  purgeOlderThan(before: Date): Promise<number>;
+}
+
 export interface StoredSettings {
   readonly value: PlatformSettings;
   readonly version: number;
@@ -197,6 +218,7 @@ export interface IdentityRepositories {
   readonly throttles: ThrottleRepository;
   readonly audit: AuditLogRepository;
   readonly settings: SettingsRepository;
+  readonly notifications: NotificationRepository;
 }
 
 export interface IdentityStore extends IdentityRepositories {

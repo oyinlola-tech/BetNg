@@ -1,4 +1,9 @@
-import { liveEventTypeSchema, matchScoreSchema, matchSideSchema } from "@betng/contracts";
+import {
+  liveEventTypeSchema,
+  matchClockSchema,
+  matchScoreSchema,
+  matchSideSchema,
+} from "@betng/contracts";
 import { z } from "@zudojs/validation";
 
 /**
@@ -15,6 +20,7 @@ export const publishEventPayloadSchema = z.object({
   side: matchSideSchema.optional(),
   score: matchScoreSchema,
   description: z.string().max(240),
+  clock: matchClockSchema.optional(),
 });
 
 export type PublishEventPayload = z.infer<typeof publishEventPayloadSchema>;

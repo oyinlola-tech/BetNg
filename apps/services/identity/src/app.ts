@@ -5,6 +5,7 @@ import { DEFAULT_PLATFORM_SETTINGS, SYSTEM_ACTOR } from "./constants/index.js";
 import {
   createAdminController,
   createCustomerAuthController,
+  createNotificationController,
   createShopController,
 } from "./controllers/index.js";
 import { createIdentityDatabase } from "./databases/index.js";
@@ -16,6 +17,7 @@ import { createIdentityStore, createReadModelRepository } from "./repositories/i
 import {
   registerAdminRoutes,
   registerCustomerAuthRoutes,
+  registerNotificationRoutes,
   registerShopRoutes,
 } from "./routes/index.js";
 import { runDemoSeed } from "./seeds/index.js";
@@ -71,6 +73,7 @@ export function createApp(config: IdentityConfig): IdentityApp {
     routes: (router) => {
       registerCustomerAuthRoutes(router, createCustomerAuthController(buses));
       registerShopRoutes(router, createShopController(buses));
+      registerNotificationRoutes(router, createNotificationController(buses));
       registerAdminRoutes(router, createAdminController(buses));
     },
   });

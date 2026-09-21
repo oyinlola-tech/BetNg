@@ -286,17 +286,28 @@ export class PlaceBetHandler extends CommandHandler<
       return { leg, snapshot };
     });
 
-    for (const { snapshot } of matched) {
-      if (
+    const closedMatches = matched.filter(
+      ({ snapshot }) =>
         !OPEN_LIFECYCLES.includes(snapshot.lifecycle) ||
-        snapshot.bettingClosesAt.getTime() <= now.getTime()
-      ) {
-        throw marketClosed("Betting has closed on one of these matches.");
-      }
+        snapshot.bettingClosesAt.getTime() <= now.getTime(),
+    );
 
-      if (snapshot.marketStatus !== OPEN_MARKET_STATUS) {
-        throw marketClosed("One of these markets is not open for betting.");
-      }
+    if (closedMatches.length > 0) {
+      throw marketClosed(
+        "Betting has closed on one of these matches.",
+        closedMatches.map(({ leg }) => leg.selectionId),
+      );
+    }
+
+    const closedMarkets = matched.filter(
+      ({ snapshot }) => snapshot.marketStatus !== OPEN_MARKET_STATUS,
+    );
+
+    if (closedMarkets.length > 0) {
+      throw marketClosed(
+        "One of these markets is not open for betting.",
+        closedMarkets.map(({ leg }) => leg.selectionId),
+      );
     }
 
     const priced = matched.map(({ leg, snapshot }) => ({

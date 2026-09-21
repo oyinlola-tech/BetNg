@@ -9,6 +9,6 @@ export function registerEventRoutes(
 ): void {
   router.get(
     `${API_PREFIX}/matches/:matchId/channel`,
-    json(controller.getMatchChannel),
+    json((context) => controller.getMatchChannel(context)),
   );
 }

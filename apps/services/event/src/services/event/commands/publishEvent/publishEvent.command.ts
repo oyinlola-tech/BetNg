@@ -1,5 +1,5 @@
 import { Command } from "@zudojs/cqrs";
-import type { LiveEventType } from "@betng/contracts";
+import type { LiveEventType, MatchClock } from "@betng/contracts";
 import { EVENT_COMMAND } from "../../../../constants/index.js";
 
 /**
@@ -21,6 +21,8 @@ export class PublishEventCommand extends Command<"event.publishEvent"> {
 
   public readonly description: string;
 
+  public readonly clock: MatchClock | undefined;
+
   public constructor(payload: {
     readonly matchId: string;
     readonly type: LiveEventType;
@@ -28,6 +30,7 @@ export class PublishEventCommand extends Command<"event.publishEvent"> {
     readonly side?: "HOME" | "AWAY";
     readonly score: { readonly home: number; readonly away: number };
     readonly description: string;
+    readonly clock?: MatchClock;
   }) {
     super(EVENT_COMMAND.PUBLISH_EVENT);
     this.matchId = payload.matchId;
@@ -36,5 +39,6 @@ export class PublishEventCommand extends Command<"event.publishEvent"> {
     this.side = payload.side;
     this.score = payload.score;
     this.description = payload.description;
+    this.clock = payload.clock;
   }
 }

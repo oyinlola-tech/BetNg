@@ -9,6 +9,8 @@ import type {
   AuditLogEntry,
   Cashier,
   CustomerProfile,
+  Notification,
+  NotificationKind,
   Shop,
 } from "@betng/contracts";
 import {
@@ -21,6 +23,7 @@ import type {
   AuditLog as AuditLogRow,
   Cashier as CashierRow,
   Customer as CustomerRow,
+  Notification as NotificationRow,
   Shop as ShopRow,
 } from "../generated/prisma/client.js";
 import type {
@@ -50,6 +53,40 @@ export interface PinVerificationDto {
 
 export interface AuditRecordedDto {
   readonly id: string;
+}
+
+export interface NotifiedDto {
+  readonly id: string;
+  readonly duplicate: boolean;
+}
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
+
+function uuidFrom(data: unknown, key: string): string | undefined {
+  if (typeof data !== "object" || data === null || Array.isArray(data)) {
+    return undefined;
+  }
+
+  const value = (data as Readonly<Record<string, unknown>>)[key];
+
+  return typeof value === "string" && UUID_PATTERN.test(value) ? value : undefined;
+}
+
+export function toNotification(row: NotificationRow): Notification {
+  const matchId = uuidFrom(row.data, "matchId");
+  const betId = uuidFrom(row.data, "betId");
+
+  return {
+    id: row.id,
+    userId: asId<"UserId">(row.customerId),
+    kind: row.kind as NotificationKind,
+    title: row.title,
+    body: row.body,
+    read: row.readAt !== null,
+    ...(matchId === undefined ? {} : { matchId: asId<"MatchId">(matchId) }),
+    ...(betId === undefined ? {} : { betId: asId<"BetId">(betId) }),
+    createdAt: row.createdAt.toISOString(),
+  };
 }
 
 export function toCustomerProfile(row: CustomerRow): CustomerProfile {

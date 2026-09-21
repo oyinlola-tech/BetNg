@@ -22,6 +22,11 @@ import {
   ResendVerificationHandler,
   VerifyEmailHandler,
 } from "./customerAuth/index.js";
+import {
+  ListNotificationsHandler,
+  MarkNotificationsReadHandler,
+  NotifyCustomerHandler,
+} from "./notifications/index.js";
 import { AuthenticateHandler, LogoutHandler } from "./session/index.js";
 import { GetSettingsHandler, UpdateSettingsHandler } from "./settings/index.js";
 import {
@@ -67,6 +72,8 @@ export function registerIdentityServices(config: IdentityServiceConfig): void {
   command(new ResetCashierCredentialsHandler(deps));
   command(new RecordAuditHandler(deps));
   command(new UpdateSettingsHandler(deps));
+  command(new NotifyCustomerHandler(deps));
+  command(new MarkNotificationsReadHandler(deps));
 
   query(new GetCustomerProfileHandler(deps));
   query(new GetShopSessionHandler(deps));
@@ -78,6 +85,7 @@ export function registerIdentityServices(config: IdentityServiceConfig): void {
   query(new ListShopCashiersHandler(deps));
   query(new ListAuditLogsHandler(deps));
   query(new GetSettingsHandler(deps));
+  query(new ListNotificationsHandler(deps));
 }
 
 export * from "./adminAuth/index.js";
@@ -85,6 +93,7 @@ export * from "./adminShops/index.js";
 export * from "./adminUsers/index.js";
 export * from "./audit/index.js";
 export * from "./customerAuth/index.js";
+export * from "./notifications/index.js";
 export * from "./session/index.js";
 export * from "./settings/index.js";
 export * from "./shopAuth/index.js";

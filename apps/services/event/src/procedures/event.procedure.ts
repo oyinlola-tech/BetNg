@@ -48,6 +48,7 @@ export function createEventRpcServer(commandBus: CommandBus): RPCServer {
             ...(payload.side === undefined ? {} : { side: payload.side }),
             score: payload.score,
             description: payload.description,
+            ...(payload.clock === undefined ? {} : { clock: payload.clock }),
           }),
         );
       },

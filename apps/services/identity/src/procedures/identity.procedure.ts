@@ -4,14 +4,21 @@ import { validate } from "@zudojs/validation";
 import type { ValidationSchema } from "@zudojs/validation";
 import type { Logger } from "@betng/service-kit";
 import { IDENTITY_PROCEDURE, SYSTEM_ACTOR } from "../constants/index.js";
-import type { AuditRecordedDto, AuthenticatedActorDto, PinVerificationDto } from "../dtos/index.js";
+import type {
+  AuditRecordedDto,
+  AuthenticatedActorDto,
+  NotifiedDto,
+  PinVerificationDto,
+} from "../dtos/index.js";
 import {
   AuthenticateCommand,
+  NotifyCustomerCommand,
   RecordAuditCommand,
   VerifyCashierPinCommand,
 } from "../services/index.js";
 import {
   authenticatePayloadValidator,
+  notifyPayloadValidator,
   recordAuditPayloadValidator,
   verifyCashierPinPayloadValidator,
 } from "../validators/index.js";
@@ -127,6 +134,25 @@ export function createIdentityRpcServer(commandBus: CommandBus, logger: Logger):
         );
       },
     ),
+  );
+
+  server.register(
+    createRPCProcedure<unknown, NotifiedDto>(IDENTITY_PROCEDURE.NOTIFY, async (input) => {
+      const notification = payload(notifyPayloadValidator, input, IDENTITY_PROCEDURE.NOTIFY);
+
+      return withContractCodes(IDENTITY_PROCEDURE.NOTIFY, async () =>
+        commandBus.execute<NotifyCustomerCommand, NotifiedDto>(
+          new NotifyCustomerCommand({
+            customerId: notification.customerId,
+            kind: notification.kind,
+            title: notification.title,
+            body: notification.body,
+            data: notification.data ?? undefined,
+            dedupeKey: notification.dedupeKey ?? undefined,
+          }),
+        ),
+      );
+    }),
   );
 
   return server;

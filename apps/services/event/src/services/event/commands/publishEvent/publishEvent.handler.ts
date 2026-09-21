@@ -46,7 +46,7 @@ export class PublishEventHandler extends CommandHandler<
     this.now = now;
   }
 
-  public async execute(command: PublishEventCommand): Promise<PublishResult> {
+  public execute(command: PublishEventCommand): Promise<PublishResult> {
     const channel = matchChannel(command.matchId);
 
     const event: LiveEvent = {
@@ -58,6 +58,7 @@ export class PublishEventHandler extends CommandHandler<
       score: command.score,
       description: command.description,
       occurredAt: this.now().toISOString(),
+      ...(command.clock === undefined ? {} : { clock: command.clock }),
     };
 
     const frame = JSON.stringify({ type: "EVENT", channel, event });
@@ -74,6 +75,6 @@ export class PublishEventHandler extends CommandHandler<
       delivered: subscribers.length,
     });
 
-    return { event, delivered: subscribers.length };
+    return Promise.resolve({ event, delivered: subscribers.length });
   }
 }

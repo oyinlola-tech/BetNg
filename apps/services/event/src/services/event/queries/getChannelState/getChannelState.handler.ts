@@ -26,7 +26,7 @@ export class GetChannelStateHandler extends QueryHandler<
     this.channels = channels;
   }
 
-  public async execute(query: GetChannelStateQuery): Promise<ChannelState> {
-    return this.channels.state(query.channel);
+  public execute(query: GetChannelStateQuery): Promise<ChannelState> {
+    return Promise.resolve(this.channels.state(query.channel));
   }
 }

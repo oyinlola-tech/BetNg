@@ -4,6 +4,7 @@ export const IDENTITY_PROCEDURE = Object.freeze({
   AUTHENTICATE: "identity.authenticate",
   VERIFY_CASHIER_PIN: "identity.verifyCashierPin",
   RECORD_AUDIT: "identity.recordAudit",
+  NOTIFY: "identity.notify",
 });
 
 export const IDENTITY_COMMAND = Object.freeze({
@@ -26,6 +27,8 @@ export const IDENTITY_COMMAND = Object.freeze({
   RESET_CASHIER_CREDENTIALS: "identity.resetCashierCredentials",
   RECORD_AUDIT: "identity.recordAudit",
   UPDATE_SETTINGS: "identity.updateSettings",
+  NOTIFY_CUSTOMER: "identity.notifyCustomer",
+  MARK_NOTIFICATIONS_READ: "identity.markNotificationsRead",
 });
 
 export const IDENTITY_QUERY = Object.freeze({
@@ -39,6 +42,7 @@ export const IDENTITY_QUERY = Object.freeze({
   LIST_SHOP_CASHIERS: "identity.listShopCashiers",
   LIST_AUDIT_LOGS: "identity.listAuditLogs",
   GET_SETTINGS: "identity.getSettings",
+  LIST_NOTIFICATIONS: "identity.listNotifications",
 });
 
 export const AUDIT_ACTION = Object.freeze({
@@ -92,9 +96,20 @@ export const LIST_LIMIT = Object.freeze({
   AUDIT_PAGE_SIZE_DEFAULT: 25,
 });
 
+export const NOTIFICATION = Object.freeze({
+  TITLE_MAX: 120,
+  BODY_MAX: 240,
+  DATA_MAX_BYTES: 4096,
+  DEDUPE_KEY_MAX: 120,
+  LIST_DEFAULT: 50,
+  LIST_MAX: 100,
+  MARK_READ_MAX_IDS: 100,
+});
+
 export const MAINTENANCE = Object.freeze({
   INTERVAL_MS: 3_600_000,
   THROTTLE_RETENTION_MS: 24 * 3_600_000,
   SESSION_RETENTION_MS: 30 * 24 * 3_600_000,
   VERIFICATION_RETENTION_MS: 7 * 24 * 3_600_000,
+  NOTIFICATION_RETENTION_MS: 30 * 24 * 3_600_000,
 });

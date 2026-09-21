@@ -11,6 +11,7 @@ import type {
   CustomerRepository,
   IdentityRepositories,
   IdentityStore,
+  NotificationRepository,
   PasswordResetRepository,
   SessionRepository,
   SettingsRepository,
@@ -345,6 +346,59 @@ function settings(db: Db): SettingsRepository {
   };
 }
 
+function notifications(db: Db): NotificationRepository {
+  return {
+    createOnce: async (notification) => {
+      const { customerId, dedupeKey } = notification;
+
+      // ON CONFLICT DO NOTHING: concurrent retries with one key cannot both insert.
+      const [created] = await db.notification.createManyAndReturn({
+        data: [
+          {
+            customerId,
+            kind: notification.kind,
+            title: notification.title,
+            body: notification.body,
+            data: jsonOrNull(notification.data),
+            dedupeKey: dedupeKey ?? null,
+          },
+        ],
+        skipDuplicates: true,
+      });
+
+      if (created !== undefined) {
+        return { notification: created, duplicate: false };
+      }
+
+      if (dedupeKey === undefined) {
+        throw new Error("A notification without a dedupe key was not inserted.");
+      }
+
+      return {
+        notification: await db.notification.findUniqueOrThrow({
+          where: { customerId_dedupeKey: { customerId, dedupeKey } },
+        }),
+        duplicate: true,
+      };
+    },
+    listForCustomer: async (customerId, limit) =>
+      db.notification.findMany({
+        where: { customerId },
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        take: limit,
+      }),
+    markRead: async (customerId, ids, at) =>
+      (
+        await db.notification.updateMany({
+          where: { customerId, readAt: null, ...(ids === undefined ? {} : { id: { in: [...ids] } }) },
+          data: { readAt: at },
+        })
+      ).count,
+    purgeOlderThan: async (before) =>
+      (await db.notification.deleteMany({ where: { createdAt: { lt: before } } })).count,
+  };
+}
+
 function bind(db: Db): IdentityRepositories {
   return {
     customers: customers(db),
@@ -357,6 +411,7 @@ function bind(db: Db): IdentityRepositories {
     throttles: throttles(db),
     audit: audit(db),
     settings: settings(db),
+    notifications: notifications(db),
   };
 }
 

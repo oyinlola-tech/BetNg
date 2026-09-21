@@ -11,14 +11,21 @@ export function startMaintenanceJob(store: IdentityStore, logger: Logger): Maint
     const now = Date.now();
 
     try {
-      const [sessions, verifications, resets, throttles] = await Promise.all([
+      const [sessions, verifications, resets, throttles, notifications] = await Promise.all([
         store.sessions.purgeExpiredBefore(new Date(now - MAINTENANCE.SESSION_RETENTION_MS)),
         store.verifications.purgeOlderThan(new Date(now - MAINTENANCE.VERIFICATION_RETENTION_MS)),
         store.passwordResets.purgeOlderThan(new Date(now - MAINTENANCE.VERIFICATION_RETENTION_MS)),
         store.throttles.purgeOlderThan(new Date(now - MAINTENANCE.THROTTLE_RETENTION_MS)),
+        store.notifications.purgeOlderThan(new Date(now - MAINTENANCE.NOTIFICATION_RETENTION_MS)),
       ]);
 
-      logger.debug("Maintenance sweep finished", { sessions, verifications, resets, throttles });
+      logger.debug("Maintenance sweep finished", {
+        sessions,
+        verifications,
+        resets,
+        throttles,
+        notifications,
+      });
     } catch (error) {
       logger.error("Maintenance sweep failed", {
         error: error instanceof Error ? error.message : String(error),

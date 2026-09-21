@@ -8,12 +8,14 @@ import {
   createShopRequestSchema,
   customerLoginRequestSchema,
   customerRegisterRequestSchema,
+  notificationKindSchema,
   passwordResetRequestSchema,
   platformSettingsSchema,
   shopLoginRequestSchema,
   verifyEmailRequestSchema,
 } from "@betng/contracts";
 import { z } from "@zudojs/validation";
+import { NOTIFICATION } from "../constants/index.js";
 
 const reason = z.string().trim().min(4).max(240);
 
@@ -92,4 +94,33 @@ export const recordAuditPayloadValidator = z.strictObject({
   reason: z.string().trim().max(240).nullish(),
   severity: auditSeveritySchema.nullish(),
   requestId: z.string().trim().max(64).nullish(),
+});
+
+function fitsNotificationData(data: Readonly<Record<string, unknown>>): boolean {
+  return Buffer.byteLength(JSON.stringify(data), "utf8") <= NOTIFICATION.DATA_MAX_BYTES;
+}
+
+export const notifyPayloadValidator = z.strictObject({
+  customerId: z.uuid(),
+  kind: notificationKindSchema,
+  title: z.string().trim().min(1).max(NOTIFICATION.TITLE_MAX),
+  body: z.string().trim().max(NOTIFICATION.BODY_MAX),
+  data: z
+    .record(z.string(), z.unknown())
+    .refine(fitsNotificationData, `Must serialise to at most ${String(NOTIFICATION.DATA_MAX_BYTES)} bytes.`)
+    .nullish(),
+  dedupeKey: z
+    .string()
+    .min(1)
+    .max(NOTIFICATION.DEDUPE_KEY_MAX)
+    .regex(/^[A-Za-z0-9._:-]+$/u)
+    .nullish(),
+});
+
+export const listNotificationsQueryValidator = z.strictObject({
+  limit: z.coerce.number().int().min(1).max(NOTIFICATION.LIST_MAX).default(NOTIFICATION.LIST_DEFAULT),
+});
+
+export const markNotificationsReadValidator = z.strictObject({
+  ids: z.array(z.uuid()).max(NOTIFICATION.MARK_READ_MAX_IDS).optional(),
 });
