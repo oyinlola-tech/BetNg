@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex, nofollow" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>BetNG Admin</title>
     <meta name="description" content="BetNG control plane. A portfolio simulation: no real money." />
     <meta name="color-scheme" content="dark light" />
@@ -19,7 +20,9 @@
     </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div role="status" aria-live="polite" style="display: flex; min-height: 100dvh; align-items: center; justify-content: center; font: 500 14px/1.4 system-ui, sans-serif; opacity: 0.6">Starting the console</div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
