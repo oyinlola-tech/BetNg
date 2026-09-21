@@ -2,7 +2,7 @@ import { LEAGUE_BADGE_PATH, LEAGUE_MARK_VIEWBOX, LOGO_B_PATH, LOGO_CUT_PATH, LOG
 
 export function LogoMark({ className }: { readonly className?: string }): React.JSX.Element {
   return (
-    <svg viewBox={LOGO_VIEWBOX} role="img" aria-label="BetNG" className={className}>
+    <svg viewBox={LOGO_VIEWBOX} role="img" aria-label="BETNG" className={className}>
       <path d={LOGO_TILE_PATH} fill="var(--bn-brand)" />
       <path d={LOGO_B_PATH} fill="var(--bn-text-on-brand)" />
       <path d={LOGO_CUT_PATH} fill="var(--bn-brand)" opacity={0.92} />

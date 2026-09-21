@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { reportReadFailure, reportReadSuccess } from "../lib/dataHealth";
 
 export interface AsyncState<T> {
   readonly data: T | undefined;
@@ -28,11 +29,15 @@ export function useAsync<T>(
       try {
         const value = await latest.current();
 
+        reportReadSuccess();
+
         if (!cancelled) {
           setData(value);
           setError(undefined);
         }
       } catch (cause) {
+        reportReadFailure();
+
         if (!cancelled) setError(cause);
       } finally {
         if (!cancelled) setLoading(false);

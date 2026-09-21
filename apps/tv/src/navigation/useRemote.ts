@@ -10,12 +10,13 @@ export function useRemote(): void {
     () =>
       installRemote({
         onBack: () => {
-          if (location.pathname === "/") return;
+          // The address bar, not the router: a screen still loading has not reached the router yet.
+          if (window.location.pathname === "/") return;
 
           void navigate(-1);
         },
       }),
-    [navigate, location.pathname],
+    [navigate],
   );
 
   useEffect(() => {

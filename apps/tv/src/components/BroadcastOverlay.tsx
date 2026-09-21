@@ -104,7 +104,7 @@ export function BroadcastOverlay({
       className={cn(
         "pointer-events-none absolute bottom-[2rem] left-[2rem] flex items-center gap-[1.2rem] overflow-hidden rounded-md pl-[1.4rem] pr-[2rem] py-[1rem] shadow-lg animate-lower-third",
         card.tone === "goal" && "bg-white text-black",
-        card.tone === "red" && "bg-danger text-white",
+        card.tone === "red" && "bg-danger text-text-on-status",
         card.tone === "neutral" && "bg-black/80 text-white",
       )}
     >

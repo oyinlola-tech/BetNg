@@ -2,7 +2,7 @@ import {
   formatMatchday,
   isFinished,
   isInPlay,
-  matchClock,
+  displayClock,
   type MatchSummary,
 } from "@betng/ui-core";
 import {
@@ -53,7 +53,7 @@ function Row({ match }: { readonly match: MatchSummary }): React.JSX.Element {
         )}
       >
         {live ? (
-          `${String(matchClock(match.kickoffAt, now).minute)}'`
+          (displayClock(match.clock, now)?.label ?? "LIVE")
         ) : done ? (
           "FT"
         ) : (

@@ -19,9 +19,9 @@ export function LiveTag({
         large
           ? "px-[0.7em] py-[0.25em] text-[1.1rem]"
           : "px-[0.55em] py-[0.2em] text-[0.8rem]",
-        tone === "live" && "bg-live text-white",
-        tone === "brand" && "bg-brand text-white",
-        tone === "warning" && "bg-warning text-white",
+        tone === "live" && "bg-live text-text-on-live",
+        tone === "brand" && "bg-brand text-text-on-brand",
+        tone === "warning" && "bg-warning text-text-on-status",
         (tone === "neutral" || tone === "muted") &&
           "bg-surface-sunken text-text-secondary",
         className,

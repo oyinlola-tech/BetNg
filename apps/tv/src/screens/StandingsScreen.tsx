@@ -1,7 +1,7 @@
 import { useSearchParams } from "react-router";
 import type { LeagueId } from "@betng/contracts";
 import { formatMatchday } from "@betng/ui-core";
-import { Focusable, Skeleton, TeamMark } from "../components";
+import { ErrorPanel, Focusable, Skeleton, TeamMark } from "../components";
 import { useAsync } from "../hooks/useAsync";
 import { cn } from "../lib/cn";
 import { dataSource } from "../services/dataSource";
@@ -46,7 +46,7 @@ export function StandingsScreen(): React.JSX.Element {
               className={cn(
                 "px-[1rem] py-[0.5rem] text-[1rem] font-bold",
                 l.id === leagueId
-                  ? "bg-brand text-white"
+                  ? "bg-brand text-text-on-brand"
                   : "border border-border bg-surface text-text-secondary",
               )}
             >
@@ -56,7 +56,9 @@ export function StandingsScreen(): React.JSX.Element {
         </div>
       </div>
       <div className="mt-[1rem] min-h-0 flex-1 overflow-hidden border border-border bg-surface">
-        {standings.data === undefined ? (
+        {standings.data === undefined && standings.error !== undefined ? (
+          <ErrorPanel title="The table could not be loaded" />
+        ) : standings.data === undefined ? (
           <div className="space-y-[0.8rem] p-[1.5rem]" aria-busy>
             {Array.from({ length: 10 }, (_, i) => (
               <Skeleton key={i} className="h-[2rem]" />
@@ -126,9 +128,9 @@ export function StandingsScreen(): React.JSX.Element {
                           key={i}
                           className={cn(
                             "inline-flex size-[1.4rem] items-center justify-center rounded-xs text-[0.75rem] font-black",
-                            r === "W" && "bg-success text-white",
+                            r === "W" && "bg-success text-text-on-status",
                             r === "D" && "bg-border-strong",
-                            r === "L" && "bg-danger text-white",
+                            r === "L" && "bg-danger text-text-on-status",
                           )}
                         >
                           {r}

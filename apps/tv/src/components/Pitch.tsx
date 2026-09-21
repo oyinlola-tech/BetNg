@@ -1,4 +1,4 @@
-import { isInPlay, matchClock, type MatchView } from "@betng/ui-core";
+import { isInPlay, type MatchView } from "@betng/ui-core";
 import { useNow } from "../hooks/useNow";
 import { cn } from "../lib/cn";
 
@@ -10,10 +10,9 @@ export function Pitch({
   readonly className?: string;
 }): React.JSX.Element {
   const now = useNow(250);
-  const clock = matchClock(match.kickoffAt, now);
   const live = isInPlay(match.phase);
   const possession = match.stats?.home.possession ?? 50;
-  const t = (clock.minute * 60 + clock.second) / 60;
+  const t = (now / 1000) % 3600;
   const x = 50 + ((possession - 50) / 50) * 22 + Math.sin(t * 5.6) * 22;
   const y = 50 + Math.cos(t * 3.8) * 26;
 

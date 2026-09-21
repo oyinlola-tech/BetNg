@@ -3,13 +3,14 @@ import { Link } from "react-router";
 import {
   formatBroadcastClock,
   formatMatchday,
-  matchClock,
+  displayClock,
   type MatchSummary,
 } from "@betng/ui-core";
 import {
   Countdown,
   Focusable,
   LiveTag,
+  ErrorPanel,
   Skeleton,
   TeamMark,
 } from "../components";
@@ -46,7 +47,7 @@ function Rail({
 
 function Hero({ match }: { readonly match: MatchSummary }): React.JSX.Element {
   const now = useNow(500);
-  const clock = matchClock(match.kickoffAt, now);
+  const clock = displayClock(match.clock, now);
 
   return (
     <Focusable
@@ -62,44 +63,36 @@ function Hero({ match }: { readonly match: MatchSummary }): React.JSX.Element {
         <span className="ml-auto font-display text-[1.6rem] font-black tabular text-live">
           {match.phase === "HALFTIME"
             ? "HT"
-            : formatBroadcastClock(clock.minute, clock.second)}
+            : clock === undefined
+              ? "LIVE"
+              : formatBroadcastClock(clock.minute, clock.second)}
         </span>
       </div>
       <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-[2rem] px-[2rem] py-[2rem]">
-        <div className="flex min-w-0 items-center justify-end gap-[1.4rem] text-right">
-          <div className="min-w-0">
-            <p className="font-display text-[1.8rem] font-black leading-[1.05] tracking-tight">
-              {match.home.name}
-            </p>
-            <p className="mt-[0.3rem] text-[1rem] text-text-muted">
-              {match.home.city}
-            </p>
-          </div>
-          <TeamMark team={match.home} size="xl" />
-        </div>
-        <p className="whitespace-nowrap font-display text-[5.5rem] font-black leading-none tabular tracking-tighter">
+        <HeroSide team={match.home} />
+        <p className="whitespace-nowrap font-display text-[6rem] font-black leading-none tabular tracking-tighter">
           {match.score.home}
           <span className="mx-[0.2em] font-sans font-medium text-text-muted">
             –
           </span>
           {match.score.away}
         </p>
-        <div className="flex min-w-0 items-center gap-[1.4rem]">
-          <TeamMark team={match.away} size="xl" />
-          <div className="min-w-0">
-            <p className="font-display text-[1.8rem] font-black leading-[1.05] tracking-tight">
-              {match.away.name}
-            </p>
-            <p className="mt-[0.3rem] text-[1rem] text-text-muted">
-              {match.away.city}
-            </p>
-          </div>
-        </div>
+        <HeroSide team={match.away} />
       </div>
       <p className="absolute bottom-[0.8rem] right-[1.6rem] text-[0.9rem] font-semibold text-text-muted">
         Press OK to watch
       </p>
     </Focusable>
+  );
+}
+
+function HeroSide({ team }: { readonly team: MatchSummary["home"] }): React.JSX.Element {
+  return (
+    <div className="flex min-w-0 flex-col items-center gap-[0.7rem] text-center">
+      <TeamMark team={team} size="hero" />
+      <p className="w-full truncate font-display text-[2rem] font-black leading-none tracking-tight">{team.name}</p>
+      <p className="text-[1rem] text-text-muted">{team.city}</p>
+    </div>
   );
 }
 
@@ -187,7 +180,9 @@ export function HomeScreen(): React.JSX.Element {
     <div className="grid h-full grid-cols-[minmax(0,2.2fr)_minmax(0,1fr)] gap-[1.6rem]">
       <div className="-mx-[1rem] flex min-h-0 flex-col gap-[1.4rem] overflow-y-auto px-[1rem] py-[0.6rem]">
         <Rail title="Live now">
-          {live.loading && featured === undefined ? (
+          {featured === undefined && live.error !== undefined ? (
+            <ErrorPanel title="Live matches could not be loaded" className="h-[16rem] border border-border bg-surface" />
+          ) : live.loading && featured === undefined ? (
             <Skeleton className="h-[16rem]" />
           ) : featured === undefined ? (
             <div className="flex h-[16rem] flex-col items-center justify-center border border-border bg-surface">

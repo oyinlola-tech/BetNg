@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useSearchParams } from "react-router";
 import type { LeagueId } from "@betng/contracts";
-import { formatOdds, isInPlay, leadingSelections, matchClock, type LeadingCell, type MatchMarketsView, type MatchPhase, type MatchSummary } from "@betng/ui-core";
+import { formatOdds, displayClock, isInPlay, leadingSelections, type LeadingCell, type MatchMarketsView, type MatchPhase, type MatchSummary } from "@betng/ui-core";
 import { LeagueMark } from "../components/BrandMarks";
-import { Countdown, Focusable, Skeleton, TeamMark } from "../components";
+import { Countdown, ErrorPanel, Focusable, Skeleton, TeamMark } from "../components";
 import { useAsync } from "../hooks/useAsync";
 import { useNow } from "../hooks/useNow";
 import { cn } from "../lib/cn";
@@ -105,7 +105,7 @@ export function BoardScreen(): React.JSX.Element {
   });
 
   const changed = (matchId: string, key: string): boolean => now - (seen.current.get(`${matchId}:${key}`)?.at ?? 0) < HIGHLIGHT_MS;
-  const clock = week === undefined ? undefined : matchClock(week.kickoffAt, now);
+  const clock = displayClock(week?.matches.find((m) => isInPlay(m.phase))?.clock, now);
   const halftime = week?.matches.every((m) => m.phase === "HALFTIME") ?? false;
   const headers = rows[0]?.cells ?? (week?.live === true ? leadingSelections(undefined, { home: 0, away: 0 }) : previewCells(undefined));
 
@@ -129,7 +129,7 @@ export function BoardScreen(): React.JSX.Element {
                 <span className="size-[0.7rem] rounded-full bg-live animate-pulse-live" aria-hidden />
                 {halftime ? "Half time" : "Live"}
               </span>
-              {!halftime && <span className="text-[3.4rem] tabular">{clock?.minute ?? 0}'</span>}
+              {!halftime && clock !== undefined && <span className="text-[3.4rem] tabular">{clock.label}</span>}
             </p>
           ) : (
             <div>
@@ -148,7 +148,9 @@ export function BoardScreen(): React.JSX.Element {
       </header>
 
       <div className="min-h-0 flex-1 overflow-hidden border border-border bg-surface">
-        {week === undefined ? (
+        {week === undefined && matches.error !== undefined ? (
+          <ErrorPanel title="The board could not be loaded" />
+        ) : week === undefined ? (
           <div className="space-y-[0.5rem] p-[1rem]">
             {Array.from({ length: 10 }, (_, i) => (
               <Skeleton key={i} className="h-[2.5rem]" />

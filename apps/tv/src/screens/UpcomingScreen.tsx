@@ -3,6 +3,7 @@ import {
   Countdown,
   Focusable,
   LiveTag,
+  ErrorPanel,
   Skeleton,
   TeamMark,
 } from "../components";
@@ -60,7 +61,9 @@ export function UpcomingScreen(): React.JSX.Element {
         Next matches
       </h1>
       <div className="mt-[1rem] grid grid-cols-3 content-start gap-[0.9rem]">
-        {next.data === undefined ? (
+        {next.data === undefined && next.error !== undefined ? (
+          <ErrorPanel title="The schedule could not be loaded" className="col-span-3" />
+        ) : next.data === undefined ? (
           Array.from({ length: 6 }, (_, i) => (
             <Skeleton key={i} className="h-[10rem]" />
           ))

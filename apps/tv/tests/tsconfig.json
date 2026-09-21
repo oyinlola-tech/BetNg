@@ -1,0 +1,15 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "types": ["vite/client", "node"],
+    "noEmit": true
+  },
+  "include": [
+    "./**/*.ts",
+    "./**/*.tsx",
+    "../../../packages/ui-web/tests/support/setup.ts",
+    "../../../packages/ui-web/tests/support/jest-dom.d.ts",
+    "../src/**/*.ts",
+    "../src/**/*.tsx"
+  ]
+}

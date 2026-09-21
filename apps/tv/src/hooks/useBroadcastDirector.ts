@@ -2,7 +2,6 @@ import { useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router";
 import type { MatchSummary } from "@betng/ui-core";
 import { useAsync } from "./useAsync";
-import { useBroadcastMode } from "./useBroadcastMode";
 import { dataSource } from "../services/dataSource";
 
 const RESULTS_HOLD_MS = 14_000;
@@ -10,9 +9,14 @@ const TABLE_HOLD_MS = 14_000;
 
 type Stage = "LIVE" | "RESULTS" | "TABLE" | "NEXT";
 
-/* Runs the channel: live week board → results → table → next kick-off → board, forever, unless a viewer takes over. */
-export function useBroadcastDirector(): void {
-  const [on] = useBroadcastMode();
+export type BroadcastScene = "board" | "results" | "standings" | "upcoming";
+
+function scenePath(scene: BroadcastScene, leagueId?: string): string {
+  return leagueId === undefined ? `/broadcast?scene=${scene}` : `/broadcast?scene=${scene}&league=${leagueId}`;
+}
+
+/* Runs the channel while mounted: live week board → results → table → next kick-off → board. Scenes follow platform state; the holds are only a pacing floor. */
+export function useBroadcastDirector(on: boolean): void {
   const navigate = useNavigate();
   const location = useLocation();
   const live = useAsync(
@@ -61,7 +65,7 @@ export function useBroadcastDirector(): void {
             matchId: pick.id,
             leagueId: pick.leagueId,
           };
-          go(`/board?league=${pick.leagueId}`);
+          go(scenePath("board", pick.leagueId));
           return;
         }
 
@@ -72,11 +76,7 @@ export function useBroadcastDirector(): void {
           since: now,
           ...(lastLeague === undefined ? {} : { leagueId: lastLeague }),
         };
-        go(
-          lastLeague === undefined
-            ? "/results"
-            : `/results?league=${lastLeague}`,
-        );
+        go(scenePath("results", lastLeague));
         return;
       }
       case "RESULTS": {
@@ -87,16 +87,12 @@ export function useBroadcastDirector(): void {
             matchId: pick.id,
             leagueId: pick.leagueId,
           };
-          go(`/board?league=${pick.leagueId}`);
+          go(scenePath("board", pick.leagueId));
           return;
         }
         if (now - current.since > RESULTS_HOLD_MS) {
           stage.current = { ...current, stage: "TABLE", since: now };
-          go(
-            current.leagueId === undefined
-              ? "/standings"
-              : `/standings?league=${current.leagueId}`,
-          );
+          go(scenePath("standings", current.leagueId));
         }
         return;
       }
@@ -108,12 +104,12 @@ export function useBroadcastDirector(): void {
             matchId: pick.id,
             leagueId: pick.leagueId,
           };
-          go(`/board?league=${pick.leagueId}`);
+          go(scenePath("board", pick.leagueId));
           return;
         }
         if (now - current.since > TABLE_HOLD_MS) {
           stage.current = { ...current, stage: "NEXT", since: now };
-          go("/upcoming");
+          go(scenePath("upcoming"));
         }
         return;
       }
@@ -125,7 +121,7 @@ export function useBroadcastDirector(): void {
             matchId: pick.id,
             leagueId: pick.leagueId,
           };
-          go(`/board?league=${pick.leagueId}`);
+          go(scenePath("board", pick.leagueId));
         }
         return;
       }

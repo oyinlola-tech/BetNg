@@ -1,7 +1,7 @@
 import { useSearchParams } from "react-router";
 import type { LeagueId } from "@betng/contracts";
 import { formatMatchday, type MatchSummary } from "@betng/ui-core";
-import { Focusable, Skeleton, TeamMark } from "../components";
+import { ErrorPanel, Focusable, Skeleton, TeamMark } from "../components";
 import { useAsync } from "../hooks/useAsync";
 import { cn } from "../lib/cn";
 import { dataSource } from "../services/dataSource";
@@ -107,7 +107,7 @@ export function ResultsScreen(): React.JSX.Element {
               className={cn(
                 "px-[1rem] py-[0.5rem] text-[1rem] font-bold",
                 l.id === leagueId
-                  ? "bg-brand text-white"
+                  ? "bg-brand text-text-on-brand"
                   : "border border-border bg-surface text-text-secondary",
               )}
             >
@@ -117,7 +117,9 @@ export function ResultsScreen(): React.JSX.Element {
         </div>
       </div>
       <div className="mt-[1rem] grid flex-1 grid-cols-3 content-start gap-[0.9rem]">
-        {results.data === undefined ? (
+        {results.data === undefined && results.error !== undefined ? (
+          <ErrorPanel title="Results could not be loaded" className="col-span-3" />
+        ) : results.data === undefined ? (
           Array.from({ length: 6 }, (_, i) => (
             <Skeleton key={i} className="h-[8rem]" />
           ))

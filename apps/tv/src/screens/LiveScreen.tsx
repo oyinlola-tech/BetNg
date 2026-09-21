@@ -4,12 +4,14 @@ import {
   formatBroadcastClock,
   formatMatchday,
   isInPlay,
-  matchClock,
+  displayClock,
   type MatchEventView,
 } from "@betng/ui-core";
 import {
   BroadcastOverlay,
   Countdown,
+  FootballIcon,
+  iconForEvent,
   LiveTag,
   MatchStrip,
   Pitch,
@@ -94,7 +96,7 @@ export function LiveScreen(): React.JSX.Element {
     );
   }
 
-  const clock = matchClock(match.kickoffAt, now);
+  const clock = displayClock(match.clock, now);
   const inPlay = isInPlay(match.phase);
   const events = match.events
     .filter((e) => KEY_EVENTS.has(e.kind))
@@ -133,7 +135,11 @@ export function LiveScreen(): React.JSX.Element {
             >
               {match.phase === "HALFTIME"
                 ? "HT"
-                : formatBroadcastClock(clock.minute, clock.second)}
+                : clock === undefined
+                  ? inPlay
+                    ? "LIVE"
+                    : ""
+                  : formatBroadcastClock(clock.minute, clock.second)}
             </span>
           </div>
         </div>
@@ -168,7 +174,7 @@ export function LiveScreen(): React.JSX.Element {
         {connection !== "CONNECTED" && (
           <div
             role="status"
-            className="absolute bottom-[1.4rem] right-[1.4rem] rounded-md bg-warning px-[1rem] py-[0.6rem] text-[1rem] font-bold text-white"
+            className="absolute bottom-[1.4rem] right-[1.4rem] rounded-md bg-warning px-[1rem] py-[0.6rem] text-[1rem] font-bold text-text-on-status"
           >
             {connection === "OFFLINE"
               ? "Connection lost · showing last known state"
@@ -193,17 +199,18 @@ export function LiveScreen(): React.JSX.Element {
               {events.map((e) => (
                 <li
                   key={e.id}
-                  className="grid grid-cols-[2.6rem_4.2rem_1fr_auto] items-center gap-[0.8rem] text-[1.05rem]"
+                  className="grid grid-cols-[2.6rem_1.6rem_4.2rem_1fr_auto] items-center gap-[0.8rem] text-[1.05rem]"
                 >
                   <span className="font-display font-black tabular text-text-muted">
                     {e.side === undefined ? "" : `${String(e.minute)}'`}
                   </span>
+                  <FootballIcon name={iconForEvent(e.kind)} className="size-[1.5rem] text-text-secondary" />
                   <span
                     className={cn(
                       "rounded-xs px-[0.4rem] text-center text-[0.75rem] font-black tracking-caps",
                       e.kind === "GOAL" && "bg-text-primary text-background",
-                      e.kind === "YELLOW_CARD" && "bg-warning text-white",
-                      e.kind === "RED_CARD" && "bg-danger text-white",
+                      e.kind === "YELLOW_CARD" && "bg-warning text-text-on-status",
+                      e.kind === "RED_CARD" && "bg-danger text-text-on-status",
                       (e.kind === "SUBSTITUTION" || e.side === undefined) &&
                         "bg-surface-sunken text-text-secondary",
                     )}
