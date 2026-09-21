@@ -13,7 +13,6 @@ import { Receipt, Trash2, X } from "lucide-react-native";
 import {
   QUICK_STAKES,
   STAKE_LIMITS,
-  createClientReference,
   formatMoney,
   formatMoneyCompact,
   formatOdds,
@@ -27,7 +26,10 @@ import {
 import { useAccountVersion } from "../hooks/useAccount";
 import { useAsync } from "../hooks/useAsync";
 import { useAuth } from "../hooks/useAuth";
+import { useCanTransact } from "../hooks/useConnectivity";
+import { OFFLINE_COMMAND_MESSAGE } from "../platform/offlineCache";
 import { presentError } from "../lib/errors";
+import { createOperationKey } from "../lib/ids";
 import { getDataSource } from "../services/dataSource";
 import { useBetSlip } from "../stores/betslip.store";
 import { useTheme } from "../theme";
@@ -64,6 +66,7 @@ export function BetSlipSheet({
     useBetSlip();
   const { isAuthenticated, requireAuth } = useAuth();
   const version = useAccountVersion();
+  const online = useCanTransact();
   const wallet = useAsync(
     () => (isAuthenticated ? getDataSource().getWallet() : Promise.resolve(undefined)),
     [version, open, isAuthenticated],
@@ -144,9 +147,14 @@ export function BetSlipSheet({
   };
 
   const submit = async (): Promise<void> => {
+    if (!online) {
+      setFeedback({ tone: "warning", text: OFFLINE_COMMAND_MESSAGE });
+      return;
+    }
+
     setPlacing(true);
     setFeedback(undefined);
-    reference.current ??= createClientReference();
+    reference.current ??= createOperationKey();
 
     try {
       settle(await getDataSource().placeBet({ selections, stake, clientReference: reference.current }));
@@ -488,11 +496,16 @@ export function BetSlipSheet({
                     </Text>
                   </View>
                 </View>
+                {!online && (
+                  <Text variant="caption" tone="warning" accessibilityLiveRegion="polite">
+                    {OFFLINE_COMMAND_MESSAGE}
+                  </Text>
+                )}
                 <Button
                   label={isAuthenticated ? "Place simulated bet" : "Log in to place bet"}
                   size="lg"
                   loading={placing}
-                  disabled={problem !== undefined}
+                  disabled={problem !== undefined || !online}
                   onPress={place}
                 />
                 <Text variant="caption" tone="muted" align="center">

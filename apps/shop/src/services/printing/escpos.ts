@@ -27,7 +27,7 @@ function ascii(text: string): number[] {
   return [...toPrinterText(text)].map((c) => c.charCodeAt(0));
 }
 
-export function encodeEscPos(doc: ReceiptDocument): Uint8Array {
+export function encodeEscPos(doc: ReceiptDocument): Uint8Array<ArrayBuffer> {
   const out: number[] = [...ESCPOS.init];
   const push = (...parts: readonly (readonly number[])[]): void => {
     for (const part of parts) out.push(...part);

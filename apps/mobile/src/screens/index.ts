@@ -14,3 +14,5 @@ export { NotificationsScreen } from "./NotificationsScreen";
 export { SettingsScreen } from "./SettingsScreen";
 export { HistoryScreen } from "./HistoryScreen";
 export { AuthScreen } from "./AuthScreen";
+export { BetScreen } from "./BetScreen";
+export { PaymentScreen } from "./PaymentScreen";

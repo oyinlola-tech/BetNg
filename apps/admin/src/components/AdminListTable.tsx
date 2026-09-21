@@ -19,6 +19,7 @@ export interface AdminListTableProps<T> {
   readonly search?: { readonly label: string; readonly placeholder: string };
   readonly filters?: readonly ListFilter[];
   readonly toolbarStart?: React.ReactNode;
+  readonly toolbarEnd?: React.ReactNode;
   readonly onRowClick?: (row: T) => void;
   readonly selectedKey?: string | undefined;
   readonly rowActions?: (row: T) => React.ReactNode;
@@ -26,7 +27,7 @@ export interface AdminListTableProps<T> {
 }
 
 /** The one table every server-driven admin list uses: the platform pages, sorts, searches and filters; this renders the page it answers. */
-export function AdminListTable<T>({ list, caption, noun, columns, rowKey, search, filters = [], toolbarStart, onRowClick, selectedKey, rowActions, renderCard }: AdminListTableProps<T>): React.JSX.Element {
+export function AdminListTable<T>({ list, caption, noun, columns, rowKey, search, filters = [], toolbarStart, toolbarEnd, onRowClick, selectedKey, rowActions, renderCard }: AdminListTableProps<T>): React.JSX.Element {
   const { query, state } = list;
   const total = query.data?.total;
   const preset = emptyPresets.noAdminRecords;
@@ -84,6 +85,7 @@ export function AdminListTable<T>({ list, caption, noun, columns, rowKey, search
             </Button>
           )}
           <span className="ml-auto flex items-center gap-2">
+            {toolbarEnd}
             <span role="status" className="text-sm tabular text-text-muted">
               {total === undefined ? "" : `${formatCount(total)} ${noun}`}
             </span>

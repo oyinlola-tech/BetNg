@@ -1,8 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router";
 import { LogOut, PanelLeftClose, PanelLeftOpen, Wallet } from "lucide-react";
-import { formatMoney } from "@betng/ui-core";
-import { Avatar, BrandLogo, ConfirmDialog, ConnectionStrip, IconButton, ThemeSwitcher, Tooltip, cn, useMediaQuery, useNow } from "@betng/ui-web";
+import { createSessionMonitor, formatMoney } from "@betng/ui-core";
+import { Avatar, BrandLogo, ConfirmDialog, ConnectionStrip, DevelopmentBanner, IconButton, SessionTimeoutWarning, ThemeSwitcher, Tooltip, cn, useFeatureFlags, useMediaQuery, useNow } from "@betng/ui-web";
 import { Kbd } from "../components/Kbd";
 import { SessionExpiredOverlay } from "../components/SessionExpiredOverlay";
 import { useConnection } from "../hooks/useConnection";
@@ -11,7 +11,7 @@ import { useShopSession } from "../hooks/useShopSession";
 import { useShortcuts } from "../hooks/useShortcuts";
 import { NAVIGATION } from "../lib/navigation";
 import { LoginPage } from "../pages/LoginPage";
-import { shopSource } from "../services/dataSource";
+import { isMock, shopSource } from "../services/dataSource";
 import { useSlip } from "../stores/slip.store";
 
 const ROLE_LABEL = { OWNER: "Owner", MANAGER: "Manager", CASHIER: "Cashier" } as const;
@@ -38,13 +38,22 @@ export function TerminalShell(): React.JSX.Element {
   const slipCount = useSlip((s) => s.selections.length);
   const clearSlip = useSlip((s) => s.clear);
   const expanded = pinned ?? wide;
+  const flags = useFeatureFlags();
+  const monitor = useMemo(() => createSessionMonitor(shopSource.session), []);
+
+  useEffect(
+    () => () => {
+      monitor.dispose();
+    },
+    [monitor],
+  );
 
   useShopSync();
 
   const groups = useMemo(
-    () => NAVIGATION.map((group) => ({ ...group, items: group.items.filter((item) => item.permission === undefined || can(item.permission)) })).filter((group) => group.items.length > 0),
+    () => NAVIGATION.map((group) => ({ ...group, items: group.items.filter((item) => (item.permission === undefined || can(item.permission)) && (item.flag === undefined || flags[item.flag])) })).filter((group) => group.items.length > 0),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [session?.permissions],
+    [session?.permissions, flags],
   );
 
   const shortcuts = useMemo(() => {
@@ -55,7 +64,13 @@ export function TerminalShell(): React.JSX.Element {
 
   useShortcuts(status === "AUTHENTICATED" ? shortcuts : {});
 
-  if (status === "ANONYMOUS" || session === undefined) return <LoginPage />;
+  if (status === "ANONYMOUS" || session === undefined)
+    return (
+      <>
+        {isMock() && <DevelopmentBanner />}
+        <LoginPage />
+      </>
+    );
 
   const logout = (): void => {
     clearSlip();
@@ -69,7 +84,7 @@ export function TerminalShell(): React.JSX.Element {
         Skip to content
       </a>
 
-      <nav aria-label="Terminal" className={cn("flex shrink-0 flex-col border-r border-border bg-surface transition-[width] duration-[var(--bn-duration-base)]", expanded ? "w-56" : "w-14")}>
+      <nav aria-label="Terminal" className={cn("flex shrink-0 print:hidden flex-col border-r border-border bg-surface transition-[width] duration-[var(--bn-duration-base)]", expanded ? "w-56" : "w-14")}>
         <div className={cn("flex h-14 shrink-0 items-center border-b border-border", expanded ? "justify-between pl-4 pr-2" : "justify-center")}>
           {expanded && <BrandLogo size={24} product="Shop" />}
           <IconButton
@@ -131,7 +146,12 @@ export function TerminalShell(): React.JSX.Element {
       </nav>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-border bg-surface px-4">
+        {isMock() && (
+          <div className="print:hidden">
+            <DevelopmentBanner />
+          </div>
+        )}
+        <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-border bg-surface px-4 print:hidden">
           <div className="min-w-0 leading-tight">
             <p className="truncate text-base font-semibold text-text-primary">{session.shop.name}</p>
             <p className="truncate font-mono text-xs text-text-muted">{session.shop.code}</p>
@@ -163,7 +183,7 @@ export function TerminalShell(): React.JSX.Element {
         </main>
       </div>
 
-      {status === "EXPIRED" && <SessionExpiredOverlay session={session} />}
+      {status === "EXPIRED" ? <SessionExpiredOverlay session={session} /> : <SessionTimeoutWarning monitor={monitor} onSignOut={logout} />}
 
       <ConfirmDialog
         open={confirmLogout}

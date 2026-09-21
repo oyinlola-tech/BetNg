@@ -41,7 +41,16 @@ export function listenForDeepLinks(
     const parsed = parseDeepLink(url, options);
 
     if (!parsed.accepted) onRejected();
-    if (ref.isReady()) openTarget(ref, parsed.target);
+
+    const open = (attempt: number): void => {
+      if (!active) return;
+      if (ref.isReady()) openTarget(ref, parsed.target);
+      else if (attempt < 50) setTimeout(() => {
+        open(attempt + 1);
+      }, 100);
+    };
+
+    open(0);
   };
 
   void Linking.getInitialURL()

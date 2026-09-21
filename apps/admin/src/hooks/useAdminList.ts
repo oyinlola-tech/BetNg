@@ -67,6 +67,7 @@ export interface ListParams {
   readonly setPageSize: (pageSize: number) => void;
   readonly setSort: (sort: SortState) => void;
   readonly setFilter: (key: string, value: string) => void;
+  readonly setFilters: (values: Readonly<Record<string, string>>) => void;
   readonly clear: () => void;
   readonly isFiltered: boolean;
 }
@@ -178,6 +179,13 @@ export function useListParams(options: ListParamsOptions = {}): ListParams {
     [page, pageSize, sortKey, direction, search, filters, JSON.stringify(fixedFilters ?? {})],
   );
 
+  // With a default in place, "no filter" has to be said out loud; otherwise the absent parameter already means it.
+  const toParam = (key: string, value: string): string | undefined => {
+    const fallback = defaults.filters?.[key];
+
+    return value === ANY ? (fallback === undefined ? undefined : ANY) : value === fallback ? undefined : value;
+  };
+
   const isFiltered = search !== "" || filterKeys.some((key) => params.get(key) !== null);
 
   return {
@@ -195,10 +203,10 @@ export function useListParams(options: ListParamsOptions = {}): ListParams {
       patch({ sort: next.key, dir: next.direction });
     },
     setFilter: (key, value) => {
-      const fallback = defaults.filters?.[key];
-
-      // With a default in place, "no filter" has to be said out loud; otherwise the absent parameter already means it.
-      patch({ [key]: value === ANY ? (fallback === undefined ? undefined : ANY) : value === fallback ? undefined : value });
+      patch({ [key]: toParam(key, value) });
+    },
+    setFilters: (values) => {
+      patch(Object.fromEntries(Object.entries(values).map(([key, value]) => [key, toParam(key, value)])));
     },
     clear: () => {
       written.current = "";

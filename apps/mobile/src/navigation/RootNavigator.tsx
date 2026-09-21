@@ -9,17 +9,22 @@ import {
   type BottomTabBarProps,
 } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { useEffect } from "react";
 import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Home, Radio, Receipt, Trophy, UserRound } from "lucide-react-native";
 import { Pressable, SlipBar, Text } from "../components";
 import { useTheme } from "../theme";
+import { env } from "../configs/env";
+import { deepLinkOptions, listenForDeepLinks } from "../platform/linking";
+import { logger } from "../services/logger";
 import { gated } from "./gated";
 import { navigationRef } from "./ref";
 import type { RootStackParamList, TabParamList } from "./types";
 import {
   AccountScreen,
   AuthScreen,
+  BetScreen,
   BetsScreen,
   HistoryScreen,
   HomeScreen,
@@ -27,6 +32,7 @@ import {
   LiveScreen,
   MatchScreen,
   NotificationsScreen,
+  PaymentScreen,
   ResultsScreen,
   SettingsScreen,
   StandingsScreen,
@@ -56,6 +62,17 @@ const GatedNotifications = gated(NotificationsScreen, {
   title: "Log in to see notifications",
   description: "Match and settlement alerts are sent to your account.",
   reason: "Log in to see your notifications",
+});
+
+const GatedBet = gated(BetScreen, {
+  title: "Log in to see this bet",
+  description: "Bets belong to your account.",
+  reason: "Log in to see this bet",
+});
+const GatedPayment = gated(PaymentScreen, {
+  title: "Log in to see this payment",
+  description: "Payment status is read from your account on the platform.",
+  reason: "Log in to see this payment",
 });
 
 const Tab = createBottomTabNavigator<TabParamList>();
@@ -206,6 +223,14 @@ export function RootNavigator(): React.JSX.Element {
     },
   };
 
+  useEffect(
+    () =>
+      listenForDeepLinks(navigationRef, deepLinkOptions(env.siteUrl), () => {
+        logger.warn("flow", "A link that is not a BETNG route was ignored.");
+      }),
+    [],
+  );
+
   return (
     <NavigationContainer ref={navigationRef} theme={navTheme}>
       <Stack.Navigator
@@ -272,6 +297,16 @@ export function RootNavigator(): React.JSX.Element {
           name="History"
           component={HistoryScreen}
           options={{ title: "Watched" }}
+        />
+        <Stack.Screen
+          name="Bet"
+          component={GatedBet}
+          options={{ title: "Bet" }}
+        />
+        <Stack.Screen
+          name="Payment"
+          component={GatedPayment}
+          options={{ title: "Payment" }}
         />
         <Stack.Screen
           name="Auth"

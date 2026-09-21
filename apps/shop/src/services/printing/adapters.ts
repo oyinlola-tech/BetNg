@@ -142,18 +142,18 @@ export function createBrowserPrinter({ document: host, invokePrint = (frame) => 
         renderReceiptInto(target, doc);
 
         let settled = false;
-        let timer: ReturnType<typeof setTimeout> | undefined;
         const done = (): void => {
           if (settled) return;
           settled = true;
-          if (timer !== undefined) clearTimeout(timer);
+          clearTimeout(timer);
           view.removeEventListener("afterprint", done);
           frame.remove();
           resolve();
         };
 
+        const timer = setTimeout(done, fallbackMs);
+
         view.addEventListener("afterprint", done);
-        timer = setTimeout(done, fallbackMs);
 
         try {
           invokePrint(view);

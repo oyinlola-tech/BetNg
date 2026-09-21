@@ -17,7 +17,7 @@ import {
 } from "@betng/ui-core";
 import { env } from "../configs/env";
 import { logger } from "./logger";
-import { storage } from "./storage";
+import { removeStored, storage } from "./storage";
 import { secureStorage } from "../platform";
 import { withOfflineCache } from "../platform/cachedDataSource";
 import { createOfflineCache } from "../platform/offlineCache";
@@ -65,6 +65,7 @@ export function getRuntimeInfo(): RuntimeInfo {
 async function createSources(): Promise<RuntimeInfo["mode"]> {
   if (!secureStorage.persistent) logger.warn("flow", "Secure storage is unavailable in this build; the session will not persist across restarts.");
 
+  removeStored(SESSION_KEY);
   await secureSession.hydrate([SESSION_KEY]);
 
   if (env.dataSource === "mock" && (__DEV__ || env.appEnv === "test")) {

@@ -10,7 +10,7 @@ const MAX_ENTRIES = 40;
 const MAX_BYTES = 256 * 1024;
 
 export interface CacheStore {
-  get(key: string): string | null;
+  get(key: string): string | null | undefined;
   set(key: string, value: string): void;
   remove(key: string): void;
 }
@@ -67,7 +67,7 @@ export function createOfflineCache(store: CacheStore, now: () => number = Date.n
       try {
         const raw = store.get(entryKey(kind, key));
 
-        if (raw === null) return undefined;
+        if (raw === null || raw === undefined) return undefined;
 
         const entry = JSON.parse(raw) as CachedValue<T>;
 
