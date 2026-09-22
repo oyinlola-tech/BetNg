@@ -20,7 +20,7 @@
     ]
   },
   "scripts": {
-    "build": "pnpm -r run build",
+    "build": "pnpm -r --filter=!@betng/mock-data run build",
     "db:bootstrap": "bash scripts/db-bootstrap.sh",
     "db:generate": "pnpm -r --filter './apps/services/*' run db:generate",
     "db:migrate": "pnpm -r --filter './apps/services/*' run db:migrate",
@@ -41,7 +41,7 @@
     "infra:up": "docker compose --env-file .env -f infrastructure/docker/docker-compose.yml up -d",
     "lint": "node tools/lint/node_modules/eslint/bin/eslint.js .",
     "lint:fix": "node tools/lint/node_modules/eslint/bin/eslint.js . --fix",
-    "lint:frontend": "node tools/lint/node_modules/eslint/bin/eslint.js apps/web apps/tv apps/shop apps/admin apps/mobile packages/ui-web packages/ui-core packages/mock-data packages/client-sdk packages/contracts packages/design-tokens packages/brand",
+    "lint:frontend": "node tools/lint/node_modules/eslint/bin/eslint.js apps/web apps/tv apps/shop apps/admin apps/mobile packages/ui-web packages/ui-core packages/client-sdk packages/contracts packages/design-tokens packages/brand",
     "platform:down": "docker compose --env-file .env -f infrastructure/docker/docker-compose.yml --profile platform down",
     "platform:up": "docker compose --env-file .env -f infrastructure/docker/docker-compose.yml --profile platform up --build -d",
     "py:check": "bash scripts/python-check.sh",
@@ -52,7 +52,7 @@
     "test:e2e": "playwright test",
     "test:unit": "vitest run --project unit",
     "test:watch": "vitest",
-    "typecheck": "pnpm -r run typecheck",
+    "typecheck": "pnpm -r --filter=!@betng/mock-data run typecheck",
     "verify": "bash scripts/verify.sh",
     "verify:platform": "bash scripts/verify-platform.sh"
   },
