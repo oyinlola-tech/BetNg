@@ -5,7 +5,7 @@ import { z } from "zod";
 import { LogIn, WifiOff } from "lucide-react";
 import { DataSourceError } from "@betng/ui-core";
 import { Button, CodeInput, Input, PasswordInput, presentError } from "@betng/ui-web";
-import { demoTerminal, isMock, shopSource } from "../services/dataSource";
+import { shopSource } from "../services/dataSource";
 
 /* Mirrors `shopLoginRequestSchema`; the terminal always asks for the PIN, which the contract leaves optional. */
 const schema = z.object({
@@ -74,25 +74,6 @@ export function LoginForm({ fixed, submitLabel = "Sign in", onSuccess }: LoginFo
         {isSubmitting ? "Signing in" : submitLabel}
       </Button>
 
-      {isMock() && fixed === undefined && demoTerminal !== undefined && (
-        <div className="rounded-sm border border-dashed border-border-strong px-3 py-2.5 text-sm text-text-secondary">
-          <p className="caps-label mb-1">Demo shop</p>
-          <p>
-            Shop <code className="font-mono text-text-primary">{demoTerminal.shopCode}</code> · password{" "}
-            <code className="font-mono text-text-primary">{demoTerminal.password}</code> · PIN{" "}
-            <code className="font-mono text-text-primary">{demoTerminal.pin}</code>
-          </p>
-          <p className="mt-0.5 text-text-muted">
-            Users:{" "}
-            {demoTerminal.users.map((user, index) => (
-              <span key={user.username}>
-                {index > 0 ? ", " : ""}
-                <code className="font-mono">{user.username}</code> ({user.role})
-              </span>
-            ))}
-          </p>
-        </div>
-      )}
     </form>
   );
 }

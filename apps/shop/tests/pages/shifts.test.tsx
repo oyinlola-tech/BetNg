@@ -20,7 +20,6 @@ vi.mock("../../src/services/dataSource", () => ({
     subscribe: () => () => undefined,
   },
   dataSource: {},
-  isMock: () => false,
 }));
 
 const { ShiftPage } = await import("../../src/pages/ShiftPage");

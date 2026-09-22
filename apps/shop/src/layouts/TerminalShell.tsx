@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router";
 import { LogOut, PanelLeftClose, PanelLeftOpen, Wallet } from "lucide-react";
 import { createSessionMonitor, formatMoney } from "@betng/ui-core";
-import { Avatar, BrandLogo, ConfirmDialog, ConnectionStrip, DevelopmentBanner, IconButton, SessionTimeoutWarning, ThemeSwitcher, Tooltip, cn, useFeatureFlags, useMediaQuery, useNow } from "@betng/ui-web";
+import { Avatar, BrandLogo, ConfirmDialog, ConnectionStrip, IconButton, SessionTimeoutWarning, ThemeSwitcher, Tooltip, cn, useFeatureFlags, useMediaQuery, useNow } from "@betng/ui-web";
 import { Kbd } from "../components/Kbd";
 import { SessionExpiredOverlay } from "../components/SessionExpiredOverlay";
 import { useConnection } from "../hooks/useConnection";
@@ -11,7 +11,7 @@ import { useShopSession } from "../hooks/useShopSession";
 import { useShortcuts } from "../hooks/useShortcuts";
 import { NAVIGATION } from "../lib/navigation";
 import { LoginPage } from "../pages/LoginPage";
-import { isMock, shopSource } from "../services/dataSource";
+import { shopSource } from "../services/dataSource";
 import { useSlip } from "../stores/slip.store";
 
 const ROLE_LABEL = { OWNER: "Owner", MANAGER: "Manager", CASHIER: "Cashier" } as const;
@@ -65,12 +65,7 @@ export function TerminalShell(): React.JSX.Element {
   useShortcuts(status === "AUTHENTICATED" ? shortcuts : {});
 
   if (status === "ANONYMOUS" || session === undefined)
-    return (
-      <>
-        {isMock() && <DevelopmentBanner />}
-        <LoginPage />
-      </>
-    );
+    return <LoginPage />;
 
   const logout = (): void => {
     clearSlip();
@@ -146,11 +141,6 @@ export function TerminalShell(): React.JSX.Element {
       </nav>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        {isMock() && (
-          <div className="print:hidden">
-            <DevelopmentBanner />
-          </div>
-        )}
         <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-border bg-surface px-4 print:hidden">
           <div className="min-w-0 leading-tight">
             <p className="truncate text-base font-semibold text-text-primary">{session.shop.name}</p>

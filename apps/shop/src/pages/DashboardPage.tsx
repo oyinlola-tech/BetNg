@@ -88,7 +88,7 @@ export function DashboardPage(): React.JSX.Element {
             <action.icon className={cn("size-5 shrink-0", !action.primary && "text-text-muted")} aria-hidden />
             <span className="min-w-0 flex-1">
               <span className="block text-md font-semibold">{action.label}</span>
-              <span className={cn("block truncate text-sm", action.primary ? "text-text-on-brand/80" : "text-text-muted")}>{action.hint}</span>
+              <span className={cn("block truncate text-sm", action.primary ? "text-text-on-brand" : "text-text-muted")}>{action.hint}</span>
             </span>
             <Kbd className={action.primary ? "border-white/30 bg-white/15 text-text-on-brand" : undefined}>{action.key}</Kbd>
           </Link>

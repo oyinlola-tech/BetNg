@@ -14,33 +14,14 @@ import {
 } from "@betng/ui-core";
 import { env } from "../configs/env";
 import { logger } from "./logger";
-import type { DemoTerminal } from "./mockSources";
 import { local, perTab } from "./storage";
 
 export interface RuntimeInfo {
-  readonly mode: "mock" | "platform";
   readonly flags: FeatureFlags;
   readonly config: PlatformConfigView | undefined;
 }
 
-export let dataSource: BetNgDataSource;
-export let shopSource: ShopDataSource;
-export let demoTerminal: DemoTerminal | undefined;
-
-let info: RuntimeInfo | undefined;
-
-async function createSources(): Promise<RuntimeInfo["mode"]> {
-  if (env.dataSource === "mock" && (import.meta.env.DEV || import.meta.env.VITE_APP_ENV === "test")) {
-    const { createMockSources } = await import("./mockSources");
-    const mock = createMockSources(local, perTab);
-
-    dataSource = mock.dataSource;
-    shopSource = mock.shopSource;
-    demoTerminal = mock.demo;
-
-    return "mock";
-  }
-
+function createSources(): { readonly dataSource: BetNgDataSource; readonly shopSource: ShopDataSource } {
   const session = createSessionStore<ShopSession>("betng.shop.session", perTab);
   const { rest, realtime } = createPlatformClients({
     env,
@@ -53,7 +34,7 @@ async function createSources(): Promise<RuntimeInfo["mode"]> {
 
   let lastToken = session.token();
 
-  session.subscribe(() => {
+  if (env.realtimeAuth !== "none") session.subscribe(() => {
     const token = session.token();
 
     if (token !== lastToken) {
@@ -62,18 +43,24 @@ async function createSources(): Promise<RuntimeInfo["mode"]> {
     }
   });
 
-  dataSource = createPlatformDataSource({ rest, realtime, userId: () => undefined, storage: local });
-  shopSource = createPlatformShopSource(rest, session);
-
-  return "platform";
+  return {
+    dataSource: createPlatformDataSource({ rest, realtime, userId: () => undefined, storage: local }),
+    shopSource: createPlatformShopSource(rest, session),
+  };
 }
+
+const platform = createSources();
+
+export let dataSource: BetNgDataSource = platform.dataSource;
+export let shopSource: ShopDataSource = platform.shopSource;
+
+let info: RuntimeInfo | undefined;
 
 export async function initRuntime(): Promise<RuntimeInfo> {
   if (info !== undefined) return info;
 
   for (const problem of env.problems) logger.warn("flow", problem);
 
-  const mode = await createSources();
   let config: PlatformConfigView | undefined;
 
   try {
@@ -84,7 +71,7 @@ export async function initRuntime(): Promise<RuntimeInfo> {
     logger.warn("flow", "Platform configuration could not be read; defaults are in use.");
   }
 
-  info = { mode, config, flags: resolveFlags(config?.features, env.flagOverrides) };
+  info = { config, flags: resolveFlags(config?.features, env.flagOverrides) };
 
   return info;
 }
@@ -95,6 +82,8 @@ export function getRuntimeInfo(): RuntimeInfo {
   return info;
 }
 
-export function isMock(): boolean {
-  return info?.mode === "mock";
+export function __setRuntimeForTests(sources: { readonly dataSource: BetNgDataSource; readonly shopSource: ShopDataSource }): void {
+  dataSource = sources.dataSource;
+  shopSource = sources.shopSource;
+  info = undefined;
 }

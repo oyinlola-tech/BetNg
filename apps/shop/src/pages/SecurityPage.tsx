@@ -1,11 +1,9 @@
 import { useState } from "react";
-import { Info, TimerOff } from "lucide-react";
+import { Info } from "lucide-react";
 import { formatDateTime } from "@betng/ui-core";
 import { Button, CodeInput, Panel, PasswordInput, ThemeSwitcher, Tooltip } from "@betng/ui-web";
 import { PageHeader } from "../components/PageHeader";
-import { isMock } from "../services/dataSource";
 import { useShopSession } from "../hooks/useShopSession";
-import { shopSource } from "../services/dataSource";
 
 /**
  * Credential changes have no route yet (there is no `POST /shop/auth/password` or `/pin` in docs/frontend-api.md).
@@ -70,18 +68,6 @@ export function SecurityPage(): React.JSX.Element {
           <p className="text-base text-text-secondary">
             Signed in as <span className="font-medium text-text-primary">{session?.cashier.displayName}</span>. The session ends on its own at <span className="font-medium text-text-primary">{session === undefined ? "" : formatDateTime(session.expiresAt)}</span> and whenever this browser tab closes.
           </p>
-          {isMock() && (
-            <Button
-              variant="secondary"
-              className="mt-3"
-              icon={<TimerOff className="size-4" />}
-              onClick={() => {
-                shopSource.session.expire();
-              }}
-            >
-              Simulate session expiry
-            </Button>
-          )}
         </Panel>
         <Panel title="Appearance">
           <p className="mb-3 text-base text-text-secondary">Dark suits a dim shop floor; light reads better under strong overhead lighting.</p>
