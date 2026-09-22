@@ -66,6 +66,18 @@ export interface NotifiedDto {
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
 
+export const PAYMENT_REFERENCE_PATTERN = /^[A-Za-z0-9_-]{6,64}$/u;
+
+function paymentReferenceFrom(kind: string, data: unknown): string | undefined {
+  if (kind !== "PAYMENT_UPDATED" || typeof data !== "object" || data === null || Array.isArray(data)) {
+    return undefined;
+  }
+
+  const value = (data as Readonly<Record<string, unknown>>)["reference"];
+
+  return typeof value === "string" && PAYMENT_REFERENCE_PATTERN.test(value) ? value : undefined;
+}
+
 function uuidFrom(data: unknown, key: string): string | undefined {
   if (typeof data !== "object" || data === null || Array.isArray(data)) {
     return undefined;
@@ -79,6 +91,7 @@ function uuidFrom(data: unknown, key: string): string | undefined {
 export function toNotification(row: NotificationRow): Notification {
   const matchId = uuidFrom(row.data, "matchId");
   const betId = uuidFrom(row.data, "betId");
+  const paymentReference = paymentReferenceFrom(row.kind, row.data);
 
   return {
     id: row.id,
@@ -89,6 +102,7 @@ export function toNotification(row: NotificationRow): Notification {
     read: row.readAt !== null,
     ...(matchId === undefined ? {} : { matchId: asId<"MatchId">(matchId) }),
     ...(betId === undefined ? {} : { betId: asId<"BetId">(betId) }),
+    ...(paymentReference === undefined ? {} : { paymentReference }),
     createdAt: row.createdAt.toISOString(),
   };
 }

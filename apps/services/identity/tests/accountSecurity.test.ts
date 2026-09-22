@@ -274,11 +274,14 @@ describe("password reset and change", () => {
       expect((await h.call("POST", "/auth/password/reset", { body: { email: customer.email, code: wrong, newPassword: "a-brand-new-password" } })).status).toBe(422);
     }
 
-    expect((await h.call("POST", "/auth/password/reset", { body: { email: customer.email, code, newPassword: "a-brand-new-password" } })).status).toBe(429);
-
+    const capped = await h.call<ErrorBody>("POST", "/auth/password/reset", { body: { email: customer.email, code, newPassword: "a-brand-new-password" } });
+    const startedAt = Date.now();
     const unknown = await h.call<ErrorBody>("POST", "/auth/password/reset", { body: { email: `${randomUUID()}@example.test`, code, newPassword: "a-brand-new-password" } });
 
+    expect(Date.now() - startedAt).toBeGreaterThanOrEqual(390);
+    expect(capped.status).toBe(422);
     expect(unknown.status).toBe(422);
+    expect([capped.body.error.code, capped.body.error.message]).toEqual([unknown.body.error.code, unknown.body.error.message]);
     expect(unknown.body.error.message).toMatch(/not right or has expired/u);
   });
 
@@ -449,6 +452,38 @@ describe("gateway session hash and realtime revocation", () => {
 
     expect(delivered).toContain(createHash("sha256").update(token).digest("hex"));
     expect((await h.prisma.session.findUniqueOrThrow({ where: { id: row.id } })).realtimeRevokedAt).not.toBeNull();
+  });
+
+  it("queues event.revokeSessions for the sessions a password change or reset revoked, and not for the one kept", async () => {
+    const hashOf = (token: string): string => createHash("sha256").update(token).digest("hex");
+    const changer = await h.makeCustomer();
+    const kept = await signIn(h, changer.email);
+    const dropped = await signIn(h, changer.email);
+    const resetter = await h.makeCustomer();
+    const forgotten = await signIn(h, resetter.email);
+
+    await redis.client.set(cacheKey(dropped.token), "{}", { expiration: { type: "EX", value: 60 } });
+
+    expect((await h.call("PUT", "/account/password", { token: kept.token, body: { currentPassword: PASSWORD, newPassword: "changed-for-realtime" } })).status).toBe(204);
+    expect((await h.call("POST", "/auth/password/forgot", { body: { email: resetter.email } })).status).toBe(204);
+    expect(
+      (await h.call("POST", "/auth/password/reset", { body: { email: resetter.email, code: h.issuedResetCode(resetter.email), newPassword: "reset-for-realtime" } })).status,
+    ).toBe(204);
+
+    expect(await redis.client.get(cacheKey(dropped.token))).toBeNull();
+
+    const delivered: string[] = [];
+    const evictor = createSessionCacheEvictor(h.store, undefined, {
+      revoke: async (tokenHash) => {
+        delivered.push(tokenHash);
+      },
+    }, h.app.logger);
+
+    await evictor.flush();
+
+    expect(delivered).toContain(hashOf(dropped.token));
+    expect(delivered).toContain(hashOf(forgotten.token));
+    expect(delivered).not.toContain(hashOf(kept.token));
   });
 });
 

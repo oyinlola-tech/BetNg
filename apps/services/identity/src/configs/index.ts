@@ -11,6 +11,7 @@ export type {
   IdentityConfig,
   KycConfig,
   PushProviderConfig,
+  WebPushConfig,
   SecurityConfig,
   SmsProviderConfig,
   StorageConfig,

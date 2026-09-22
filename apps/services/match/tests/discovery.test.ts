@@ -27,9 +27,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await harness.superuser.$executeRawUnsafe(
-    "DROP TABLE IF EXISTS risk.risk_limits",
-  );
+  await harness.superuser.$executeRaw`DROP TABLE IF EXISTS risk.risk_limits`;
   await harness.app.server.stop();
   await harness.close();
 });
@@ -325,7 +323,8 @@ describe("list order and truncation", () => {
 });
 
 describe("GET /config", () => {
-  const LIMITS_TABLE = `CREATE TABLE risk.risk_limits (
+  const createLimitsTable = async (): Promise<number> =>
+    harness.superuser.$executeRaw`CREATE TABLE risk.risk_limits (
     version integer PRIMARY KEY, min_stake bigint NOT NULL, max_stake_per_bet bigint NOT NULL,
     max_payout_per_bet bigint NOT NULL, max_liability_per_selection bigint NOT NULL,
     max_liability_per_market bigint NOT NULL, max_liability_per_match bigint NOT NULL,
@@ -338,21 +337,14 @@ describe("GET /config", () => {
     maxStake: number,
     active: boolean,
   ): Promise<void> {
-    await harness.superuser.$executeRawUnsafe(
-      `INSERT INTO risk.risk_limits (version, min_stake, max_stake_per_bet, max_payout_per_bet,
-         max_liability_per_selection, max_liability_per_market, max_liability_per_match, active, created_by, reason)
-       VALUES ($1, $2, $3, 1, 1, 1, 1, $4, 'test', 'fixture')`,
-      version,
-      minStake,
-      maxStake,
-      active,
-    );
+    await harness.superuser.$executeRaw`
+      INSERT INTO risk.risk_limits (version, min_stake, max_stake_per_bet, max_payout_per_bet,
+        max_liability_per_selection, max_liability_per_market, max_liability_per_match, active, created_by, reason)
+      VALUES (${version}, ${minStake}, ${maxStake}, 1, 1, 1, 1, ${active}, 'test', 'fixture')`;
   }
 
   it("answers without stake limits when the risk table cannot be read", async () => {
-    await harness.superuser.$executeRawUnsafe(
-      "DROP TABLE IF EXISTS risk.risk_limits",
-    );
+    await harness.superuser.$executeRaw`DROP TABLE IF EXISTS risk.risk_limits`;
 
     const config = await get(`/config`);
 
@@ -374,13 +366,9 @@ describe("GET /config", () => {
   });
 
   it("omits them while no row is active, then reads the active row", async () => {
-    await harness.superuser.$executeRawUnsafe(LIMITS_TABLE);
-    await harness.superuser.$executeRawUnsafe(
-      "GRANT USAGE ON SCHEMA risk TO betng_match",
-    );
-    await harness.superuser.$executeRawUnsafe(
-      "GRANT SELECT ON risk.risk_limits TO betng_match",
-    );
+    await createLimitsTable();
+    await harness.superuser.$executeRaw`GRANT USAGE ON SCHEMA risk TO betng_match`;
+    await harness.superuser.$executeRaw`GRANT SELECT ON risk.risk_limits TO betng_match`;
     await insertLimits(1, 1000, 2_000_000, false);
 
     expect((await get(`/config`)).body).not.toHaveProperty("stakeLimits");

@@ -99,7 +99,7 @@ export function createApp(
 
   const scheduler = createSchedulerJob({
     redis,
-    tick: async () => lifecycle.tick(),
+    tick: async (held) => lifecycle.tick(held),
     logger,
   });
 
@@ -115,6 +115,7 @@ export function createApp(
     timing: config.timing,
     clock,
     logger,
+    vapidPublicKey: config.vapidPublicKey,
   });
 
   const probes: DependencyProbe[] = [

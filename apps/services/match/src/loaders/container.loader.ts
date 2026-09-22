@@ -5,6 +5,7 @@ import type { MatchTiming } from "../configs/index.js";
 import {
   CATALOGUE_REPOSITORY_TOKEN,
   CLOCK_TOKEN,
+  VAPID_PUBLIC_KEY_TOKEN,
   IDENTITY_PEER_TOKEN,
   LIFECYCLE_SERVICE_TOKEN,
   LOGGER_TOKEN,
@@ -39,6 +40,7 @@ export interface ContainerLoaderConfig {
   readonly timing: MatchTiming;
   readonly clock: Clock;
   readonly logger: Logger;
+  readonly vapidPublicKey?: string | undefined;
 }
 
 export function loadContainer(config: ContainerLoaderConfig): Container {
@@ -55,6 +57,7 @@ export function loadContainer(config: ContainerLoaderConfig): Container {
   container.registerValue(TIMING_TOKEN, config.timing);
   container.registerValue(CLOCK_TOKEN, config.clock);
   container.registerValue(LOGGER_TOKEN, config.logger);
+  container.registerValue(VAPID_PUBLIC_KEY_TOKEN, config.vapidPublicKey);
 
   return container.start();
 }

@@ -11,10 +11,13 @@ All under `/api/v1`. The caller is the holder of the bearer token on token route
 | `POST /auth/login` | Answers `CustomerSession`, or `{ twoFactor: TwoFactorChallenge }` when 2FA is on (no session is issued). The user agent is reduced to device/browser/platform labels; no IP or location is kept |
 | `POST /auth/login/2fa` | Challenge: single use, 5 minutes, 5 guesses. Failures also count towards a per-customer lock (8 → 15 minutes), so fresh challenges cannot be used to keep guessing |
 | `POST /auth/password/forgot` | Always 204 in constant time. Emails a 6-digit code (15 minutes, one per minute per account) |
-| `POST /auth/password/reset` | 5 guesses per code, per-address lock; rejects the last 5 passwords; revokes every session |
+| `POST /auth/password/reset` | 5 guesses per code, per-address lock; every refusal (unknown address, wrong/expired/capped code) is the same 422 after the same 400 ms floor; rejects the last 5 passwords; revokes every session |
+| `POST /auth/register` | Password 8-128 characters and, with `PASSWORD_BREACH_CHECK`, not in the breach corpus |
 | `POST /auth/session/refresh` | Token route. Slides the expiry by `CUSTOMER_SESSION_TTL_HOURS`, never past `CUSTOMER_SESSION_MAX_HOURS` from sign-in |
 | `PUT /account/password` | Current password (locked after 8 failures), no reuse of the last 5, optional breach check (`VALIDATION_FAILED` on `newPassword`); revokes every other session |
 | `GET /account/2fa`, `POST /account/2fa/{enroll,confirm,disable,backup-codes}` | Secret generated server-side, AES-256-GCM at rest; 10 backup codes shown once, stored as keyed hashes; disable needs password + TOTP or backup code |
+| `PATCH /account/profile` | `displayName` and/or `phone` (stored as `+` and digits). Audited with the phone masked; a security alert tells the customer. An unchanged request writes nothing |
+| `GET /account/export` | One JSON object: profile, 2FA status, sessions (labels only), channel preferences, push devices, KYC status and document statuses (no files, names or identity numbers), limits and history, notifications, deletion status. Wallet and bet history are in account statements. Gateway limit `GATEWAY_RATE_EXPORTS` (3/hour) |
 | `GET/DELETE /account/sessions`, `DELETE /account/sessions/:id` | Own sessions only; the current one cannot be revoked here |
 | `GET/POST/DELETE /account/deletion` | POST needs the password and an `Idempotency-Key` (a replay answers the stored request). `PENDING` for `ACCOUNT_DELETION_COOLING_DAYS`; blockers (balance, open payment, open bet) are reported and the account is restricted meanwhile |
 | `GET/PUT /notifications/preferences` | `email.security` is locked on; switching it off is refused |
@@ -30,6 +33,8 @@ All under `/api/v1`. The caller is the holder of the bearer token on token route
 
 | Route | Permission |
 | --- | --- |
+| `PATCH /admin/users/:id` (`displayName`, `phone`, `reason` required) | `users:write`; audited with before/after (phone masked); answers `AdminCustomer`; the customer gets a security alert |
+| `POST /admin/users/:id/password-reset` (`reason` required) | `users:write`; emails the customer the forgot-password code (one per minute per account); 204; the code is never returned, audited or logged |
 | `GET /admin/kyc/pending` (`page`, `pageSize`, `search`, `status`) | `kyc:read` |
 | `POST /admin/kyc/review/:userId` (`APPROVE` / `REJECT` / `REQUEST_ACTION`, reason required) | `kyc:write`; audited in the same transaction |
 | `GET /admin/kyc/documents/:id/preview` | `kyc:read`; 60-second presigned GET, issued only after the access is audited |
@@ -76,6 +81,8 @@ With `ADMIN_TOTP_REQUIRED=true` (the production default) an admin without TOTP c
 ```
 pnpm --filter @betng/identity-service exec tsx src/seeds/enrolAdminTotp.cli.ts admin@example.com
 ```
+
+The development seed (`SEED_DEMO_DATA=true`, refused in production) gives its two-factor admin a random secret, sealed the same way, and prints the enrolment URI once to the terminal in development. `pnpm --filter @betng/identity-service totp:dev [email]` prints the current code from the development database. `SEED_ADMIN_TOTP_SECRET` pins the secret outside production (the e2e stack sets a fresh one per run).
 
 ## Secrets
 

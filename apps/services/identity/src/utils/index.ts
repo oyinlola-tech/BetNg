@@ -1,7 +1,7 @@
 export { readBearerToken } from "./bearer.util.js";
 export { issueTemporarySecrets } from "./credential.util.js";
 export type { IssuedSecrets } from "./credential.util.js";
-export { normaliseEmail, normaliseShopCode, normaliseUsername } from "./identifier.util.js";
+export { normaliseEmail, normalisePhone, normaliseShopCode, normaliseUsername } from "./identifier.util.js";
 export { redactSnapshot } from "./redaction.util.js";
 export { constantTimeEqual, sha256Hex, verificationCodeHash } from "./secretHash.util.js";
 export {

@@ -3,6 +3,7 @@ import {
   createServiceDatabase,
   databaseProbe,
   databaseSchema,
+  poolOptions,
 } from "@betng/service-kit";
 import type { DependencyProbe, ServiceDatabase } from "@betng/service-kit";
 import { PrismaClient } from "../generated/prisma/client.js";
@@ -16,7 +17,7 @@ export interface MatchDatabase {
 export function createMatchDatabase(databaseUrl: string): MatchDatabase {
   const prisma = new PrismaClient({
     adapter: new PrismaPg(
-      { connectionString: databaseUrl },
+      poolOptions(databaseUrl),
       { schema: databaseSchema(databaseUrl) },
     ),
   });

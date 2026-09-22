@@ -14,5 +14,9 @@ export async function issueTemporarySecrets(): Promise<IssuedSecrets> {
     randomNumericCode(SECURITY.TEMPORARY_PIN_DIGITS),
   ]);
 
+  if (password.length < SECURITY.OPERATOR_PASSWORD_MIN_LENGTH || pin.length !== SECURITY.TEMPORARY_PIN_DIGITS) {
+    throw new Error("Issued operator credentials are shorter than the operator policy allows.");
+  }
+
   return { password, pin };
 }

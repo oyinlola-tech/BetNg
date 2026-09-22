@@ -63,6 +63,14 @@ export function createSimulationReader(prisma: PrismaClient): SimulationReader {
         return rows.length > 0;
       }, false),
 
+    findModelVersion: async (matchId) =>
+      orWhenTableMissing<string | undefined>(async () => {
+        const rows = await prisma.$queryRaw<{ model_version: string }[]>`
+          SELECT model_version FROM simulation.match_results WHERE match_id = ${matchId}::uuid LIMIT 1`;
+
+        return rows[0]?.model_version;
+      }, undefined),
+
     findResult: async (matchId) =>
       orWhenTableMissing<SimulationResultRow | undefined>(async () => {
         const rows = await prisma.$queryRaw<ResultColumns[]>`

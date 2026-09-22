@@ -34,6 +34,11 @@ export interface NewCustomer {
   readonly emailVerifiedAt?: Date;
 }
 
+export interface CustomerProfileChanges {
+  readonly displayName?: string;
+  readonly phone?: string;
+}
+
 export interface CustomerRepository {
   findByEmail(email: string): Promise<Customer | undefined>;
   findById(id: string): Promise<Customer | undefined>;
@@ -41,6 +46,7 @@ export interface CustomerRepository {
   remove(id: string): Promise<void>;
   markVerified(id: string, at: Date): Promise<Customer>;
   setStatus(id: string, status: AccountStatus): Promise<Customer>;
+  updateProfile(id: string, changes: CustomerProfileChanges): Promise<Customer>;
   touchActive(id: string, at: Date, olderThan: Date): Promise<void>;
   search(q: string | undefined, limit: number): Promise<readonly Customer[]>;
 }
@@ -80,6 +86,8 @@ export interface AdminUserRepository {
   findById(id: string): Promise<AdminUser | undefined>;
   create(admin: NewAdminUser): Promise<AdminUser>;
   recordLogin(id: string, at: Date): Promise<AdminUser>;
+  /** Stores an already sealed TOTP secret and switches two-factor on. */
+  enrolTotp(id: string, sealedSecret: string): Promise<AdminUser>;
   /** Marks a TOTP time step as used. `false` when that step, or a later one, was already used. */
   claimTotpStep(id: string, step: number): Promise<boolean>;
 }

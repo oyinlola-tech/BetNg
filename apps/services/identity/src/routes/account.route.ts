@@ -12,6 +12,8 @@ import { noContent, ok } from "./route.helper.js";
 export function registerAccountRoutes(router: HttpRouter, controller: AccountController): void {
   const account = `${API_PREFIX}/account`;
 
+  router.patch(`${account}/profile`, ok(controller.updateProfile));
+  router.get(`${account}/export`, ok(controller.exportData));
   router.get(`${account}/2fa`, ok(controller.twoFactorStatus));
   router.post(`${account}/2fa/enroll`, ok(controller.enrollTwoFactor));
   router.post(`${account}/2fa/confirm`, ok(controller.confirmTwoFactor));

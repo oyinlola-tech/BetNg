@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { runMatchRequestSchema } from "@betng/contracts";
 import { createRedisConnection } from "@betng/service-kit";
+import { SCHEDULER } from "../src/constants/index.js";
 import { createSchedulerJob } from "../src/jobs/index.js";
 import {
   atMinute,
@@ -503,5 +504,77 @@ describe("scheduler job", () => {
 
     expect(await offline.runOnce()).toBe(false);
     expect(ticks).toBe(1);
+  });
+
+  it("renews the lock through a tick longer than its TTL, so a second instance never overlaps", async () => {
+    const redis = createRedisConnection(testRedisUrl());
+    let inside = 0;
+    let overlapped = false;
+    const slowTick = async (): Promise<void> => {
+      inside += 1;
+      overlapped ||= inside > 1;
+      await new Promise((resolve) => setTimeout(resolve, 700));
+      inside -= 1;
+    };
+    const first = createSchedulerJob({
+      redis,
+      logger: silentLogger as never,
+      lockTtlMs: 200,
+      tick: slowTick,
+    });
+    const second = createSchedulerJob({
+      redis,
+      logger: silentLogger as never,
+      lockTtlMs: 200,
+      tick: slowTick,
+    });
+
+    try {
+      const running = first.runOnce();
+
+      await new Promise((resolve) => setTimeout(resolve, 450));
+      expect(await second.runOnce()).toBe(false);
+      expect(await running).toBe(true);
+      expect(overlapped).toBe(false);
+      expect(await redis.client.exists(SCHEDULER.LOCK_KEY)).toBe(0);
+    } finally {
+      await redis.close();
+    }
+  });
+
+  it("stops a tick at its next step once the lock is lost", async () => {
+    const redis = createRedisConnection(testRedisUrl());
+    const errors: string[] = [];
+    let stepsRun = 0;
+    const job = createSchedulerJob({
+      redis,
+      logger: {
+        ...silentLogger,
+        error: (_message: string, meta: { event?: string }) => {
+          errors.push(meta.event ?? "");
+        },
+      } as never,
+      lockTtlMs: 150,
+      tick: async (held) => {
+        for (let step = 0; step < 10; step += 1) {
+          if (!held()) return;
+          stepsRun += 1;
+
+          if (step === 0) await redis.client.set(SCHEDULER.LOCK_KEY, "stolen");
+
+          await new Promise((resolve) => setTimeout(resolve, 60));
+        }
+      },
+    });
+
+    try {
+      expect(await job.runOnce()).toBe(true);
+      expect(stepsRun).toBeLessThan(10);
+      expect(errors).toContain("match.schedulerLockLost");
+      expect(await redis.client.get(SCHEDULER.LOCK_KEY)).toBe("stolen");
+    } finally {
+      await redis.client.del(SCHEDULER.LOCK_KEY);
+      await redis.close();
+    }
   });
 });

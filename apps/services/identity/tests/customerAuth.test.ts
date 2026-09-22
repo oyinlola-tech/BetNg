@@ -189,7 +189,11 @@ describe("e-mail verification", () => {
       SEED_DEMO_DATA: "true",
     };
     const development = await loadIdentityConfig({ ...base, NODE_ENV: "development" });
-    const production = await loadIdentityConfig({ ...base, ...PRODUCTION_REQUIREMENTS, NODE_ENV: "production" });
+    const { SEED_DEMO_DATA: _seed, ...withoutSeed } = base;
+    const production = await loadIdentityConfig({ ...withoutSeed, ...PRODUCTION_REQUIREMENTS, NODE_ENV: "production" });
+
+    await expect(loadIdentityConfig({ ...base, ...PRODUCTION_REQUIREMENTS, NODE_ENV: "production" })).rejects.toThrow(/SEED_DEMO_DATA/u);
+    await expect(loadIdentityConfig({ ...base, NODE_ENV: "staging" })).rejects.toThrow(/NODE_ENV/u);
     const unset = await loadIdentityConfig({ IDENTITY_DATABASE_URL: base.IDENTITY_DATABASE_URL, NODE_ENV: "test" });
 
     expect(development.security.devVerificationCode).toBe("123456");

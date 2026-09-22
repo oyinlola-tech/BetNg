@@ -3,6 +3,7 @@ export {
   DEFAULT_TIMING,
   loadMatchConfig,
   readTiming,
+  readVapidPublicKey,
   SERVICE_NAME,
   SERVICE_VERSION,
 } from "./service.config.js";

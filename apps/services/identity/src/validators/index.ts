@@ -1,4 +1,6 @@
 export {
+  adminPasswordResetValidator,
+  adminUpdateCustomerValidator,
   auditLogQueryValidator,
   authenticatePayloadValidator,
   createCashierValidator,
@@ -43,4 +45,5 @@ export {
   twoFactorChallengeValidator,
   twoFactorConfirmValidator,
   twoFactorDisableValidator,
+  updateProfileValidator,
 } from "./account.validator.js";

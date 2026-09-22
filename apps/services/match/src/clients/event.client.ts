@@ -6,7 +6,16 @@ import type { ValidationSchema } from "@zudojs/validation";
 import type { EventPeer } from "../interfaces/index.js";
 import { callValidated } from "./rpc.client.js";
 
-export const EVENT_PROCEDURE = Object.freeze({ PUBLISH: "event.publish" });
+export const EVENT_PROCEDURE = Object.freeze({
+  PUBLISH: "event.publish",
+  PUBLISH_SIGNAL: "event.publishSignal",
+});
+
+/** Subscribers of `system` re-read over REST on this signal, which is how they catch up after a stream outage. */
+const RESYNC_SIGNAL = Object.freeze({
+  channel: "system",
+  type: "SYSTEM_STATUS_UPDATED",
+});
 
 /** The stream is a projection; a slow event service must not hold the scheduler's tick. */
 const PUBLISH_TIMEOUT_MS = 1500;
@@ -30,6 +39,14 @@ export function createEventClient(
         raw,
         EVENT_PROCEDURE.PUBLISH,
         event,
+        requestId,
+        publishResultSchema,
+      ),
+    resync: async (requestId) =>
+      callValidated(
+        raw,
+        EVENT_PROCEDURE.PUBLISH_SIGNAL,
+        RESYNC_SIGNAL,
         requestId,
         publishResultSchema,
       ),

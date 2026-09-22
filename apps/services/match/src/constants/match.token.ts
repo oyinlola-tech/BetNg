@@ -46,3 +46,5 @@ export const IDENTITY_PEER_TOKEN =
 export const TIMING_TOKEN = createToken<MatchTiming>("match.timing");
 
 export const CLOCK_TOKEN = createToken<Clock>("match.clock");
+
+export const VAPID_PUBLIC_KEY_TOKEN = createToken<string | undefined>("match.vapidPublicKey");

@@ -31,7 +31,7 @@ import {
   registerShopRoutes,
 } from "./routes/index.js";
 import { runDemoSeed } from "./seeds/index.js";
-import { createEmailProvider, createMessenger, createPushProvider, createSmsProvider } from "./services/delivery/index.js";
+import { createEmailProvider, createMessenger, createPushProvider, createSmsProvider, createWebPushProvider } from "./services/delivery/index.js";
 import { createDocumentStorage, createIdentityVerificationProvider } from "./services/kyc/index.js";
 import {
   createAuditWriter,
@@ -75,6 +75,7 @@ export function createApp(config: IdentityConfig): IdentityApp {
       email: createEmailProvider(delivery.email, delivery.timeoutMs, logger),
       sms: createSmsProvider(delivery.sms, delivery.timeoutMs, logger),
       push: createPushProvider(delivery.push, delivery.timeoutMs, logger),
+      webPush: delivery.webPush === undefined ? undefined : createWebPushProvider(delivery.webPush, delivery.timeoutMs, logger),
     },
     store,
     protector,
@@ -146,7 +147,7 @@ export function createApp(config: IdentityConfig): IdentityApp {
     ],
     prepare: async () => {
       await store.settings.createIfMissing(DEFAULT_PLATFORM_SETTINGS, SYSTEM_ACTOR.id);
-      await runDemoSeed({ config, store, hasher, logger });
+      await runDemoSeed({ config, store, hasher, protector, logger });
     },
   };
 }

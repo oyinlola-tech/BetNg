@@ -2,6 +2,8 @@ import { createHash } from "node:crypto";
 import { loadServiceConfig } from "@betng/service-kit";
 import type { ServiceConfig } from "@betng/service-kit";
 import { z } from "@zudojs/validation";
+import { readVapidKeys } from "../services/delivery/webPush.crypto.js";
+import type { VapidKeys } from "../services/delivery/webPush.crypto.js";
 
 export const SERVICE_NAME = "identity" as const;
 
@@ -20,7 +22,7 @@ export interface SecurityConfig {
   /** Issued codes are logged in development and test when asked for, never in production. */
   readonly logVerificationCodes: boolean;
   readonly seedAdminTotpSecret: string | undefined;
-  /** Opt-in and never in production: an unset NODE_ENV must not create accounts with known passwords. */
+  /** Opt-in, development and test only; production refuses to start with it set. */
   readonly seedDemoData: boolean;
   /** An admin without two-factor authentication cannot sign in. */
   readonly adminTotpRequired: boolean;
@@ -48,10 +50,16 @@ export type PushProviderConfig =
   | { readonly provider: "log" }
   | { readonly provider: "fcm"; readonly projectId: string; readonly clientEmail: string; readonly privateKey: string };
 
+export interface WebPushConfig {
+  readonly keys: VapidKeys;
+}
+
 export interface DeliveryConfig {
   readonly email: EmailProviderConfig;
   readonly sms: SmsProviderConfig;
   readonly push: PushProviderConfig;
+  /** Undefined when VAPID is not configured: web subscriptions are then not sent to. */
+  readonly webPush: WebPushConfig | undefined;
   readonly timeoutMs: number;
 }
 
@@ -120,6 +128,9 @@ const securityEnvSchema = z.object({
   FCM_PROJECT_ID: optional(z.string().regex(/^[a-z0-9-]{4,40}$/u)),
   FCM_CLIENT_EMAIL: optional(z.email()),
   FCM_PRIVATE_KEY: optional(z.string().min(100)),
+  VAPID_PUBLIC_KEY: optional(z.string().max(200)),
+  VAPID_PRIVATE_KEY: optional(z.string().max(200)),
+  VAPID_SUBJECT: optional(z.string().max(200).regex(/^(?:mailto:[^\s@]+@[^\s@]+|https:\/\/[^\s]+)$/u, "must be a mailto: or https: URL")),
   DELIVERY_TIMEOUT_MS: z.preprocess(blankAsUnset, z.coerce.number().int().min(500).max(30_000).default(8000)),
   KYC_STORAGE_ENDPOINT: optional(httpsUrl),
   KYC_STORAGE_REGION: optional(z.string().regex(/^[a-z0-9-]{2,32}$/u)),
@@ -224,7 +235,38 @@ function readDelivery(env: SecurityEnv, production: boolean, problems: ConfigPro
         }
       : { provider: pushProvider };
 
-  return { email, sms, push, timeoutMs: env.DELIVERY_TIMEOUT_MS };
+  return { email, sms, push, webPush: readWebPush(env, problems), timeoutMs: env.DELIVERY_TIMEOUT_MS };
+}
+
+const VAPID_KEYS = ["VAPID_PUBLIC_KEY", "VAPID_PRIVATE_KEY", "VAPID_SUBJECT"] as const;
+
+/** All three or none, in every environment: a half configuration would silently drop browser notifications. */
+function readWebPush(env: SecurityEnv, problems: ConfigProblems): WebPushConfig | undefined {
+  const present = VAPID_KEYS.filter((key) => env[key] !== undefined);
+
+  if (present.length === 0) {
+    return undefined;
+  }
+
+  if (present.length !== VAPID_KEYS.length) {
+    for (const key of VAPID_KEYS) {
+      if (env[key] === undefined) {
+        problems.add(`${key} is required once any VAPID_* variable is set`);
+      }
+    }
+
+    return undefined;
+  }
+
+  const keys = readVapidKeys(env.VAPID_PUBLIC_KEY ?? "", env.VAPID_PRIVATE_KEY ?? "", env.VAPID_SUBJECT ?? "");
+
+  if (keys === undefined) {
+    problems.add("VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY must be one P-256 key pair, base64url (65-byte uncompressed public, 32-byte private)");
+
+    return undefined;
+  }
+
+  return { keys };
 }
 
 const STORAGE_KEYS = [
@@ -297,6 +339,11 @@ export async function loadIdentityConfig(
   const data = parsed.data;
   const production = service.environment === "production";
   const problems = new ConfigProblems();
+
+  // Forced off in production anyway; refusing to start makes a leaked development flag visible instead of silent.
+  if (production && data.SEED_DEMO_DATA === "true") {
+    problems.add("SEED_DEMO_DATA=true creates accounts with published passwords and is refused in production");
+  }
 
   if (production && service.redisUrl === undefined) {
     problems.add("REDIS_URL is required in production: revoked sessions must be evicted from the gateway cache");

@@ -11,7 +11,9 @@ export function registerAdminRoutes(router: HttpRouter, controller: AdminControl
   router.get(`${admin}/auth/session`, ok(controller.session));
 
   router.get(`${admin}/users`, ok(controller.listCustomers));
+  router.patch(`${admin}/users/:id`, ok(controller.updateCustomer));
   router.post(`${admin}/users/:id/status`, ok(controller.setCustomerStatus));
+  router.post(`${admin}/users/:id/password-reset`, noContent(controller.sendPasswordReset));
 
   router.get(`${admin}/shops`, ok(controller.listShops));
   router.post(`${admin}/shops`, made(controller.createShop));

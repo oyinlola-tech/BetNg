@@ -1,14 +1,18 @@
+import { randomBytes } from "node:crypto";
+import process from "node:process";
 import { isConflictError } from "@zudojs/database";
 import type { AdminRole, ShopRole } from "@betng/contracts";
 import type { Logger } from "@betng/service-kit";
 import type { IdentityConfig } from "../configs/index.js";
+import { ACCOUNT_SECURITY } from "../constants/index.js";
 import type { IdentityStore, PasswordHasher } from "../interfaces/index.js";
+import { adminTotpContext } from "../services/adminAuth/index.js";
+import type { DataProtector } from "../utils/index.js";
+import { encodeBase32, TOTP_DIGITS, TOTP_STEP_SECONDS } from "../utils/index.js";
 
+// Documented development credentials (docs/frontend.md). The seed never runs in production: the config refuses SEED_DEMO_DATA there.
 const ADMIN_PASSWORD = "betng-admin";
 const DEMO_PASSWORD = "betng-demo";
-
-/** Known on purpose: enrol it in an authenticator, or run `pnpm totp:dev`. `SEED_ADMIN_TOTP_SECRET` overrides it. */
-export const SEED_ADMIN_TOTP_SECRET = "BETNGDEVSEEDTOTPSECRET234567AAAA";
 
 const ADMINS: readonly { email: string; name: string; role: AdminRole; twoFactor: boolean }[] = [
   { email: "ops@betng.test", name: "Ngozi Eze", role: "SUPER_ADMIN", twoFactor: true },
@@ -69,13 +73,29 @@ export interface DemoSeedOptions {
   readonly config: IdentityConfig;
   readonly store: IdentityStore;
   readonly hasher: PasswordHasher;
+  readonly protector: DataProtector;
   readonly logger: Logger;
+  /** Where the development enrolment URI goes; the operator's terminal, never the structured log. */
+  readonly terminal?: (text: string) => void;
+}
+
+export function totpEnrolmentUri(email: string, secret: string): string {
+  const label = encodeURIComponent(`${ACCOUNT_SECURITY.TOTP_ISSUER} Admin:${email}`);
+  const query = new URLSearchParams({
+    secret,
+    issuer: `${ACCOUNT_SECURITY.TOTP_ISSUER} Admin`,
+    algorithm: "SHA1",
+    digits: String(TOTP_DIGITS),
+    period: String(TOTP_STEP_SECONDS),
+  });
+
+  return `otpauth://totp/${label}?${query.toString()}`;
 }
 
 export async function runDemoSeed(options: DemoSeedOptions): Promise<boolean> {
-  const { config, store, hasher, logger } = options;
+  const { config, store, hasher, protector, logger } = options;
 
-  if (!config.security.seedDemoData || (await store.admins.count()) > 0) {
+  if (!config.security.seedDemoData || config.service.environment === "production" || (await store.admins.count()) > 0) {
     return false;
   }
 
@@ -85,7 +105,9 @@ export async function runDemoSeed(options: DemoSeedOptions): Promise<boolean> {
     environment: config.service.environment,
   });
 
-  const totpSecret = config.security.seedAdminTotpSecret ?? SEED_ADMIN_TOTP_SECRET;
+  // Random per database unless SEED_ADMIN_TOTP_SECRET pins one (development and test only, e.g. the e2e stack).
+  const totpSecret = config.security.seedAdminTotpSecret ?? encodeBase32(randomBytes(ACCOUNT_SECURITY.TOTP_SECRET_BYTES));
+  const enrolled: string[] = [];
   const adminHash = await hasher.hash(ADMIN_PASSWORD);
   const demoHash = await hasher.hash(DEMO_PASSWORD);
   const pinHashes = new Map<string, string>();
@@ -97,13 +119,18 @@ export async function runDemoSeed(options: DemoSeedOptions): Promise<boolean> {
   try {
     await store.transaction(async (repositories) => {
       for (const admin of ADMINS) {
-        await repositories.admins.create({
+        const created = await repositories.admins.create({
           email: admin.email,
           name: admin.name,
           role: admin.role,
           passwordHash: adminHash,
-          totpSecret: admin.twoFactor ? totpSecret : undefined,
+          totpSecret: undefined,
         });
+
+        if (admin.twoFactor) {
+          await repositories.admins.enrolTotp(created.id, protector.encrypt(totpSecret, adminTotpContext(created.id)));
+          enrolled.push(admin.email);
+        }
       }
 
       for (const { cashiers, ...details } of SHOPS) {
@@ -141,6 +168,17 @@ export async function runDemoSeed(options: DemoSeedOptions): Promise<boolean> {
     }
 
     throw error;
+  }
+
+  if (config.service.environment === "development") {
+    const write = options.terminal ?? ((text: string) => process.stderr.write(text));
+
+    write(
+      "\nDemo admins with two-factor sign-in. Add this to an authenticator now; it is not shown again " +
+        "(or run `pnpm --filter @betng/identity-service totp:dev`):\n" +
+        enrolled.map((email) => `  ${email}  ${totpEnrolmentUri(email, totpSecret)}\n`).join("") +
+        "\n",
+    );
   }
 
   logger.warn("demo.seed finished", {

@@ -8,3 +8,5 @@ export { ResendVerificationCommand } from "./resendVerification/resendVerificati
 export { ResendVerificationHandler } from "./resendVerification/resendVerification.handler.js";
 export { VerifyEmailCommand } from "./verifyEmail/verifyEmail.command.js";
 export { VerifyEmailHandler } from "./verifyEmail/verifyEmail.handler.js";
+export { UpdateCustomerProfileCommand } from "./updateProfile/updateProfile.command.js";
+export { UpdateCustomerProfileHandler } from "./updateProfile/updateProfile.handler.js";

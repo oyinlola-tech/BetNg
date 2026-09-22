@@ -62,7 +62,7 @@ export interface SimulationPeer {
   ): Promise<RunMatchResponse>;
   /** Team ids and names only: squads are a property of the team, never of a match or its result. */
   getSquads(
-    teams: { readonly home: SquadTeamRef; readonly away: SquadTeamRef },
+    teams: { readonly home: SquadTeamRef; readonly away: SquadTeamRef; readonly modelVersion?: string },
     requestId: string,
   ): Promise<Squads>;
 }
@@ -109,6 +109,8 @@ export interface EventPeer {
     event: LiveEventInput,
     requestId: string,
   ): Promise<{ readonly sequence: number }>;
+  /** Tells subscribers to re-read state they may have missed while the stream was down. */
+  resync(requestId: string): Promise<{ readonly sequence: number }>;
 }
 
 export interface AuditInput {

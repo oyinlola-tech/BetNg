@@ -29,7 +29,12 @@ import {
   SetShopStatusHandler,
   UpdateShopHandler,
 } from "./adminShops/index.js";
-import { ListCustomersHandler, SetCustomerStatusHandler } from "./adminUsers/index.js";
+import {
+  AdminSendPasswordResetHandler,
+  AdminUpdateCustomerHandler,
+  ListCustomersHandler,
+  SetCustomerStatusHandler,
+} from "./adminUsers/index.js";
 import { ListAuditLogsHandler, RecordAuditHandler } from "./audit/index.js";
 import {
   GetChannelPreferencesHandler,
@@ -39,11 +44,13 @@ import {
   UpdateChannelPreferencesHandler,
 } from "./channels/index.js";
 import {
+  GetAccountProfileHandler,
   GetCustomerProfileHandler,
   LoginCustomerHandler,
   RegisterCustomerHandler,
   RequestPasswordResetHandler,
   ResendVerificationHandler,
+  UpdateCustomerProfileHandler,
   VerifyEmailHandler,
 } from "./customerAuth/index.js";
 import {
@@ -109,6 +116,9 @@ export function registerIdentityServices(config: IdentityServiceConfig): void {
   command(new AuthenticateHandler(deps));
   command(new LogoutHandler(deps));
   command(new SetCustomerStatusHandler(deps));
+  command(new AdminUpdateCustomerHandler(deps));
+  command(new AdminSendPasswordResetHandler(deps));
+  command(new UpdateCustomerProfileHandler(deps));
   command(new CreateShopHandler(deps));
   command(new UpdateShopHandler(deps));
   command(new SetShopStatusHandler(deps));
@@ -146,6 +156,7 @@ export function registerIdentityServices(config: IdentityServiceConfig): void {
   command(new CheckLimitsHandler(deps));
 
   query(new GetCustomerProfileHandler(deps));
+  query(new GetAccountProfileHandler(deps));
   query(new GetShopSessionHandler(deps));
   query(new ListOwnShopCashiersHandler(deps));
   query(new GetAdminSessionHandler(deps));

@@ -37,6 +37,7 @@ export class GetPublicConfigHandler extends QueryHandler<
           }),
       competitionTimezone: PUBLIC_CONFIG.COMPETITION_TIMEZONE,
       maintenance: false,
+      ...(this.deps.vapidPublicKey === undefined ? {} : { webPush: { vapidPublicKey: this.deps.vapidPublicKey } }),
       timing: {
         secondsPerMinute: timing.secondsPerMinute,
         halfTimeSeconds: timing.halfTimeSeconds,

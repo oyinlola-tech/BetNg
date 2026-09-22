@@ -14,6 +14,7 @@ export type { MatchCommandType, MatchQueryType } from "./match.constant.js";
 export {
   CATALOGUE_REPOSITORY_TOKEN,
   CLOCK_TOKEN,
+  VAPID_PUBLIC_KEY_TOKEN,
   IDENTITY_PEER_TOKEN,
   LIFECYCLE_SERVICE_TOKEN,
   LOGGER_TOKEN,

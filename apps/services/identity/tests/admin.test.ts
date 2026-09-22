@@ -28,6 +28,8 @@ const ID = "00000000-0000-4000-8000-000000000000";
 const ADMIN_ROUTES: readonly (readonly [string, string, string])[] = [
   ["GET", "/admin/users", "users:read"],
   ["POST", `/admin/users/${ID}/status`, "users:write"],
+  ["PATCH", `/admin/users/${ID}`, "users:write"],
+  ["POST", `/admin/users/${ID}/password-reset`, "users:write"],
   ["GET", "/admin/shops", "shops:read"],
   ["GET", `/admin/shops/${ID}`, "shops:read"],
   ["POST", "/admin/shops", "shops:write"],

@@ -41,12 +41,16 @@ export interface DeliveryProviders {
   readonly email: EmailProvider;
   readonly sms: SmsProvider | undefined;
   readonly push: PushProvider | undefined;
+  /** Browser PushSubscriptions (platform "web"); FCM never sees them. */
+  readonly webPush?: PushProvider | undefined;
 }
 
 export type SecurityAlert =
   | { readonly kind: "NEW_LOGIN"; readonly device: string | undefined; readonly browser: string | undefined; readonly platform: string | undefined }
   | { readonly kind: "PASSWORD_CHANGED" }
   | { readonly kind: "PASSWORD_RESET" }
+  | { readonly kind: "PROFILE_UPDATED"; readonly bySupport: boolean }
+  | { readonly kind: "PASSWORD_RESET_SENT_BY_SUPPORT" }
   | { readonly kind: "TWO_FACTOR_ENABLED" }
   | { readonly kind: "TWO_FACTOR_DISABLED" }
   | { readonly kind: "BACKUP_CODES_REGENERATED" }

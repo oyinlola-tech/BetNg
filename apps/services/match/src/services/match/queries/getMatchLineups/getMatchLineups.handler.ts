@@ -114,11 +114,14 @@ export class GetMatchLineupsHandler extends QueryHandler<
     const { homeTeam, awayTeam } = match.fixture;
 
     try {
-      return await this.cache.get(`${homeTeam.id}:${awayTeam.id}`, async () => {
+      const modelVersion = await this.deps.simulation.findModelVersion(match.id);
+
+      return await this.cache.get(`${homeTeam.id}:${awayTeam.id}:${modelVersion ?? "current"}`, async () => {
         const squads = await this.deps.squads.getSquads(
           {
             home: { teamId: homeTeam.id, name: homeTeam.name },
             away: { teamId: awayTeam.id, name: awayTeam.name },
+            ...(modelVersion === undefined ? {} : { modelVersion }),
           },
           requestId,
         );

@@ -3,6 +3,7 @@ import type { CommandBus, QueryBus } from "@zudojs/cqrs";
 import {
   CATALOGUE_REPOSITORY_TOKEN,
   CLOCK_TOKEN,
+  VAPID_PUBLIC_KEY_TOKEN,
   IDENTITY_PEER_TOKEN,
   LIFECYCLE_SERVICE_TOKEN,
   LOGGER_TOKEN,
@@ -69,6 +70,7 @@ export function registerMatchService(config: MatchServiceConfig): void {
     timing: container.resolve(TIMING_TOKEN),
     clock: container.resolve(CLOCK_TOKEN),
     logger: container.resolve(LOGGER_TOKEN),
+    vapidPublicKey: container.resolve(VAPID_PUBLIC_KEY_TOKEN),
   };
 
   queryBus.register(MATCH_QUERY.LIST_LEAGUES, new ListLeaguesHandler(deps));

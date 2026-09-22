@@ -24,6 +24,7 @@ export interface HandlerDependencies {
   readonly timing: MatchTiming;
   readonly clock: Clock;
   readonly logger: Logger;
+  readonly vapidPublicKey?: string | undefined;
 }
 
 /** Who asked for a write, taken from the gateway's actor headers and never from the body. */

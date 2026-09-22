@@ -14,6 +14,8 @@ import { ADMIN_PERMISSION, LIST_LIMIT } from "../constants/index.js";
 import type { ListDto } from "../dtos/index.js";
 import type { IdentityBuses } from "../loaders/index.js";
 import {
+  AdminSendPasswordResetCommand,
+  AdminUpdateCustomerCommand,
   CreateCashierCommand,
   CreateShopCommand,
   GetAdminSessionQuery,
@@ -34,6 +36,8 @@ import {
 } from "../services/index.js";
 import { readBearerToken } from "../utils/index.js";
 import {
+  adminPasswordResetValidator,
+  adminUpdateCustomerValidator,
   auditLogQueryValidator,
   createCashierValidator,
   createShopValidator,
@@ -51,6 +55,8 @@ export interface AdminController {
   readonly session: (context: HttpRouterContext) => Promise<AdminSession>;
   readonly listCustomers: (context: HttpRouterContext) => Promise<ListDto<AdminCustomer>>;
   readonly setCustomerStatus: (context: HttpRouterContext) => Promise<AdminCustomer>;
+  readonly updateCustomer: (context: HttpRouterContext) => Promise<AdminCustomer>;
+  readonly sendPasswordReset: (context: HttpRouterContext) => Promise<void>;
   readonly listShops: (context: HttpRouterContext) => Promise<ListDto<AdminShopSummary>>;
   readonly getShop: (context: HttpRouterContext) => Promise<AdminShopSummary>;
   readonly createShop: (context: HttpRouterContext) => Promise<AdminShopSummary>;
@@ -107,6 +113,24 @@ export function createAdminController(buses: IdentityBuses): AdminController {
       return commandBus.execute<SetCustomerStatusCommand, AdminCustomer>(
         new SetCustomerStatusCommand({ actor, customerId, status, reason }),
       );
+    },
+
+    updateCustomer: async (context) => {
+      const actor = requireAdmin(context, ADMIN_PERMISSION.USERS_WRITE);
+      const customerId = uuidParam(context, "id");
+      const { reason, displayName, phone } = parseBody(context.request, adminUpdateCustomerValidator);
+
+      return commandBus.execute<AdminUpdateCustomerCommand, AdminCustomer>(
+        new AdminUpdateCustomerCommand({ actor, customerId, changes: { displayName, phone }, reason }),
+      );
+    },
+
+    sendPasswordReset: async (context) => {
+      const actor = requireAdmin(context, ADMIN_PERMISSION.USERS_WRITE);
+      const customerId = uuidParam(context, "id");
+      const { reason } = parseBody(context.request, adminPasswordResetValidator);
+
+      await commandBus.execute<AdminSendPasswordResetCommand>(new AdminSendPasswordResetCommand({ actor, customerId, reason }));
     },
 
     listShops: async (context) => {

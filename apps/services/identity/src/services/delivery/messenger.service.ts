@@ -30,6 +30,11 @@ const ALERT_COPY: Readonly<Record<SecurityAlert["kind"], { readonly subject: str
   NEW_LOGIN: { subject: "New sign-in to your BetNG account", line: "Your account was just signed in to" },
   PASSWORD_CHANGED: { subject: "Your BetNG password was changed", line: "The password on your account was changed." },
   PASSWORD_RESET: { subject: "Your BetNG password was reset", line: "The password on your account was reset with a code sent to this address." },
+  PROFILE_UPDATED: { subject: "Your BetNG profile was updated", line: "The name or phone number on your account was changed." },
+  PASSWORD_RESET_SENT_BY_SUPPORT: {
+    subject: "BetNG support sent you a password reset code",
+    line: "A member of BetNG support sent a password reset code to this address. Your password stays the same unless the code is used.",
+  },
   TWO_FACTOR_ENABLED: { subject: "Two-factor authentication is on", line: "Two-factor authentication was switched on for your account." },
   TWO_FACTOR_DISABLED: { subject: "Two-factor authentication is off", line: "Two-factor authentication was switched off for your account." },
   BACKUP_CODES_REGENERATED: { subject: "New BetNG backup codes", line: "New backup codes were generated; the previous set no longer works." },
@@ -46,6 +51,10 @@ function alertText(alert: SecurityAlert, at: Date): { subject: string; line: str
     const where = [alert.browser, alert.platform, alert.device].filter((part) => part !== undefined).join(" on ");
 
     line = `${line} ${where === "" ? "from a new device" : `from ${where}`} at ${at.toISOString()}.`;
+  }
+
+  if (alert.kind === "PROFILE_UPDATED" && alert.bySupport) {
+    line = "BetNG support changed the name or phone number on your account.";
   }
 
   if (alert.kind === "ACCOUNT_DELETION_REQUESTED") {
@@ -83,13 +92,17 @@ export function createMessenger(options: MessengerOptions): Messenger {
   };
 
   const push = async (customerId: string, title: string, body: string, data: Record<string, string>): Promise<void> => {
-    const provider = providers.push;
-
-    if (provider === undefined) {
+    if (providers.push === undefined && providers.webPush === undefined) {
       return;
     }
 
     for (const device of await store.channels.listDevices(customerId)) {
+      const provider = device.platform === "web" ? providers.webPush : providers.push;
+
+      if (provider === undefined) {
+        continue;
+      }
+
       try {
         const token = protector.decrypt(device.tokenCiphertext, `push:${device.id}`);
         const outcome = await provider.send({ token, title, body, data });

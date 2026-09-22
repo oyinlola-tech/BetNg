@@ -54,6 +54,7 @@ function customers(db: Db): CustomerRepository {
     markVerified: async (id, at) =>
       db.customer.update({ where: { id }, data: { emailVerifiedAt: at, lastActiveAt: at } }),
     setStatus: async (id, status) => db.customer.update({ where: { id }, data: { status } }),
+    updateProfile: async (id, changes) => db.customer.update({ where: { id }, data: { ...changes } }),
     touchActive: async (id, at, olderThan) => {
       await db.customer.updateMany({
         where: { id, lastActiveAt: { lt: olderThan } },
@@ -132,6 +133,8 @@ function admins(db: Db): AdminUserRepository {
         },
       }),
     recordLogin: async (id, at) => db.adminUser.update({ where: { id }, data: { lastLoginAt: at } }),
+    enrolTotp: async (id, sealedSecret) =>
+      db.adminUser.update({ where: { id }, data: { totpSecret: sealedSecret, twoFactorEnabled: true, totpLastStep: null } }),
     claimTotpStep: async (id, step) => {
       const { count } = await db.adminUser.updateMany({
         where: { id, OR: [{ totpLastStep: null }, { totpLastStep: { lt: BigInt(step) } }] },

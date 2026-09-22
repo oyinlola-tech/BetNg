@@ -29,6 +29,8 @@ export const DEFAULT_TIMING: MatchTiming = Object.freeze({
 export interface MatchConfig extends ServiceConfig {
   readonly timing: MatchTiming;
   readonly schedulerEnabled: boolean;
+  /** Only the public half: the private key stays with identity. */
+  readonly vapidPublicKey: string | undefined;
 }
 
 type Env = Readonly<Record<string, string | undefined>>;
@@ -105,6 +107,20 @@ export function readTiming(env: Env): MatchTiming {
   });
 }
 
+export function readVapidPublicKey(env: Env): string | undefined {
+  const raw = env["VAPID_PUBLIC_KEY"]?.trim();
+
+  if (raw === undefined || raw === "") return undefined;
+
+  const decoded = /^[A-Za-z0-9_-]+$/u.test(raw) ? Buffer.from(raw, "base64url") : undefined;
+
+  if (decoded?.length !== 65 || decoded[0] !== 0x04) {
+    throw new Error("VAPID_PUBLIC_KEY must be a base64url 65-byte uncompressed P-256 public key.");
+  }
+
+  return raw;
+}
+
 export async function loadMatchConfig(env?: Env): Promise<MatchConfig> {
   const source = env ?? process.env;
 
@@ -122,5 +138,6 @@ export async function loadMatchConfig(env?: Env): Promise<MatchConfig> {
     timing: readTiming(source),
     schedulerEnabled:
       (source["SCHEDULER_ENABLED"] ?? "true").toLowerCase() !== "false",
+    vapidPublicKey: readVapidPublicKey(source),
   });
 }

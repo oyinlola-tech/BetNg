@@ -12,6 +12,7 @@ export type {
   AuditLogFilter,
   AuditLogRepository,
   CashierRepository,
+  CustomerProfileChanges,
   CustomerRepository,
   IdentityRepositories,
   IdentityStore,

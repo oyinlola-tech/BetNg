@@ -23,7 +23,7 @@ export const PASSWORD = "correct-horse-battery";
 
 /** The minimum a production identity config needs besides the database; placeholder values only. */
 export const PRODUCTION_REQUIREMENTS: Readonly<Record<string, string>> = {
-  REDIS_URL: "redis://localhost:6379",
+  REDIS_URL: "redis://:placeholder-redis-password@localhost:6379",
   IDENTITY_DATA_KEY: Buffer.alloc(32, 7).toString("base64"),
   EMAIL_PROVIDER: "sendgrid",
   SENDGRID_API_KEY: "SG.placeholder-key-for-config-tests",

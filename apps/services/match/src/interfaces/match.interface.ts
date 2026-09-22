@@ -217,6 +217,8 @@ export interface ScorerRow {
 /** Read-only access to the simulation service's schema. A missing table reads as "nothing there yet". */
 export interface SimulationReader {
   hasResult(matchId: string): Promise<boolean>;
+  /** The model that produced a stored result, so its squads can be re-derived under the same version. */
+  findModelVersion(matchId: string): Promise<string | undefined>;
   /** Only for a match at or past full time, or for figures that are scaled before they leave the service. */
   findResult(matchId: string): Promise<SimulationResultRow | undefined>;
   listEvents(

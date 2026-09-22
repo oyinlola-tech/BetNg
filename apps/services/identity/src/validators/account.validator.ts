@@ -18,8 +18,10 @@ import {
   twoFactorChallengeRequestSchema,
   twoFactorConfirmRequestSchema,
   twoFactorDisableRequestSchema,
+  updateProfileRequestSchema,
 } from "@betng/contracts";
 import { z } from "@zudojs/validation";
+import { parseSubscription } from "../services/delivery/webPush.crypto.js";
 
 export const twoFactorChallengeValidator = twoFactorChallengeRequestSchema.extend({ challengeId: z.string().min(16).max(128) }).strict();
 export const twoFactorConfirmValidator = twoFactorConfirmRequestSchema.extend({ enrollmentId: z.uuid() }).strict();
@@ -29,6 +31,8 @@ export const backupCodesRequestValidator = z.strictObject({ code: z.union([totpC
 export const passwordResetConfirmValidator = passwordResetConfirmRequestSchema.strict();
 export const passwordChangeValidator = passwordChangeRequestSchema.strict();
 
+export const updateProfileValidator = updateProfileRequestSchema.strict();
+
 export const accountDeletionValidator = accountDeletionRequestSchema.extend({ reason: z.string().trim().max(500).optional() }).strict();
 
 export const idempotencyKeyValidator = z.string().regex(/^[A-Za-z0-9_.:-]{8,120}$/u);
@@ -36,8 +40,17 @@ export const idempotencyKeyValidator = z.string().regex(/^[A-Za-z0-9_.:-]{8,120}
 export const channelPreferencesUpdateValidator = z.strictObject({ channels: channelPreferencesSchema.shape.channels });
 
 export const registerPushDeviceValidator = registerPushDeviceRequestSchema
-  .extend({ label: z.string().trim().min(1).max(80), token: z.string().min(16).max(4096).regex(/^[\x21-\x7e]+$/u) })
-  .strict();
+  .extend({ label: z.string().trim().min(1).max(80), token: z.string().min(16).max(4096).regex(/^[\x20-\x7e]+$/u) })
+  .strict()
+  .superRefine((value, context) => {
+    if (value.platform === "web" ? parseSubscription(value.token) === undefined : /\s/u.test(value.token)) {
+      context.addIssue({
+        code: "custom",
+        path: ["token"],
+        message: value.platform === "web" ? "Send the browser PushSubscription as JSON, with an https push service endpoint." : "The token is not valid.",
+      });
+    }
+  });
 
 export const kycUploadValidator = kycUploadRequestSchema
   .extend({ fileName: z.string().trim().min(1).max(200).regex(/^[^\p{Cc}\\/]+$/u, "Use a plain file name.") })

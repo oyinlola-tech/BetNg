@@ -2,12 +2,12 @@ import { CommandHandler } from "@zudojs/cqrs";
 import { isConflictError } from "@zudojs/database";
 import type { RegistrationPending } from "@betng/contracts";
 import { IDENTITY_COMMAND } from "../../../../constants/index.js";
-import { ConflictError, ServiceUnavailableError } from "../../../../errors/index.js";
+import { ConflictError, InvalidInputError, ServiceUnavailableError } from "../../../../errors/index.js";
 import type { HandlerDependencies, IssuedVerification } from "../../../../interfaces/index.js";
 import { normaliseEmail } from "../../../../utils/index.js";
 import type { RegisterCustomerCommand } from "./registerCustomer.command.js";
 
-type Dependencies = Pick<HandlerDependencies, "store" | "hasher" | "verifications" | "logger">;
+type Dependencies = Pick<HandlerDependencies, "store" | "hasher" | "verifications" | "logger" | "breachChecker">;
 
 const TAKEN = "An account with that email already exists. Log in instead.";
 
@@ -30,7 +30,11 @@ export class RegisterCustomerHandler extends CommandHandler<RegisterCustomerComm
     const email = normaliseEmail(command.request.email);
     const phone = command.request.phone?.trim();
 
-    // Hashed before any lookup, so the answer takes as long whether or not the address is taken.
+    // Checked and hashed before any lookup, so the answer takes as long whether or not the address is taken.
+    if (await this.deps.breachChecker.isBreached(command.request.password)) {
+      throw new InvalidInputError("password", "This password has appeared in a data breach. Choose a different one.");
+    }
+
     const passwordHash = await hasher.hash(command.request.password);
 
     const [existing, admin] = await Promise.all([

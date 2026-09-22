@@ -82,28 +82,28 @@ export function createSuperuser(): PrismaClient {
 }
 
 export async function ensurePeerTables(superuser: PrismaClient): Promise<void> {
-  const statements = [
-    `CREATE TABLE IF NOT EXISTS simulation.match_results (
+  const statements: readonly (() => Promise<number>)[] = [
+    async () => superuser.$executeRaw`CREATE TABLE IF NOT EXISTS simulation.match_results (
        match_id uuid PRIMARY KEY, simulation_id uuid NOT NULL, home_goals integer NOT NULL, away_goals integer NOT NULL,
        winner text NOT NULL, winning_gap integer NOT NULL, home_xg numeric(6,3) NOT NULL, away_xg numeric(6,3) NOT NULL,
        seed text NOT NULL, model_version text NOT NULL, configuration_version integer NOT NULL, stats jsonb NOT NULL,
        created_at timestamptz NOT NULL DEFAULT now())`,
-    `CREATE TABLE IF NOT EXISTS simulation.match_events (
+    async () => superuser.$executeRaw`CREATE TABLE IF NOT EXISTS simulation.match_events (
        id uuid PRIMARY KEY, match_id uuid NOT NULL, sequence integer NOT NULL, minute integer NOT NULL, type text NOT NULL,
        side text NULL, player text NULL, secondary_player text NULL, score_home integer NOT NULL,
        score_away integer NOT NULL, description text NOT NULL, UNIQUE (match_id, sequence))`,
-    `CREATE TABLE IF NOT EXISTS betting.bet_selections (
+    async () => superuser.$executeRaw`CREATE TABLE IF NOT EXISTS betting.bet_selections (
        id uuid PRIMARY KEY, bet_id uuid NOT NULL, match_id uuid NOT NULL, market_id uuid NOT NULL,
        selection_id uuid NOT NULL, league_id uuid NOT NULL, market_type text NOT NULL, selection_code text NOT NULL,
        line numeric(4,1) NULL, odds numeric(8,2) NOT NULL, odds_version integer NOT NULL, market_label text NOT NULL,
        selection_label text NOT NULL, match_label text NOT NULL, league_name text NOT NULL,
        kickoff_at timestamptz NOT NULL, outcome text NOT NULL, result text NULL)`,
-    `GRANT USAGE ON SCHEMA simulation, betting TO betng_match`,
-    `GRANT SELECT ON simulation.match_results, simulation.match_events, betting.bet_selections TO betng_match`,
+    async () => superuser.$executeRaw`GRANT USAGE ON SCHEMA simulation, betting TO betng_match`,
+    async () => superuser.$executeRaw`GRANT SELECT ON simulation.match_results, simulation.match_events, betting.bet_selections TO betng_match`,
   ];
 
   for (const statement of statements) {
-    await superuser.$executeRawUnsafe(statement);
+    await statement();
   }
 }
 
@@ -191,32 +191,19 @@ export async function commitSimulation(
 ): Promise<string> {
   const simulationId = randomUUID();
 
-  await superuser.$executeRawUnsafe(
-    `INSERT INTO simulation.match_results (match_id, simulation_id, home_goals, away_goals, winner, winning_gap, home_xg,
-       away_xg, seed, model_version, configuration_version, stats)
-     VALUES ($1::uuid, $2::uuid, 2, 1, 'HOME', 1, 1.8, 1.1, 'test-seed', 'test-1', 1, $3::jsonb)`,
-    matchId,
-    simulationId,
-    JSON.stringify(FINAL_STATS),
-  );
+  await superuser.$executeRaw`
+    INSERT INTO simulation.match_results (match_id, simulation_id, home_goals, away_goals, winner, winning_gap, home_xg,
+      away_xg, seed, model_version, configuration_version, stats)
+    VALUES (${matchId}::uuid, ${simulationId}::uuid, 2, 1, 'HOME', 1, 1.8, 1.1, 'test-seed', 'test-1', 1,
+      ${JSON.stringify(FINAL_STATS)}::jsonb)`;
 
   for (const [index, event] of TIMELINE.entries()) {
-    await superuser.$executeRawUnsafe(
-      `INSERT INTO simulation.match_events (id, match_id, sequence, minute, type, side, player, secondary_player,
-         score_home, score_away, description)
-       VALUES ($1::uuid, $2::uuid, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-      randomUUID(),
-      matchId,
-      index + 1,
-      event.minute,
-      event.type,
-      event.side ?? null,
-      event.player ?? null,
-      event.secondaryPlayer ?? null,
-      event.score[0],
-      event.score[1],
-      `${event.type} at ${String(event.minute)}'`,
-    );
+    await superuser.$executeRaw`
+      INSERT INTO simulation.match_events (id, match_id, sequence, minute, type, side, player, secondary_player,
+        score_home, score_away, description)
+      VALUES (${randomUUID()}::uuid, ${matchId}::uuid, ${index + 1}, ${event.minute}, ${event.type},
+        ${event.side ?? null}, ${event.player ?? null}, ${event.secondaryPlayer ?? null}, ${event.score[0]},
+        ${event.score[1]}, ${`${event.type} at ${String(event.minute)}'`})`;
   }
 
   return simulationId;
@@ -273,6 +260,7 @@ export interface FakePeers extends Peers {
     readonly settleMatch: string[];
     readonly voidMatch: { matchId: string; reason: string }[];
     readonly events: LiveEventInput[];
+    readonly resyncs: string[];
     readonly audits: AuditInput[];
   };
   /** Failures are injected per match: rows left by earlier runs are ticked too and must not consume them. */
@@ -295,6 +283,7 @@ export function createFakePeers(superuser: PrismaClient): FakePeers {
     settleMatch: [],
     voidMatch: [],
     events: [],
+    resyncs: [],
     audits: [],
   };
   const fail: FakePeers["fail"] = {
@@ -403,6 +392,11 @@ export function createFakePeers(superuser: PrismaClient): FakePeers {
         calls.events.push(event);
 
         return { sequence: calls.events.length };
+      },
+      resync: async (requestId) => {
+        calls.resyncs.push(requestId);
+
+        return { sequence: calls.resyncs.length };
       },
     },
     identity: {
@@ -605,19 +599,12 @@ export async function placeBet(
   harness: Harness,
   fixture: TestFixture,
 ): Promise<void> {
-  await harness.superuser.$executeRawUnsafe(
-    `INSERT INTO betting.bet_selections (id, bet_id, match_id, market_id, selection_id, league_id, market_type,
-       selection_code, odds, odds_version, market_label, selection_label, match_label, league_name, kickoff_at, outcome)
-     VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, $6::uuid, 'MATCH_RESULT', 'HOME', 1.85, 1, 'Match result',
-       'Home', 'Home v Away', 'Test League', $7::timestamptz, 'PENDING')`,
-    randomUUID(),
-    randomUUID(),
-    fixture.matchId,
-    randomUUID(),
-    randomUUID(),
-    fixture.leagueId,
-    fixture.kickoffAt.toISOString(),
-  );
+  await harness.superuser.$executeRaw`
+    INSERT INTO betting.bet_selections (id, bet_id, match_id, market_id, selection_id, league_id, market_type,
+      selection_code, odds, odds_version, market_label, selection_label, match_label, league_name, kickoff_at, outcome)
+    VALUES (${randomUUID()}::uuid, ${randomUUID()}::uuid, ${fixture.matchId}::uuid, ${randomUUID()}::uuid,
+      ${randomUUID()}::uuid, ${fixture.leagueId}::uuid, 'MATCH_RESULT', 'HOME', 1.85, 1, 'Match result',
+      'Home', 'Home v Away', 'Test League', ${fixture.kickoffAt.toISOString()}::timestamptz, 'PENDING')`;
 }
 
 export async function transitionsOf(

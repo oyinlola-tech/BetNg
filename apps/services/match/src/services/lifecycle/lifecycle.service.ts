@@ -89,11 +89,20 @@ function pricedStrength(stored: unknown): TeamStrength | undefined {
   return parsed.success ? parsed.data : undefined;
 }
 
+function liveStreamBackoffMs(failures: number): number {
+  const exponent = Math.max(0, Math.min(failures - 1, 16));
+
+  return Math.min(
+    SCHEDULER.LIVE_STREAM_RETRY_MAX_MS,
+    SCHEDULER.LIVE_STREAM_RETRY_BASE_MS * 2 ** exponent,
+  );
+}
+
 /** Close is retried every couple of seconds: betting is already shut by the clock, only the bookkeeping waits. */
 const CLOSE_RETRY_MS = 2000;
 
 export interface LifecycleService {
-  tick(): Promise<void>;
+  tick(held?: () => boolean): Promise<void>;
   openBetting(
     matchId: string,
     actor: LifecycleActor,
@@ -136,8 +145,8 @@ export function createLifecycleService(
     logger,
   } = deps;
 
-  /** Set when the event service fails, so one outage costs a tick one timeout rather than one per event. */
-  let liveStreamDown = false;
+  /** While the event service is down, publishing is retried on a backoff instead of costing every tick a timeout. */
+  const liveStream = { down: false, failures: 0, retryAtMs: 0 };
 
   function label(match: MatchRecord): string {
     return `${match.fixture.homeTeam.name} v ${match.fixture.awayTeam.name}`;
@@ -188,16 +197,49 @@ export function createLifecycleService(
     },
     requestId: string,
   ): Promise<void> {
-    if (liveStreamDown) return;
+    const nowMs = clock().getTime();
+
+    if (liveStream.down && nowMs < liveStream.retryAtMs) return;
 
     try {
       await peers.event.publish({ matchId: match.id, ...event }, requestId);
     } catch (error) {
-      liveStreamDown = true;
+      liveStream.down = true;
+      liveStream.failures += 1;
+      liveStream.retryAtMs = nowMs + liveStreamBackoffMs(liveStream.failures);
       logger.warn("Live event not published; clients re-read over REST", {
         event: "match.liveEventFailed",
         matchId: match.id,
         type: event.type,
+        failures: liveStream.failures,
+        retryAt: new Date(liveStream.retryAtMs).toISOString(),
+        requestId,
+        error: errorMessage(error),
+      });
+
+      return;
+    }
+
+    if (liveStream.down) await recoverLiveStream(requestId);
+  }
+
+  async function recoverLiveStream(requestId: string): Promise<void> {
+    const failures = liveStream.failures;
+
+    liveStream.down = false;
+    liveStream.failures = 0;
+    liveStream.retryAtMs = 0;
+    logger.info("Live stream recovered", {
+      event: "match.liveStreamRecovered",
+      failures,
+      requestId,
+    });
+
+    try {
+      await peers.event.resync(requestId);
+    } catch (error) {
+      logger.warn("Live stream re-sync signal not sent", {
+        event: "match.liveResyncFailed",
         requestId,
         error: errorMessage(error),
       });
@@ -589,6 +631,9 @@ export function createLifecycleService(
         : ErrorCodes.SETTLEMENT_FAILED;
     const reason = failureReason(code, error);
     const attempts = match.failureCount + 1;
+    const parked =
+      to === "SETTLEMENT_FAILED" &&
+      attempts >= SCHEDULER.MAX_SETTLEMENT_ATTEMPTS;
 
     await advance(
       match,
@@ -598,10 +643,25 @@ export function createLifecycleService(
       {
         failureReason: reason,
         failureCount: { increment: 1 },
-        nextAttemptAt: new Date(clock().getTime() + backoffMs(attempts)),
+        nextAttemptAt: new Date(
+          clock().getTime() +
+            (parked ? SCHEDULER.SETTLEMENT_PARKED_RETRY_MS : backoffMs(attempts)),
+        ),
       },
       reason,
     );
+
+    if (parked) {
+      logger.error("Settlement retries exhausted; the match waits for an operator", {
+        event: "match.settlementExhausted",
+        alert: true,
+        code,
+        matchId: match.id,
+        attempts,
+        requestId: context.requestId,
+        reason,
+      });
+    }
     logger.error(
       to === "SIMULATION_FAILED" ? "Simulation failed" : "Settlement failed",
       {
@@ -1072,37 +1132,28 @@ export function createLifecycleService(
   }
 
   return {
-    tick: async () => {
+    tick: async (held = () => true) => {
       const requestId = randomUUID();
       const context: StepContext = {
         actor: SYSTEM_ACTOR,
         requestId,
         throwOnFailure: false,
       };
+      const steps: readonly [string, () => Promise<void>][] = [
+        ["ensureRounds", async () => ensureRounds(clock())],
+        ["publishMarkets", async () => publishMarkets(clock(), context)],
+        ["markActive", async () => markActive(clock(), context)],
+        ["closeBetting", async () => closeBettingStep(clock(), context)],
+        ["simulate", async () => simulateStep(clock(), context)],
+        ["revealAndFinish", async () => revealAndFinishStep(clock(), context)],
+        ["settle", async () => settleStep(clock(), context)],
+      ];
 
-      liveStreamDown = false;
+      for (const [name, step] of steps) {
+        if (!held()) return;
 
-      await runStep("ensureRounds", requestId, async () =>
-        ensureRounds(clock()),
-      );
-      await runStep("publishMarkets", requestId, async () =>
-        publishMarkets(clock(), context),
-      );
-      await runStep("markActive", requestId, async () =>
-        markActive(clock(), context),
-      );
-      await runStep("closeBetting", requestId, async () =>
-        closeBettingStep(clock(), context),
-      );
-      await runStep("simulate", requestId, async () =>
-        simulateStep(clock(), context),
-      );
-      await runStep("revealAndFinish", requestId, async () =>
-        revealAndFinishStep(clock(), context),
-      );
-      await runStep("settle", requestId, async () =>
-        settleStep(clock(), context),
-      );
+        await runStep(name, requestId, step);
+      }
     },
 
     openBetting: async (matchId, actor, reason, requestId) => {

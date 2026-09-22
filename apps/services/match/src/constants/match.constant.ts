@@ -66,6 +66,11 @@ export const SCHEDULER = Object.freeze({
   BACKOFF_BASE_MS: 2000,
   BACKOFF_MAX_MS: 60_000,
   MAX_SIMULATION_ATTEMPTS: 5,
+  /** After this many failed settlement calls the match is parked for an operator; it is still retried, slowly. */
+  MAX_SETTLEMENT_ATTEMPTS: 8,
+  SETTLEMENT_PARKED_RETRY_MS: 600_000,
+  LIVE_STREAM_RETRY_BASE_MS: 2000,
+  LIVE_STREAM_RETRY_MAX_MS: 60_000,
   SYSTEM_ACTOR: "system",
 });
 

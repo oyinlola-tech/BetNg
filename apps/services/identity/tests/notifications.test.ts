@@ -76,6 +76,23 @@ describe("identity.notify", () => {
     });
   });
 
+  it("returns a valid payment reference on PAYMENT_UPDATED rows and drops an invalid one", async () => {
+    const customer = await h.makeCustomer();
+    const payment = { kind: "PAYMENT_UPDATED", title: "Deposit received", body: "₦5,000.00 was added." };
+    const good = await notify(customer.id, { ...payment, data: { reference: "BNG_dep-20260922", direction: "DEPOSIT", status: "COMPLETED", amount: 500_000 } });
+    const bad = await notify(customer.id, { ...payment, data: { reference: "../../etc", direction: "DEPOSIT", status: "FAILED", amount: 1 } });
+    const other = await notify(customer.id, { data: { reference: "BNG_dep-20260922" } });
+    const items = await inbox(customer.id);
+    const byId = (id: string) => items.find((item) => item.id === id);
+    const stored = await h.prisma.notification.findUniqueOrThrow({ where: { id: bad.id } });
+
+    expect(byId(good.id)?.paymentReference).toBe("BNG_dep-20260922");
+    expect(notificationSchema.safeParse(byId(good.id)).success).toBe(true);
+    expect(byId(bad.id)?.paymentReference).toBeUndefined();
+    expect(stored.data).toEqual({ direction: "DEPOSIT", status: "FAILED", amount: 1 });
+    expect(byId(other.id)?.paymentReference).toBeUndefined();
+  });
+
   it("is idempotent by dedupeKey, per customer", async () => {
     const customer = await h.makeCustomer();
     const other = await h.makeCustomer();

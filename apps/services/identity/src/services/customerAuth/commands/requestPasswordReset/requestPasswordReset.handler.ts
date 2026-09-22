@@ -1,9 +1,9 @@
-import { randomUUID } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
 import { CommandHandler } from "@zudojs/cqrs";
-import { ACCOUNT_SECURITY, IDENTITY_COMMAND, SECURITY } from "../../../../constants/index.js";
+import { IDENTITY_COMMAND, SECURITY } from "../../../../constants/index.js";
 import type { HandlerDependencies } from "../../../../interfaces/index.js";
-import { normaliseEmail, sixDigitCode, verificationCodeHash } from "../../../../utils/index.js";
+import { normaliseEmail } from "../../../../utils/index.js";
+import { canReceiveReset, issuePasswordReset } from "../../passwordReset.helper.js";
 import type { RequestPasswordResetCommand } from "./requestPasswordReset.command.js";
 
 type Dependencies = Pick<HandlerDependencies, "store" | "logger" | "messenger" | "security">;
@@ -51,23 +51,17 @@ export class RequestPasswordResetHandler extends CommandHandler<RequestPasswordR
     const { store, messenger, security, logger } = this.deps;
     const customer = await store.customers.findByEmail(email);
 
-    if (customer === undefined || customer.status !== "ACTIVE" || customer.emailVerifiedAt === null || customer.deletedAt !== null) {
+    if (customer === undefined || !canReceiveReset(customer)) {
       return undefined;
     }
 
-    const latest = await store.passwords.findLatestReset(customer.id);
+    const issued = await issuePasswordReset(store, customer);
 
-    if (latest !== undefined && Date.now() - latest.createdAt.getTime() < ACCOUNT_SECURITY.PASSWORD_RESET_INTERVAL_MS) {
+    if (issued === undefined) {
       return undefined;
     }
 
-    const id = randomUUID();
-    const code = sixDigitCode();
-    const expiresAt = new Date(Date.now() + ACCOUNT_SECURITY.PASSWORD_RESET_TTL_MS);
-
-    await store.transaction(async (repositories) =>
-      repositories.passwords.replaceReset(customer.id, id, verificationCodeHash(id, code), expiresAt),
-    );
+    const { code, expiresAt } = issued;
 
     if (security.logVerificationCodes) {
       logger.info("Password reset code issued", { event: "password_reset_code_issued", requestId, email: customer.email, code });

@@ -2,6 +2,8 @@
 
 import {
   adminLoginRequestSchema,
+  adminPasswordResetRequestSchema,
+  adminUpdateCustomerRequestSchema,
   auditLogQuerySchema,
   auditSeveritySchema,
   createCashierRequestSchema,
@@ -36,6 +38,10 @@ export const statusChangeValidator = z.strictObject({
   status: z.enum(["ACTIVE", "SUSPENDED"]),
   reason,
 });
+
+export const adminUpdateCustomerValidator = adminUpdateCustomerRequestSchema.strict();
+
+export const adminPasswordResetValidator = adminPasswordResetRequestSchema.strict();
 
 export const createShopValidator = createShopRequestSchema.strict();
 

@@ -1,5 +1,5 @@
 import { createRPCProcedure, RPCError, RPCServer, RPCValidationError } from "@zudojs/rpc";
-import type { CommandBus } from "@zudojs/cqrs";
+import type { CommandBus, QueryBus } from "@zudojs/cqrs";
 import { validate } from "@zudojs/validation";
 import type { ValidationSchema } from "@zudojs/validation";
 import type { Logger } from "@betng/service-kit";
@@ -7,17 +7,23 @@ import { IDENTITY_PROCEDURE, SYSTEM_ACTOR } from "../constants/index.js";
 import type {
   AuditRecordedDto,
   AuthenticatedActorDto,
+  KycStatusDto,
+  LimitsCheckDto,
   NotifiedDto,
   PinVerificationDto,
 } from "../dtos/index.js";
 import {
   AuthenticateCommand,
+  CheckLimitsCommand,
+  GetKycStatusQuery,
   NotifyCustomerCommand,
   RecordAuditCommand,
   VerifyCashierPinCommand,
 } from "../services/index.js";
 import {
   authenticatePayloadValidator,
+  kycStatusPayloadValidator,
+  limitsCheckPayloadValidator,
   notifyPayloadValidator,
   recordAuditPayloadValidator,
   verifyCashierPinPayloadValidator,
@@ -68,7 +74,7 @@ async function withContractCodes<T>(procedure: string, work: () => Promise<T>): 
 }
 
 /** `/rpc` is not proxied by the gateway; its callers are other BetNG services. */
-export function createIdentityRpcServer(commandBus: CommandBus, logger: Logger): RPCServer {
+export function createIdentityRpcServer(commandBus: CommandBus, queryBus: QueryBus, logger: Logger): RPCServer {
   const server = new RPCServer(undefined, undefined, {
     onInternalError: (error, requestId) => {
       logger.error("RPC procedure failed", {
@@ -151,6 +157,27 @@ export function createIdentityRpcServer(commandBus: CommandBus, logger: Logger):
             dedupeKey: notification.dedupeKey ?? undefined,
           }),
         ),
+      );
+    }),
+  );
+
+  // A caller that cannot get an answer here must refuse the money action (fail closed); this never answers "allowed" on error.
+  server.register(
+    createRPCProcedure<unknown, LimitsCheckDto>(IDENTITY_PROCEDURE.LIMITS_CHECK, async (input) => {
+      const { userId, action, amount } = payload(limitsCheckPayloadValidator, input, IDENTITY_PROCEDURE.LIMITS_CHECK);
+
+      return withContractCodes(IDENTITY_PROCEDURE.LIMITS_CHECK, async () =>
+        commandBus.execute<CheckLimitsCommand, LimitsCheckDto>(new CheckLimitsCommand(userId, action, amount)),
+      );
+    }),
+  );
+
+  server.register(
+    createRPCProcedure<unknown, KycStatusDto>(IDENTITY_PROCEDURE.KYC_STATUS, async (input) => {
+      const { userId } = payload(kycStatusPayloadValidator, input, IDENTITY_PROCEDURE.KYC_STATUS);
+
+      return withContractCodes(IDENTITY_PROCEDURE.KYC_STATUS, async () =>
+        queryBus.execute<GetKycStatusQuery, KycStatusDto>(new GetKycStatusQuery(userId)),
       );
     }),
   );
