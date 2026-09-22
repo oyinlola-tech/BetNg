@@ -25,8 +25,19 @@ BEGIN
   IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'betng_reader') THEN
     CREATE ROLE betng_reader NOLOGIN;
   END IF;
+
+  -- Operations logins: backups read everything, the metrics exporter reads statistics only.
+  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'betng_backup') THEN
+    CREATE ROLE betng_backup LOGIN PASSWORD 'betng_backup_local';
+  END IF;
+  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'betng_monitor') THEN
+    CREATE ROLE betng_monitor LOGIN PASSWORD 'betng_monitor_local' CONNECTION LIMIT 5;
+  END IF;
 END
 $$;
+
+GRANT pg_read_all_data TO betng_backup;
+GRANT pg_monitor TO betng_monitor;
 
 -- Shadow databases for `prisma migrate dev`.
 SELECT format('CREATE DATABASE %I OWNER %I', 'betng_' || s || '_shadow', 'betng_' || s)
@@ -54,5 +65,36 @@ BEGIN
     EXECUTE format('GRANT CONNECT ON DATABASE %I TO %I', current_database(), 'betng_' || service);
     EXECUTE format('GRANT betng_reader TO %I', 'betng_' || service);
   END LOOP;
+END
+$$;
+
+-- Session limits for service logins in this database. Set once; an operator's later value is kept.
+DO $$
+DECLARE
+  service text;
+  setting text;
+  value text;
+BEGIN
+  FOREACH service IN ARRAY ARRAY['match','odds','simulation','risk','betting','wallet','settlement','identity','analytics'] LOOP
+    FOREACH setting IN ARRAY ARRAY['statement_timeout','idle_in_transaction_session_timeout'] LOOP
+      value := CASE
+        WHEN setting = 'idle_in_transaction_session_timeout' THEN '60s'
+        WHEN service = 'analytics' THEN '300s'
+        ELSE '60s'
+      END;
+      IF NOT EXISTS (
+        SELECT FROM pg_db_role_setting s
+        JOIN pg_roles r ON r.oid = s.setrole
+        JOIN pg_database d ON d.oid = s.setdatabase
+        WHERE r.rolname = 'betng_' || service
+          AND d.datname = current_database()
+          AND EXISTS (SELECT FROM unnest(s.setconfig) AS c WHERE c LIKE setting || '=%')
+      ) THEN
+        EXECUTE format('ALTER ROLE %I IN DATABASE %I SET %I = %L', 'betng_' || service, current_database(), setting, value);
+      END IF;
+    END LOOP;
+  END LOOP;
+
+  EXECUTE format('GRANT CONNECT ON DATABASE %I TO betng_backup, betng_monitor', current_database());
 END
 $$;

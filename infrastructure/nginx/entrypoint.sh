@@ -39,6 +39,7 @@ check_origins BETNG_WS_ORIGIN "$BETNG_WS_ORIGIN" "$ws_schemes"
 check_origins BETNG_UPLOAD_ORIGINS "${BETNG_UPLOAD_ORIGINS:-}" "$http_schemes"
 check_origins BETNG_CHECKOUT_ORIGINS "${BETNG_CHECKOUT_ORIGINS:-}" "$http_schemes"
 check_origins BETNG_IMG_ORIGINS "${BETNG_IMG_ORIGINS:-}" "$http_schemes"
+check_origins BETNG_ANALYTICS_ORIGIN "${BETNG_ANALYTICS_ORIGIN:-}" "$http_schemes"
 
 hashes=/etc/nginx/betng/csp
 script_hashes="$(cat "$hashes/script-hashes")"
@@ -51,7 +52,7 @@ else
   style_attr="'none'"
 fi
 
-connect="'self' $(origins "$BETNG_API_ORIGIN") $(origins "$BETNG_WS_ORIGIN") $(origins "${BETNG_UPLOAD_ORIGINS:-}")"
+connect="'self' $(origins "$BETNG_API_ORIGIN") $(origins "$BETNG_WS_ORIGIN") $(origins "${BETNG_UPLOAD_ORIGINS:-}") $(origins "${BETNG_ANALYTICS_ORIGIN:-}")"
 csp="default-src 'none'"
 csp="$csp; script-src 'self' $script_hashes"
 csp="$csp; style-src 'self' $style_hashes"
@@ -75,6 +76,7 @@ esac
 
 export BETNG_CSP BETNG_ROBOTS_TAG
 mkdir -p /tmp/nginx
+# shellcheck disable=SC2016 # envsubst takes the literal variable list
 envsubst '${BETNG_CSP} ${BETNG_ROBOTS_TAG}' \
   < /etc/nginx/betng/security-headers.conf.template \
   > /tmp/nginx/security-headers.conf

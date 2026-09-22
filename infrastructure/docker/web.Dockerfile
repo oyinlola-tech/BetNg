@@ -23,7 +23,7 @@ RUN --mount=type=cache,id=betng-pnpm-store,target=/pnpm/store \
     pnpm install --frozen-lockfile --prefer-offline --store-dir /pnpm/store \
       --filter "@betng/${APP}..." --filter betng
 
-RUN for name in contracts client-sdk design-tokens brand ui-core mock-data; do \
+RUN for name in contracts client-sdk design-tokens brand ui-core; do \
       pnpm --filter "@betng/${name}" build || exit 1; \
     done
 
@@ -42,10 +42,10 @@ ARG VITE_UPLOAD_HOSTS
 ARG VITE_CHECKOUT_HOSTS
 
 RUN case "${VITE_APP_ENV}" in production|staging) ;; *) echo "VITE_APP_ENV must be production or staging" >&2; exit 1 ;; esac \
- && VITE_APP_ENV="${VITE_APP_ENV}" VITE_DATA_SOURCE=platform \
+ && VITE_APP_ENV="${VITE_APP_ENV}" \
     pnpm --filter "@betng/${APP}" exec vite build \
- && if grep -rlE "betng-demo|betng-admin|demo@betng\.test" "apps/${APP}/dist/assets"; then \
-      echo "The development mock is present in the production bundle." >&2; exit 1; \
+ && if grep -rlE "VITE_DATA_SOURCE|createMock|betng-demo|demo@betng\.test" "apps/${APP}/dist/assets"; then \
+      echo "A production bundle references development-only data." >&2; exit 1; \
     fi \
  && node scripts/check-public-env.mjs --dist "apps/${APP}/dist" \
  && node infrastructure/nginx/csp-hashes.mjs "apps/${APP}/dist/index.html" /out/csp \

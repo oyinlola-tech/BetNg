@@ -1,0 +1,49 @@
+// Tails Docker's json-file logs (read-only mount); no Docker socket.
+local.file_match "containers" {
+  path_targets = [{"__path__" = "/var/lib/docker/containers/*/*-json.log", "job" = "docker"}]
+}
+
+loki.source.file "containers" {
+  targets    = local.file_match.containers.targets
+  forward_to = [loki.process.containers.receiver]
+}
+
+loki.process "containers" {
+  stage.regex {
+    source     = "filename"
+    expression = "/var/lib/docker/containers/(?P<container>[0-9a-f]{12})"
+  }
+
+  stage.json {
+    expressions = {log = "log", stream = "stream", time = "time"}
+  }
+
+  stage.timestamp {
+    source = "time"
+    format = "RFC3339Nano"
+  }
+
+  stage.output {
+    source = "log"
+  }
+
+  stage.json {
+    expressions = {service = "service || metadata.service", level = "levelName || level"}
+  }
+
+  stage.labels {
+    values = {container = "", stream = "", service = "", level = ""}
+  }
+
+  stage.label_drop {
+    values = ["filename"]
+  }
+
+  forward_to = [loki.write.default.receiver]
+}
+
+loki.write "default" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}

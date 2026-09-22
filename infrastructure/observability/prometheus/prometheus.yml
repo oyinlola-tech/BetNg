@@ -1,0 +1,43 @@
+global:
+  scrape_interval: 15s
+  scrape_timeout: 5s
+  evaluation_interval: 30s
+  external_labels:
+    platform: betng
+
+rule_files:
+  - /etc/prometheus/rules.yml
+
+scrape_configs:
+  # /metrics answers only with the internal token (404 otherwise); the token is a mounted secret file.
+  - job_name: services
+    metrics_path: /metrics
+    http_headers:
+      x-betng-internal-token:
+        files: [/run/secrets/internal_service_token]
+    static_configs:
+      - { targets: ["gateway:3000"], labels: { service: gateway } }
+      - { targets: ["match:3001"], labels: { service: match } }
+      - { targets: ["betting:3002"], labels: { service: betting } }
+      - { targets: ["wallet:3003"], labels: { service: wallet } }
+      - { targets: ["settlement:3004"], labels: { service: settlement } }
+      - { targets: ["simulation:3005"], labels: { service: simulation } }
+      - { targets: ["odds:3006"], labels: { service: odds } }
+      - { targets: ["risk:3007"], labels: { service: risk } }
+      - { targets: ["event:3008"], labels: { service: event } }
+      - { targets: ["analytics:3009"], labels: { service: analytics } }
+      - { targets: ["identity:3010"], labels: { service: identity } }
+
+  - job_name: postgres
+    static_configs:
+      - { targets: ["postgres-exporter:9187"], labels: { service: postgres } }
+
+  - job_name: redis
+    static_configs:
+      - { targets: ["redis-exporter:9121"], labels: { service: redis } }
+
+  - job_name: observability
+    static_configs:
+      - { targets: ["localhost:9090"], labels: { service: prometheus } }
+      - { targets: ["loki:3100"], labels: { service: loki } }
+      - { targets: ["alloy:12345"], labels: { service: alloy } }

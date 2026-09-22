@@ -1,0 +1,151 @@
+server {
+    listen 8080 default_server;
+    server_name _;
+
+    location = /healthz {
+        access_log off;
+        allow 127.0.0.1;
+        deny all;
+        default_type text/plain;
+        return 200 "ok\n";
+    }
+
+    location / {
+        return 444;
+    }
+}
+
+server {
+    listen 8443 ssl default_server;
+    http2 on;
+    server_name _;
+    ssl_reject_handshake on;
+}
+
+server {
+    listen 8080;
+    server_name ${EDGE_DOMAIN} www.${EDGE_DOMAIN} api.${EDGE_DOMAIN} live.${EDGE_DOMAIN}
+                admin.${EDGE_DOMAIN} shop.${EDGE_DOMAIN} tv.${EDGE_DOMAIN};
+
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/www/acme;
+        default_type text/plain;
+        try_files $uri =404;
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+server {
+    listen 8443 ssl;
+    http2 on;
+    server_name api.${EDGE_DOMAIN};
+    include /etc/nginx/edge/security-headers.conf;
+    add_header X-Frame-Options "DENY" always;
+    add_header Cache-Control "no-store" always;
+    proxy_hide_header Strict-Transport-Security;
+    proxy_hide_header X-Content-Type-Options;
+    proxy_hide_header X-Frame-Options;
+    proxy_hide_header Cache-Control;
+    limit_conn perip 64;
+
+    location ~ ^/(metrics|ready|rpc|internal)(/|$) {
+        return 404;
+    }
+
+    location ~ ^/api/v1/(admin/|shop/)?auth/ {
+        limit_req zone=auth burst=10 nodelay;
+        set $gateway http://gateway:3000;
+        include /etc/nginx/edge/proxy-headers.conf;
+        proxy_pass $gateway;
+    }
+
+    location / {
+        limit_req zone=api burst=60 nodelay;
+        set $gateway http://gateway:3000;
+        include /etc/nginx/edge/proxy-headers.conf;
+        proxy_pass $gateway;
+    }
+}
+
+server {
+    listen 8443 ssl;
+    http2 on;
+    server_name live.${EDGE_DOMAIN};
+    include /etc/nginx/edge/security-headers.conf;
+    limit_conn perip 16;
+
+    location = /live {
+        limit_req zone=api burst=20 nodelay;
+        set $event http://event:3008;
+        include /etc/nginx/edge/proxy-headers.conf;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_read_timeout 1h;
+        proxy_send_timeout 1h;
+        proxy_buffering off;
+        proxy_pass $event;
+    }
+
+    location / {
+        return 404;
+    }
+}
+
+server {
+    listen 8443 ssl;
+    http2 on;
+    server_name ${EDGE_DOMAIN} www.${EDGE_DOMAIN};
+    limit_conn perip 64;
+
+    location / {
+        limit_req zone=static burst=120 nodelay;
+        set $frontend http://web:8080;
+        include /etc/nginx/edge/proxy-headers.conf;
+        proxy_pass $frontend;
+    }
+}
+
+server {
+    listen 8443 ssl;
+    http2 on;
+    server_name admin.${EDGE_DOMAIN};
+    limit_conn perip 64;
+
+    location / {
+        limit_req zone=static burst=120 nodelay;
+        set $frontend http://admin:8080;
+        include /etc/nginx/edge/proxy-headers.conf;
+        proxy_pass $frontend;
+    }
+}
+
+server {
+    listen 8443 ssl;
+    http2 on;
+    server_name shop.${EDGE_DOMAIN};
+    limit_conn perip 64;
+
+    location / {
+        limit_req zone=static burst=120 nodelay;
+        set $frontend http://shop:8080;
+        include /etc/nginx/edge/proxy-headers.conf;
+        proxy_pass $frontend;
+    }
+}
+
+server {
+    listen 8443 ssl;
+    http2 on;
+    server_name tv.${EDGE_DOMAIN};
+    limit_conn perip 64;
+
+    location / {
+        limit_req zone=static burst=120 nodelay;
+        set $frontend http://tv:8080;
+        include /etc/nginx/edge/proxy-headers.conf;
+        proxy_pass $frontend;
+    }
+}
