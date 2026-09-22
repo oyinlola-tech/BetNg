@@ -48,7 +48,7 @@ test.describe("web on a phone", () => {
 
     const sheet = page.getByRole("dialog");
 
-    await expect(sheet.getByText(/estimated return/i)).toBeVisible();
+    await expect(sheet.getByText(/estimated return/i).first()).toBeVisible();
     await expect(sheet.getByRole("button", { name: /place bet/i })).toBeVisible();
     await expectNoHorizontalScroll(page);
   });

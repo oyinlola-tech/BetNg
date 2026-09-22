@@ -59,10 +59,10 @@ test.describe("web", () => {
 
     await tabs.getByRole("tab", { name: /^Timeline/ }).click();
     await expect(page).toHaveURL(/tab=timeline/);
-    await expect(page.getByRole("tabpanel")).toBeVisible();
+    await expect(page.getByRole("tabpanel", { name: "Timeline" })).toBeVisible();
 
     await tabs.getByRole("tab", { name: /^Lineups/ }).click();
-    await expect(page.getByRole("tabpanel")).toContainText(/starting|lineup|not yet|unavailable/i);
+    await expect(page.getByRole("tabpanel", { name: "Lineups" })).toContainText(/starting|lineup|not yet|unavailable/i);
   });
 
   test("takes a bet from a price to a platform-accepted ticket, asking for sign-in on the way and keeping the slip", async ({ page }) => {
@@ -80,7 +80,7 @@ test.describe("web", () => {
 
     const slip = page.getByRole("complementary", { name: "Bet slip" });
 
-    await expect(slip.getByText(/estimated return/i)).toBeVisible();
+    await expect(slip.getByText(/estimated return/i).first()).toBeVisible();
     await slip.getByRole("button", { name: "Sign in to place bet" }).click();
 
     const dialog = page.getByRole("dialog");

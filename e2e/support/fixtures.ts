@@ -11,17 +11,21 @@ export const APP = {
 export interface PageProblems {
   readonly console: string[];
   readonly requests: string[];
+  /** Responses the test provokes on purpose, such as a refused sign-in; matched against "<status> <url>". */
+  readonly expected: RegExp[];
 }
 
 const IGNORED_CONSOLE = [/Download the React DevTools/, /\[vite\]/, /\[performance\]/];
+/* The platform answers 404 for a match's statistics until it has some; the match centre shows them as not yet available. */
+const IGNORED_RESPONSES = [/^404 \S+\/api\/v1\/matches\/[^/]+\/stats$/, /status of 404 .*\/api\/v1\/matches\/[^/]+\/stats$/];
 
 function watch(page: Page): PageProblems {
-  const problems: PageProblems = { console: [], requests: [] };
+  const problems: PageProblems = { console: [], requests: [], expected: [...IGNORED_RESPONSES] };
 
   page.on("console", (message) => {
     if (message.type() !== "error" && message.type() !== "warning") return;
 
-    const text = message.text();
+    const text = /^Failed to load resource/.test(message.text()) ? `${message.text()} ${message.location().url}` : message.text();
 
     if (!IGNORED_CONSOLE.some((pattern) => pattern.test(text))) problems.console.push(`${message.type()}: ${text}`);
   });
@@ -46,8 +50,11 @@ export const test = base.extend<{ problems: PageProblems }>({
 
       await use(problems);
 
-      expect(problems.requests, "failed requests").toEqual([]);
-      expect(problems.console, "console errors and warnings").toEqual([]);
+      const unexpected = (entries: readonly string[]): string[] =>
+        entries.filter((entry) => !problems.expected.some((pattern) => pattern.test(entry)));
+
+      expect(unexpected(problems.requests), "failed requests").toEqual([]);
+      expect(unexpected(problems.console), "console errors and warnings").toEqual([]);
     },
     { auto: true },
   ],

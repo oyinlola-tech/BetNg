@@ -15,7 +15,8 @@ async function signIn(page: Page, who: typeof CASHIER): Promise<void> {
 }
 
 test.describe("shop", () => {
-  test("keeps everything behind sign-in and refuses wrong credentials in plain words", async ({ page }) => {
+  test("keeps everything behind sign-in and refuses wrong credentials in plain words", async ({ page, problems }) => {
+    problems.expected.push(/^401 \S+\/shop\/auth\/login$/, /status of 401 .*\/shop\/auth\/login$/, /\/shop\/auth\/login failed .*status: 401, code: INVALID_CREDENTIALS/);
     await page.goto(`${APP.shop}/cashier/payout`);
     await expect(page.getByLabel("Shop code")).toBeVisible();
 
