@@ -20,12 +20,13 @@
     ]
   },
   "scripts": {
-    "build": "pnpm -r --filter=!@betng/mock-data run build",
+    "build": "pnpm -r run build",
     "db:bootstrap": "bash scripts/db-bootstrap.sh",
     "db:generate": "pnpm -r --filter './apps/services/*' run db:generate",
     "db:migrate": "pnpm -r --filter './apps/services/*' run db:migrate",
     "db:migrate:dev": "pnpm -r --filter './apps/services/*' run db:migrate:dev",
     "dev": "node scripts/dev.mjs",
+    "start": "bash scripts/start-all.sh",
     "dev:admin": "pnpm --filter @betng/admin dev",
     "dev:mobile": "pnpm --filter @betng/mobile start",
     "dev:py": "node scripts/dev.mjs --py-only",
@@ -52,7 +53,7 @@
     "test:e2e": "playwright test",
     "test:unit": "vitest run --project unit",
     "test:watch": "vitest",
-    "typecheck": "pnpm -r --filter=!@betng/mock-data run typecheck",
+    "typecheck": "pnpm -r run typecheck",
     "verify": "bash scripts/verify.sh",
     "verify:platform": "bash scripts/verify-platform.sh"
   },
