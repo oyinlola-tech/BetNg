@@ -205,6 +205,49 @@
   }
 }
 
+[data-scheme="dark"] {
+  color-scheme: dark;
+  --bn-background: #0A0C10;
+  --bn-surface: #12151B;
+  --bn-surface-elevated: #191D25;
+  --bn-surface-sunken: #0D1015;
+  --bn-surface-hover: #1A1F28;
+  --bn-text-primary: #F2F4F7;
+  --bn-text-secondary: #B2BAC6;
+  --bn-text-muted: #8690A0;
+  --bn-text-on-brand: #071230;
+  --bn-text-on-live: #2B060B;
+  --bn-text-on-status: #0A0C10;
+  --bn-border: #222732;
+  --bn-border-strong: #323946;
+  --bn-focus-ring: #7FA1FF;
+  --bn-brand: #4C7DFF;
+  --bn-brand-hover: #6B93FF;
+  --bn-brand-active: #3A69EB;
+  --bn-brand-subtle: #111B33;
+  --bn-success: #2FBF83;
+  --bn-success-subtle: #0F2A21;
+  --bn-danger: #F26D6D;
+  --bn-danger-subtle: #341418;
+  --bn-warning: #F0B441;
+  --bn-warning-subtle: #332611;
+  --bn-info: #4FB3DE;
+  --bn-info-subtle: #0F2733;
+  --bn-live: #FF3D52;
+  --bn-live-subtle: #3A1219;
+  --bn-pending: #9AA3B2;
+  --bn-pending-subtle: #1C2029;
+  --bn-void: #8D8A84;
+  --bn-void-subtle: #1D1E21;
+  --bn-suspended: #F08A4B;
+  --bn-suspended-subtle: #33200F;
+  --bn-overlay: rgba(0, 0, 0, 0.62);
+  --bn-skeleton: #1E232C;
+  --bn-series1: #4C7DFF;
+  --bn-series2: #D95926;
+  --bn-series3: #199E70;
+}
+
 :root[data-surface="tv"] {
   --bn-tv-root: clamp(16px, 1.25vw, 40px);
   --bn-tv-text-score: 9rem;
