@@ -1,11 +1,8 @@
 # Frontend → Platform API
 
-Every public screen in web, mobile, TV, shop and admin reads matches, markets and tables through one interface, `BetNgDataSource` (`packages/ui-core/src/dataSource.type.ts`). Two implementations exist:
+Every public screen in web, mobile, TV, shop and admin reads matches, markets and tables through one interface, `BetNgDataSource` (`packages/ui-core/src/dataSource.type.ts`), implemented by `createPlatformDataSource` (`packages/ui-core/src/adapters/platformDataSource.ts`). It calls the gateway through `@betng/client-sdk` and subscribes to the event service over WebSocket. There is no other implementation outside tests.
 
-- `createPlatformDataSource` (`packages/ui-core/src/adapters/platformDataSource.ts`) — the real one. It calls the gateway through `@betng/client-sdk` and subscribes to the event service over WebSocket.
-- `createMockDataSource` (`packages/mock-data`) — an in-process virtual season used until the routes below are served. Each mock method is annotated with the `@endpoint` it mirrors.
-
-Switch an app with `VITE_DATA_SOURCE=platform` plus `VITE_API_URL` / `VITE_WS_URL` (browser apps) or `expo.extra.dataSource: "platform"` (mobile). No code changes. Staging and production builds always use the platform and do not contain the mock. Environment, error model and contract status: [`api-integration.md`](./api-integration.md); realtime: [`realtime.md`](./realtime.md).
+Point an app at a platform with `VITE_API_URL` / `VITE_WS_URL` (browser apps) or `expo.extra.apiUrl` / `realtimeUrl` (mobile). Local development runs the platform (`pnpm dev`, or `scripts/e2e/serve.mjs`). Environment, error model and contract status: [`api-integration.md`](./api-integration.md); realtime: [`realtime.md`](./realtime.md).
 
 All routes sit under `API_PREFIX = /api/v1`. Every response uses the envelope in `packages/contracts/src/common/envelope.type.ts`; list endpoints answer `{ items: T[] }`. Schemas referenced below live in `@betng/contracts`.
 
@@ -152,7 +149,7 @@ Protocol in `packages/contracts/src/realtime/liveProtocol.type.ts`; client in `p
 
 ## Match clock and phase
 
-The clients take both from the platform. `Match.clock` (`period`, `minute`, `asOf`, optional `minuteLengthMs`) is served on `GET /matches`, `GET /matches/:id` and live frames; `GET /config` carries the round `timing`. `resolvePhase` (`packages/ui-core/src/phase.ts`) maps `Match.status`, `Match.lifecycle` and the clock period to the presentation phase, and takes no time input: `IN_PLAY` is `LIVE` until the platform reports half time, and `COMPLETED` is `SETTLED` only once the lifecycle says `SETTLEMENT_COMPLETED`. No client computes a minute from kick-off time. The timing model used to simulate matches lives only in the development stand-in (`packages/mock-data/src/timing.ts`).
+The clients take both from the platform. `Match.clock` (`period`, `minute`, `asOf`, optional `minuteLengthMs`) is served on `GET /matches`, `GET /matches/:id` and live frames; `GET /config` carries the round `timing`. `resolvePhase` (`packages/ui-core/src/phase.ts`) maps `Match.status`, `Match.lifecycle` and the clock period to the presentation phase, and takes no time input: `IN_PLAY` is `LIVE` until the platform reports half time, and `COMPLETED` is `SETTLED` only once the lifecycle says `SETTLEMENT_COMPLETED`. No client computes a minute from kick-off time. The match timing model lives only in the match service.
 
 ## Simulated-money rule
 

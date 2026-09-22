@@ -81,6 +81,10 @@ Geometry lives in `packages/brand/src/footballIcons.ts` (`FOOTBALL_ICONS`, `FOOT
 - Comments are rare and explain why, not what.
 - A component that needs data takes it as props. Nothing in `ui-web` fetches, and nothing in it knows a URL.
 
+## 6a. Scoped dark regions and the footer
+
+`data-scheme="dark"` on an element keeps that region in the dark palette in either theme (the tokens and the Tailwind colour variables are re-declared for the scope). The web footer uses it: a dark band with three feature cards (limits, live, support), numbered link columns separated by hairline rules, an edge-to-edge wordmark, and a meta bar with the legal links, the 18+ mark, the copyright and "Back to top". Its structure follows the typographic, grid, card and dark patterns catalogued on footer.design, drawn in BETNG's own type and colour.
+
 ## 7. Adding to the system
 
 1. A new value is a token first (`design-tokens`), then a Tailwind name in `theme.css`, then used.

@@ -1,6 +1,6 @@
 # BetNG platform architecture
 
-BetNG is a portfolio simulation of a virtual-football platform. Every amount is play money in kobo. Nothing here is, or may be wired to, real-money wagering or a payment provider.
+BetNG is a virtual-football platform. Every amount is integer kobo. Customer deposits and withdrawals go through real payment providers (Paystack, Flutterwave; Bachs is selectable but needs configuration) behind adapters in the wallet service, with a sandbox adapter for development and test only; the ledger moves only on a provider-confirmed outcome.
 
 This document is the contract between services. Shapes referenced as `Name` are schemas in `packages/contracts`; Python services mirror them with Pydantic models that serialise to the same camelCase JSON.
 
@@ -55,7 +55,7 @@ Payout arithmetic is integer-only: with each leg's odds as integer hundredths `h
 
 - Gateway-exposed REST lives under `/api/v1` and an upstream serves a route at **the same path** the gateway exposes. Internal REST lives under `/internal/...` and is never proxied. RPC is `POST /rpc` (wire format of `@zudojs/rpc`, mirrored by `betng_service_kit.rpc`).
 - JSON is camelCase. Lists answer `{ "items": [...] }`. Errors answer `{ "error": { "code", "message", "requestId", "details"?, "data"? } }`: `details` lists field issues, `data` carries machine-readable context for a domain error (a TS service throws an `HttpError` whose `details` is a plain object and the shared error handler emits it as `data`).
-- Error codes (HTTP): `VALIDATION_FAILED` 422, `UNAUTHENTICATED` 401, `SESSION_EXPIRED` 401, `INVALID_CREDENTIALS` 401, `FORBIDDEN` 403, `NOT_FOUND` 404, `CONFLICT` 409, `RATE_LIMITED` 429, `MARKET_CLOSED` 409, `ODDS_CHANGED` 409 (`error.data.current`: `{selectionId, odds, oddsVersion}[]`), `STAKE_LIMITED` 409 (`error.data.maxStake`), `RISK_REJECTED` 409, `INSUFFICIENT_FUNDS` 422, `INVALID_BET` 422, `DUPLICATE_SIMULATION` 409, `DUPLICATE_SETTLEMENT` 409, `RESULT_IMMUTABLE` 409, `SIMULATION_FAILED` 502, `SETTLEMENT_FAILED` 502, `ODDS_UNAVAILABLE` 503, `RISK_UNAVAILABLE` 503, `DATABASE_UNAVAILABLE` 503, `UPSTREAM_UNAVAILABLE` 503. A failed operation is never reported as success.
+- Error codes (HTTP): `VALIDATION_FAILED` 422, `UNAUTHENTICATED` 401, `SESSION_EXPIRED` 401, `INVALID_CREDENTIALS` 401, `FORBIDDEN` 403, `NOT_FOUND` 404, `CONFLICT` 409, `RATE_LIMITED` 429, `MARKET_CLOSED` 409, `ODDS_CHANGED` 409 (`error.data.current`: `{selectionId, odds, oddsVersion}[]`), `STAKE_LIMITED` 409 (`error.data.maxStake`), `RISK_REJECTED` 409, `INSUFFICIENT_FUNDS` 422, `INVALID_BET` 422, `DUPLICATE_SIMULATION` 409, `DUPLICATE_SETTLEMENT` 409, `RESULT_IMMUTABLE` 409, `SIMULATION_FAILED` 502, `SETTLEMENT_FAILED` 502, `ODDS_UNAVAILABLE` 503, `RISK_UNAVAILABLE` 503, `DATABASE_UNAVAILABLE` 503, `UPSTREAM_UNAVAILABLE` 503, `SELF_EXCLUDED` 403, `ACCOUNT_RESTRICTED` 403, `LIMIT_EXCEEDED` 409, `KYC_REQUIRED` 403, `PAYMENT_FAILED` 422, `PAYMENT_PROVIDER_UNAVAILABLE` 503, `PAYLOAD_TOO_LARGE` 413. A failed operation is never reported as success.
 - **Actor headers.** The gateway resolves `Authorization: Bearer <token>` with identity, strips any inbound `x-betng-*` header, and forwards: `x-betng-actor-kind` (`CUSTOMER` | `CASHIER` | `ADMIN`), `x-betng-actor-id`, `x-betng-actor-role`, `x-betng-actor-name`, `x-betng-shop-id` (cashiers), `x-betng-permissions` (comma list). Services read them with `readActor` (`@betng/service-kit`) / `read_actor` (`betng_service_kit`) and re-check the permission they need. A service never trusts a user id from a path or body over the actor.
 - **Internal trust.** `POST /rpc` and the actor headers are honoured only when the request carries `x-betng-internal-token` equal to `INTERNAL_SERVICE_TOKEN` (constant-time compare). The gateway and every service-to-service client attach it; both kits do this automatically. Production refuses to start without a token, with a short one, or with the `.env.example` placeholder. Unset in development/test means no check.
 - Structured logs (one JSON object per line) carry `timestamp`, `service`, `level`, `requestId`, and where relevant `matchId`, `betId`, `simulationId`, `event`. Never credentials, tokens, PINs or hashes.
@@ -85,7 +85,7 @@ Payout arithmetic is integer-only: with each leg's odds as integer hundredths `h
 
 Every transition is a row in `match.match_transitions` (`match_id, from_state, to_state, at, actor, reason`).
 
-**Timing** (env; clients read it from `GET /config` and the match `clock`, and the development stand-in in `packages/mock-data/src/timing.ts` uses the same defaults): `MATCH_SECONDS_PER_MINUTE=2`, `MATCH_HALF_TIME_SECONDS=15`, `BETTING_CLOSE_LEAD_SECONDS=10`, `ROUND_CYCLE_SECONDS=240`, leagues staggered by `LEAGUE_STAGGER_SECONDS=60`, `UPCOMING_ROUNDS=3`. Minute `m` of the first half is revealed at `kickoff + m*spm`; second-half minute at `kickoff + 45*spm + half_time + (m-45)*spm`; full time at `kickoff + 90*spm + half_time`.
+**Timing** (env; clients read it from `GET /config` and the match `clock`): `MATCH_SECONDS_PER_MINUTE=2`, `MATCH_HALF_TIME_SECONDS=15`, `BETTING_CLOSE_LEAD_SECONDS=10`, `ROUND_CYCLE_SECONDS=240`, leagues staggered by `LEAGUE_STAGGER_SECONDS=60`, `UPCOMING_ROUNDS=3`. Minute `m` of the first half is revealed at `kickoff + m*spm`; second-half minute at `kickoff + 45*spm + half_time + (m-45)*spm`; full time at `kickoff + 90*spm + half_time`.
 
 **Result secrecy.** The result exists from kick-off but is revealed over the match. Public routes return only events whose reveal instant has passed and the score implied by them. No gateway-exposed route, admin included, returns a score, result or unrevealed event for a match that is not `COMPLETED`.
 
@@ -113,6 +113,10 @@ All payloads are validated by the callee. `requestId` travels in RPC metadata.
 | `settlement.settleMatch` | match → settlement | `{ matchId }` → `{ matchId, status, betsTotal, betsSettled, duplicate }` |
 | `settlement.voidMatch` | match → settlement | `{ matchId, reason }` → same shape |
 | `event.publish` | match, odds → event | `{ matchId, type, minute, side?, score, description, clock? }` → `{ sequence }` |
+| `limits.check` | wallet, betting → identity | `{ userId, action: "DEPOSIT"\|"BET"\|"WITHDRAWAL", amount }` → `{ allowed: true }` or `{ allowed: false, code: "SELF_EXCLUDED"\|"LIMIT_EXCEEDED"\|"ACCOUNT_RESTRICTED", message }`. Callers fail closed (503) when identity is unreachable |
+| `kyc.status` | wallet → identity | `{ userId }` → `{ status, tier, dailyDeposit?, dailyWithdrawal? }` |
+| `event.publishSignal` | wallet, identity → event | `{ channel, type }` → pushes a state-free signal (e.g. `WALLET_UPDATED`) to a private channel; best-effort |
+| `event.revokeSessions` | identity → event | `{ tokenHash }` or `{ userId }` → drops private realtime subscriptions of revoked sessions |
 
 `TeamStrength` = `{ attack, defence, midfield, goalkeeping, pace, finishing, possession, form, homeAdvantage }`; ratings 0–100, `form` −10…+10.
 
@@ -145,8 +149,10 @@ Placement: validate → per-match Redis lock → load match, market, selection a
 Routes: `POST/GET /bets`, `GET /bets/:id`; `POST/GET /shop/tickets`, `GET /shop/tickets/:code`, `POST /shop/tickets/:code/payout`, `POST /shop/tickets/:code/cancel`.
 
 ### wallet (`wallet` schema)
-Tables: `wallet_accounts` (`owner_type` `CUSTOMER`|`SHOP`, `owner_id`), `wallet_transactions` (append-only, idempotency key per account). An account is opened on first access for an owner that exists in `identity` (customers get `WELCOME_GRANT_KOBO`, shops `SHOP_OPENING_FLOAT_KOBO`). There is no `ADMIN` owner type.
-Routes: `GET /wallets/:userId`, `/wallets/:userId/transactions` (`?page=` answers a `Page<Transaction>` with filters and an allowlisted sort), `POST /wallets/deposit`, `/wallets/withdraw` (simulated top-up), `GET /shop/transactions`, `GET /admin/wallet/overview`.
+Tables: `wallet_accounts` (`owner_type` `CUSTOMER`|`SHOP`, `owner_id`), `wallet_transactions` (append-only, idempotency key per account), `payments` (one row per deposit or withdrawal; status moves are guarded by a trigger), `payment_webhook_events` (provider event ids, no payloads), `bank_accounts` and `bank_account_verifications` (account numbers AES-256-GCM ciphertext plus last four; not granted to `betng_reader`), `statement_jobs`, `cashier_shifts` (one open shift per cashier). An account is opened on first access for an owner that exists in `identity` (customers get `WELCOME_GRANT_KOBO`, which must be 0 once wallets hold real money; shops get `SHOP_OPENING_FLOAT_KOBO`). There is no `ADMIN` owner type.
+Every balance change is a ledger entry posted inside the same database transaction as the payment status change it belongs to. A deposit credits `DEPOSIT` once (`deposit:<paymentId>` key, row lock on the payment) only after the provider confirms the exact amount and currency; a mismatch is flagged, never credited. A withdrawal debits `WITHDRAWAL` at request time (the amount shows as `pending` on the wallet); a failed, rejected or reversed transfer credits `WITHDRAWAL_REVERSAL` once. Status: `INITIATED`/`PENDING` → `PROCESSING` → `CONFIRMED`|`FAILED`|`CANCELLED`|`EXPIRED`; `CONFIRMED` → `REVERSED` only.
+Providers are adapters selected by `PAYMENTS_PROVIDER`; webhooks are verified over the raw request bytes (Paystack HMAC-SHA512, Flutterwave `verif-hash`, constant-time) before parsing. Deposit and withdrawal requests call identity `limits.check` and `kyc.status` first and fail closed. Background jobs expire stale deposits after re-verifying, dispatch and poll transfers, and build queued statements.
+Routes: `GET /wallets/:userId` (`pending` = withdrawals with the provider), `/wallets/:userId/transactions` (`?page=` answers a `Page<Transaction>` with filters and an allowlisted sort), `POST /wallets/deposit`, `/wallets/withdraw` (play-money top-up; off in production and beside a real provider), `GET /shop/transactions`, `GET /admin/wallet/overview`; `/payments/*` (deposit initiate/verify, history, withdraw quote/request/status, banks, bank accounts, provider webhooks), `/account/statements`, `/shop/shifts*`, `/admin/payments*` — see `apps/services/wallet/README.md`.
 
 ### settlement (`settlement` schema)
 Tables: `settlements` (unique `bet_id, revision`), `settled_selections`, `match_settlements`, `operator_periods`, `operator_ledger_entries` (one per settlement, same transaction), `operator_ledger`, `commission_config`, `commission_ledger`.
@@ -207,6 +213,8 @@ wallet.wallet_accounts      id, owner_type, owner_id, balance, reserved, currenc
                             created_at, updated_at            -- unique (owner_type, owner_id)
 wallet.wallet_transactions  id, account_id, type, amount (signed), currency, balance_after, idempotency_key,
                             reference null, note null, actor_id null, corrects_id null, created_at
+wallet.payments             id, reference (unique), user_id, direction, status, amount, created_at, updated_at,
+                            completed_at null
 
 settlement.settlements              id, bet_id, revision, outcome, stake, payout, channel, user_id null,
                                     shop_id null, cashier_id null, period_id, effects_applied_at null, settled_at

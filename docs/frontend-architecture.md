@@ -2,7 +2,7 @@
 
 Five clients, one domain model, one design system, one data boundary. The platform is the source of truth for everything that matters; the clients render it.
 
-Companion documents: [`design.md`](../design.md) (visual reference), [`design-system.md`](./design-system.md) (tokens and components), [`api-integration.md`](./api-integration.md), [`realtime.md`](./realtime.md), [`testing.md`](./testing.md), [`frontend-api.md`](./frontend-api.md) (route checklist).
+Companion documents: [`design.md`](../design.md) (visual reference), [`design-system.md`](./design-system.md) (tokens and components), [`frontend-backend-contracts.md`](./frontend-backend-contracts.md) (contracts, authority, pending routes), [`frontend-api-matrix.md`](./frontend-api-matrix.md) (per-screen wiring), [`api-integration.md`](./api-integration.md), [`realtime.md`](./realtime.md), [`development.md`](./development.md), [`testing.md`](./testing.md), [`deployment.md`](./deployment.md), [`security-headers.md`](./security-headers.md), [`frontend-api.md`](./frontend-api.md) (route checklist).
 
 ## 1. Workspace
 
@@ -19,10 +19,9 @@ packages/ui-core         view models, data-source interfaces, platform adapters,
 packages/design-tokens   colour, type roles, spacing, radius, elevation, motion, z-index, component sizes, TV layer → TS + generated CSS
 packages/brand           logo, league marks, the procedural crest system
 packages/ui-web          React + Tailwind components for web, shop and admin (and TV where shared)
-packages/mock-data       development-only stand-in for the platform, behind the same interfaces
 ```
 
-Dependency direction is one way: `apps → ui-web → ui-core → client-sdk → contracts`. `mock-data` depends on `ui-core`; nothing depends on `mock-data` except each app's `services/mockSources.ts`.
+Dependency direction is one way: `apps → ui-web → ui-core → client-sdk → contracts`. There is no development stand-in: every app, in every environment, talks to the platform.
 
 ## 2. Layers
 
@@ -33,9 +32,9 @@ Feature hook                 TanStack Query: keys, stale times, invalidation
   ↓
 Application service          placeBet(), session, runtime bootstrap
   ↓
-Data source interface        BetNgDataSource · AuthDataSource · ShopDataSource · AdminDataSource
+Data source interface        BetNgDataSource · AuthDataSource · AccountServicesSource · ShopDataSource · AdminDataSource · ComplianceDataSource
   ↓
-Platform adapter             wire contract → view model, error translation      (or the mock, in development)
+Platform adapter             wire contract → view model, error translation
   ↓
 SDK                          REST requester, realtime client
   ↓
@@ -46,7 +45,7 @@ Realtime flows the other way: `event service → RealtimeClient → platform dat
 
 What each layer may not do:
 
-- Components and hooks never call `fetch`, never build URLs, never import the SDK or the mock.
+- Components and hooks never call `fetch`, never build URLs, never import the SDK.
 - Adapters never invent data. A route that is not served yet yields an empty value and the screen shows an unavailable state.
 - No layer in the browser decides a result, a price, a settlement, a balance, a payout, a risk decision, bet acceptance or an operator figure.
 
@@ -74,11 +73,10 @@ Server data is never copied into a store. Changes arrive by invalidation or real
 
 Each browser app starts the same way (`src/services/runtime.ts`):
 
-1. `readClientEnv(import.meta.env)`: validated public configuration. Staging and production always resolve to the platform.
-2. Create the logger and the session store.
-3. Create the data sources: platform clients through `createPlatformClients`, or, in development and test only, the mock through a dynamic import that a deployed build eliminates.
-4. Read `getPlatformConfig()`; apply currency and competition timezone; resolve feature flags (`platform > build overrides > defaults`).
-5. Render inside `LoggerProvider`, `FeatureFlagsProvider`, `ThemeProvider`, `QueryClientProvider`, `ToastProvider` and the global error boundary.
+1. `readClientEnv(import.meta.env)`: validated public configuration.
+2. At module load: the logger, the session store and the platform data sources (`createPlatformClients` and the `createPlatform*` adapters). Nothing here is asynchronous; tests replace the sources with `__setRuntimeForTests`.
+3. `initRuntime()` reads `getPlatformConfig()`; apply currency and competition timezone; resolve feature flags (`platform > build overrides > defaults`).
+4. Render inside `LoggerProvider`, `FeatureFlagsProvider`, `ThemeProvider`, `QueryClientProvider`, `ToastProvider` and the global error boundary.
 
 ## 6. Authentication and route protection
 
@@ -97,7 +95,29 @@ Guards are presentation. Permissions come only from the session the platform iss
 
 - Errors: `BetNgApiError → DataSourceError → presentError`. Error boundaries at three levels: global, route (`RouteErrorBoundary` as `errorElement`) and feature (a broken widget does not take the page down).
 - Logging: `createLogger` with redaction of credentials, tokens, financial detail and personal data. API failures, realtime disconnects, unhandled errors, failed user flows and long tasks are recorded. Sinks are pluggable.
-- Feature flags: `virtualFootballEnabled`, `walletEnabled`, `shopEnabled`, `adminEnabled`, `liveEnabled`, `tvEnabled`, `searchEnabled`, read with `useFlag` / `FeatureGate`.
+- Feature flags: `virtualFootballEnabled`, `walletEnabled`, `shopEnabled`, `adminEnabled`, `liveEnabled`, `tvEnabled`, `searchEnabled`, plus the account and operations flags in section 7a, read with `useFlag` / `FeatureGate`. Resolution order: platform `/config` > build overrides > defaults.
+
+## 7a. Customer account services
+
+`AccountServicesSource` (`packages/ui-core/src/accountServices.type.ts`) groups what sits behind a customer session besides betting: `payments` (deposit, withdrawal, bank accounts), `kyc` (overview, BVN/NIN, document upload), `limits` (responsible gaming, self-exclusion), `security` (password, 2FA, sessions, session refresh, deletion, statements) and `devices` (notification channels, push devices). The platform adapter (`adapters/platformAccountServices.ts`) calls the routes in `frontend-backend-contracts.md`; a route the gateway does not serve yet answers `NOT_IMPLEMENTED` and the screen shows an unavailable state. Each area is also behind a flag that is off until the platform's `/config` turns it on: `paymentsEnabled`, `kycEnabled`, `responsibleGamingEnabled`, `twoFactorEnabled`, `accountSessionsEnabled`, `statementsEnabled`, `notificationChannelsEnabled`, `accountDeletionEnabled`, `cashShiftsEnabled` (shop), `complianceEnabled` (admin). `VITE_FEATURE_*` build overrides exist for staging.
+
+Money boundaries in these flows:
+
+- Payment providers (Paystack, Flutterwave, Bachs) are chosen and called by the backend. The browser only sees a BetNG reference and, for card payments, a hosted-checkout URL that must be https on a host in `VITE_CHECKOUT_HOSTS` before the app navigates to it.
+- A deposit or withdrawal is shown as successful only when the platform reports `CONFIRMED`. The return from a provider lands on `/payments/:reference`, which polls `verifyDeposit` with backoff; a redirect is never a confirmation.
+- Every money command sends an idempotency key created once per logical operation and re-sent on retry. Mutating requests are never retried automatically.
+- Bank accounts are saved from a platform name enquiry (`verificationId`), never from a client-typed account name, and numbers are always masked.
+- KYC files go to a short-lived upload target the platform issues, on a host in `VITE_UPLOAD_HOSTS`, with progress and cancellation; nothing is kept in web storage.
+
+## 7b. Sessions
+
+`createSessionMonitor` (`packages/ui-core/src/sessionMonitor.ts`) derives `ACTIVE → EXPIRING → EXPIRED` from the platform's `expiresAt`; `SessionTimeoutWarning` (ui-web) warns two minutes ahead and offers "Stay signed in" where a refresh route exists (customers; admins and cashiers are told to sign in again). On sign-out, expiry, revocation or a different user signing in, web removes every private query (`ACCOUNT_QUERY_KEYS`), and the realtime connection is replaced so private channels close. Two transports are supported: bearer tokens in `sessionStorage` (served today) and HttpOnly cookies with double-submit CSRF (`VITE_AUTH_TRANSPORT=cookie`), where nothing secret is written to web storage.
+
+## 7c. Operational adapters
+
+- Shop printing: `apps/shop/src/services/printing` turns tickets, payouts and shift summaries into a device-neutral receipt and prints through a `PrinterAdapter`: `BrowserPrinter` (isolated print frame), `NetworkPrinter` (ESC/POS to a local bridge on localhost only), `DevelopmentPrinter`. Selling a ticket never depends on a printer.
+- Shop scanning: `apps/shop/src/services/scanner` defines `ScannerAdapter` with a keyboard-wedge implementation that never swallows normal typing; `ManualTicketEntry` is always available.
+- Mobile: `apps/mobile/src/platform` holds `SecureStorage`, `Biometrics`, `PushNotifications`, `DeepLinks`, `CrashReporting` (with redaction) and `OfflineCache` (read-only fixtures, standings and results; money commands require connectivity). Where the Expo module is not installed the implementation reports itself unavailable instead of falling back to insecure storage.
 
 ## 8. Component organisation
 
@@ -107,7 +127,7 @@ Each app keeps only what is specific to it: `configs`, `services`, `hooks`, `sto
 
 ## 9. Performance
 
-Route-level code splitting, the mock excluded from deployed bundles, variable fonts self-hosted, crests and icons as inline SVG (no image requests), query caching with stale times, realtime instead of fast polling, previous data kept while refreshing, server-driven paging for large tables. Measure before optimising further.
+Route-level code splitting, variable fonts self-hosted, crests and icons as inline SVG (no image requests), query caching with stale times, realtime instead of fast polling, previous data kept while refreshing, server-driven paging for large tables. Measure before optimising further.
 
 ## 10. SEO
 
@@ -127,7 +147,7 @@ Recorded on 2026-09-21. Screenshots are the apps running against the real platfo
   <img alt="The whole system" src="images/diagrams/system-light.svg" width="100%">
 </picture>
 
-`pnpm verify` builds, typechecks, lints and tests every client, builds four production bundles, and fails if any of them contains the development stand-in:
+`pnpm verify` builds, typechecks, lints and tests every client, builds four production bundles, and fails if any of them references a data-source switch, a stand-in or a demo credential:
 
 ![pnpm verify passing](images/proof/verify.webp)
 

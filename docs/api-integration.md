@@ -9,7 +9,7 @@ UI component
   ↓ feature hook            apps/*/src/hooks (TanStack Query keys, stale times, invalidation)
   ↓ application service     apps/*/src/services (placeBet, session, bootstrap)
   ↓ data source interface   packages/ui-core/src/*DataSource.type.ts
-  ↓ platform adapter        packages/ui-core/src/adapters          ← or packages/mock-data in development
+  ↓ platform adapter        packages/ui-core/src/adapters
   ↓ SDK                     packages/client-sdk (REST + realtime)
   ↓ public gateway          /api/v1/*
   ↓ backend services
@@ -17,7 +17,7 @@ UI component
 
 Rules the code holds to:
 
-- A component never calls `fetch`, never builds a URL and never imports `@betng/client-sdk` or `@betng/mock-data`.
+- A component never calls `fetch`, never builds a URL and never imports `@betng/client-sdk`.
 - The browser only ever knows two addresses: the public gateway and the public realtime endpoint. Risk, simulation, settlement, analytics, databases, Redis and RPC are backend-to-backend and are never configured in a client.
 - The platform is authoritative for match state, clock, results, odds, market status, bet acceptance, payouts, balances, risk decisions and operator figures. Clients render them; they do not derive them.
 - Wire types come from `@betng/contracts` (zod schemas shared with the services). View models in `packages/ui-core/src/types` are what screens render; only the adapters map between the two.
@@ -33,15 +33,14 @@ Browser apps read these at build time through `readClientEnv` (`packages/ui-core
 | `VITE_WS_URL` | `ws://localhost:3008/live` | Public realtime endpoint. `VITE_LIVE_URL` is still accepted |
 | `VITE_REALTIME_TRANSPORT` | `websocket` | `websocket` or `sse` |
 | `VITE_REALTIME_AUTH` | `none` | How the session token reaches the realtime endpoint: `none`, `frame` (an `AUTH` frame after connect) or `query` (`?access_token=`) |
-| `VITE_DATA_SOURCE` | `platform` | `platform` or `mock`. The mock is an explicit opt-in honoured only by a `development` or `test` build; **`staging` and `production` ignore it and always use the platform** |
 | `VITE_FEATURE_FLAGS` | none | Build-time flag overrides, e.g. `walletEnabled=false,tvEnabled=true`. Platform configuration wins over these |
 | `VITE_REQUEST_TIMEOUT_MS` | `10000` | Per-request timeout |
 | `VITE_LOG_LEVEL` | `info` (`warn` when deployed) | `debug` · `info` · `warn` · `error` |
 | `VITE_SITE_URL` | none | Public origin of the web app, for canonical and Open Graph URLs |
 
-`readClientEnv` also returns `problems` (a malformed URL, plain HTTP in a deployed build, a mock requested in production); apps log them at start-up.
+`readClientEnv` also returns `problems` (a malformed URL, plain HTTP in a deployed build); apps log them at start-up.
 
-The mock is loaded with a dynamic `import()` behind the data-source mode, so a staging or production bundle does not contain it.
+Every build, development included, talks to the platform named by `VITE_API_URL` and `VITE_WS_URL`.
 
 ## 3. REST client
 

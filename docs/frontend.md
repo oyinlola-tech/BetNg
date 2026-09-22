@@ -10,7 +10,7 @@ What each client contains, and how to sign in while developing. How it is built:
 | `apps/admin` | as web | 4500 |
 | `apps/mobile` | Expo, React Native, React Navigation | Expo |
 
-Every client talks to the platform by default. `VITE_DATA_SOURCE=mock` opts a development or test build into the in-process stand-in; staging and production builds ignore it and do not contain it.
+Every client talks only to the platform, in development as in production; local development runs the platform (see [`development.md`](./development.md#local-platform)).
 
 ## Web
 
@@ -55,15 +55,13 @@ Tabs Home · Live · Virtuals · Bets · Account, with Match, League, Standings,
 
 ## Sign-ins
 
-With the development stand-in (`VITE_DATA_SOURCE=mock`; the web, shop and admin sign-in screens list these in that mode only):
+From the identity demo seed (development and test only):
 
 | Client | Sign-in |
 | --- | --- |
-| Web, mobile | `demo@betng.test` / `betng-demo`; registration code `123456` |
-| Shop | shop `BNG-LAG-001`, users `ada` (owner), `tunde` (manager), `bisi` (cashier), password `betng-demo`, PIN `1234` |
-| Admin | `ops@betng.test` (super admin, code `246810`), `operations@`, `risk@`, `support@betng.test`, password `betng-admin` |
-
-Against a local platform the backend's seed provides its own accounts (see the platform README); the super admin there needs a real authenticator code.
+| Web, mobile | `demo@betng.test`, `amaka@betng.test` or `segun@betng.test` / `betng-demo` (already verified). A new registration's code is `DEV_VERIFICATION_CODE` when identity has one (the e2e stack sets `246810`), otherwise the code identity logs with `LOG_VERIFICATION_CODES=true` |
+| Shop | shop `BNG-LAG-001`: `ada` (owner), `tunde` (manager), `bisi` (cashier), `kunle` (suspended), PIN `1234`; shop `BNG-ABJ-001`: `amina` (owner), PIN `4321`; password `betng-demo` |
+| Admin | `ops@betng.test` (super admin) / `betng-admin` with an authenticator code. Its TOTP secret is random per database: the seed prints the enrolment URI once, and `pnpm --filter @betng/identity-service totp:dev` prints the current code. `operations@`, `risk@` and `support@betng.test` have no second factor, so the console stays locked for them |
 
 ## Screens
 
