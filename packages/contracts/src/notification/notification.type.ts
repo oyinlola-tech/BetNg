@@ -13,6 +13,11 @@ export const notificationKindSchema = z.enum([
   "RESULT_AVAILABLE",
   "BET_SETTLED",
   "MATCH_EVENT",
+  "BET_ACCEPTED",
+  "PAYMENT_UPDATED",
+  "KYC_UPDATED",
+  "SECURITY_ALERT",
+  "LIMIT_WARNING",
 ]);
 
 export type NotificationKind = z.infer<typeof notificationKindSchema>;
@@ -26,6 +31,8 @@ export interface Notification {
   readonly read: boolean;
   readonly matchId?: MatchId | undefined;
   readonly betId?: BetId | undefined;
+  /** The BetNG payment reference a PAYMENT_UPDATED notification is about. */
+  readonly paymentReference?: string | undefined;
   readonly createdAt: string;
 }
 
@@ -38,6 +45,7 @@ export const notificationSchema = z.object({
   read: z.boolean(),
   matchId: brandedIdSchema<"MatchId">().optional(),
   betId: brandedIdSchema<"BetId">().optional(),
+  paymentReference: z.string().regex(/^[A-Za-z0-9_-]{6,64}$/).optional(),
   createdAt: isoTimestampSchema,
 });
 

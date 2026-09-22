@@ -11,6 +11,7 @@ export const clientFrameSchema = z.discriminatedUnion("type", [
     channel: z.string().min(1).max(128),
   }),
   z.object({ type: z.literal("PONG") }),
+  z.object({ type: z.literal("AUTH"), token: z.string().min(16).max(512) }),
 ]);
 
 export type ClientFrame = z.infer<typeof clientFrameSchema>;

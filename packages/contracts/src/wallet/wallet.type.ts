@@ -19,6 +19,8 @@ export interface Wallet {
    * Available balance is `balance - reserved`.
    */
   readonly reserved: number;
+  /** Withdrawals already debited from `balance` and still with the payment provider. Absent where payments are off. */
+  readonly pending?: number | undefined;
   readonly currency: Currency;
   readonly createdAt: string;
   readonly updatedAt: string;
@@ -29,6 +31,7 @@ export const walletSchema = z.object({
   userId: brandedIdSchema<"UserId">(),
   balance: minorUnitsSchema.min(0),
   reserved: minorUnitsSchema.min(0),
+  pending: minorUnitsSchema.min(0).optional(),
   currency: currencySchema,
   createdAt: isoTimestampSchema,
   updatedAt: isoTimestampSchema,

@@ -70,3 +70,12 @@ export type VerifyEmailRequest = z.infer<typeof verifyEmailRequestSchema>;
 export const passwordResetRequestSchema = z.object({ email: z.email() });
 
 export type PasswordResetRequest = z.infer<typeof passwordResetRequestSchema>;
+
+const phoneSchema = z.string().regex(/^\+?[0-9 ]{7,20}$/, "Enter a phone number with its country code.");
+
+/** At least one field; the email address is changed through its own verified flow. */
+export const updateProfileRequestSchema = z
+  .object({ displayName: z.string().trim().min(2).max(60).optional(), phone: phoneSchema.optional() })
+  .refine((body) => body.displayName !== undefined || body.phone !== undefined, "Change at least one field.");
+
+export type UpdateProfileRequest = z.infer<typeof updateProfileRequestSchema>;

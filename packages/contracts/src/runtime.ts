@@ -27,6 +27,9 @@ export const ErrorCodes = Object.freeze({
   STAKE_LIMITED: "STAKE_LIMITED",
   RISK_REJECTED: "RISK_REJECTED",
   INSUFFICIENT_FUNDS: "INSUFFICIENT_FUNDS",
+  SELF_EXCLUDED: "SELF_EXCLUDED",
+  LIMIT_EXCEEDED: "LIMIT_EXCEEDED",
+  ACCOUNT_RESTRICTED: "ACCOUNT_RESTRICTED",
   INVALID_BET: "INVALID_BET",
   DUPLICATE_SIMULATION: "DUPLICATE_SIMULATION",
   DUPLICATE_SETTLEMENT: "DUPLICATE_SETTLEMENT",
@@ -39,10 +42,14 @@ export const ErrorCodes = Object.freeze({
   UPSTREAM_UNAVAILABLE: "UPSTREAM_UNAVAILABLE",
   SERVICE_UNAVAILABLE: "SERVICE_UNAVAILABLE",
   NOT_IMPLEMENTED: "NOT_IMPLEMENTED",
+  PAYLOAD_TOO_LARGE: "PAYLOAD_TOO_LARGE",
   INTERNAL_ERROR: "INTERNAL_ERROR",
 });
 
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];
+
+// Paired with OPAQUE_MESSAGE in services/shared/src/betng_service_kit/errors.py; change both together.
+export const OPAQUE_ERROR_MESSAGE = "An unexpected error occurred.";
 
 export function matchChannel(matchId: string): string {
   return `match:${matchId}`;

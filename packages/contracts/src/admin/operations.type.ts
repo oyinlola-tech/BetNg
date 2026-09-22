@@ -49,6 +49,21 @@ export const adminCustomerSchema = customerProfileSchema.extend({
 
 export type AdminCustomer = z.infer<typeof adminCustomerSchema>;
 
+/** An operator correction to a customer's details. Balances are never editable here. */
+export const adminUpdateCustomerRequestSchema = z
+  .object({
+    displayName: z.string().trim().min(2).max(60).optional(),
+    phone: z.string().regex(/^\+?[0-9 ]{7,20}$/).optional(),
+    reason: z.string().trim().min(4).max(300),
+  })
+  .refine((body) => body.displayName !== undefined || body.phone !== undefined, "Change at least one field.");
+
+export type AdminUpdateCustomerRequest = z.infer<typeof adminUpdateCustomerRequestSchema>;
+
+export const adminPasswordResetRequestSchema = z.object({ reason: z.string().trim().min(4).max(300) });
+
+export type AdminPasswordResetRequest = z.infer<typeof adminPasswordResetRequestSchema>;
+
 export const adminShopSummarySchema = shopSchema.extend({
   cashierCount: z.int().min(0),
   todaySales: minorUnitsSchema.min(0),

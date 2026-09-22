@@ -116,6 +116,8 @@ export const publicConfigSchema = z.object({
     .optional(),
   competitionTimezone: z.string().max(64).optional(),
   maintenance: z.boolean().optional(),
+  /** VAPID application server key (base64url) for browser push; absent when web push is not configured. */
+  webPush: z.object({ vapidPublicKey: z.string().regex(/^[A-Za-z0-9_-]{80,100}$/) }).optional(),
 });
 
 export type PublicConfig = z.infer<typeof publicConfigSchema>;

@@ -100,7 +100,7 @@ export const shopSessionSchema = z.object({
   permissions: z.array(z.string().max(40)).optional(),
 });
 
-export const shopPermissionSchema = z.enum(["tickets:sell", "tickets:check", "tickets:payout", "tickets:cancel", "transactions:read", "reports:read", "cashiers:read"]);
+export const shopPermissionSchema = z.enum(["tickets:sell", "tickets:check", "tickets:payout", "tickets:cancel", "transactions:read", "reports:read", "cashiers:read", "shifts:operate", "cash:move"]);
 
 export type ShopPermission = z.infer<typeof shopPermissionSchema>;
 

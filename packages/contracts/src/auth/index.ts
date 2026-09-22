@@ -5,6 +5,7 @@ export {
   customerSessionSchema,
   passwordResetRequestSchema,
   registrationPendingSchema,
+  updateProfileRequestSchema,
   verifyEmailRequestSchema,
 } from "./auth.type.js";
 export type {
@@ -14,5 +15,6 @@ export type {
   CustomerSession,
   PasswordResetRequest,
   RegistrationPending,
+  UpdateProfileRequest,
   VerifyEmailRequest,
 } from "./auth.type.js";
