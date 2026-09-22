@@ -1,18 +1,14 @@
 import { LogOut, ShieldAlert } from "lucide-react";
-import { BrandLogo, Button, DevelopmentBanner } from "@betng/ui-web";
-import { env } from "../services/runtime";
+import { BrandLogo, Button } from "@betng/ui-web";
 
 export interface TwoFactorRequiredProps {
   readonly email: string;
   readonly onSignOut: () => void;
-  /** Offered only on the development stand-in, whose seeded operators mostly lack a second factor. */
-  readonly onContinueInDevelopment?: () => void;
 }
 
-export function TwoFactorRequired({ email, onSignOut, onContinueInDevelopment }: TwoFactorRequiredProps): React.JSX.Element {
+export function TwoFactorRequired({ email, onSignOut }: TwoFactorRequiredProps): React.JSX.Element {
   return (
     <div className="flex min-h-dvh flex-col bg-background">
-      {env.dataSource === "mock" && <DevelopmentBanner />}
       <main className="flex flex-1 flex-col items-center justify-center gap-6 px-4 py-10">
         <BrandLogo product="Admin" size={28} />
         <section role="alertdialog" aria-modal="true" aria-labelledby="two-factor-title" aria-describedby="two-factor-body" className="w-full max-w-md rounded-lg border border-border bg-surface p-6 shadow-sm">
@@ -40,11 +36,6 @@ export function TwoFactorRequired({ email, onSignOut, onContinueInDevelopment }:
             </div>
           </dl>
           <div className="mt-6 flex flex-wrap justify-end gap-2">
-            {onContinueInDevelopment !== undefined && (
-              <Button variant="ghost" onClick={onContinueInDevelopment}>
-                Continue on development data
-              </Button>
-            )}
             <Button variant="primary" leadingIcon={<LogOut className="size-4" aria-hidden />} onClick={onSignOut} autoFocus>
               Sign out
             </Button>

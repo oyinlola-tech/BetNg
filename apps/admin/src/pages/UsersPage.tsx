@@ -3,6 +3,7 @@ import type { AdminCustomer } from "@betng/contracts";
 import { formatDateTime, formatMoney, formatRelative, formatShortDate } from "@betng/ui-core";
 import { Avatar, Drawer, Panel, type Column } from "@betng/ui-web";
 import { AdminListTable } from "../components/AdminListTable";
+import { CustomerEditDrawer } from "../components/CustomerEditDrawer";
 import { DetailItem, Mono, Status } from "../components/Bits";
 import { GuardedButton } from "../components/Guard";
 import { PageHeader } from "../components/PageHeader";
@@ -39,11 +40,16 @@ const COLUMNS: readonly Column<AdminCustomer>[] = [
 export function UsersPage(): React.JSX.Element {
   const list = useAdminList("users", { defaults: { sort: "lastActiveAt", direction: "desc" }, filterKeys: ["status"] });
   const [selectedId, setSelectedId] = useState<string | undefined>();
+  const [editing, setEditing] = useState(false);
   const selected = list.query.data?.items.find((c) => c.id === selectedId);
   const { ask, dialog } = useReasonAction();
   const setCustomerStatus = useAdminAction({
     run: (input: { readonly id: string; readonly status: "ACTIVE" | "SUSPENDED"; readonly reason: string }) => adminSource.setCustomerStatus(input.id, input.status, input.reason),
     success: (customer) => `${customer.displayName} is now ${customer.status.toLowerCase()}`,
+  });
+  const sendPasswordReset = useAdminAction({
+    run: (input: { readonly id: string; readonly name: string; readonly reason: string }) => adminSource.sendCustomerPasswordReset(input.id, input.reason),
+    success: (_result, input) => `Password reset sent to ${input.name}`,
   });
 
   return (
@@ -89,29 +95,48 @@ export function UsersPage(): React.JSX.Element {
       </Panel>
 
       <Drawer
-        open={selected !== undefined}
+        open={selected !== undefined && !editing}
         onClose={() => setSelectedId(undefined)}
         title={selected?.displayName ?? ""}
         description={selected?.email ?? ""}
         footer={
           selected !== undefined && (
-            <GuardedButton
-              permission="users:write"
-              variant={selected.status === "ACTIVE" ? "danger" : "primary"}
-              onClick={() => {
-                const next = selected.status === "ACTIVE" ? "SUSPENDED" : "ACTIVE";
+            <>
+              <GuardedButton permission="users:write" variant="secondary" onClick={() => setEditing(true)}>
+                Edit details
+              </GuardedButton>
+              <GuardedButton
+                permission="users:write"
+                variant="secondary"
+                onClick={() => {
+                  ask({
+                    title: "Send a password reset?",
+                    description: `${selected.displayName} gets an email at ${selected.email} with a code to set a new password. Their current password keeps working until they use it.`,
+                    confirmLabel: "Send password reset",
+                    run: (reason) => sendPasswordReset.mutateAsync({ id: selected.id, name: selected.displayName, reason: reason.trim() }),
+                  });
+                }}
+              >
+                Send password reset
+              </GuardedButton>
+              <GuardedButton
+                permission="users:write"
+                variant={selected.status === "ACTIVE" ? "danger" : "primary"}
+                onClick={() => {
+                  const next = selected.status === "ACTIVE" ? "SUSPENDED" : "ACTIVE";
 
-                ask({
-                  title: next === "SUSPENDED" ? "Suspend this customer?" : "Reactivate this customer?",
-                  description: next === "SUSPENDED" ? `${selected.displayName} will be signed out and unable to bet or withdraw. Open bets still settle.` : `${selected.displayName} will be able to sign in and bet again.`,
-                  confirmLabel: next === "SUSPENDED" ? "Suspend customer" : "Reactivate customer",
-                  tone: next === "SUSPENDED" ? "danger" : "primary",
-                  run: (reason) => setCustomerStatus.mutateAsync({ id: selected.id, status: next, reason }),
-                });
-              }}
-            >
-              {selected.status === "ACTIVE" ? "Suspend customer" : "Reactivate customer"}
-            </GuardedButton>
+                  ask({
+                    title: next === "SUSPENDED" ? "Suspend this customer?" : "Reactivate this customer?",
+                    description: next === "SUSPENDED" ? `${selected.displayName} will be signed out and unable to bet or withdraw. Open bets still settle.` : `${selected.displayName} will be able to sign in and bet again.`,
+                    confirmLabel: next === "SUSPENDED" ? "Suspend customer" : "Reactivate customer",
+                    tone: next === "SUSPENDED" ? "danger" : "primary",
+                    run: (reason) => setCustomerStatus.mutateAsync({ id: selected.id, status: next, reason }),
+                  });
+                }}
+              >
+                {selected.status === "ACTIVE" ? "Suspend customer" : "Reactivate customer"}
+              </GuardedButton>
+            </>
           )
         }
       >
@@ -127,6 +152,7 @@ export function UsersPage(): React.JSX.Element {
             <DetailItem label="Joined">{formatShortDate(selected.createdAt)}</DetailItem>
             <DetailItem label="Wallet balance">
               <span className="type-financial">{formatMoney(selected.balance)}</span>
+              <span className="mt-0.5 block text-xs text-text-muted">Read-only: the platform's ledger figure.</span>
             </DetailItem>
             <DetailItem label="Open bets">{selected.openBets}</DetailItem>
             <DetailItem label="Lifetime stake">
@@ -141,6 +167,7 @@ export function UsersPage(): React.JSX.Element {
           </dl>
         )}
       </Drawer>
+      <CustomerEditDrawer customer={editing ? selected : undefined} onClose={() => setEditing(false)} />
       {dialog}
     </>
   );

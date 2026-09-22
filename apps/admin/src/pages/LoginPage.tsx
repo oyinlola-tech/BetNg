@@ -1,12 +1,11 @@
 import { Lock } from "lucide-react";
-import { BrandLogo, DevelopmentBanner, ThemeSwitcher } from "@betng/ui-web";
+import { BrandLogo, ThemeSwitcher } from "@betng/ui-web";
 import { LoginForm } from "../components/LoginForm";
 import { env } from "../services/runtime";
 
 export function LoginPage(): React.JSX.Element {
   return (
     <div className="flex min-h-dvh flex-col">
-      {env.dataSource === "mock" && <DevelopmentBanner />}
       <div className="grid flex-1 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
         <aside className="relative hidden flex-col justify-between overflow-hidden border-r border-border bg-surface p-10 lg:flex">
           <BrandLogo product="Admin" size={32} />
@@ -27,7 +26,7 @@ export function LoginPage(): React.JSX.Element {
               ))}
             </dl>
           </div>
-          <p className="mono-id text-text-muted">{env.appEnv} · {env.dataSource === "mock" ? "mock data" : "platform"}</p>
+          <p className="mono-id text-text-muted">{env.appEnv} · platform</p>
           <svg aria-hidden viewBox="0 0 400 400" className="pointer-events-none absolute -right-24 -top-24 size-[26rem] text-border">
             <circle cx="200" cy="200" r="120" fill="none" stroke="currentColor" strokeWidth="1.5" />
             <circle cx="200" cy="200" r="4" fill="currentColor" />

@@ -20,11 +20,9 @@ import {
 } from "@betng/ui-core";
 import { env } from "../configs/env";
 import { logger } from "./logger";
-import type { DemoSignIn } from "./mockSources";
 import { localStorageAdapter, sessionStorageAdapter } from "./storage";
 
 export { env, logger };
-export type { DemoSignIn };
 
 export interface RuntimeInfo {
   readonly flags: FeatureFlags;
@@ -70,35 +68,12 @@ export const session: SessionStore<AdminSession> = {
   },
 };
 
-function notReady(): never {
-  throw new Error("initRuntime() has not completed.");
-}
-
-const pending = new Proxy({}, { get: notReady });
-
-export let dataSource: BetNgDataSource = pending as BetNgDataSource;
-export let adminSource: AdminDataSource = pending as AdminDataSource;
-export let compliance: ComplianceDataSource = pending as ComplianceDataSource;
-
-/* Development sign-ins, filled only when the mock is loaded. Always empty in a deployed build. */
-export let demoSignIns: readonly DemoSignIn[] = [];
-
-let info: RuntimeInfo | undefined;
-
-async function createSources(): Promise<void> {
-  if (env.dataSource === "mock" && (import.meta.env.DEV || import.meta.env.VITE_APP_ENV === "test")) {
-    const { createMockSources } = await import("./mockSources");
-    const mock = createMockSources({ session: sessionStorageAdapter, local: localStorageAdapter });
-
-    dataSource = mock.dataSource;
-    adminSource = mock.adminSource;
-    compliance = mock.compliance;
-    demoSignIns = mock.demoSignIns;
-    adoptSession(mock.adminSource.session);
-
-    return;
-  }
-
+function createSources(): {
+  readonly dataSource: BetNgDataSource;
+  readonly adminSource: AdminDataSource;
+  readonly compliance: ComplianceDataSource;
+  readonly store: SessionStore<AdminSession>;
+} {
   const cookieSession = env.authTransport === "cookie";
   const store = createSessionStore<AdminSession>(SESSION_KEY, cookieSession ? withoutCredential(sessionStorageAdapter) : sessionStorageAdapter);
   const { rest, realtime } = createPlatformClients({
@@ -116,7 +91,7 @@ async function createSources(): Promise<void> {
 
   let lastToken = store.token();
 
-  store.subscribe(() => {
+  if (env.realtimeAuth !== "none") store.subscribe(() => {
     const token = store.token();
 
     if (token === lastToken) return;
@@ -125,18 +100,28 @@ async function createSources(): Promise<void> {
     realtime.replaceConnection();
   });
 
-  dataSource = createPlatformDataSource({ rest, realtime, userId: () => undefined, storage: localStorageAdapter });
-  adminSource = createPlatformAdminSource(rest, store);
-  compliance = createPlatformComplianceSource(rest, store);
-  adoptSession(store);
+  return {
+    dataSource: createPlatformDataSource({ rest, realtime, userId: () => undefined, storage: localStorageAdapter }),
+    adminSource: createPlatformAdminSource(rest, store),
+    compliance: createPlatformComplianceSource(rest, store),
+    store,
+  };
 }
+
+const platform = createSources();
+
+export let dataSource: BetNgDataSource = platform.dataSource;
+export let adminSource: AdminDataSource = platform.adminSource;
+export let compliance: ComplianceDataSource = platform.compliance;
+
+adoptSession(platform.store);
+
+let info: RuntimeInfo | undefined;
 
 export async function initRuntime(): Promise<RuntimeInfo> {
   if (info !== undefined) return info;
 
   for (const problem of env.problems) logger.warn("flow", problem);
-
-  await createSources();
 
   let config: PlatformConfigView | undefined;
 
@@ -156,10 +141,9 @@ export async function initRuntime(): Promise<RuntimeInfo> {
   return info;
 }
 
-export function __setRuntimeForTests(sources: { readonly dataSource: BetNgDataSource; readonly adminSource: AdminDataSource; readonly compliance?: ComplianceDataSource; readonly demoSignIns?: readonly DemoSignIn[] }): void {
+export function __setRuntimeForTests(sources: { readonly dataSource: BetNgDataSource; readonly adminSource: AdminDataSource; readonly compliance?: ComplianceDataSource }): void {
   dataSource = sources.dataSource;
   adminSource = sources.adminSource;
   if (sources.compliance !== undefined) compliance = sources.compliance;
-  demoSignIns = sources.demoSignIns ?? [];
   adoptSession(sources.adminSource.session);
 }

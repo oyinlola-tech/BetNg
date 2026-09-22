@@ -1,9 +1,9 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { Link, NavLink, Outlet, useLocation } from "react-router";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { NavLink, Outlet, useLocation } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { ChevronRight, ChevronsLeft, ChevronsRight, LogOut, Menu, Search, X } from "lucide-react";
+import { ChevronsLeft, ChevronsRight, LogOut, Menu, Search, X } from "lucide-react";
 import { createSessionMonitor, type SessionMonitor } from "@betng/ui-core";
-import { Avatar, BrandLogo, ConnectionStrip, DevelopmentBanner, Dropdown, IconButton, SessionTimeoutWarning, StatusBadge, ThemeSwitcher, cn, useFlag, useMediaQuery } from "@betng/ui-web";
+import { Avatar, BrandLogo, Breadcrumbs, ConnectionStrip, Dropdown, IconButton, SessionTimeoutWarning, StatusBadge, ThemeSwitcher, cn, useFlag, useMediaQuery } from "@betng/ui-web";
 import { LoginForm } from "../components/LoginForm";
 import { TwoFactorRequired } from "../components/TwoFactorRequired";
 import { useAdminSync } from "../hooks/queries";
@@ -11,7 +11,7 @@ import { useAdmin, useConnection } from "../hooks/useAdmin";
 import { useLastUpdated } from "../hooks/useLastUpdated";
 import { NAV, ROLE_LABELS, crumbsFor, type NavGroup } from "../lib/navigation";
 import { keys } from "../lib/queryKeys";
-import { adminSource, env, session } from "../services/runtime";
+import { adminSource, session } from "../services/runtime";
 import { CommandPalette } from "./CommandPalette";
 
 const COLLAPSE_KEY = "betng.admin.sidebar";
@@ -113,40 +113,10 @@ function NavDrawer({ open, onClose, groups }: { readonly open: boolean; readonly
   );
 }
 
-function Breadcrumbs(): React.JSX.Element {
+function ShellBreadcrumbs(): React.JSX.Element {
   const { pathname } = useLocation();
-  const crumbs = crumbsFor(pathname);
 
-  return (
-    <nav aria-label="Breadcrumb" className="min-w-0 flex-1">
-      <ol className="flex min-w-0 items-center gap-1 text-sm">
-        {crumbs.map((crumb, index) => {
-          const last = index === crumbs.length - 1;
-
-          return (
-            <Fragment key={`${crumb.label}-${String(index)}`}>
-              {index > 0 && (
-                <li aria-hidden className="text-text-muted">
-                  <ChevronRight className="size-3.5" />
-                </li>
-              )}
-              <li className={cn(last ? "min-w-0 truncate" : "shrink-0", index === 0 && crumbs.length > 1 && "hidden md:block")}>
-                {crumb.to !== undefined ? (
-                  <Link to={crumb.to} className="rounded-xs text-text-secondary hover:text-text-primary hover:underline focus-ring">
-                    {crumb.label}
-                  </Link>
-                ) : (
-                  <span aria-current={last ? "page" : undefined} className={last ? "font-semibold text-text-primary" : "text-text-muted"}>
-                    {crumb.label}
-                  </span>
-                )}
-              </li>
-            </Fragment>
-          );
-        })}
-      </ol>
-    </nav>
-  );
+  return <Breadcrumbs items={crumbsFor(pathname)} compactOnMobile className="flex-1" />;
 }
 
 function SessionExpiredOverlay({ email }: { readonly email: string | undefined }): React.JSX.Element {
@@ -200,9 +170,7 @@ function SessionWarning({ onSignOut }: { readonly onSignOut: () => void }): Reac
 export function AdminShell(): React.JSX.Element {
   const { admin } = useAdmin();
   const client = useQueryClient();
-  const [continuedWithout2fa, setContinuedWithout2fa] = useState(false);
-
-  if (admin !== undefined && !admin.twoFactorEnabled && !continuedWithout2fa) {
+  if (admin !== undefined && !admin.twoFactorEnabled) {
     return (
       <TwoFactorRequired
         email={admin.email}
@@ -210,7 +178,6 @@ export function AdminShell(): React.JSX.Element {
           client.clear();
           void adminSource.logout();
         }}
-        {...(env.dataSource === "mock" ? { onContinueInDevelopment: () => setContinuedWithout2fa(true) } : {})}
       />
     );
   }
@@ -296,14 +263,13 @@ function Console(): React.JSX.Element {
       {!wide && <NavDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} groups={groups} />}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        {env.dataSource === "mock" && <DevelopmentBanner />}
         <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-surface px-4 lg:px-6">
           {!wide && (
             <IconButton label="Open navigation" size="sm" onClick={() => setDrawerOpen(true)}>
               <Menu className="size-4" aria-hidden />
             </IconButton>
           )}
-          <Breadcrumbs />
+          <ShellBreadcrumbs />
           <div className="flex shrink-0 items-center gap-2 sm:gap-3">
             <button
               type="button"

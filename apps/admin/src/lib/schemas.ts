@@ -113,3 +113,15 @@ export const teamSchema = z.object({
 });
 
 export type TeamValues = z.infer<typeof teamSchema>;
+
+/** Mirrors adminUpdateCustomerRequestSchema without the reason, which the confirmation asks for. */
+export const customerDetailsSchema = z.object({
+  displayName: z.string().trim().min(2, "At least 2 characters.").max(60, "Keep it under 60 characters."),
+  phone: z
+    .string()
+    .trim()
+    .regex(/^\+?[0-9 ]{7,20}$/, "Enter a phone number with its country code.")
+    .or(z.literal("")),
+});
+
+export type CustomerDetailsValues = z.infer<typeof customerDetailsSchema>;

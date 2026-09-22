@@ -5,7 +5,7 @@ import { ArrowLeft, ShieldCheck } from "lucide-react";
 import { DataSourceError } from "@betng/ui-core";
 import { Button, CodeInput, FormError, PasswordInput, applyFieldErrors, useLogger } from "@betng/ui-web";
 import { loginSchema, type LoginValues } from "../lib/schemas";
-import { adminSource, demoSignIns, env } from "../services/runtime";
+import { adminSource } from "../services/runtime";
 import { TextField } from "./form/TextField";
 
 /* The platform may ask for the second factor as its own code, as a validation error on `code`, or as a bare validation error when no field is named. */
@@ -147,31 +147,6 @@ export function LoginForm({ lockedEmail, onSignedIn }: { readonly lockedEmail?: 
         <ShieldCheck className="size-3.5" aria-hidden />
         Sign in with an authenticator code
       </button>
-      {env.dataSource === "mock" && lockedEmail === undefined && demoSignIns.length > 0 && (
-        <section aria-label="Development sign-ins" className="rounded-sm border border-dashed border-border-strong px-3 py-2.5 text-sm">
-          <p className="caps-label">Mock data · development sign-ins</p>
-          <ul className="mt-1.5 space-y-1">
-            {demoSignIns.map((account) => (
-              <li key={account.email}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    form.setValue("email", account.email, { shouldValidate: true });
-                    form.setValue("password", account.password, { shouldValidate: true });
-                  }}
-                  className="flex w-full items-baseline justify-between gap-3 rounded-xs text-left hover:text-text-primary focus-ring"
-                >
-                  <span className="mono-id text-text-secondary">{account.email}</span>
-                  <span className="text-text-muted">
-                    {account.role}
-                    {account.code === undefined ? "" : ` · code ${account.code}`}
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
     </form>
   );
 }
