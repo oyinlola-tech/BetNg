@@ -54,6 +54,10 @@ export interface GatewayRoute {
   readonly sessionHash?: boolean;
   /** Forwards a truncated `user-agent` so identity can label the session's device. */
   readonly userAgent?: boolean;
+  /** Relays a text/csv answer as a file download instead of re-encoding it as JSON. */
+  readonly download?: boolean;
+  /** Cookie sessions: `issue` turns a returned bearer into cookies (`refresh` keeps the CSRF value), `clear` removes them. */
+  readonly cookie?: "issue" | "refresh" | "clear";
 }
 
 export interface ActorResolver {

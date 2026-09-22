@@ -13,7 +13,16 @@ import {
   unauthorized,
 } from "@betng/service-kit";
 import type { Actor, HttpResponseContext, HttpRouterContext } from "@betng/service-kit";
-import { upstreamPath } from "../services/index.js";
+import {
+  assertCsrf,
+  clearSessionCookies,
+  COOKIE_SESSION_PLACEHOLDER,
+  cookiesApply,
+  cookieToken,
+  issueSessionCookies,
+  upstreamPath,
+} from "../services/index.js";
+import type { SessionCookiePolicy } from "../services/index.js";
 import type {
   ActorResolver,
   GatewayRoute,
@@ -43,11 +52,13 @@ export interface ProxyDependencies {
   readonly actors: ActorResolver;
   readonly limiter: RateLimiter;
   readonly bodyLimits: BodyLimits;
+  readonly sessionCookie: SessionCookiePolicy;
 }
 
 export interface Guarded {
   readonly actor?: Actor;
   readonly token?: string;
+  readonly viaCookie?: boolean;
 }
 
 export function clientAddress(context: HttpRouterContext): string {
@@ -96,7 +107,7 @@ async function applyLimits(
 export async function guard(
   route: { readonly access: RouteAccess; readonly limits?: readonly RouteLimit[] },
   context: HttpRouterContext,
-  dependencies: Pick<ProxyDependencies, "actors" | "limiter">,
+  dependencies: Pick<ProxyDependencies, "actors" | "limiter" | "sessionCookie">,
 ): Promise<Guarded> {
   const limits = route.limits ?? [];
 
@@ -104,9 +115,15 @@ export async function guard(
 
   if (route.access.type === "public") return {};
 
-  const token = bearerToken(context) ?? signInRequired();
+  const bearer = bearerToken(context);
+  const fromCookie = bearer === undefined ? cookieToken(dependencies.sessionCookie, context) : undefined;
+  const token = bearer ?? fromCookie ?? signInRequired();
+  const viaCookie = fromCookie !== undefined;
 
-  if (route.access.type === "token") return { token };
+  // A cookie rides along on cross-site requests; a bearer never does. Only the cookie path needs the CSRF proof.
+  if (viaCookie) assertCsrf(context);
+
+  if (route.access.type === "token") return { token, viaCookie };
 
   const actor = await dependencies.actors.resolve(token, getRequestId(context.request));
 
@@ -120,7 +137,7 @@ export async function guard(
 
   await applyLimits(limits, "actor", `${actor.kind}:${actor.id}`, dependencies.limiter);
 
-  return { actor, token };
+  return { actor, token, viaCookie };
 }
 
 function webhookHeaders(route: GatewayRoute, context: HttpRouterContext): Record<string, string> {
@@ -151,7 +168,7 @@ export function createProxyHandler(route: GatewayRoute, dependencies: ProxyDepen
   return async (context) => {
     if (route.method !== "GET") assertBodySize(context, bodyLimit);
 
-    const { actor, token } = await guard(route, context, dependencies);
+    const { actor, token, viaCookie } = await guard(route, context, dependencies);
     const idempotencyKey = context.request.getHeader("idempotency-key");
     const userAgent = route.userAgent === true ? context.request.getHeader("user-agent")?.replace(/[^\x20-\x7e]/g, "").slice(0, 256) : undefined;
     const requestId = getRequestId(context.request);
@@ -190,6 +207,67 @@ export function createProxyHandler(route: GatewayRoute, dependencies: ProxyDepen
 
     const reply = createResponseContext({ status: response.status });
 
-    return response.status === 204 || response.data === "" ? reply : reply.json(response.data);
+    if (route.download === true && response.status === 200 && typeof response.data === "string" && response.contentType?.startsWith("text/csv") === true) {
+      const filename = /filename="?([A-Za-z0-9._-]{1,120})"?/.exec(response.contentDisposition ?? "")?.[1] ?? "export.csv";
+
+      return reply
+        .text(response.data)
+        .setHeader("content-type", "text/csv; charset=utf-8")
+        .setHeader("content-disposition", `attachment; filename="${filename}"`);
+    }
+
+    const data = route.cookie === undefined ? response.data : applySessionCookies(route, dependencies.sessionCookie, context, reply, response.status, response.data, viaCookie === true);
+
+    return response.status === 204 || data === "" ? reply : reply.json(data);
   };
+}
+
+function sessionBody(data: unknown): { readonly token: string; readonly expiresAt: unknown } | undefined {
+  if (typeof data !== "object" || data === null) return undefined;
+
+  const { token, expiresAt } = data as { token?: unknown; expiresAt?: unknown };
+
+  return typeof token === "string" ? { token, expiresAt } : undefined;
+}
+
+function applySessionCookies(
+  route: GatewayRoute,
+  policy: SessionCookiePolicy,
+  context: HttpRouterContext,
+  reply: HttpResponseContext,
+  status: number,
+  data: unknown,
+  viaCookie: boolean,
+): unknown {
+  if (!policy.enabled) return data;
+
+  if (route.cookie === "clear") {
+    if (viaCookie || cookiesApply(policy, context)) clearSessionCookies(policy, reply);
+
+    return data;
+  }
+
+  if (status < 200 || status >= 300) return data;
+
+  if (route.cookie === "refresh") {
+    if (!viaCookie) return data;
+
+    const renewed = sessionBody(data);
+    const current = cookieToken(policy, context);
+    const next = renewed ?? (current === undefined ? undefined : { token: current, expiresAt: (data as { expiresAt?: unknown } | null)?.expiresAt });
+
+    if (next === undefined) return data;
+
+    issueSessionCookies(policy, context, reply, next, false);
+
+    return renewed === undefined ? data : { ...(data as object), token: COOKIE_SESSION_PLACEHOLDER };
+  }
+
+  const session = sessionBody(data);
+
+  if (session === undefined || !cookiesApply(policy, context)) return data;
+
+  issueSessionCookies(policy, context, reply, session, true);
+
+  return { ...(data as object), token: COOKIE_SESSION_PLACEHOLDER };
 }

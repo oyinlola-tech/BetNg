@@ -21,6 +21,7 @@ import {
   createSecurityHeadersMiddleware,
 } from "./middlewares/index.js";
 import { buildRouteTable, registerGatewayRoutes } from "./routes/index.js";
+import type { SessionCookiePolicy } from "./services/index.js";
 
 export interface GatewayApp {
   readonly server: ServiceServer;
@@ -61,6 +62,12 @@ export function createApp(
     ...(redis === undefined ? {} : { redis }),
   });
 
+  const sessionCookie: SessionCookiePolicy = Object.freeze({
+    enabled: settings.sessionCookie.enabled,
+    domain: settings.sessionCookie.domain,
+    origins: new Set(settings.corsOrigins),
+  });
+
   const onShutdown: (() => Promise<void>)[] = [
     async () => actors.close(),
     async () => container.dispose(),
@@ -79,7 +86,7 @@ export function createApp(
     middlewares: [
       { name: "security-headers", middleware: createSecurityHeadersMiddleware({ hsts: settings.hsts }) },
       { name: "ip-blocklist", middleware: createIpBlockMiddleware(blocklist, renderError) },
-      { name: "cors", middleware: createCorsMiddleware(settings.corsOrigins, renderError) },
+      { name: "cors", middleware: createCorsMiddleware(settings.corsOrigins, renderError, { credentials: sessionCookie.enabled }) },
       { name: "global-rate-limit", middleware: createGlobalRateLimitMiddleware(limiter, settings.rateLimits.global) },
     ],
     routes: (router) => {
@@ -89,6 +96,7 @@ export function createApp(
         clients,
         actors,
         limiter,
+        sessionCookie,
         bodyLimits: {
           maxBodyBytes: settings.maxBodyBytes,
           webhookMaxBodyBytes: settings.webhookMaxBodyBytes,

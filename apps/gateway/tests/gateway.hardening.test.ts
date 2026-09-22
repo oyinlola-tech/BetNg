@@ -32,6 +32,7 @@ const SESSIONS = new Map<string, unknown>([
   ["cust-down-token-00000000", customer("11111111-1111-4111-8111-111111111115")],
   ["cashier-token-0000000000", { kind: "CASHIER", id: "22222222-2222-4222-8222-222222222222", role: "CASHIER", name: "Tobi", shopId: "33333333-3333-4333-8333-333333333333", permissions: ["shifts:operate"] }],
   ["support-token-0000000000", { kind: "ADMIN", id: "44444444-4444-4444-8444-444444444444", role: "SUPPORT", name: "Sam", permissions: ["users:read", "health:read"] }],
+  ["reports-token-0000000000", { kind: "ADMIN", id: "55555555-5555-4555-8555-555555555555", role: "OPERATIONS", name: "Rae", permissions: ["reports:read"] }],
 ]);
 
 const seen: Seen[] = [];
@@ -73,6 +74,13 @@ async function handle(request: IncomingMessage, response: ServerResponse): Promi
   }
 
   seen.push({ method: request.method ?? "", url, headers: request.headers, body });
+
+  if (url.startsWith("/api/v1/admin/reports/export")) {
+    response.setHeader("content-type", "text/csv; charset=utf-8");
+    response.setHeader("content-disposition", 'attachment; filename="daily-2026-09-01.csv"');
+    response.end("day,bets\n2026-09-01,3\n");
+    return;
+  }
 
   if (url === "/ready" || url === "/health") {
     response.end(JSON.stringify({ status: "ok", version: "1.0.0" }));
@@ -280,8 +288,26 @@ describe("gateway response headers", () => {
       expect(response.headers.get("x-content-type-options")).toBe("nosniff");
       expect(response.headers.get("referrer-policy")).toBe("no-referrer");
       expect(response.headers.get("permissions-policy")).toContain("camera=()");
-      expect(response.headers.get("cache-control")).toBe("no-store");
+      expect(response.headers.get("cache-control")).toBe("private, no-store");
     }
+  });
+
+  it("lets an anonymous public read be revalidated but never stores anything private", async () => {
+    const anonymous = await call("/api/v1/matches");
+    const signedIn = await call("/api/v1/matches", { token: "cust-plain-token-0000000" });
+
+    expect(anonymous.headers.get("cache-control")).toBe("public, no-cache");
+    expect(signedIn.headers.get("cache-control")).toBe("private, no-store");
+  });
+
+  it("relays a CSV export as a file instead of re-encoding it", async () => {
+    const response = await call("/api/v1/admin/reports/export?format=csv&report=daily", { token: "reports-token-0000000000" });
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toBe("text/csv; charset=utf-8");
+    expect(response.headers.get("content-disposition")).toBe('attachment; filename="daily-2026-09-01.csv"');
+    expect(response.headers.get("cache-control")).toBe("private, no-store");
+    expect(await response.text()).toBe("day,bets\n2026-09-01,3\n");
   });
 
   it("echoes and forwards a caller's request id, and mints one otherwise", async () => {

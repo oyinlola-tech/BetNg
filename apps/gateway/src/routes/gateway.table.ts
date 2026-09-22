@@ -25,7 +25,7 @@ function route(
   path: string,
   upstream: UpstreamName,
   access: RouteAccess,
-  extra: Pick<GatewayRoute, "limits" | "webhook" | "sessionHash" | "userAgent"> = {},
+  extra: Pick<GatewayRoute, "limits" | "webhook" | "sessionHash" | "userAgent" | "cookie" | "download"> = {},
 ): GatewayRoute {
   return { method, path, upstream, access, ...extra };
 }
@@ -46,11 +46,15 @@ export function buildRouteTable(limits: GatewayRateLimits): readonly GatewayRout
 
   const credentialLimit = { limits: [limit("credential", "ip", false)] };
   const credential = (path: string): GatewayRoute => route("POST", path, "identity", PUBLIC, credentialLimit);
-  const signIn = (path: string): GatewayRoute => route("POST", path, "identity", PUBLIC, { ...credentialLimit, userAgent: true });
+  const signIn = (path: string): GatewayRoute =>
+    route("POST", path, "identity", PUBLIC, { ...credentialLimit, userAgent: true, cookie: "issue" });
+  const staffSignIn = (path: string): GatewayRoute => route("POST", path, "identity", PUBLIC, { ...credentialLimit, cookie: "issue" });
+  const signOut = (path: string): GatewayRoute => route("POST", path, "identity", TOKEN, { cookie: "clear" });
   const money = (name: "bets" | "deposits" | "withdrawals") => ({ limits: [limit(name, "actor", true)] });
   const kycUpload = { limits: [limit("kycUploads", "actor", true)] };
   const verification = { limits: [limit("verification", "actor", true)] };
   const statements = { limits: [limit("statements", "actor", false)] };
+  const dataExport = { limits: [limit("exports", "actor", true)] };
   const session = { sessionHash: true };
   const webhook = (provider: string): GatewayRoute =>
     route("POST", `/payments/webhook/${provider}`, "wallet", PUBLIC, {
@@ -83,9 +87,12 @@ export function buildRouteTable(limits: GatewayRateLimits): readonly GatewayRout
     credential("/auth/password/forgot"),
     signIn("/auth/login/2fa"),
     credential("/auth/password/reset"),
-    route("POST", "/auth/logout", "identity", TOKEN),
+    signOut("/auth/logout"),
     route("GET", "/auth/me", "identity", TOKEN),
-    route("POST", "/auth/session/refresh", "identity", TOKEN),
+    route("POST", "/auth/session/refresh", "identity", TOKEN, { cookie: "refresh" }),
+
+    route("PATCH", "/account/profile", "identity", CUSTOMER, session),
+    route("GET", "/account/export", "identity", CUSTOMER, { ...dataExport, ...session }),
 
     route("PUT", "/account/password", "identity", CUSTOMER, { ...verification, ...session }),
     route("GET", "/account/2fa", "identity", CUSTOMER, session),
@@ -150,8 +157,8 @@ export function buildRouteTable(limits: GatewayRateLimits): readonly GatewayRout
     route("GET", "/settlements", "settlement", CUSTOMER_OR_ADMIN),
     route("GET", "/settlements/:betId", "settlement", CUSTOMER_OR_ADMIN),
 
-    credential("/shop/auth/login"),
-    route("POST", "/shop/auth/logout", "identity", TOKEN),
+    staffSignIn("/shop/auth/login"),
+    signOut("/shop/auth/logout"),
     route("GET", "/shop/auth/session", "identity", TOKEN),
     route("GET", "/shop/cashiers", "identity", cashier("cashiers:read")),
     route("POST", "/shop/tickets", "betting", cashier("tickets:sell")),
@@ -168,12 +175,14 @@ export function buildRouteTable(limits: GatewayRateLimits): readonly GatewayRout
     route("POST", "/shop/shifts/current/cash", "wallet", cashier("cash:move")),
     route("POST", "/shop/shifts/:id/close", "wallet", cashier("shifts:operate")),
 
-    credential("/admin/auth/login"),
-    route("POST", "/admin/auth/logout", "identity", TOKEN),
+    staffSignIn("/admin/auth/login"),
+    signOut("/admin/auth/logout"),
     route("GET", "/admin/auth/session", "identity", TOKEN),
 
     route("GET", "/admin/users", "identity", admin("users:read")),
+    route("PATCH", "/admin/users/:id", "identity", admin("users:write")),
     route("POST", "/admin/users/:id/status", "identity", admin("users:write")),
+    route("POST", "/admin/users/:id/password-reset", "identity", admin("users:write"), verification),
     route("GET", "/admin/shops", "identity", admin("shops:read")),
     route("POST", "/admin/shops", "identity", admin("shops:write")),
     route("GET", "/admin/shops/:id", "identity", admin("shops:read")),
@@ -232,6 +241,7 @@ export function buildRouteTable(limits: GatewayRateLimits): readonly GatewayRout
 
     route("GET", "/admin/overview", "analytics", admin()),
     route("GET", "/admin/reports/daily", "analytics", admin("reports:read")),
+    route("GET", "/admin/reports/export", "analytics", admin("reports:read"), { ...dataExport, download: true }),
     route("GET", "/admin/analytics/overview", "analytics", admin("reports:read")),
     route("GET", "/admin/analytics/breakdown", "analytics", admin("reports:read")),
     route("GET", "/admin/analytics/sessions", "analytics", admin("reports:read")),

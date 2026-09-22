@@ -10,12 +10,20 @@ export interface GatewayRateLimits {
   readonly statements: RateLimitRule;
   readonly kycUploads: RateLimitRule;
   readonly verification: RateLimitRule;
+  readonly exports: RateLimitRule;
   readonly webhooks: RateLimitRule;
   readonly health: RateLimitRule;
 }
 
+export interface SessionCookieSettings {
+  readonly enabled: boolean;
+  /** Parent domain shared by the apps and the API (e.g. `betng.ng`), so the apps can read the CSRF cookie. */
+  readonly domain: string | undefined;
+}
+
 export interface GatewaySettings {
   readonly corsOrigins: readonly string[];
+  readonly sessionCookie: SessionCookieSettings;
   readonly actorCacheSeconds: number;
   readonly rateLimits: GatewayRateLimits;
   readonly maxBodyBytes: number;
@@ -44,6 +52,7 @@ const DEFAULT_LIMITS: GatewayRateLimits = {
   statements: { limit: 5, windowSeconds: 3600 },
   kycUploads: { limit: 10, windowSeconds: 3600 },
   verification: { limit: 5, windowSeconds: 600 },
+  exports: { limit: 3, windowSeconds: 3600 },
   webhooks: { limit: 600, windowSeconds: 60 },
   health: { limit: 30, windowSeconds: 60 },
 };
@@ -57,6 +66,7 @@ const LIMIT_ENV: Readonly<Record<keyof GatewayRateLimits, string>> = {
   statements: "GATEWAY_RATE_STATEMENTS",
   kycUploads: "GATEWAY_RATE_KYC_UPLOADS",
   verification: "GATEWAY_RATE_VERIFICATION",
+  exports: "GATEWAY_RATE_EXPORTS",
   webhooks: "GATEWAY_RATE_WEBHOOKS",
   health: "GATEWAY_RATE_HEALTH",
 };
@@ -65,6 +75,8 @@ const MAX_ACTOR_CACHE_SECONDS = 10;
 const HARD_BODY_CAP = 1024 * 1024;
 const RULE = /^(\d{1,6})\/(\d{1,6})$/;
 const PREFIX = /^[a-z0-9:_-]{1,40}$/;
+const COOKIE_DOMAIN = /^(?=.{3,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/;
+const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]", "0.0.0.0"]);
 
 type Env = Readonly<Record<string, string | undefined>>;
 
@@ -123,12 +135,56 @@ function flag(raw: string | undefined, fallback: boolean, name: string): boolean
   throw new Error(`${name} must be on or off, got "${raw}".`);
 }
 
-export function loadGatewaySettings(env: Env = process.env): GatewaySettings {
-  const origins = list(env["CORS_ORIGINS"]);
+function corsOrigins(raw: string | undefined, production: boolean): readonly string[] {
+  const origins = list(raw);
 
   if (origins.includes("*")) {
     throw new Error("CORS_ORIGINS must list origins explicitly; '*' is refused.");
   }
+
+  if (!production) return origins.length > 0 ? origins : DEFAULT_ORIGINS;
+
+  if (origins.length === 0) {
+    throw new Error("CORS_ORIGINS must list the production https origins; the local defaults are refused in production.");
+  }
+
+  for (const origin of origins) {
+    let url: URL;
+
+    try {
+      url = new URL(origin);
+    } catch {
+      throw new Error(`CORS_ORIGINS entry "${origin}" is not an origin.`);
+    }
+
+    const host = url.hostname.toLowerCase();
+
+    if (url.protocol !== "https:" || url.origin !== origin) {
+      throw new Error(`CORS_ORIGINS entry "${origin}" must be an https origin (scheme, host and optional port only).`);
+    }
+
+    if (LOOPBACK_HOSTS.has(host) || host.endsWith(".localhost") || host.startsWith("127.")) {
+      throw new Error(`CORS_ORIGINS entry "${origin}" is a local origin and is refused in production.`);
+    }
+  }
+
+  return origins;
+}
+
+function sessionCookie(env: Env): SessionCookieSettings {
+  const enabled = flag(env["GATEWAY_SESSION_COOKIE"], false, "GATEWAY_SESSION_COOKIE");
+  const rawDomain = (env["GATEWAY_SESSION_COOKIE_DOMAIN"] ?? "").trim().toLowerCase().replace(/^\./, "");
+
+  if (rawDomain !== "" && !COOKIE_DOMAIN.test(rawDomain)) {
+    throw new Error(`GATEWAY_SESSION_COOKIE_DOMAIN must be a registrable domain name, got "${rawDomain}".`);
+  }
+
+  return Object.freeze({ enabled, domain: rawDomain === "" ? undefined : rawDomain });
+}
+
+export function loadGatewaySettings(env: Env = process.env): GatewaySettings {
+  const production = env["NODE_ENV"] === "production";
+  const origins = corsOrigins(env["CORS_ORIGINS"], production);
 
   const legacyLogin = env["LOGIN_RATE_LIMIT"] === undefined && env["LOGIN_RATE_WINDOW_SECONDS"] === undefined
     ? DEFAULT_LIMITS.credential
@@ -141,7 +197,7 @@ export function loadGatewaySettings(env: Env = process.env): GatewaySettings {
   const defaults: GatewayRateLimits = {
     ...DEFAULT_LIMITS,
     credential: legacyLogin,
-    ...(env["NODE_ENV"] === "production" ? {} : { global: { limit: 3000, windowSeconds: 60 } }),
+    ...(production ? {} : { global: { limit: 3000, windowSeconds: 60 } }),
   };
 
   const rateLimits = Object.fromEntries(
@@ -164,13 +220,14 @@ export function loadGatewaySettings(env: Env = process.env): GatewaySettings {
   }
 
   return Object.freeze({
-    corsOrigins: origins.length > 0 ? origins : DEFAULT_ORIGINS,
+    corsOrigins: origins,
+    sessionCookie: sessionCookie(env),
     actorCacheSeconds: integer(env["GATEWAY_ACTOR_CACHE_SECONDS"], 5, "GATEWAY_ACTOR_CACHE_SECONDS", 0, MAX_ACTOR_CACHE_SECONDS),
     rateLimits: Object.freeze(rateLimits),
     maxBodyBytes,
     webhookMaxBodyBytes,
     trustProxy: trustProxy(env["GATEWAY_TRUST_PROXY"]),
-    hsts: flag(env["GATEWAY_HSTS"], env["NODE_ENV"] === "production", "GATEWAY_HSTS"),
+    hsts: flag(env["GATEWAY_HSTS"], production, "GATEWAY_HSTS"),
     ipBlocklist,
     redisPrefix,
   });
