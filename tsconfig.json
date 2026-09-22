@@ -33,9 +33,6 @@
       "path": "./packages/ui-core"
     },
     {
-      "path": "./packages/mock-data"
-    },
-    {
       "path": "./packages/client-sdk"
     },
     {
