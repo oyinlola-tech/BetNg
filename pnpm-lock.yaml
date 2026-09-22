@@ -47,9 +47,6 @@ importers:
       '@betng/design-tokens':
         specifier: workspace:*
         version: link:../../packages/design-tokens
-      '@betng/mock-data':
-        specifier: workspace:*
-        version: link:../../packages/mock-data
       '@betng/ui-core':
         specifier: workspace:*
         version: link:../../packages/ui-core
@@ -172,9 +169,6 @@ importers:
       '@betng/design-tokens':
         specifier: workspace:*
         version: link:../../packages/design-tokens
-      '@betng/mock-data':
-        specifier: workspace:*
-        version: link:../../packages/mock-data
       '@betng/ui-core':
         specifier: workspace:*
         version: link:../../packages/ui-core
@@ -533,9 +527,6 @@ importers:
       '@betng/design-tokens':
         specifier: workspace:*
         version: link:../../packages/design-tokens
-      '@betng/mock-data':
-        specifier: workspace:*
-        version: link:../../packages/mock-data
       '@betng/ui-core':
         specifier: workspace:*
         version: link:../../packages/ui-core
@@ -627,9 +618,6 @@ importers:
       '@betng/design-tokens':
         specifier: workspace:*
         version: link:../../packages/design-tokens
-      '@betng/mock-data':
-        specifier: workspace:*
-        version: link:../../packages/mock-data
       '@betng/ui-core':
         specifier: workspace:*
         version: link:../../packages/ui-core
@@ -703,9 +691,6 @@ importers:
       '@betng/design-tokens':
         specifier: workspace:*
         version: link:../../packages/design-tokens
-      '@betng/mock-data':
-        specifier: workspace:*
-        version: link:../../packages/mock-data
       '@betng/ui-core':
         specifier: workspace:*
         version: link:../../packages/ui-core
@@ -810,22 +795,6 @@ importers:
         version: 7.0.2
 
   packages/design-tokens:
-    devDependencies:
-      typescript:
-        specifier: 7.0.2
-        version: 7.0.2
-
-  packages/mock-data:
-    dependencies:
-      '@betng/client-sdk':
-        specifier: workspace:*
-        version: link:../client-sdk
-      '@betng/contracts':
-        specifier: workspace:*
-        version: link:../contracts
-      '@betng/ui-core':
-        specifier: workspace:*
-        version: link:../ui-core
     devDependencies:
       typescript:
         specifier: 7.0.2
