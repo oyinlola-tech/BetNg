@@ -6,6 +6,8 @@ import sys
 from datetime import UTC, datetime
 from typing import Any
 
+from .tracing import current_trace_id
+
 #: Attributes ``logging`` puts on every record, which must not be repeated
 #: inside the JSON payload.
 _RESERVED = frozenset(
@@ -59,6 +61,10 @@ class JsonFormatter(logging.Formatter):
                 if key not in _RESERVED and not key.startswith("_")
             }
         )
+
+        trace_id = current_trace_id()
+        if trace_id is not None:
+            metadata.setdefault("traceId", trace_id)
 
         payload: dict[str, Any] = {
             "timestamp": datetime.fromtimestamp(record.created, UTC).isoformat(),

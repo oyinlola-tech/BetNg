@@ -7,11 +7,14 @@ from fastapi import APIRouter, FastAPI
 
 from .config import ServiceSettings
 from .errors import install_error_handlers
-from .internal_auth import assert_internal_token_configured
 from .health import DependencyProbe, create_health_router
+from .internal_auth import assert_internal_token_configured, set_service_identity
 from .logging import configure_logging
+from .metrics import MetricsMiddleware, MetricsRegistry, create_metrics_router
 from .middleware import AccessLogMiddleware, RequestIdMiddleware
-from .rpc import RpcServer, create_rpc_router
+from .rate_limit import RpcRateLimitMiddleware, limiter_from_env
+from .rpc import RPC_PATH, RpcServer, create_rpc_router
+from .tracing import TraceMiddleware
 
 
 def create_service_app(
@@ -43,15 +46,24 @@ def create_service_app(
         lifespan=lifespan,
     )
 
-    # Registration order is reversed at request time, so the correlation
-    # middleware added last runs first — and the access log it wraps can
-    # already read the identifier.
+    set_service_identity(settings.service_name)
+    metrics = MetricsRegistry(settings.service_name)
+    app.state.metrics = metrics
+    limiter = limiter_from_env()
+
+    # Registration order is reversed at request time: tracing runs first, then
+    # correlation, so everything inside can log both identifiers.
+    if limiter is not None:
+        app.add_middleware(RpcRateLimitMiddleware, limiter=limiter, path=RPC_PATH)
     app.add_middleware(AccessLogMiddleware, logger_name=settings.service_name)
+    app.add_middleware(MetricsMiddleware, registry=metrics)
     app.add_middleware(RequestIdMiddleware)
+    app.add_middleware(TraceMiddleware)
 
     install_error_handlers(app)
 
     app.include_router(create_health_router(settings, probes or []))
+    app.include_router(create_metrics_router(metrics))
 
     if rpc_server is not None:
         app.include_router(create_rpc_router(rpc_server))

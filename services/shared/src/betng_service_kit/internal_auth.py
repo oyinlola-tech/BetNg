@@ -6,6 +6,8 @@ import os
 from fastapi import Request
 
 INTERNAL_TOKEN_HEADER = "x-betng-internal-token"
+#: Names the calling service; trusted only alongside a valid internal token.
+CALLER_HEADER = "x-betng-caller"
 MIN_TOKEN_LENGTH = 24
 #: The placeholder in ``.env.example``: public, so refused in production.
 DEVELOPMENT_PLACEHOLDER = "betng-local-development-internal-token"
@@ -36,10 +38,22 @@ def assert_internal_token_configured() -> None:
         )
 
 
+_service_identity: str | None = None
+
+
+def set_service_identity(name: str) -> None:
+    global _service_identity
+    _service_identity = name
+
+
 def internal_headers() -> dict[str, str]:
     token = internal_token()
+    headers = {} if token is None else {INTERNAL_TOKEN_HEADER: token}
 
-    return {} if token is None else {INTERNAL_TOKEN_HEADER: token}
+    if _service_identity is not None:
+        headers[CALLER_HEADER] = _service_identity
+
+    return headers
 
 
 def is_internal_request(request: Request) -> bool:

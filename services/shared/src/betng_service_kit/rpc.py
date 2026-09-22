@@ -22,6 +22,8 @@ from pydantic import BaseModel, Field, ValidationError
 
 from .errors import ServiceError
 from .internal_auth import internal_headers, is_internal_request
+from .resilience import BreakerSettings, CircuitBreaker, CircuitOpenError, breaker_for
+from .tracing import outbound_trace_headers
 
 RPC_PATH = "/rpc"
 
@@ -32,6 +34,8 @@ RPC_INTERNAL_ERROR = "RPC_INTERNAL_ERROR"
 RPC_UNAVAILABLE = "RPC_UNAVAILABLE"
 RPC_TIMEOUT = "RPC_TIMEOUT"
 RPC_NOT_IMPLEMENTED = "RPC_NOT_IMPLEMENTED"
+RPC_RATE_LIMITED = "RPC_RATE_LIMITED"
+RPC_CIRCUIT_OPEN = "RPC_CIRCUIT_OPEN"
 
 #: Never returned over the wire: internal exception text can name hosts,
 #: paths, credentials or queries, and the caller is an untrusted peer.
@@ -164,7 +168,7 @@ class RpcServer:
             # flattening it into an internal error would tell the caller only
             # that something went wrong.
             return _failure(frame, error.code, error.message, error.details)
-        except Exception:  # noqa: BLE001 - the caller is an untrusted peer
+        except Exception:
             import logging
 
             logging.getLogger("rpc").exception(
@@ -224,14 +228,78 @@ def create_rpc_router(server: RpcServer) -> APIRouter:
 
 
 class RpcClient:
-    def __init__(self, base_url: str, peer: str, timeout_ms: int) -> None:
+    def __init__(
+        self,
+        base_url: str,
+        peer: str,
+        timeout_ms: int,
+        *,
+        breaker: CircuitBreaker | None = None,
+        breaker_settings: BreakerSettings | None = None,
+        transport: httpx.AsyncBaseTransport | None = None,
+    ) -> None:
         self._url = base_url.rstrip("/") + RPC_PATH
         self._peer = peer
         self._timeout = timeout_ms / 1000
+        self._breaker = breaker or breaker_for(peer, breaker_settings)
+        self._transport = transport
+
+    @property
+    def breaker(self) -> CircuitBreaker:
+        return self._breaker
 
     async def call(
         self, procedure: str, payload: Any, *, request_id: str | None = None
     ) -> Any:
+        try:
+            self._breaker.before_call()
+        except CircuitOpenError as error:
+            raise RpcError(
+                RPC_CIRCUIT_OPEN,
+                f"The {self._peer} service is failing; calls are paused.",
+            ) from error
+
+        try:
+            http_response = await self._post(procedure, payload, request_id)
+        except RpcError:
+            self._breaker.record_failure()
+            raise
+        except BaseException:
+            self._breaker.release_probe()
+            raise
+
+        if http_response.status_code == 429:
+            self._breaker.release_probe()
+            raise RpcError(
+                RPC_RATE_LIMITED,
+                f"The {self._peer} service is rate limiting this caller.",
+                {"retryAfter": http_response.headers.get("retry-after")},
+            )
+
+        if http_response.status_code != 200:
+            self._breaker.record_failure()
+            raise RpcError(
+                RPC_UNAVAILABLE,
+                f"The {self._peer} service answered {RPC_PATH} with "
+                f"{http_response.status_code}.",
+            )
+
+        self._breaker.record_success()
+        body = RpcResponseFrame.model_validate(http_response.json())
+
+        if not body.success:
+            error_payload = body.error
+            raise RpcError(
+                error_payload.code if error_payload else RPC_INTERNAL_ERROR,
+                error_payload.message if error_payload else INTERNAL_RPC_MESSAGE,
+                error_payload.details if error_payload else None,
+            )
+
+        return body.result
+
+    async def _post(
+        self, procedure: str, payload: Any, request_id: str | None
+    ) -> httpx.Response:
         frame = {
             "id": str(uuid.uuid4()),
             "procedure": procedure,
@@ -244,15 +312,19 @@ class RpcClient:
             "timestamp": int(time.time() * 1000),
         }
 
-        headers = {"content-type": "application/json", **internal_headers()}
+        headers = {
+            "content-type": "application/json",
+            **internal_headers(),
+            **outbound_trace_headers(),
+        }
         if request_id is not None:
             headers["x-request-id"] = request_id
 
         try:
-            async with httpx.AsyncClient(timeout=self._timeout) as client:
-                http_response = await client.post(
-                    self._url, json=frame, headers=headers
-                )
+            async with httpx.AsyncClient(
+                timeout=self._timeout, transport=self._transport
+            ) as client:
+                return await client.post(self._url, json=frame, headers=headers)
         except httpx.TimeoutException as error:
             raise RpcError(
                 RPC_TIMEOUT,
@@ -264,22 +336,3 @@ class RpcClient:
                 RPC_UNAVAILABLE,
                 f"The {self._peer} service could not be reached.",
             ) from error
-
-        if http_response.status_code != 200:
-            raise RpcError(
-                RPC_UNAVAILABLE,
-                f"The {self._peer} service answered {RPC_PATH} with "
-                f"{http_response.status_code}.",
-            )
-
-        body = RpcResponseFrame.model_validate(http_response.json())
-
-        if not body.success:
-            error_payload = body.error
-            raise RpcError(
-                error_payload.code if error_payload else RPC_INTERNAL_ERROR,
-                error_payload.message if error_payload else INTERNAL_RPC_MESSAGE,
-                error_payload.details if error_payload else None,
-            )
-
-        return body.result
