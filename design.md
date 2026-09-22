@@ -140,7 +140,7 @@ Designed, not shrunk. Bottom navigation, compact match cards, horizontal market 
 
 ## 17. TV
 
-Token layer `packages/design-tokens/src/tv.ts` (`--bn-tv-*`, under `data-surface="tv"`). Root font size scales with the viewport so one rem layout fills 1080p and 4K. Score 9rem, team names 2.5rem, crests 10rem hero / 3rem rows, 3rem safe area. Dark only, maximum contrast, no betting controls, no hover dependence, two-tone focus ring with slight scale. Routes: Home, Live, Match, Results, Standings, Broadcast. Scenes change on platform state; holds are only a pacing floor.
+Token layer `packages/design-tokens/src/tv.ts` (`--bn-tv-*`, under `data-surface="tv"`). Root font size scales with the viewport so one rem layout fills 1080p and 4K. Score 9rem, team names 2.5rem, crests 10rem hero / 3rem rows, 3rem safe area. Dark only, maximum contrast, no betting controls, no hover dependence, two-tone focus ring with slight scale. Routes: Home, Live, Match, Multi (`?view=2|3|4|all`), Feed (commentary + spotlight), Results, Replay (recorded timelines of finished matches), Standings, Upcoming, Settings, Broadcast. A read-only odds ticker runs along the bottom (display only, implied probability labelled as such); nothing on TV can place or build a bet, and nothing predicts an outcome. Remote: arrows/Enter/Back, CH± (PageUp/PageDown, `[` `]`) steps leagues, Vol± and mute, Info opens the next-24h schedule. Audio is synthesised, off by default. Scenes change on platform state; holds are only a pacing floor.
 
 ## 18. Shop
 
