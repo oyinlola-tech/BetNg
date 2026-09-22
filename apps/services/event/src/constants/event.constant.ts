@@ -1,5 +1,6 @@
 export const EVENT_COMMAND = Object.freeze({
   PUBLISH_EVENT: "event.publishEvent",
+  PUBLISH_SIGNAL: "event.publishSignal",
 });
 
 export type EventCommandType =
@@ -13,6 +14,8 @@ export type EventQueryType = (typeof EVENT_QUERY)[keyof typeof EVENT_QUERY];
 
 export const EVENT_PROCEDURE = Object.freeze({
   PUBLISH_EVENT: "event.publish",
+  PUBLISH_SIGNAL: "event.publishSignal",
+  REVOKE_SESSIONS: "event.revokeSessions",
 });
 
 /**

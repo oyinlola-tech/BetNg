@@ -14,7 +14,7 @@ import type {
 } from "@betng/contracts";
 import { z } from "@zudojs/validation";
 import type { ValidationSchema } from "@zudojs/validation";
-import { LIST_LIMIT, MAX_LEGS } from "../constants/index.js";
+import { BET_PAGE, BET_SORTS, LIST_LIMIT, MAX_LEGS } from "../constants/index.js";
 
 export const placeBetValidator: ValidationSchema<PlaceBetRequest> =
   placeBetRequestSchema;
@@ -52,6 +52,19 @@ export const listBetsQueryValidator = z.object({
 });
 
 export type ListBetsQueryInput = z.infer<typeof listBetsQueryValidator>;
+
+export const BET_PAGE_PARAMS = ["page", "pageSize", "sort", "direction"] as const;
+
+export const pageBetsQueryValidator = z.strictObject({
+  userId: z.uuid().optional(),
+  status: betStatusSchema.optional(),
+  page: z.coerce.number().int().min(1).max(BET_PAGE.maxPage).default(1),
+  pageSize: z.coerce.number().int().min(1).max(BET_PAGE.maxSize).default(BET_PAGE.defaultSize),
+  sort: z.enum(BET_SORTS).default("placedAt"),
+  direction: z.enum(["asc", "desc"]).default("desc"),
+});
+
+export type PageBetsQueryInput = z.infer<typeof pageBetsQueryValidator>;
 
 function isCalendarDate(value: string): boolean {
   const parsed = new Date(`${value}T00:00:00.000Z`);

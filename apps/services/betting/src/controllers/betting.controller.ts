@@ -8,7 +8,7 @@ import type {
   HttpResponseContext,
   HttpRouterContext,
 } from "@betng/service-kit";
-import type { Bet } from "@betng/contracts";
+import type { Bet, Page } from "@betng/contracts";
 import type { CommandBus, QueryBus } from "@zudojs/cqrs";
 import { validate } from "@zudojs/validation";
 import { PERMISSION } from "../constants/index.js";
@@ -19,12 +19,14 @@ import {
   betNotFound,
   invalidRequest,
 } from "../errors/index.js";
-import type { BetRecord } from "../interfaces/index.js";
+import type { BetPage, BetRecord } from "../interfaces/index.js";
 import { PlaceBetCommand } from "../services/betting/commands/index.js";
 import type { PlacementResult } from "../services/betting/commands/index.js";
-import { GetBetQuery, ListBetsQuery } from "../services/betting/queries/index.js";
+import { GetBetQuery, ListBetsQuery, PageBetsQuery } from "../services/betting/queries/index.js";
 import {
+  BET_PAGE_PARAMS,
   listBetsQueryValidator,
+  pageBetsQueryValidator,
   placeBetValidator,
   uuidValidator,
 } from "../validators/index.js";
@@ -38,7 +40,7 @@ import {
 export interface BettingController {
   readonly placeBet: (context: HttpRouterContext) => Promise<HttpResponseContext>;
   readonly getBet: (context: HttpRouterContext) => Promise<Bet>;
-  readonly listBets: (context: HttpRouterContext) => Promise<BetListDto>;
+  readonly listBets: (context: HttpRouterContext) => Promise<BetListDto | Page<Bet>>;
 }
 
 export interface BettingControllerOptions {
@@ -100,24 +102,46 @@ export function createBettingController(
       const actor = requireValidActor(context.request, {
         kind: ["CUSTOMER", "ADMIN"],
       });
-      const query = parseQuery(context.query, listBetsQueryValidator);
 
-      let userId = actor.id;
+      const ownerOf = (requested: string | undefined): string => {
+        if (actor.kind !== "ADMIN") return actor.id;
 
-      if (actor.kind === "ADMIN") {
         if (!actor.permissions.includes(PERMISSION.USERS_READ)) {
           throw actorNotAllowed("You do not have permission to do this.");
         }
 
-        if (query.userId === undefined) {
+        if (requested === undefined) {
           throw invalidRequest("Name the customer whose bets to list.");
         }
 
-        userId = query.userId;
+        return requested;
+      };
+
+      // Paging params select the Page<Bet> answer; callers without them keep `{ items }`.
+      if (BET_PAGE_PARAMS.some((name) => context.query[name] !== undefined)) {
+        const query = parseQuery(context.query, pageBetsQueryValidator);
+        const page = await queryBus.execute<PageBetsQuery, BetPage>(
+          new PageBetsQuery({
+            userId: ownerOf(query.userId),
+            status: query.status,
+            page: query.page,
+            pageSize: query.pageSize,
+            sort: query.sort,
+            direction: query.direction,
+          }),
+        );
+
+        return {
+          items: page.items.map(toBetDto),
+          page: query.page,
+          pageSize: query.pageSize,
+          total: page.total,
+        };
       }
 
+      const query = parseQuery(context.query, listBetsQueryValidator);
       const bets = await queryBus.execute<ListBetsQuery, readonly BetRecord[]>(
-        new ListBetsQuery({ userId, status: query.status, limit: query.limit }),
+        new ListBetsQuery({ userId: ownerOf(query.userId), status: query.status, limit: query.limit }),
       );
 
       return { items: bets.map(toBetDto) };

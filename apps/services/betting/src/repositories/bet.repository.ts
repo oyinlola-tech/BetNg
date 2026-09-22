@@ -330,6 +330,26 @@ export function createBetRepository(prisma: PrismaClient): BetRepository {
       return rows.map(toBetRecord);
     },
 
+    pageBets: async (filter) => {
+      const where = {
+        userId: filter.userId,
+        ...(filter.status === undefined ? {} : { status: filter.status }),
+      };
+
+      const [rows, total] = await prisma.$transaction([
+        prisma.bet.findMany({
+          where,
+          include: WITH_LEGS,
+          orderBy: [{ [filter.sort]: filter.direction }, { id: filter.direction }],
+          skip: (filter.page - 1) * filter.pageSize,
+          take: filter.pageSize,
+        }),
+        prisma.bet.count({ where }),
+      ]);
+
+      return { items: rows.map(toBetRecord), total };
+    },
+
     ticketCodeExists: async (code) =>
       (await prisma.ticket.count({ where: { code } })) > 0,
 

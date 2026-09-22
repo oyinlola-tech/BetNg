@@ -67,7 +67,7 @@ export function createApp(
   const placementPeer = { timeoutMs: PLACEMENT_PEER_TIMEOUT_MS };
   const riskRpc = createRpcClient(config.services.risk, placementPeer);
   const walletRpc = createRpcClient(config.services.wallet, placementPeer);
-  const identityRpc = createRpcClient(config.services.identity);
+  const identityRpc = createRpcClient(config.services.identity, placementPeer);
 
   const repository = createBetRepository(database.prisma);
 
@@ -84,15 +84,13 @@ export function createApp(
 
   const buses = loadServices(container);
 
-  // Risk and the wallet are required: without either, no bet can be accepted.
+  // Risk, the wallet and identity (limits.check) are required: without any of them no online bet can be accepted.
   const probes: DependencyProbe[] = [
     database.probe,
     redisProbe(redis),
     serviceProbe(createServiceClient(config.services.risk)),
     serviceProbe(createServiceClient(config.services.wallet)),
-    serviceProbe(createServiceClient(config.services.identity), {
-      optional: true,
-    }),
+    serviceProbe(createServiceClient(config.services.identity)),
   ];
 
   const server = createServiceServer({

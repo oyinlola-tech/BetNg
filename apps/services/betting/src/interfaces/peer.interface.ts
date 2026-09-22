@@ -46,7 +46,20 @@ export interface AuditEntry {
   readonly requestId: string;
 }
 
+export type LimitAction = "DEPOSIT" | "BET" | "WITHDRAWAL";
+
+export type LimitRefusal = "SELF_EXCLUDED" | "LIMIT_EXCEEDED" | "ACCOUNT_RESTRICTED";
+
+export type LimitDecision =
+  | { readonly allowed: true }
+  | { readonly allowed: false; readonly code: LimitRefusal };
+
 export interface IdentityPeer {
+  // Rejects with PeerUnavailableError when identity gives no usable answer; callers fail closed.
+  checkLimits(
+    input: { readonly userId: string; readonly action: LimitAction; readonly amount: number },
+    requestId: string,
+  ): Promise<LimitDecision>;
   verifyCashierPin(
     cashierId: string,
     pin: string,

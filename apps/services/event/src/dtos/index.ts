@@ -1,2 +1,6 @@
-export { publishEventPayloadSchema } from "./event.dto.js";
-export type { PublishEventPayload } from "./event.dto.js";
+export {
+  publishEventPayloadSchema,
+  publishSignalPayloadSchema,
+  revokeSessionsPayloadSchema,
+} from "./event.dto.js";
+export type { PublishEventPayload, PublishSignalPayload, RevokeSessionsPayload } from "./event.dto.js";

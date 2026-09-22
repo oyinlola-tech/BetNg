@@ -96,6 +96,20 @@ export interface BetFilter {
   readonly limit: number;
 }
 
+export interface BetPageFilter {
+  readonly userId: string;
+  readonly status: BetStatus | undefined;
+  readonly page: number;
+  readonly pageSize: number;
+  readonly sort: "placedAt" | "stake" | "potentialPayout";
+  readonly direction: "asc" | "desc";
+}
+
+export interface BetPage {
+  readonly items: readonly BetRecord[];
+  readonly total: number;
+}
+
 export interface TicketFilter {
   readonly shopId: string;
   readonly status: TicketStatus | undefined;
@@ -145,6 +159,7 @@ export interface BetRepository {
     | undefined
   >;
   listBets(filter: BetFilter): Promise<readonly BetRecord[]>;
+  pageBets(filter: BetPageFilter): Promise<BetPage>;
 
   ticketCodeExists(code: string): Promise<boolean>;
   findTicket(code: string, shopId: string): Promise<TicketRecord | undefined>;

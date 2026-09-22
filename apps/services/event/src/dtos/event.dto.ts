@@ -24,3 +24,26 @@ export const publishEventPayloadSchema = z.object({
 });
 
 export type PublishEventPayload = z.infer<typeof publishEventPayloadSchema>;
+
+const privateOrSystemChannel = z
+  .string()
+  .max(128)
+  .regex(/^(?:system|admin|risk|(?:wallet|bets|notifications|user|shop):[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$/);
+
+export const publishSignalPayloadSchema = z.object({
+  channel: privateOrSystemChannel,
+  type: z.enum(["BET_UPDATED", "WALLET_UPDATED", "NOTIFICATION_CREATED", "SYSTEM_STATUS_UPDATED"]),
+});
+
+export type PublishSignalPayload = z.infer<typeof publishSignalPayloadSchema>;
+
+export const revokeSessionsPayloadSchema = z
+  .object({
+    tokenHash: z.string().regex(/^[0-9a-f]{64}$/).optional(),
+    userId: z.uuid().optional(),
+  })
+  .refine((value) => value.tokenHash !== undefined || value.userId !== undefined, {
+    message: "Name a tokenHash or a userId.",
+  });
+
+export type RevokeSessionsPayload = z.infer<typeof revokeSessionsPayloadSchema>;

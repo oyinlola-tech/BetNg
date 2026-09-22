@@ -8,3 +8,8 @@ export {
   PublishEventHandler,
 } from "./publishEvent/index.js";
 export type { PublishResult } from "./publishEvent/index.js";
+export {
+  PublishSignalCommand,
+  PublishSignalHandler,
+} from "./publishSignal/index.js";
+export type { SignalResult, SignalType } from "./publishSignal/index.js";

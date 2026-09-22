@@ -11,6 +11,7 @@ export type BettingCommandType =
 export const BETTING_QUERY = Object.freeze({
   GET_BET: "betting.getBet",
   LIST_BETS: "betting.listBets",
+  PAGE_BETS: "betting.pageBets",
   GET_TICKET: "betting.getTicket",
   LIST_TICKETS: "betting.listTickets",
 });
@@ -64,6 +65,14 @@ export const LIST_LIMIT = Object.freeze({
   ticketsDefault: 100,
   ticketsMax: 200,
 });
+
+export const BET_PAGE = Object.freeze({
+  defaultSize: 20,
+  maxSize: 100,
+  maxPage: 1000,
+});
+
+export const BET_SORTS = ["placedAt", "stake", "potentialPayout"] as const;
 
 export const MAX_TOTAL_ODDS_HUNDREDTHS = 999_999_999_999n;
 

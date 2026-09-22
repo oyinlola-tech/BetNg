@@ -6,7 +6,7 @@ import {
   EVENT_QUERY,
   LOGGER_TOKEN,
 } from "../../constants/index.js";
-import { PublishEventHandler } from "./commands/index.js";
+import { PublishEventHandler, PublishSignalHandler } from "./commands/index.js";
 import { GetChannelStateHandler } from "./queries/index.js";
 
 export interface EventServiceConfig {
@@ -25,6 +25,8 @@ export function registerEventService(config: EventServiceConfig): void {
     EVENT_COMMAND.PUBLISH_EVENT,
     new PublishEventHandler(channels, logger),
   );
+
+  commandBus.register(EVENT_COMMAND.PUBLISH_SIGNAL, new PublishSignalHandler(channels));
 
   queryBus.register(
     EVENT_QUERY.GET_CHANNEL_STATE,

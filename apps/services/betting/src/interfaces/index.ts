@@ -1,6 +1,8 @@
 export type {
   BetChannel,
   BetFilter,
+  BetPage,
+  BetPageFilter,
   BetLegRecord,
   BetRecord,
   BetRepository,
@@ -27,6 +29,9 @@ export type { MatchLock, MatchLockResult } from "./matchLock.interface.js";
 export type {
   AuditEntry,
   IdentityPeer,
+  LimitAction,
+  LimitDecision,
+  LimitRefusal,
   RiskPeer,
   WalletMovement,
   WalletMovementType,

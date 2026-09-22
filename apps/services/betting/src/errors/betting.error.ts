@@ -117,3 +117,31 @@ export function ticketConflict(message: string, ticket: Ticket): HttpError {
     details: { ticket },
   });
 }
+
+export function selfExcluded(): HttpError {
+  return forbidden("Your account is self-excluded, so bets cannot be placed. Nothing was charged.", {
+    code: ErrorCodes.SELF_EXCLUDED,
+    expose: true,
+  });
+}
+
+export function accountRestricted(): HttpError {
+  return forbidden("Your account cannot place bets right now. Nothing was charged.", {
+    code: ErrorCodes.ACCOUNT_RESTRICTED,
+    expose: true,
+  });
+}
+
+export function limitExceeded(): HttpError {
+  return conflict("This bet would go over a responsible-gaming limit you set. Nothing was charged.", {
+    code: ErrorCodes.LIMIT_EXCEEDED,
+    expose: true,
+  });
+}
+
+export function limitsUnavailable(): HttpError {
+  return serviceUnavailable("Bets cannot be accepted right now. Nothing was charged.", {
+    code: ErrorCodes.SERVICE_UNAVAILABLE,
+    expose: true,
+  });
+}

@@ -3,6 +3,8 @@ import { PeerRefusedError, PeerUnavailableError } from "../src/errors/index.js";
 import type {
   AuditEntry,
   IdentityPeer,
+  LimitAction,
+  LimitDecision,
   RiskPeer,
   WalletMovement,
   WalletPeer,
@@ -89,6 +91,24 @@ export const CASHIER_PIN = "4821";
 
 export class FakeIdentity implements IdentityPeer {
   public readonly audits: AuditEntry[] = [];
+
+  public readonly limitChecks: { userId: string; action: LimitAction; amount: number }[] = [];
+
+  public limits: LimitDecision | "DOWN" | "MALFORMED" = { allowed: true };
+
+  public async checkLimits(input: { userId: string; action: LimitAction; amount: number }): Promise<LimitDecision> {
+    this.limitChecks.push(input);
+
+    if (this.limits === "DOWN") {
+      throw new PeerUnavailableError("identity", new Error("connection refused"));
+    }
+
+    if (this.limits === "MALFORMED") {
+      throw new PeerUnavailableError("identity", new Error("unexpected answer"));
+    }
+
+    return Promise.resolve(this.limits);
+  }
 
   public readonly pinChecks: string[] = [];
 

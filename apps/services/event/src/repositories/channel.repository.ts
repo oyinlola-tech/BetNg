@@ -91,7 +91,13 @@ export function createInMemoryChannelRegistry(
 
     subscribers: (channel) => [...(channels.get(channel)?.subscribers ?? [])],
 
-    state: (channel) => snapshot(channel, record(channel)),
+    subscriptions: (session) => [...(subscriptions.get(session) ?? [])],
+
+    state: (channel) => {
+      const entry = channels.get(channel);
+
+      return entry === undefined ? { channel, lastSequence: 0, subscribers: 0 } : snapshot(channel, entry);
+    },
 
     nextSequence: (channel) => {
       const entry = record(channel);

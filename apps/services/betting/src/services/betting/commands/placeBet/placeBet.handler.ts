@@ -11,15 +11,19 @@ import {
   TICKET,
 } from "../../../../constants/index.js";
 import {
+  accountRestricted,
   actorNotAllowed,
   insufficientFunds,
   invalidBet,
+  limitExceeded,
+  limitsUnavailable,
   marketClosed,
   oddsChanged,
   PeerRefusedError,
   placementUnavailable,
   riskRejected,
   riskUnavailable,
+  selfExcluded,
   stakeLimited,
   stakeNotTaken,
   upstreamUnavailable,
@@ -30,6 +34,7 @@ import type {
   CounterStaff,
   IdentityPeer,
   LegSnapshot,
+  LimitDecision,
   MarketReader,
   MatchLock,
   NewBet,
@@ -112,6 +117,10 @@ export class PlaceBetHandler extends CommandHandler<
       return { ...earlier, replayed: true };
     }
 
+    if (command.channel === "ONLINE") {
+      await this.assertWithinLimits(command);
+    }
+
     const staff =
       command.channel === "SHOP" ? await this.counterStaff(command) : undefined;
 
@@ -125,6 +134,43 @@ export class PlaceBetHandler extends CommandHandler<
     }
 
     return held.value;
+  }
+
+  // Responsible-gaming limits and self-exclusion are identity's decision; no answer means no bet.
+  private async assertWithinLimits(command: PlaceBetCommand): Promise<void> {
+    let decision: LimitDecision;
+
+    try {
+      decision = await this.deps.identity.checkLimits(
+        { userId: command.actor.id, action: "BET", amount: command.stake },
+        command.requestId,
+      );
+    } catch (error) {
+      this.deps.logger.error("Limits could not be checked; the bet is refused", {
+        requestId: command.requestId,
+        event: "limits_unavailable",
+        error: error instanceof Error ? error.message : String(error),
+      });
+
+      throw limitsUnavailable();
+    }
+
+    if (decision.allowed) return;
+
+    this.deps.logger.info("Bet refused by responsible-gaming limits", {
+      requestId: command.requestId,
+      event: "bet_limit_refused",
+      code: decision.code,
+    });
+
+    switch (decision.code) {
+      case "SELF_EXCLUDED":
+        throw selfExcluded();
+      case "ACCOUNT_RESTRICTED":
+        throw accountRestricted();
+      case "LIMIT_EXCEEDED":
+        throw limitExceeded();
+    }
   }
 
   private async counterStaff(command: PlaceBetCommand): Promise<CounterStaff> {
@@ -529,11 +575,16 @@ function acceptedLeg(snapshot: LegSnapshot, oddsHundredths: number): NewBetLeg {
 }
 
 // Online the stake leaves the customer's wallet; at the counter cash came in, so the sale credits the shop float.
+// Each channel must carry its own owner: a customer bet without a user or a shop bet without a ticket is refused, never defaulted.
 function stakePlan(bet: NewBet): StakePlan {
-  if (bet.ticket === undefined) {
+  if (bet.channel === "ONLINE") {
+    if (bet.userId === undefined || bet.userId === "" || bet.ticket !== undefined) {
+      throw new Error(`Bet ${bet.id} is ONLINE but has no customer to charge.`);
+    }
+
     const owner = {
       ownerType: "CUSTOMER",
-      ownerId: bet.userId ?? "",
+      ownerId: bet.userId,
       amount: bet.stake,
       reference: bet.id,
     } as const;
@@ -551,6 +602,10 @@ function stakePlan(bet: NewBet): StakePlan {
         idempotencyKey: `bet-rollback:${bet.id}`,
       },
     };
+  }
+
+  if (bet.ticket === undefined || bet.userId !== undefined) {
+    throw new Error(`Bet ${bet.id} is a SHOP bet but has no ticket to credit.`);
   }
 
   const drawer = {

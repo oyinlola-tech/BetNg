@@ -1,9 +1,11 @@
 export {
   applySettlementValidator,
+  BET_PAGE_PARAMS,
   cancelTicketValidator,
   idempotencyKeyValidator,
   listBetsQueryValidator,
   listTicketsQueryValidator,
+  pageBetsQueryValidator,
   payoutTicketValidator,
   placeBetValidator,
   placeTicketValidator,
@@ -14,4 +16,5 @@ export type {
   ApplySettlementInput,
   ListBetsQueryInput,
   ListTicketsQueryInput,
+  PageBetsQueryInput,
 } from "./betting.validator.js";

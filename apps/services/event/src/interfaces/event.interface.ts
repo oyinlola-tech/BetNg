@@ -12,6 +12,7 @@ export interface ChannelRegistry {
   subscribe(session: WebSocketSession, channel: string): ChannelState;
   unsubscribe(session: WebSocketSession, channel: string): void;
   subscribers(channel: string): readonly WebSocketSession[];
+  subscriptions(session: WebSocketSession): readonly string[];
   state(channel: string): ChannelState;
   /**
    * Assigns the next sequence on a channel.

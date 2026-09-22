@@ -13,7 +13,7 @@ import {
   WALLET_PEER_TOKEN,
 } from "../../constants/index.js";
 import { ApplySettlementHandler, PlaceBetHandler } from "./commands/index.js";
-import { GetBetHandler, ListBetsHandler } from "./queries/index.js";
+import { GetBetHandler, ListBetsHandler, PageBetsHandler } from "./queries/index.js";
 
 export interface BettingServiceConfig {
   readonly container: Container;
@@ -48,4 +48,5 @@ export function registerBettingService(config: BettingServiceConfig): void {
 
   queryBus.register(BETTING_QUERY.GET_BET, new GetBetHandler(bets));
   queryBus.register(BETTING_QUERY.LIST_BETS, new ListBetsHandler(bets));
+  queryBus.register(BETTING_QUERY.PAGE_BETS, new PageBetsHandler(bets));
 }

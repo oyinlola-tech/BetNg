@@ -26,6 +26,7 @@ beforeEach(() => {
   harness.wallet.down = false;
   harness.failNextInsert = false;
   harness.lockUnavailable = false;
+  harness.identity.limits = { allowed: true };
 });
 
 function fundedCustomer(balance = 1_000_000): string {
@@ -410,6 +411,151 @@ describe("POST /bets", () => {
     expect(cashier.status).toBe(403);
     expect(nobody.status).toBe(401);
     expect(adminTicket.status).toBe(403);
+  });
+});
+
+describe("responsible-gaming limits on POST /bets", () => {
+  it("asks identity for BET with the stake before anything moves", async () => {
+    const match = await harness.seedMatch();
+    const userId = fundedCustomer();
+    const checks = harness.identity.limitChecks.length;
+
+    const reply = await harness.call<Bet>("POST", "/bets", {
+      headers: harness.customer(userId),
+      body: { selections: [match.leg(0)], stake: 25_000 },
+    });
+
+    expect(reply.status).toBe(201);
+    expect(harness.identity.limitChecks.slice(checks)).toEqual([{ userId, action: "BET", amount: 25_000 }]);
+  });
+
+  for (const [code, status] of [
+    ["SELF_EXCLUDED", 403],
+    ["ACCOUNT_RESTRICTED", 403],
+    ["LIMIT_EXCEEDED", 409],
+  ] as const) {
+    it(`refuses ${code} with ${String(status)}: no risk call, no debit, no bet`, async () => {
+      const match = await harness.seedMatch();
+      const userId = fundedCustomer();
+      const riskCalls = harness.risk.calls.length;
+      const walletCalls = harness.wallet.calls.length;
+
+      harness.identity.limits = { allowed: false, code };
+
+      const reply = await harness.call<ErrorBody>("POST", "/bets", {
+        headers: harness.customer(userId),
+        body: { selections: [match.leg(0)], stake: 25_000 },
+      });
+
+      expect(reply.status).toBe(status);
+      expect(reply.body.error.code).toBe(code);
+      expect(harness.risk.calls.length).toBe(riskCalls);
+      expect(harness.wallet.calls.length).toBe(walletCalls);
+      expect(harness.wallet.balanceOf(userId)).toBe(1_000_000);
+      expect(await betRows(userId)).toBe(0);
+    });
+  }
+
+  for (const failure of ["DOWN", "MALFORMED"] as const) {
+    it(`fails closed with 503 when identity is ${failure === "DOWN" ? "unreachable" : "unintelligible"}`, async () => {
+      const match = await harness.seedMatch();
+      const userId = fundedCustomer();
+      const walletCalls = harness.wallet.calls.length;
+
+      harness.identity.limits = failure;
+
+      const reply = await harness.call<ErrorBody>("POST", "/bets", {
+        headers: harness.customer(userId),
+        body: { selections: [match.leg(0)], stake: 25_000 },
+      });
+
+      expect(reply.status).toBe(503);
+      expect(reply.body.error.code).toBe("SERVICE_UNAVAILABLE");
+      expect(harness.wallet.calls.length).toBe(walletCalls);
+      expect(await betRows(userId)).toBe(0);
+    });
+  }
+
+  it("does not consult customer limits for a shop ticket", async () => {
+    const match = await harness.seedMatch();
+    const shop = await harness.seedShop();
+    const checks = harness.identity.limitChecks.length;
+
+    harness.identity.limits = { allowed: false, code: "SELF_EXCLUDED" };
+
+    const reply = await harness.call("POST", "/shop/tickets", {
+      headers: harness.cashier(shop),
+      body: { selections: [match.leg(0)], stake: 10_000 },
+    });
+
+    expect(reply.status).toBe(201);
+    expect(harness.identity.limitChecks.length).toBe(checks);
+  });
+});
+
+describe("GET /bets paging", () => {
+  it("answers Page<Bet> when paging params are sent, and { items } otherwise", async () => {
+    const userId = fundedCustomer();
+
+    for (const stake of [10_000, 30_000, 20_000]) {
+      const match = await harness.seedMatch();
+
+      await harness.call("POST", "/bets", {
+        headers: harness.customer(userId),
+        body: { selections: [match.leg(0)], stake },
+      });
+    }
+
+    const first = await harness.call<{ items: Bet[]; page: number; pageSize: number; total: number }>(
+      "GET",
+      "/bets?page=1&pageSize=2&sort=stake&direction=asc",
+      { headers: harness.customer(userId) },
+    );
+    const second = await harness.call<{ items: Bet[]; page: number; total: number }>(
+      "GET",
+      "/bets?page=2&pageSize=2&sort=stake&direction=asc",
+      { headers: harness.customer(userId) },
+    );
+    const legacy = await harness.call<Record<string, unknown>>("GET", "/bets", { headers: harness.customer(userId) });
+
+    expect(first.status).toBe(200);
+    expect(first.body).toMatchObject({ page: 1, pageSize: 2, total: 3 });
+    expect(first.body.items.map((bet) => bet.stake)).toEqual([10_000, 20_000]);
+    expect(second.body.items.map((bet) => bet.stake)).toEqual([30_000]);
+    expect(Object.keys(legacy.body)).toEqual(["items"]);
+  });
+
+  it("filters by status and refuses unknown sorts and oversize pages", async () => {
+    const userId = fundedCustomer();
+    const match = await harness.seedMatch();
+
+    await harness.call("POST", "/bets", { headers: harness.customer(userId), body: { selections: [match.leg(0)], stake: 10_000 } });
+
+    const won = await harness.call<{ total: number }>("GET", "/bets?page=1&status=WON", { headers: harness.customer(userId) });
+    const badSort = await harness.call<ErrorBody>("GET", "/bets?page=1&sort=userId", { headers: harness.customer(userId) });
+    const huge = await harness.call<ErrorBody>("GET", "/bets?pageSize=1000", { headers: harness.customer(userId) });
+    const mixed = await harness.call<ErrorBody>("GET", "/bets?page=1&limit=5", { headers: harness.customer(userId) });
+
+    expect(won.body.total).toBe(0);
+    expect(badSort.status).toBe(422);
+    expect(huge.status).toBe(422);
+    expect(mixed.status).toBe(422);
+  });
+
+  it("pages only the caller's own bets and needs users:read for an admin", async () => {
+    const userId = fundedCustomer();
+    const other = fundedCustomer();
+    const match = await harness.seedMatch();
+
+    await harness.call("POST", "/bets", { headers: harness.customer(other), body: { selections: [match.leg(0)], stake: 10_000 } });
+
+    const own = await harness.call<{ total: number }>("GET", `/bets?page=1&userId=${other}`, { headers: harness.customer(userId) });
+    const admin = await harness.call<{ total: number }>("GET", `/bets?page=1&userId=${other}`, { headers: harness.admin_() });
+    const noPermission = await harness.call<ErrorBody>("GET", `/bets?page=1&userId=${other}`, { headers: harness.admin_([]) });
+
+    expect(own.body.total).toBe(0);
+    expect(admin.body.total).toBe(1);
+    expect(noPermission.status).toBe(403);
   });
 });
 
