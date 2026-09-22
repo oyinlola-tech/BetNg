@@ -21,11 +21,19 @@ export function formatHundredths(hundredths: number): string {
 }
 
 // Undefined when the submitted price is not a two-decimal number; it can then never equal a published price.
+// String(odds) is the shortest text that round-trips the double, so the check is exact integer arithmetic.
 export function submittedHundredths(odds: number): number | undefined {
-  const scaled = odds * 100;
-  const rounded = Math.round(scaled);
+  if (!Number.isFinite(odds) || odds <= 0) {
+    return undefined;
+  }
 
-  return Math.abs(scaled - rounded) < 1e-6 ? rounded : undefined;
+  const match = DECIMAL_TEXT.exec(String(odds));
+
+  if (match === null) {
+    return undefined;
+  }
+
+  return Number(match[1]) * 100 + Number((match[2] ?? "").padEnd(2, "0"));
 }
 
 export interface SlipPrice {

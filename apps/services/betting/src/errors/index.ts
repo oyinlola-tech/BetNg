@@ -15,6 +15,7 @@ export {
   selfExcluded,
   stakeLimited,
   stakeNotTaken,
+  ticketCodesExhausted,
   ticketConflict,
   ticketNotFound,
   upstreamUnavailable,

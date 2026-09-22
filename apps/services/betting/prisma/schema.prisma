@@ -143,3 +143,26 @@ model Ticket {
   @@index([shopId, status])
   @@map("tickets")
 }
+
+/// A stake taken for a bet that was never written, held until the wallet confirms its return.
+/// `resolution` is RETURNED, or BET_EXISTS when the insert had in fact committed and nothing is owed.
+model StakeReturn {
+  betId          String    @id @map("bet_id") @db.Uuid
+  direction      String    @db.VarChar(8)
+  ownerType      String    @map("owner_type") @db.VarChar(16)
+  ownerId        String    @map("owner_id") @db.Uuid
+  amount         BigInt
+  movementType   String    @map("movement_type") @db.VarChar(32)
+  reference      String?   @db.VarChar(64)
+  actorId        String?   @map("actor_id") @db.Uuid
+  idempotencyKey String    @unique @map("idempotency_key") @db.VarChar(200)
+  requestId      String    @map("request_id") @db.VarChar(200)
+  attempts       Int       @default(0)
+  lastError      String?   @map("last_error") @db.VarChar(240)
+  nextAttemptAt  DateTime  @map("next_attempt_at") @db.Timestamptz(3)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  resolvedAt     DateTime? @map("resolved_at") @db.Timestamptz(3)
+  resolution     String?   @db.VarChar(16)
+
+  @@map("stake_returns")
+}

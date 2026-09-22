@@ -2,12 +2,14 @@ import { createToken } from "@zudojs/container";
 import type { Logger } from "@betng/service-kit";
 import type {
   BetRepository,
+  BetSignalPublisher,
   IdentityPeer,
   MarketReader,
   MatchLock,
   RiskPeer,
   WalletPeer,
 } from "../interfaces/index.js";
+import type { StakeReturner } from "../services/betting/stakeReturner.js";
 
 export const BET_REPOSITORY_TOKEN =
   createToken<BetRepository>("betting.repository");
@@ -28,3 +30,8 @@ export const IDENTITY_PEER_TOKEN = createToken<IdentityPeer>(
 export const CLOCK_TOKEN = createToken<() => Date>("betting.clock");
 
 export const LOGGER_TOKEN = createToken<Logger>("betting.logger");
+
+export const STAKE_RETURNER_TOKEN =
+  createToken<StakeReturner>("betting.stakeReturner");
+
+export const BET_SIGNALS_TOKEN = createToken<BetSignalPublisher>("betting.signals");

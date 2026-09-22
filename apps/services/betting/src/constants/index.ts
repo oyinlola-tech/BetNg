@@ -15,6 +15,7 @@ export {
   OPEN_MARKET_STATUS,
   PERMISSION,
   PLACEMENT_PEER_TIMEOUT_MS,
+  STAKE_RETURN,
   TICKET,
 } from "./betting.constant.js";
 export type {
@@ -24,11 +25,13 @@ export type {
 
 export {
   BET_REPOSITORY_TOKEN,
+  BET_SIGNALS_TOKEN,
   CLOCK_TOKEN,
   IDENTITY_PEER_TOKEN,
   LOGGER_TOKEN,
   MARKET_READER_TOKEN,
   MATCH_LOCK_TOKEN,
   RISK_PEER_TOKEN,
+  STAKE_RETURNER_TOKEN,
   WALLET_PEER_TOKEN,
 } from "./betting.token.js";

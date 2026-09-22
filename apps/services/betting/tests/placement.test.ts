@@ -25,6 +25,9 @@ beforeEach(() => {
   harness.risk.next = { decision: "ACCEPT", reason: "WITHIN_LIMIT", maxStake: 10_000_000 };
   harness.wallet.down = false;
   harness.failNextInsert = false;
+  harness.failNextInsertAfterCommit = false;
+  harness.failStakeReturnRecords = 0;
+  harness.wallet.downFor = undefined;
   harness.lockUnavailable = false;
   harness.identity.limits = { allowed: true };
 });
@@ -35,6 +38,30 @@ function fundedCustomer(balance = 1_000_000): string {
   harness.wallet.balances.set(id, balance);
 
   return id;
+}
+
+interface StakeReturnRow {
+  readonly bet_id: string;
+  readonly attempts: number;
+  readonly resolution: string | null;
+  readonly idempotency_key: string;
+}
+
+async function stakeReturnsOf(userId: string): Promise<StakeReturnRow[]> {
+  return harness.admin.$queryRaw<StakeReturnRow[]>`
+    SELECT bet_id::text, attempts, resolution, idempotency_key
+    FROM betting.stake_returns WHERE owner_id = ${userId}::uuid`;
+}
+
+async function makeDue(userId: string): Promise<void> {
+  await harness.admin.$executeRaw`
+    UPDATE betting.stake_returns SET next_attempt_at = now() WHERE owner_id = ${userId}::uuid`;
+}
+
+function refundsTo(userId: string): number {
+  return [...harness.wallet.ledger.values()].filter(
+    (entry) => entry.ownerId === userId && entry.type === "BET_REFUND",
+  ).length;
 }
 
 async function betRows(userId: string): Promise<number> {
@@ -216,6 +243,26 @@ describe("POST /bets", () => {
     expect(oversized.body.error.code).toBe("INVALID_BET");
   });
 
+  it("answers INVALID_BET when two legs carry the same selection", async () => {
+    const match = await harness.seedMatch();
+    const other = await harness.seedMatch();
+    const headers = harness.customer(fundedCustomer());
+    const riskCalls = harness.risk.calls.length;
+
+    const repeated = await harness.call<ErrorBody>("POST", "/bets", {
+      headers,
+      body: {
+        selections: [match.leg(0), { ...other.leg(0), selectionId: match.leg(0).selectionId }],
+        stake: 1000,
+      },
+    });
+
+    expect(repeated.status).toBe(422);
+    expect(repeated.body.error.code).toBe("INVALID_BET");
+    expect(repeated.body.error.message).toBe("A slip may carry each selection once.");
+    expect(harness.risk.calls).toHaveLength(riskCalls);
+  });
+
   it("answers STAKE_LIMITED with the maximum stake when risk limits", async () => {
     const match = await harness.seedMatch();
     const userId = fundedCustomer();
@@ -342,6 +389,89 @@ describe("POST /bets", () => {
 
     expect(refund).toMatchObject({ type: "BET_REFUND", amount: 7000 });
     expect(refund?.idempotencyKey).toMatch(/^bet-rollback:/);
+  });
+
+  it("records a stake it cannot return yet and returns it exactly once when the wallet is back", async () => {
+    const match = await harness.seedMatch();
+    const userId = fundedCustomer();
+
+    harness.failNextInsert = true;
+    harness.wallet.downFor = "credit";
+
+    const reply = await harness.call<ErrorBody>("POST", "/bets", {
+      headers: harness.customer(userId),
+      body: { selections: [match.leg(0)], stake: 4000 },
+    });
+
+    expect(reply.status).toBe(500);
+    expect(await betRows(userId)).toBe(0);
+    expect(harness.wallet.balanceOf(userId)).toBe(996_000);
+    expect(await stakeReturnsOf(userId)).toMatchObject([{ attempts: 1, resolution: null }]);
+
+    await makeDue(userId);
+    await harness.stakeReturns.tick();
+
+    expect(harness.wallet.balanceOf(userId)).toBe(996_000);
+    expect(await stakeReturnsOf(userId)).toMatchObject([{ attempts: 2, resolution: null }]);
+
+    harness.wallet.downFor = undefined;
+    await makeDue(userId);
+    await harness.stakeReturns.tick();
+
+    const [row] = await stakeReturnsOf(userId);
+
+    expect(row?.resolution).toBe("RETURNED");
+    expect(row?.idempotency_key).toBe(`bet-rollback:${row?.bet_id ?? ""}`);
+    expect(harness.wallet.balanceOf(userId)).toBe(1_000_000);
+
+    await makeDue(userId);
+    await harness.stakeReturns.tick();
+
+    expect(harness.wallet.balanceOf(userId)).toBe(1_000_000);
+    expect(refundsTo(userId)).toBe(1);
+  });
+
+  it("holds a return the database could not record, then records and returns it", async () => {
+    const match = await harness.seedMatch();
+    const userId = fundedCustomer();
+
+    harness.failNextInsert = true;
+    harness.failStakeReturnRecords = 1;
+    harness.wallet.downFor = "credit";
+
+    const reply = await harness.call<ErrorBody>("POST", "/bets", {
+      headers: harness.customer(userId),
+      body: { selections: [match.leg(0)], stake: 2500 },
+    });
+
+    expect(reply.status).toBe(500);
+    expect(await stakeReturnsOf(userId)).toEqual([]);
+    expect(harness.wallet.balanceOf(userId)).toBe(997_500);
+
+    harness.wallet.downFor = undefined;
+    await harness.stakeReturns.tick();
+
+    expect(await stakeReturnsOf(userId)).toMatchObject([{ resolution: "RETURNED" }]);
+    expect(harness.wallet.balanceOf(userId)).toBe(1_000_000);
+    expect(refundsTo(userId)).toBe(1);
+  });
+
+  it("keeps the stake and answers the bet when the insert committed despite the error", async () => {
+    const match = await harness.seedMatch();
+    const userId = fundedCustomer();
+
+    harness.failNextInsertAfterCommit = true;
+
+    const reply = await harness.call<Bet>("POST", "/bets", {
+      headers: harness.customer(userId),
+      body: { selections: [match.leg(0)], stake: 3000 },
+    });
+
+    expect(reply.status).toBe(201);
+    expect(await betRows(userId)).toBe(1);
+    expect(harness.wallet.balanceOf(userId)).toBe(997_000);
+    expect(refundsTo(userId)).toBe(0);
+    expect(await stakeReturnsOf(userId)).toMatchObject([{ resolution: "BET_EXISTS" }]);
   });
 
   it("replays an idempotency key: same bet, one debit", async () => {

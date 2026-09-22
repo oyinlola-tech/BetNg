@@ -2,6 +2,7 @@ import type { Container } from "@zudojs/container";
 import type { CommandBus, QueryBus } from "@zudojs/cqrs";
 import {
   BET_REPOSITORY_TOKEN,
+  BET_SIGNALS_TOKEN,
   BETTING_COMMAND,
   BETTING_QUERY,
   CLOCK_TOKEN,
@@ -10,6 +11,7 @@ import {
   MARKET_READER_TOKEN,
   MATCH_LOCK_TOKEN,
   RISK_PEER_TOKEN,
+  STAKE_RETURNER_TOKEN,
   WALLET_PEER_TOKEN,
 } from "../../constants/index.js";
 import { ApplySettlementHandler, PlaceBetHandler } from "./commands/index.js";
@@ -38,6 +40,8 @@ export function registerBettingService(config: BettingServiceConfig): void {
       identity: container.resolve(IDENTITY_PEER_TOKEN),
       logger,
       now: container.resolve(CLOCK_TOKEN),
+      stakeReturner: container.resolve(STAKE_RETURNER_TOKEN),
+      signals: container.resolve(BET_SIGNALS_TOKEN),
     }),
   );
 

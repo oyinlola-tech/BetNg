@@ -145,3 +145,11 @@ export function limitsUnavailable(): HttpError {
     expose: true,
   });
 }
+
+// Collisions are random, so the sale is safe to retry; it fails before any money moves.
+export function ticketCodesExhausted(): HttpError {
+  return serviceUnavailable("No ticket code could be issued. Nothing was charged; try again.", {
+    code: ErrorCodes.SERVICE_UNAVAILABLE,
+    expose: true,
+  });
+}

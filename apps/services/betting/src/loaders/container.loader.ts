@@ -3,22 +3,26 @@ import type { Container } from "@zudojs/container";
 import type { Logger } from "@betng/service-kit";
 import {
   BET_REPOSITORY_TOKEN,
+  BET_SIGNALS_TOKEN,
   CLOCK_TOKEN,
   IDENTITY_PEER_TOKEN,
   LOGGER_TOKEN,
   MARKET_READER_TOKEN,
   MATCH_LOCK_TOKEN,
   RISK_PEER_TOKEN,
+  STAKE_RETURNER_TOKEN,
   WALLET_PEER_TOKEN,
 } from "../constants/index.js";
 import type {
   BetRepository,
+  BetSignalPublisher,
   IdentityPeer,
   MarketReader,
   MatchLock,
   RiskPeer,
   WalletPeer,
 } from "../interfaces/index.js";
+import type { StakeReturner } from "../services/betting/stakeReturner.js";
 
 export interface ContainerLoaderConfig {
   readonly bets: BetRepository;
@@ -29,6 +33,8 @@ export interface ContainerLoaderConfig {
   readonly identity: IdentityPeer;
   readonly logger: Logger;
   readonly now: () => Date;
+  readonly stakeReturner: StakeReturner;
+  readonly signals: BetSignalPublisher;
 }
 
 export function loadContainer(config: ContainerLoaderConfig): Container {
@@ -42,6 +48,8 @@ export function loadContainer(config: ContainerLoaderConfig): Container {
   container.registerValue(IDENTITY_PEER_TOKEN, config.identity);
   container.registerValue(LOGGER_TOKEN, config.logger);
   container.registerValue(CLOCK_TOKEN, config.now);
+  container.registerValue(STAKE_RETURNER_TOKEN, config.stakeReturner);
+  container.registerValue(BET_SIGNALS_TOKEN, config.signals);
 
   return container.start();
 }

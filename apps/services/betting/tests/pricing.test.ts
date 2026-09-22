@@ -60,4 +60,18 @@ describe("slip pricing", () => {
     expect(submittedHundredths(1.1)).toBe(110);
     expect(submittedHundredths(2.155)).toBeUndefined();
   });
+
+  it("checks a submitted price exactly, with no float tolerance", () => {
+    expect(submittedHundredths(2.1500000001)).toBeUndefined();
+    expect(submittedHundredths(2.149999999)).toBeUndefined();
+    expect(submittedHundredths(4.35)).toBe(435);
+    expect(submittedHundredths(1.15)).toBe(115);
+    expect(submittedHundredths(0.1 + 0.2)).toBeUndefined();
+    expect(submittedHundredths(12)).toBe(1200);
+    expect(submittedHundredths(1e21)).toBeUndefined();
+    expect(submittedHundredths(Number.NaN)).toBeUndefined();
+    expect(submittedHundredths(Number.POSITIVE_INFINITY)).toBeUndefined();
+    expect(submittedHundredths(-2.15)).toBeUndefined();
+    expect(submittedHundredths(0)).toBeUndefined();
+  });
 });

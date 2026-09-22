@@ -2,6 +2,7 @@ import type { RiskDecision, RiskEvaluateRequest } from "@betng/contracts";
 import { PeerRefusedError, PeerUnavailableError } from "../src/errors/index.js";
 import type {
   AuditEntry,
+  BetSignalPublisher,
   IdentityPeer,
   LimitAction,
   LimitDecision,
@@ -44,6 +45,8 @@ export class FakeWallet implements WalletPeer {
 
   public down = false;
 
+  public downFor: "debit" | "credit" | undefined;
+
   public balanceOf(ownerId: string): number {
     return this.balances.get(ownerId) ?? 0;
   }
@@ -62,7 +65,7 @@ export class FakeWallet implements WalletPeer {
   ): Promise<void> {
     this.calls.push({ ...movement, direction });
 
-    if (this.down) {
+    if (this.down || this.downFor === direction) {
       throw new PeerUnavailableError("wallet", new Error("connection refused"));
     }
 
@@ -122,5 +125,15 @@ export class FakeIdentity implements IdentityPeer {
     this.audits.push(entry);
 
     return Promise.resolve();
+  }
+}
+
+export class FakeSignals implements BetSignalPublisher {
+  public readonly accepted: { readonly customerId: string; readonly betId: string; readonly requestId: string }[] = [];
+  public fail = false;
+
+  public betAccepted(customerId: string, betId: string, requestId: string): void {
+    if (this.fail) throw new Error("event client exploded");
+    this.accepted.push({ customerId, betId, requestId });
   }
 }

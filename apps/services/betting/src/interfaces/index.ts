@@ -38,3 +38,10 @@ export type {
   WalletOwnerType,
   WalletPeer,
 } from "./peer.interface.js";
+export type {
+  PendingStakeReturn,
+  StakeReturnDirection,
+  StakeReturnRepository,
+  StakeReturnResolution,
+} from "./stakeReturn.interface.js";
+export type { BetSignalPublisher } from "./signal.interface.js";

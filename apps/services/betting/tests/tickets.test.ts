@@ -25,6 +25,7 @@ afterAll(async () => {
 beforeEach(() => {
   harness.risk.next = { decision: "ACCEPT", reason: "WITHIN_LIMIT", maxStake: 10_000_000 };
   harness.wallet.down = false;
+  harness.ticketCodesTaken = false;
 });
 
 async function openShop(float = 0): Promise<SeededShop> {
@@ -136,6 +137,29 @@ describe("POST /shop/tickets", () => {
     expect(noPermission.status).toBe(403);
     expect(wrongShop.status).toBe(403);
     expect(harness.wallet.balanceOf(other.shopId)).toBe(0);
+  });
+
+  it("answers 503 SERVICE_UNAVAILABLE when every ticket code tried is taken, before any money moves", async () => {
+    const shop = await openShop();
+    const match = await harness.seedMatch();
+    const walletCalls = harness.wallet.calls.length;
+
+    harness.ticketCodesTaken = true;
+
+    const reply = await harness.call<ErrorBody>("POST", "/shop/tickets", {
+      headers: harness.cashier(shop),
+      body: { selections: [match.leg(0)], stake: 1000 },
+    });
+
+    expect(reply.status).toBe(503);
+    expect(reply.body.error.code).toBe("SERVICE_UNAVAILABLE");
+    expect(reply.body.error.message).toContain("Nothing was charged");
+    expect(harness.wallet.calls).toHaveLength(walletCalls);
+
+    const rows = await harness.admin.$queryRaw<{ n: number }[]>`
+      SELECT count(*)::int AS n FROM betting.bets WHERE shop_id = ${shop.shopId}::uuid`;
+
+    expect(rows[0]?.n).toBe(0);
   });
 });
 

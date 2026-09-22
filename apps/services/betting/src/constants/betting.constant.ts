@@ -87,3 +87,13 @@ export const MONEY_TRANSACTION = Object.freeze({
   timeout: 15_000,
   maxWait: 5000,
 });
+
+// A stake that could not be returned inline is retried by the job until the wallet confirms it; it is never dropped.
+export const STAKE_RETURN = Object.freeze({
+  intervalMs: 5000,
+  batchSize: 50,
+  leaseMs: 30_000,
+  backoffBaseMs: 2000,
+  backoffMaxMs: 300_000,
+  alertAfterAttempts: 5,
+});

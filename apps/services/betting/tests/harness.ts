@@ -11,8 +11,9 @@ import { createRedisMatchLock } from "../src/clients/index.js";
 import { createApp, loadBettingConfig } from "../src/index.js";
 import type { BettingApp } from "../src/index.js";
 import { PrismaClient } from "../src/generated/prisma/client.js";
-import type { BetRepository } from "../src/interfaces/index.js";
-import { FakeIdentity, FakeRisk, FakeWallet } from "./fakes.js";
+import type { StakeReturnJob } from "../src/jobs/index.js";
+import type { BetRepository, StakeReturnRepository } from "../src/interfaces/index.js";
+import { FakeIdentity, FakeRisk, FakeSignals, FakeWallet } from "./fakes.js";
 import { FIXTURE_SCHEMA } from "./fixtureSchema.js";
 
 const TEST_DATABASE = "betng_test_betting";
@@ -85,8 +86,13 @@ export interface Harness {
   readonly risk: FakeRisk;
   readonly wallet: FakeWallet;
   readonly identity: FakeIdentity;
+  readonly signals: FakeSignals;
   readonly admin: PrismaClient;
+  readonly stakeReturns: StakeReturnJob;
   failNextInsert: boolean;
+  failNextInsertAfterCommit: boolean;
+  failStakeReturnRecords: number;
+  ticketCodesTaken: boolean;
   lockUnavailable: boolean;
   seedMatch(options?: SeedMatchOptions): Promise<SeededMatch>;
   seedShop(): Promise<SeededShop>;
@@ -127,12 +133,13 @@ export async function startHarness(): Promise<Harness> {
   });
 
   for (const statement of FIXTURE_SCHEMA) {
-    await admin.$executeRawUnsafe(statement);
+    await admin.$executeRaw(statement);
   }
 
   const risk = new FakeRisk();
   const wallet = new FakeWallet();
   const identity = new FakeIdentity();
+  const signals = new FakeSignals();
 
   const config = await loadBettingConfig({
     NODE_ENV: "test",
@@ -143,7 +150,13 @@ export async function startHarness(): Promise<Harness> {
     REDIS_URL: process.env["REDIS_URL"] ?? "redis://localhost:56379",
   });
 
-  const harness = { failNextInsert: false, lockUnavailable: false };
+  const harness = {
+    failNextInsert: false,
+    failNextInsertAfterCommit: false,
+    failStakeReturnRecords: 0,
+    ticketCodesTaken: false,
+    lockUnavailable: false,
+  };
   const redis = createRedisConnection(config.redisUrl ?? "");
   const redisLock = createRedisMatchLock(redis, createServiceLogger(config));
 
@@ -151,6 +164,7 @@ export async function startHarness(): Promise<Harness> {
     risk,
     wallet,
     identity,
+    signals,
     lock: {
       withMatches: async (matchIds, task) =>
         harness.lockUnavailable
@@ -165,9 +179,30 @@ export async function startHarness(): Promise<Harness> {
           throw new Error("simulated insert failure");
         }
 
-        return repository.insert(bet);
+        const written = await repository.insert(bet);
+
+        if (harness.failNextInsertAfterCommit) {
+          harness.failNextInsertAfterCommit = false;
+          throw new Error("simulated connection loss after commit");
+        }
+
+        return written;
+      },
+      ticketCodeExists: async (code) =>
+        harness.ticketCodesTaken || repository.ticketCodeExists(code),
+    }),
+    wrapStakeReturns: (returns): StakeReturnRepository => ({
+      ...returns,
+      record: async (entry, nextAttemptAt) => {
+        if (harness.failStakeReturnRecords > 0) {
+          harness.failStakeReturnRecords -= 1;
+          throw new Error("simulated database outage");
+        }
+
+        return returns.record(entry, nextAttemptAt);
       },
     }),
+    startJobs: false,
   });
 
   await app.server.start();
@@ -175,9 +210,11 @@ export async function startHarness(): Promise<Harness> {
   const baseUrl = `http://127.0.0.1:${String(TEST_PORT)}`;
 
   return Object.assign(harness, {
+    stakeReturns: app.stakeReturns,
     risk,
     wallet,
     identity,
+    signals,
     admin,
 
     seedMatch: async (options: SeedMatchOptions = {}): Promise<SeededMatch> => {

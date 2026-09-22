@@ -26,11 +26,13 @@ import {
   selfExcluded,
   stakeLimited,
   stakeNotTaken,
+  ticketCodesExhausted,
   upstreamUnavailable,
 } from "../../../../errors/index.js";
 import type {
   BetRecord,
   BetRepository,
+  BetSignalPublisher,
   CounterStaff,
   IdentityPeer,
   LegSnapshot,
@@ -53,6 +55,7 @@ import {
   priceSlip,
   submittedHundredths,
 } from "../../../../utils/index.js";
+import type { StakeReturner } from "../../stakeReturner.js";
 import type { PlaceBetCommand, SubmittedLeg } from "./placeBet.command.js";
 
 export interface PlacementResult {
@@ -70,6 +73,8 @@ export interface PlaceBetDependencies {
   readonly identity: IdentityPeer;
   readonly logger: Logger;
   readonly now: () => Date;
+  readonly stakeReturner: StakeReturner;
+  readonly signals?: BetSignalPublisher;
 }
 
 const RISK_REJECTION_MESSAGE: Readonly<Record<RiskReason, string>> =
@@ -261,6 +266,14 @@ export class PlaceBetHandler extends CommandHandler<
       legs: legs.length,
     });
 
+    if (bet.userId !== undefined) {
+      try {
+        this.deps.signals?.betAccepted(bet.userId, betId, command.requestId);
+      } catch {
+        this.deps.logger.warn("Realtime signal could not be prepared", { requestId: command.requestId, betId });
+      }
+    }
+
     if (written.ticket !== undefined) {
       void this.deps.identity.recordAudit({
         actorId: command.actor.id,
@@ -291,15 +304,27 @@ export class PlaceBetHandler extends CommandHandler<
         error: error instanceof Error ? error.message : String(error),
       });
 
-      await this.returnStake(plan, command, bet.id);
+      const returned = await this.deps.stakeReturner.returnStake({
+        betId: bet.id,
+        direction: plan.take === "debit" ? "credit" : "debit",
+        movement: plan.undo,
+        requestId: command.requestId,
+        attempts: 0,
+      });
 
-      // A concurrent request with the same key won the unique index: its bet is this caller's bet.
-      const winner = await this.deps.bets
+      // Either the insert committed after all, or a concurrent request with the same key won the unique index.
+      const found = await this.deps.bets
         .findByIdempotencyKey(bet.idempotencyKey)
         .catch(() => undefined);
 
-      if (winner !== undefined) {
-        return { ...winner, replayed: true };
+      if (found !== undefined) {
+        return { ...found, replayed: found.bet.id !== bet.id };
+      }
+
+      if (returned === "BET_EXISTS") {
+        throw upstreamUnavailable(
+          "The bet was placed but could not be read back. Retry with the same idempotency key.",
+        );
       }
 
       throw error;
@@ -467,7 +492,12 @@ export class PlaceBetHandler extends CommandHandler<
       }
     }
 
-    throw new Error("Could not find an unused ticket code.");
+    this.deps.logger.error("Every ticket code tried was taken", {
+      event: "ticket_codes_exhausted",
+      attempts: TICKET.codeAttempts,
+    });
+
+    throw ticketCodesExhausted();
   }
 
   private async takeStake(
@@ -507,32 +537,6 @@ export class PlaceBetHandler extends CommandHandler<
       );
     }
   }
-
-  private async returnStake(
-    plan: StakePlan,
-    command: PlaceBetCommand,
-    betId: string,
-  ): Promise<void> {
-    const back = plan.take === "debit" ? "credit" : "debit";
-
-    try {
-      await this.deps.wallet[back](plan.undo, command.requestId);
-
-      this.deps.logger.warn("Stake returned", {
-        requestId: command.requestId,
-        betId,
-        event: "stake_returned",
-      });
-    } catch (error) {
-      this.deps.logger.error("Stake could not be returned", {
-        requestId: command.requestId,
-        betId,
-        event: "stake_return_failed",
-        idempotencyKey: plan.undo.idempotencyKey,
-        error: error instanceof Error ? error.message : String(error),
-      });
-    }
-  }
 }
 
 function assertSlipShape(legs: readonly SubmittedLeg[]): void {
@@ -544,6 +548,10 @@ function assertSlipShape(legs: readonly SubmittedLeg[]): void {
 
   if (new Set(legs.map((leg) => leg.matchId)).size !== legs.length) {
     throw invalidBet("A slip may carry one selection per match.");
+  }
+
+  if (new Set(legs.map((leg) => leg.selectionId)).size !== legs.length) {
+    throw invalidBet("A slip may carry each selection once.");
   }
 }
 
