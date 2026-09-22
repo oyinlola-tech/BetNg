@@ -7,6 +7,8 @@ from fastapi import APIRouter, Depends
 
 from ..controllers import SimulationController
 from ..dtos import (
+    BatchRunMatchBody,
+    BatchRunMatchResponse,
     MatchEventList,
     MatchRunDetail,
     ReplayMatchResponse,
@@ -38,6 +40,18 @@ def create_internal_router(controller: SimulationController) -> APIRouter:
     )
     async def run_match(match_id: UUID, body: RunMatchBody) -> RunMatchResponse:
         return await controller.run_match(match_id, body)
+
+    @router.post(
+        "/matches/batch",
+        response_model=BatchRunMatchResponse,
+        summary="Run multiple matches concurrently",
+        description=(
+            "Runs simulations for multiple matches in parallel. "
+            "Each match runs independently and returns its result or error."
+        ),
+    )
+    async def batch_run_matches(body: BatchRunMatchBody) -> BatchRunMatchResponse:
+        return await controller.batch_run_matches(body)
 
     @router.get("/matches/{match_id}", response_model=MatchRunDetail)
     async def get_match_run(match_id: UUID) -> MatchRunDetail:

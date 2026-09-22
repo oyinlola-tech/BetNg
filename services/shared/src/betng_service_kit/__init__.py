@@ -28,6 +28,7 @@ from .errors import (
     build_error_body,
 )
 from .health import DependencyProbe, create_health_router
+from .health_dashboard import create_health_dashboard_router
 from .internal_auth import (
     CALLER_HEADER,
     INTERNAL_TOKEN_HEADER,
@@ -173,6 +174,7 @@ __all__ = [
     "caller_name",
     "configure_logging",
     "create_health_router",
+    "create_health_dashboard_router",
     "create_metrics_router",
     "create_pool",
     "create_rpc_router",

@@ -33,6 +33,24 @@ class RunMatchRequest(RunMatchBody):
     match_id: UUID
 
 
+class BatchMatchItem(ContractModel):
+    match_id: UUID
+    home: SimulationTeamDto
+    away: SimulationTeamDto
+
+
+class BatchRunMatchBody(ContractModel):
+    matches: list[BatchMatchItem]
+
+
+class BatchRunMatchRequest(ContractModel):
+    matches: list[BatchMatchItem]
+
+
+class BatchRunMatchResponse(ContractModel):
+    results: list[RunMatchResponse | dict]
+
+
 class MatchScoreResult(ContractModel):
     home_goals: Annotated[int, Field(ge=0)]
     away_goals: Annotated[int, Field(ge=0)]
