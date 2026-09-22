@@ -24,6 +24,9 @@ export interface WebSocketAdapterOptions {
   ) => void;
   readonly onMessage: (session: WebSocketSession, data: string) => void;
   readonly onClose: (session: WebSocketSession) => void;
+  readonly maxConnectionsPerAddress?: number;
+  readonly addressOf?: (request: IncomingMessage) => string;
+  readonly maxFrameBytes?: number;
 }
 
 export interface BetNgWebSocketAdapter extends WebSocketAdapter {
@@ -101,10 +104,34 @@ export function createWebSocketAdapter(
 
   const wss = new WebSocketServer({
     noServer: true,
-    maxPayload: MAX_FRAME_BYTES,
+    maxPayload: options.maxFrameBytes ?? MAX_FRAME_BYTES,
   });
 
   const sessions = new Map<WebSocketSession, WebSocket>();
+  const perAddress = new Map<string, number>();
+  const addressOf = options.addressOf ?? ((request: IncomingMessage) => request.socket.remoteAddress ?? "unknown");
+
+  // Reserved at upgrade and released when the socket closes, so a failed handshake cannot leak a slot.
+  const reserve = (request: IncomingMessage, socket: Duplex): boolean => {
+    const limit = options.maxConnectionsPerAddress;
+
+    if (limit === undefined) return true;
+
+    const address = addressOf(request);
+    const open = perAddress.get(address) ?? 0;
+
+    if (open >= limit) return false;
+
+    perAddress.set(address, open + 1);
+    socket.once("close", () => {
+      const remaining = (perAddress.get(address) ?? 1) - 1;
+
+      if (remaining <= 0) perAddress.delete(address);
+      else perAddress.set(address, remaining);
+    });
+
+    return true;
+  };
 
   const onUpgrade = (
     request: IncomingMessage,
@@ -120,6 +147,12 @@ export function createWebSocketAdapter(
       return;
     }
 
+    if (!reserve(request, socket)) {
+      socket.end("HTTP/1.1 429 Too Many Requests\r\nConnection: close\r\nContent-Length: 0\r\n\r\n");
+      setTimeout(() => socket.destroy(), 1000).unref();
+      return;
+    }
+
     wss.handleUpgrade(request, socket, head, (ws) => {
       const session = createSession(ws);
       sessions.set(session, ws);
@@ -129,7 +162,13 @@ export function createWebSocketAdapter(
         // client sends, so it is dropped rather than guessed at.
         if (isBinary) return;
 
-        options.onMessage(session, raw.toString());
+        const text = Array.isArray(raw)
+          ? Buffer.concat(raw).toString("utf8")
+          : Buffer.isBuffer(raw)
+            ? raw.toString("utf8")
+            : Buffer.from(raw).toString("utf8");
+
+        options.onMessage(session, text);
       });
 
       ws.on("close", () => {
@@ -164,39 +203,44 @@ export function createWebSocketAdapter(
       runtime: "node >=24",
     },
 
-    accept: async (connection: unknown): Promise<WebSocketSession> => {
+    accept: (connection: unknown): Promise<WebSocketSession> => {
       // Connections arrive through the server's upgrade event, which is the
       // only way a WebSocket can be established over an HTTP listener.
       // Nothing calls this, and answering it honestly is better than
       // pretending a second acceptance path exists.
       void connection;
-      throw new Error(
-        "Connections are accepted through the HTTP server's upgrade event, " +
-          "not by calling accept().",
+      return Promise.reject(
+        new Error(
+          "Connections are accepted through the HTTP server's upgrade event, " +
+            "not by calling accept().",
+        ),
       );
     },
 
-    close: async (
+    close: (
       session: WebSocketSession,
       code?: number,
       reason?: string,
     ): Promise<void> => {
       session.close(code, reason);
+      return Promise.resolve();
     },
 
-    send: async (
+    send: (
       session: WebSocketSession,
       data: string | ArrayBuffer | Uint8Array,
     ): Promise<void> => {
       session.send(data);
+      return Promise.resolve();
     },
 
-    broadcast: async (
+    broadcast: (
       data: string | ArrayBuffer | Uint8Array,
     ): Promise<void> => {
       for (const session of sessions.keys()) {
         session.send(data);
       }
+      return Promise.resolve();
     },
 
     sessions: () => [...sessions.keys()],

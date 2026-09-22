@@ -59,7 +59,7 @@ function collectNested(error: object): readonly unknown[] {
   const nested: unknown[] = [];
 
   if (Array.isArray(candidate.errors)) {
-    nested.push(...candidate.errors);
+    nested.push(...(candidate.errors as unknown[]));
   }
 
   if (candidate.cause !== undefined) {

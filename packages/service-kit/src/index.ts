@@ -31,6 +31,8 @@ export {
 export {
   buildErrorBody,
   createErrorHandler,
+  describeError,
+  stacksAllowed,
   FALLBACK_ERROR_CODE,
   isErrorDetails,
   OPAQUE_ERROR_MESSAGE,
@@ -39,6 +41,7 @@ export {
 } from "./httpError/index.js";
 export type {
   ErrorBodyOptions,
+  ErrorHandlerOptions,
   ServiceErrorHandler,
   StatusCarrying,
 } from "./httpError/index.js";
@@ -54,6 +57,7 @@ export {
   created,
   createRouterFallbacks,
   createServiceServer,
+  DEFAULT_SHUTDOWN_GRACE_MS,
   json,
   registerHealthRoutes,
   withStatus,
@@ -77,6 +81,8 @@ export {
   createServiceClient,
   databaseProbe,
   databaseSchema,
+  poolOptions,
+  RedisLockLostError,
   redisProbe,
   serviceProbe,
   withRedisLock,
@@ -92,12 +98,16 @@ export type {
 } from "./clients/index.js";
 
 export {
+  callerName,
+  createCallerRateLimiter,
   createHttpRpcTransport,
   createRpcClient,
   registerRpcRoute,
   RPC_PATH,
+  rpcRateLimiterFromEnv,
 } from "./rpc/index.js";
 export type {
+  CallerRateLimiter,
   HttpRpcTransportOptions,
   RpcClientOptions,
 } from "./rpc/index.js";
@@ -111,8 +121,21 @@ export type {
   WebSocketSession,
 } from "./websocket/index.js";
 
-export { runService } from "./serviceRunner/index.js";
-export type { RunnableService } from "./serviceRunner/index.js";
+export {
+  DEFAULT_SHUTDOWN_TIMEOUT_MS,
+  installProcessHandlers,
+  runService,
+  shutdownTimeoutFromEnv,
+} from "./serviceRunner/index.js";
+export type { RunnableService, RunServiceOptions, ShutdownController } from "./serviceRunner/index.js";
+
+export {
+  createMetricsMiddleware,
+  createMetricsRegistry,
+  METRICS_CONTENT_TYPE,
+  METRICS_PATH,
+} from "./metrics/index.js";
+export type { MetricsRegistry } from "./metrics/index.js";
 
 export {
   badRequest,
@@ -144,9 +167,17 @@ export {
 export type { Actor, ActorKind, ActorRequirement } from "./actor/index.js";
 
 export {
+  allowsTokenlessInternalCalls,
   assertInternalTokenConfigured,
+  CALLER_HEADER,
   INTERNAL_TOKEN_HEADER,
   internalHeaders,
   internalToken,
   isInternalRequest,
+  setServiceIdentity,
 } from "./internalAuth/index.js";
+
+export { canonicalIp, createIpMatcher } from "./network/index.js";
+export type { IpMatcher } from "./network/index.js";
+
+export { loadSecretFiles } from "./secrets/secretFiles.js";

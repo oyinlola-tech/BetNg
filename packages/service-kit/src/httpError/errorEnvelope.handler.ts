@@ -4,6 +4,7 @@
  * becomes a 500 with a constant message, so no internal detail escapes.
  */
 
+import { REQUEST_ID_HEADER } from "@betng/contracts";
 import { createResponseContext } from "@zudojs/http";
 import type { HttpRequestContext, HttpResponseContext } from "@zudojs/http";
 import type { Logger } from "@zudojs/logger";
@@ -23,7 +24,37 @@ export type ServiceErrorHandler = (
   request: HttpRequestContext,
 ) => HttpResponseContext;
 
-export function createErrorHandler(logger: Logger): ServiceErrorHandler {
+export interface ErrorHandlerOptions {
+  /** Stack traces reach the log only when true; defaults to development and test. */
+  readonly logStacks?: boolean;
+}
+
+const MAX_LOGGED_MESSAGE = 500;
+
+export function describeError(error: unknown, logStacks: boolean): Record<string, string> {
+  if (!(error instanceof Error)) {
+    return { error: String(error).slice(0, MAX_LOGGED_MESSAGE) };
+  }
+
+  return {
+    errorName: error.name,
+    error: error.message.slice(0, MAX_LOGGED_MESSAGE),
+    ...(logStacks && error.stack !== undefined ? { stack: error.stack } : {}),
+  };
+}
+
+export function stacksAllowed(env: Readonly<Record<string, string | undefined>> = process.env): boolean {
+  const environment = env["NODE_ENV"];
+
+  return environment === "development" || environment === "test";
+}
+
+export function createErrorHandler(
+  logger: Logger,
+  options: ErrorHandlerOptions = {},
+): ServiceErrorHandler {
+  const logStacks = options.logStacks ?? stacksAllowed();
+
   return (error, request) => {
     const requestId = getRequestId(request);
     const status = unwrapStatusError(error);
@@ -33,11 +64,10 @@ export function createErrorHandler(logger: Logger): ServiceErrorHandler {
         requestId,
         method: request.method,
         path: request.path,
-        error: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined,
+        ...describeError(error, logStacks),
       });
 
-      return createResponseContext({ status: 500 }).json(
+      return createResponseContext({ status: 500 }).setHeader(REQUEST_ID_HEADER, requestId).json(
         buildErrorBody({
           code: FALLBACK_ERROR_CODE,
           message: OPAQUE_ERROR_MESSAGE,
@@ -77,18 +107,19 @@ export function createErrorHandler(logger: Logger): ServiceErrorHandler {
       ...(data === undefined ? {} : { data }),
     });
 
-    const write = status.statusCode >= 500 ? logger.error : logger.warn;
-
-    write.call(logger, "Request failed", {
+    const failure = {
       requestId,
       method: request.method,
       path: request.path,
       status: status.statusCode,
       code: body.error.code,
-      error: error instanceof Error ? error.message : String(error),
-    });
+      ...describeError(error, logStacks && status.statusCode >= 500),
+    };
 
-    const response = createResponseContext({ status: status.statusCode });
+    if (status.statusCode >= 500) logger.error("Request failed", failure);
+    else logger.warn("Request failed", failure);
+
+    const response = createResponseContext({ status: status.statusCode }).setHeader(REQUEST_ID_HEADER, requestId);
 
     for (const [name, value] of Object.entries(status.headers ?? {})) {
       response.setHeader(name, value);

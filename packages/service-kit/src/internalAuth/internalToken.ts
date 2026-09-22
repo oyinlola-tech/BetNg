@@ -3,27 +3,43 @@ import type { HttpRequestContext } from "@zudojs/http";
 
 export const INTERNAL_TOKEN_HEADER = "x-betng-internal-token";
 
+/** Names the calling service; trusted only alongside a valid internal token. */
+export const CALLER_HEADER = "x-betng-caller";
+
+let serviceIdentity: string | undefined;
+
+export function setServiceIdentity(name: string): void {
+  serviceIdentity = name;
+}
+
 const MIN_TOKEN_LENGTH = 24;
 
 /** The `.env.example` value: public, so refused in production. */
 const DEVELOPMENT_PLACEHOLDER = "betng-local-development-internal-token";
 
-export function internalToken(
-  env: Readonly<Record<string, string | undefined>> = process.env,
-): string | undefined {
+type Env = Readonly<Record<string, string | undefined>>;
+
+export function internalToken(env: Env = process.env): string | undefined {
   const token = env["INTERNAL_SERVICE_TOKEN"];
 
   return token === undefined || token === "" ? undefined : token;
 }
 
-export function assertInternalTokenConfigured(
-  env: Readonly<Record<string, string | undefined>> = process.env,
-): void {
+/** Only an exact `development` or `test` may run without a token; unset, staging or a typo fails closed. */
+export function allowsTokenlessInternalCalls(env: Env = process.env): boolean {
+  const mode = env["NODE_ENV"];
+
+  return mode === "development" || mode === "test";
+}
+
+export function assertInternalTokenConfigured(env: Env = process.env): void {
   const token = internalToken(env);
 
   if (token === undefined) {
-    if (env["NODE_ENV"] === "production") {
-      throw new Error("INTERNAL_SERVICE_TOKEN must be set in production.");
+    if (!allowsTokenlessInternalCalls(env)) {
+      throw new Error(
+        `INTERNAL_SERVICE_TOKEN must be set unless NODE_ENV is development or test (NODE_ENV is ${JSON.stringify(env["NODE_ENV"] ?? null)}).`,
+      );
     }
 
     return;
@@ -41,13 +57,16 @@ export function assertInternalTokenConfigured(
 export function internalHeaders(): Record<string, string> {
   const token = internalToken();
 
-  return token === undefined ? {} : { [INTERNAL_TOKEN_HEADER]: token };
+  return {
+    ...(token === undefined ? {} : { [INTERNAL_TOKEN_HEADER]: token }),
+    ...(serviceIdentity === undefined ? {} : { [CALLER_HEADER]: serviceIdentity }),
+  };
 }
 
-export function isInternalRequest(request: HttpRequestContext): boolean {
-  const expected = internalToken();
+export function isInternalRequest(request: HttpRequestContext, env: Env = process.env): boolean {
+  const expected = internalToken(env);
 
-  if (expected === undefined) return process.env["NODE_ENV"] !== "production";
+  if (expected === undefined) return allowsTokenlessInternalCalls(env);
 
   const presented = Buffer.from(request.getHeader(INTERNAL_TOKEN_HEADER) ?? "");
   const wanted = Buffer.from(expected);

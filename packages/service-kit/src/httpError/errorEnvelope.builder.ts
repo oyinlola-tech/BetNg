@@ -31,6 +31,6 @@ export function toErrorDetails(
   }));
 }
 
-export const OPAQUE_ERROR_MESSAGE = "An unexpected error occurred.";
+export { OPAQUE_ERROR_MESSAGE } from "@betng/contracts/runtime";
 
 export const FALLBACK_ERROR_CODE = ErrorCodes.INTERNAL_ERROR;

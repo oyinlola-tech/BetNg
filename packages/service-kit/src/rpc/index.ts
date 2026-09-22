@@ -3,6 +3,9 @@ export type { HttpRpcTransportOptions } from "./rpcTransport.http.js";
 
 export { registerRpcRoute } from "./rpcRoute.registrar.js";
 
+export { callerName, createCallerRateLimiter, rpcRateLimiterFromEnv } from "./rpcRateLimit.js";
+export type { CallerRateLimiter } from "./rpcRateLimit.js";
+
 export { createRpcClient } from "./rpcClient.factory.js";
 export type { RpcClientOptions } from "./rpcClient.factory.js";
 

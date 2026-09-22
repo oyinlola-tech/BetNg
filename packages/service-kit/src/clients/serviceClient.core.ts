@@ -6,12 +6,17 @@ import type { ServiceEndpoint } from "../serviceConfig/index.js";
 export interface ServiceResponse<T> {
   readonly status: number;
   readonly data: T;
+  readonly contentType?: string;
+  readonly contentDisposition?: string;
 }
 
 export interface ServiceRequest {
   readonly method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   readonly path: string;
   readonly body?: unknown;
+  /** Sent byte for byte instead of `body`, for callers that must not re-serialise (webhooks). */
+  readonly rawBody?: Uint8Array;
+  readonly contentType?: string;
   readonly requestId: string;
   readonly headers?: Readonly<Record<string, string>>;
 }
@@ -36,21 +41,26 @@ export function createServiceClient(endpoint: ServiceEndpoint): ServiceClient {
       controller.abort();
     }, endpoint.timeoutMs);
 
+    const payload: { body?: string | Uint8Array; contentType?: string } =
+      options.rawBody !== undefined
+        ? { body: options.rawBody, contentType: options.contentType ?? "application/octet-stream" }
+        : options.body === undefined
+          ? {}
+          : { body: JSON.stringify(options.body), contentType: "application/json" };
+
     try {
       const response = await fetch(new URL(options.path, endpoint.url), {
         method: options.method,
         headers: {
           accept: "application/json",
           [REQUEST_ID_HEADER]: options.requestId,
-          ...(options.body === undefined
+          ...(payload.contentType === undefined
             ? {}
-            : { "content-type": "application/json" }),
+            : { "content-type": payload.contentType }),
           ...options.headers,
           ...internalHeaders(),
         },
-        ...(options.body === undefined
-          ? {}
-          : { body: JSON.stringify(options.body) }),
+        ...(payload.body === undefined ? {} : { body: payload.body }),
         signal: controller.signal,
       });
 
@@ -64,7 +74,14 @@ export function createServiceClient(endpoint: ServiceEndpoint): ServiceClient {
           : text
       ) as T;
 
-      return { status: response.status, data };
+      const disposition = response.headers.get("content-disposition");
+
+      return {
+        status: response.status,
+        data,
+        ...(contentType === "" ? {} : { contentType }),
+        ...(disposition === null ? {} : { contentDisposition: disposition }),
+      };
     } catch (error) {
       if (error instanceof HttpError) {
         throw error;

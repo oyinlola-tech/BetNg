@@ -8,7 +8,9 @@ import {
 } from "@zudojs/rpc";
 import { readJsonBody } from "../httpRequest/index.js";
 import { getRequestId } from "../httpMiddleware/index.js";
-import { isInternalRequest } from "../internalAuth/index.js";
+import { CALLER_HEADER, isInternalRequest } from "../internalAuth/index.js";
+import { callerName } from "./rpcRateLimit.js";
+import type { CallerRateLimiter } from "./rpcRateLimit.js";
 import { RPC_PATH } from "./rpcTransport.http.js";
 
 function isRpcRequest(value: unknown): value is RPCRequest {
@@ -35,6 +37,7 @@ export function registerRpcRoute(
   router: HttpRouter,
   server: RPCServer,
   logger: Logger,
+  limiter?: CallerRateLimiter,
 ): void {
   router.post(RPC_PATH, async (context) => {
     if (!isInternalRequest(context.request)) {
@@ -44,6 +47,17 @@ export function registerRpcRoute(
           message: "Not found.",
         }),
       );
+    }
+
+    const caller = callerName(context.request.getHeader(CALLER_HEADER));
+    const wait = limiter?.acquire(caller) ?? 0;
+
+    if (wait > 0) {
+      logger.warn("RPC caller rate limited", { requestId: getRequestId(context.request), caller });
+
+      return createResponseContext({ status: 429 })
+        .setHeader("retry-after", String(Math.max(1, Math.ceil(wait))))
+        .json(createRPCErrorResponse("", { code: "RPC_RATE_LIMITED", message: "Too many RPC calls from this service." }));
     }
 
     const frame = readJsonBody(context.request);

@@ -15,10 +15,14 @@ export function createAccessLogMiddleware(logger: Logger): HttpMiddleware {
   return async (context, next) => {
     const { request } = context;
     const requestId = getRequestId(request);
-    const write = PROBE_PATHS.has(request.path) ? logger.debug : logger.info;
+    const probe = PROBE_PATHS.has(request.path);
+    const write = (message: string, meta: Record<string, string | number>): void => {
+      if (probe) logger.debug(message, meta);
+      else logger.info(message, meta);
+    };
     const startedAt = performance.now();
 
-    write.call(logger, "Request received", {
+    write("Request received", {
       requestId,
       method: request.method,
       path: request.path,
@@ -27,7 +31,7 @@ export function createAccessLogMiddleware(logger: Logger): HttpMiddleware {
     try {
       const response = await next();
 
-      write.call(logger, "Request completed", {
+      write("Request completed", {
         requestId,
         method: request.method,
         path: request.path,
@@ -37,7 +41,7 @@ export function createAccessLogMiddleware(logger: Logger): HttpMiddleware {
 
       return response;
     } catch (error) {
-      write.call(logger, "Request failed before a response was produced", {
+      write("Request failed before a response was produced", {
         requestId,
         method: request.method,
         path: request.path,

@@ -12,5 +12,5 @@ export {
 } from "./errorEnvelope.resolver.js";
 export type { StatusCarrying } from "./errorEnvelope.resolver.js";
 
-export { createErrorHandler } from "./errorEnvelope.handler.js";
-export type { ServiceErrorHandler } from "./errorEnvelope.handler.js";
+export { createErrorHandler, describeError, stacksAllowed } from "./errorEnvelope.handler.js";
+export type { ErrorHandlerOptions, ServiceErrorHandler } from "./errorEnvelope.handler.js";

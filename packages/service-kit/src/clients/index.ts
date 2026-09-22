@@ -14,7 +14,8 @@ export type {
 export { serviceProbe } from "./serviceClient.probe.js";
 export type { ServiceProbeOptions } from "./serviceClient.probe.js";
 
-export { withRedisLock } from "./redis.lock.js";
+export { RedisLockLostError, withRedisLock } from "./redis.lock.js";
 export type { RedisLockOptions } from "./redis.lock.js";
 
-export { databaseSchema } from "./prisma.schema.js";
+export { databaseSchema, poolOptions } from "./prisma.schema.js";
+export type { PoolOptions } from "./prisma.schema.js";

@@ -1,4 +1,5 @@
-import { loggerLevelFromName, LoggerLevel } from "@zudojs/logger";
+import { loggerLevelFromName } from "@zudojs/logger";
+import type { LoggerLevel } from "@zudojs/logger";
 import { ConfigurationError } from "@zudojs/errors";
 
 /**
