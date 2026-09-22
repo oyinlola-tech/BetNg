@@ -6,7 +6,13 @@ from betng_service_kit import require_internal
 from fastapi import APIRouter, Depends
 
 from ..controllers import SimulationController
-from ..dtos import MatchEventList, MatchRunDetail, RunMatchBody, RunMatchResponse
+from ..dtos import (
+    MatchEventList,
+    MatchRunDetail,
+    ReplayMatchResponse,
+    RunMatchBody,
+    RunMatchResponse,
+)
 from ..middlewares import bind_request_context
 
 INTERNAL_PREFIX = "/internal/simulation"
@@ -44,5 +50,18 @@ def create_internal_router(controller: SimulationController) -> APIRouter:
     )
     async def list_match_events(match_id: UUID) -> MatchEventList:
         return await controller.list_match_events(match_id)
+
+    @router.post(
+        "/matches/{match_id}/replay",
+        response_model=ReplayMatchResponse,
+        summary="Re-derive a stored run and compare it",
+        description=(
+            "Replays the stored run from its recorded seed, model version and "
+            "configuration version, and reports whether the result, timeline, "
+            "stats and xG are identical. Stores nothing and never returns the seed."
+        ),
+    )
+    async def replay_match(match_id: UUID) -> ReplayMatchResponse:
+        return await controller.replay_match(match_id)
 
     return router

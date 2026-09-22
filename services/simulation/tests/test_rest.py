@@ -342,6 +342,51 @@ class TestRunActions:
             assert again.status_code == 409
             assert again.json()["error"]["code"] == "CONFLICT"
 
+    @pytest.mark.parametrize("action", ["RETRY", "CANCEL"])
+    def test_an_action_is_refused_when_its_audit_cannot_be_written(
+        self, audit: FakeAuditRecorder, matches: FakeMatchReadModel, action: str
+    ) -> None:
+        match_id = new_match_id()
+
+        with running_client(audit, matches, failing_simulate) as client:
+            client.post(
+                f"/internal/simulation/matches/{match_id}/run", json=run_body(match_id)
+            )
+            listed = find_run(client, match_id, status="FAILED")
+            assert listed is not None
+            url = f"/api/v1/admin/simulations/{listed['id']}/actions"
+            audit.fail = True
+
+            refused = client.post(
+                url,
+                json={"action": action, "reason": "unaudited action"},
+                headers=admin_headers(OPERATE),
+            )
+
+            assert refused.status_code == 503
+            assert refused.json()["error"]["code"] == "UPSTREAM_UNAVAILABLE"
+            assert "identity is down" not in refused.text
+            unchanged = find_run(client, match_id, status="FAILED")
+            assert unchanged is not None
+            assert unchanged["id"] == listed["id"]
+            assert "error" in unchanged
+            assert not unchanged["error"].startswith("Cancelled")
+
+            audit.fail = False
+            applied = client.post(
+                url,
+                json={"action": action, "reason": "audited action"},
+                headers=admin_headers(OPERATE),
+            )
+            assert applied.status_code == 200
+
+        entry = audit.entries[-1]
+        assert entry.action in {"simulation_retry_requested", "simulation_cancelled"}
+        assert entry.actor_id == "33333333-3333-4333-8333-333333333331"
+        assert entry.before == {"status": "FAILED", "matchId": match_id}
+        assert entry.after is not None
+        assert entry.reason == "audited action"
+
     def test_no_action_can_set_a_result(self, client: TestClient) -> None:
         created = run(client, new_match_id())
 

@@ -18,6 +18,8 @@ class SquadTeamRef(ContractModel):
 class GetSquadsRequest(ContractModel):
     home: SquadTeamRef
     away: SquadTeamRef
+    #: The model that played (or will play) the match; omitted means the active one.
+    model_version: Literal["poisson-1.0", "progressive-2.0"] | None = None
 
 
 class SquadPlayerView(ContractModel):

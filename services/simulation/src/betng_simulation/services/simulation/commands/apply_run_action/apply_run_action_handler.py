@@ -2,19 +2,20 @@ from __future__ import annotations
 
 import logging
 
-from betng_service_kit import CommandHandler
+from betng_service_kit import CommandHandler, ServiceError
 
 from .....constants import AuditEntity, SimulationAuditAction, SimulationCommand
 from .....dtos import AdminSimulationRun
 from .....errors import (
+    AuditUnavailableError,
     ResultImmutableError,
     RunActionConflictError,
     SimulationRunNotFoundError,
 )
-from .....interfaces import AuditEntry, MatchReadModel
+from .....interfaces import AuditEntry, AuditRecorder, MatchReadModel
 from .....middlewares import current_request_id
 from .....repositories import SimulationRepository
-from .....utils import BackgroundAuditor, to_admin_run
+from .....utils import to_admin_run
 from .apply_run_action_command import ApplyRunActionCommand
 
 COMPLETED = "COMPLETED"
@@ -23,7 +24,11 @@ RETRY = "RETRY"
 
 
 class ApplyRunActionHandler(CommandHandler[ApplyRunActionCommand, AdminSimulationRun]):
-    """Flags a failed run for retry or cancels it; never simulates."""
+    """Flags a failed run for retry or cancels it; never simulates.
+
+    The audit entry is written inside the action's transaction: when it cannot
+    be recorded the action rolls back and the caller gets 503.
+    """
 
     message_type = SimulationCommand.APPLY_RUN_ACTION
 
@@ -31,12 +36,12 @@ class ApplyRunActionHandler(CommandHandler[ApplyRunActionCommand, AdminSimulatio
         self,
         repository: SimulationRepository,
         match_read_model: MatchReadModel,
-        auditor: BackgroundAuditor,
+        recorder: AuditRecorder,
         logger: logging.Logger,
     ) -> None:
         self._repository = repository
         self._match_read_model = match_read_model
-        self._auditor = auditor
+        self._recorder = recorder
         self._logger = logger
 
     async def execute(self, message: ApplyRunActionCommand) -> AdminSimulationRun:
@@ -74,15 +79,42 @@ class ApplyRunActionHandler(CommandHandler[ApplyRunActionCommand, AdminSimulatio
                     raise RunActionConflictError("The run could not be cancelled.")
 
             record = await self._repository.get_admin_run(connection, run.id)
+            if record is None:
+                raise SimulationRunNotFoundError
 
-        if record is None:
-            raise SimulationRunNotFoundError
+            audit_action = (
+                SimulationAuditAction.RETRY_REQUESTED
+                if action == RETRY
+                else SimulationAuditAction.CANCELLED
+            )
+            try:
+                await self._recorder.record(
+                    AuditEntry(
+                        actor_id=message.actor.id,
+                        actor_role=message.actor.role,
+                        action=audit_action,
+                        entity_type=AuditEntity.SIMULATION,
+                        entity_id=run.id,
+                        request_id=current_request_id(),
+                        before={"status": run.status, "matchId": run.match_id},
+                        after={"status": record.admin_status, "matchId": run.match_id},
+                        reason=reason,
+                        severity="NOTICE",
+                    )
+                )
+            except ServiceError:
+                raise
+            except Exception as error:
+                self._logger.error(
+                    "Run action refused: audit entry not written",
+                    extra={
+                        "event": audit_action,
+                        "simulationId": run.id,
+                        "errorType": type(error).__name__,
+                    },
+                )
+                raise AuditUnavailableError from error
 
-        audit_action = (
-            SimulationAuditAction.RETRY_REQUESTED
-            if action == RETRY
-            else SimulationAuditAction.CANCELLED
-        )
         self._logger.info(
             "Simulation run action applied",
             extra={
@@ -91,20 +123,6 @@ class ApplyRunActionHandler(CommandHandler[ApplyRunActionCommand, AdminSimulatio
                 "event": audit_action,
                 "actorId": message.actor.id,
             },
-        )
-        self._auditor.submit(
-            AuditEntry(
-                actor_id=message.actor.id,
-                actor_role=message.actor.role,
-                action=audit_action,
-                entity_type=AuditEntity.SIMULATION,
-                entity_id=run.id,
-                request_id=current_request_id(),
-                before={"status": run.status},
-                after={"status": record.admin_status, "matchId": run.match_id},
-                reason=reason,
-                severity="NOTICE",
-            )
         )
 
         matches = await self._match_read_model.get_matches([run.match_id])

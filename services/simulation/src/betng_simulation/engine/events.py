@@ -18,7 +18,7 @@ from .models import (
     SideStats,
     SimulationTeam,
 )
-from .players import Player, squad_for
+from .players import LEGACY_NAME_POOL, Player, squad_for
 from .probabilities import defensive_rating, offensive_rating
 from .sampling import (
     sample_bool,
@@ -401,8 +401,8 @@ def generate_timeline(
     configuration: ModelConfiguration,
 ) -> tuple[tuple[MatchEventDraft, ...], MatchStats]:
     home_goals, away_goals = score
-    home_squad = squad_for(home.team_id)
-    away_squad = squad_for(away.team_id)
+    home_squad = squad_for(home.team_id, LEGACY_NAME_POOL)
+    away_squad = squad_for(away.team_id, LEGACY_NAME_POOL)
     timeline = _Timeline(
         home=_Lineup(home, list(home_squad.starters), list(home_squad.bench)),
         away=_Lineup(away, list(away_squad.starters), list(away_squad.bench)),

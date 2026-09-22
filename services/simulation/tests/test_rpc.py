@@ -6,7 +6,7 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
-from betng_simulation.engine import simulate
+from betng_simulation.engine import MODEL_VERSION, simulate
 from betng_simulation.utils import build_configuration
 
 from .conftest import (
@@ -70,7 +70,7 @@ class TestRunMatch:
         assert result["matchId"] == match_id
         assert result["status"] == "COMPLETED"
         assert result["duplicate"] is False
-        assert result["modelVersion"] == "poisson-1.0"
+        assert result["modelVersion"] == MODEL_VERSION
         assert len(result["seed"]) == 64
         assert result["result"]["winningGap"] == abs(
             result["result"]["homeGoals"] - result["result"]["awayGoals"]

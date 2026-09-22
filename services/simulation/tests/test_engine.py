@@ -7,6 +7,10 @@ import pytest
 
 from betng_simulation.dtos import ModelParametersDto
 from betng_simulation.engine import (
+    EXPANDED_NAME_POOL,
+    LEGACY_MODEL_VERSION,
+    LEGACY_NAME_POOL,
+    PROGRESSIVE_MODEL_VERSION,
     ModelConfiguration,
     SimulationTeam,
     TeamStrength,
@@ -26,6 +30,10 @@ from betng_simulation.utils import TUNABLE_FIELDS
 from .conftest import AWAY_TEAM, HOME_TEAM, STRONG, WEAK
 
 CONFIGURATION = ModelConfiguration()
+LEGACY = ModelConfiguration(model_version=LEGACY_MODEL_VERSION)
+MODELS = pytest.mark.parametrize(
+    "configuration", [LEGACY, CONFIGURATION], ids=lambda c: c.model_version
+)
 MATCH_ID = "44444444-4444-4444-8444-444444444444"
 MATCH_IDS = [f"55555555-5555-4555-8555-{index:012d}" for index in range(300)]
 CONTRACT_EVENT_TYPES = {
@@ -42,57 +50,80 @@ CONTRACT_EVENT_TYPES = {
 
 
 class TestDeterminism:
-    def test_same_inputs_replay_the_same_result_and_timeline(self) -> None:
-        first = simulate(MATCH_ID, HOME_TEAM, AWAY_TEAM, CONFIGURATION)
-        second = simulate(MATCH_ID, HOME_TEAM, AWAY_TEAM, CONFIGURATION)
+    @MODELS
+    def test_same_inputs_replay_the_same_result_and_timeline(
+        self, configuration: ModelConfiguration
+    ) -> None:
+        first = simulate(MATCH_ID, HOME_TEAM, AWAY_TEAM, configuration)
+        second = simulate(MATCH_ID, HOME_TEAM, AWAY_TEAM, configuration)
 
-        assert first.result == second.result
-        assert first.events == second.events
-        assert first.stats == second.stats
+        assert first == second
 
-    def test_the_seed_is_the_documented_hash(self) -> None:
+    @pytest.mark.parametrize("model", [LEGACY_MODEL_VERSION, PROGRESSIVE_MODEL_VERSION])
+    def test_the_seed_is_the_documented_hash(self, model: str) -> None:
         import hashlib
 
-        expected = hashlib.sha256(f"{MATCH_ID}:poisson-1.0:1".encode()).hexdigest()
+        expected = hashlib.sha256(f"{MATCH_ID}:{model}:1".encode()).hexdigest()
+        configuration = ModelConfiguration(model_version=model)
 
-        assert derive_seed(MATCH_ID, "poisson-1.0", 1) == expected
-        assert simulate(MATCH_ID, HOME_TEAM, AWAY_TEAM, CONFIGURATION).result.seed == (
+        assert derive_seed(MATCH_ID, model, 1) == expected
+        assert simulate(MATCH_ID, HOME_TEAM, AWAY_TEAM, configuration).result.seed == (
             expected
         )
 
-    def test_results_vary_across_matches(self) -> None:
+    @MODELS
+    def test_results_vary_across_matches(
+        self, configuration: ModelConfiguration
+    ) -> None:
         scores = {
             (output.result.home_goals, output.result.away_goals)
             for output in (
-                simulate(match_id, HOME_TEAM, AWAY_TEAM, CONFIGURATION)
+                simulate(match_id, HOME_TEAM, AWAY_TEAM, configuration)
                 for match_id in MATCH_IDS
             )
         }
 
         assert len(scores) > 8
 
-    def test_a_new_configuration_version_changes_the_seed(self) -> None:
-        other = dataclasses.replace(CONFIGURATION, version=2)
+    @MODELS
+    def test_a_new_configuration_version_changes_the_seed(
+        self, configuration: ModelConfiguration
+    ) -> None:
+        other = dataclasses.replace(configuration, version=2)
 
         assert (
             simulate(MATCH_ID, HOME_TEAM, AWAY_TEAM, other).result.seed
-            != simulate(MATCH_ID, HOME_TEAM, AWAY_TEAM, CONFIGURATION).result.seed
+            != simulate(MATCH_ID, HOME_TEAM, AWAY_TEAM, configuration).result.seed
         )
 
-    def test_squads_are_stable_and_unique_per_team(self) -> None:
-        squad = squad_for(HOME_TEAM.team_id)
+    def test_the_legacy_model_still_replays_its_own_runs(self) -> None:
+        legacy = simulate(MATCH_ID, HOME_TEAM, AWAY_TEAM, LEGACY)
+        progressive = simulate(MATCH_ID, HOME_TEAM, AWAY_TEAM, CONFIGURATION)
+
+        assert legacy.result.model_version == LEGACY_MODEL_VERSION
+        assert legacy.probabilities == calculate_probabilities(STRONG, WEAK, LEGACY)
+        assert progressive.result.model_version == PROGRESSIVE_MODEL_VERSION
+        assert progressive.probabilities is None
+        assert legacy.result.seed != progressive.result.seed
+
+    @pytest.mark.parametrize("pool", [LEGACY_NAME_POOL, EXPANDED_NAME_POOL])
+    def test_squads_are_stable_and_unique_per_team(self, pool: int) -> None:
+        squad = squad_for(HOME_TEAM.team_id, pool)
         names = [player.name for player in (*squad.starters, *squad.bench)]
 
-        assert squad == squad_for(HOME_TEAM.team_id)
-        assert squad != squad_for(AWAY_TEAM.team_id)
+        assert squad == squad_for(HOME_TEAM.team_id, pool)
+        assert squad != squad_for(AWAY_TEAM.team_id, pool)
         assert len(squad.starters) == 11
         assert len(set(names)) == len(names)
 
 
 class TestConsistency:
+    @MODELS
     @pytest.mark.parametrize("match_id", MATCH_IDS)
-    def test_timeline_agrees_with_the_score(self, match_id: str) -> None:
-        output = simulate(match_id, HOME_TEAM, AWAY_TEAM, CONFIGURATION)
+    def test_timeline_agrees_with_the_score(
+        self, match_id: str, configuration: ModelConfiguration
+    ) -> None:
+        output = simulate(match_id, HOME_TEAM, AWAY_TEAM, configuration)
         result, events = output.result, output.events
 
         assert {event.type for event in events} <= CONTRACT_EVENT_TYPES
@@ -126,9 +157,12 @@ class TestConsistency:
         assert result.winner == derive_winner(home, away)
         assert result.winning_gap == abs(home - away)
 
+    @MODELS
     @pytest.mark.parametrize("match_id", MATCH_IDS)
-    def test_stats_agree_with_the_timeline(self, match_id: str) -> None:
-        output = simulate(match_id, HOME_TEAM, AWAY_TEAM, CONFIGURATION)
+    def test_stats_agree_with_the_timeline(
+        self, match_id: str, configuration: ModelConfiguration
+    ) -> None:
+        output = simulate(match_id, HOME_TEAM, AWAY_TEAM, configuration)
 
         def count(event_type: str, side: str) -> int:
             return sum(
@@ -154,9 +188,12 @@ class TestConsistency:
             assert len(substitutions) <= 5
             assert all(e.minute > 45 for e in substitutions)
 
+    @MODELS
     @pytest.mark.parametrize("match_id", MATCH_IDS[:100])
-    def test_nobody_plays_after_leaving_the_pitch(self, match_id: str) -> None:
-        output = simulate(match_id, HOME_TEAM, AWAY_TEAM, CONFIGURATION)
+    def test_nobody_plays_after_leaving_the_pitch(
+        self, match_id: str, configuration: ModelConfiguration
+    ) -> None:
+        output = simulate(match_id, HOME_TEAM, AWAY_TEAM, configuration)
         gone: set[tuple[str | None, str]] = set()
 
         for event in output.events:
@@ -183,7 +220,7 @@ class TestConsistency:
             AWAY_TEAM,
             (home_goals, away_goals),
             (1.5, 1.0),
-            CONFIGURATION,
+            LEGACY,
         )
         goals = [event for event in events if event.type == "GOAL"]
 
@@ -235,10 +272,10 @@ class TestScoreMatrix:
         assert away_xg > base_away
 
 
-class TestStatisticalSanity:
+class TestLegacyStatisticalSanity:
     def test_outcome_frequencies_track_the_matrix(self) -> None:
         runs = 4000
-        matrix = calculate_probabilities(STRONG, WEAK, CONFIGURATION)
+        matrix = calculate_probabilities(STRONG, WEAK, LEGACY)
         expected = dict(
             zip(("HOME", "DRAW", "AWAY"), outcome_probabilities(matrix), strict=True)
         )
@@ -247,15 +284,15 @@ class TestStatisticalSanity:
         for index in range(runs):
             match_id = f"66666666-6666-4666-8666-{index:012d}"
             observed[
-                simulate(match_id, HOME_TEAM, AWAY_TEAM, CONFIGURATION).result.winner
+                simulate(match_id, HOME_TEAM, AWAY_TEAM, LEGACY).result.winner
             ] += 1
 
         for outcome, probability in expected.items():
             assert observed[outcome] / runs == pytest.approx(probability, abs=0.03)
 
     def test_the_result_is_sampled_from_the_priced_matrix(self) -> None:
-        matrix = calculate_probabilities(STRONG, WEAK, CONFIGURATION)
-        output = simulate(MATCH_ID, HOME_TEAM, AWAY_TEAM, CONFIGURATION)
+        matrix = calculate_probabilities(STRONG, WEAK, LEGACY)
+        output = simulate(MATCH_ID, HOME_TEAM, AWAY_TEAM, LEGACY)
 
         assert output.probabilities == matrix
         assert sample_score(create_prng(output.result.seed), matrix) == (

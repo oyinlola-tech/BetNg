@@ -69,5 +69,10 @@ class ModelConfigurationView(ContractModel):
     reason: str
 
 
+ModelVersionDto = Literal["poisson-1.0", "progressive-2.0"]
+
+
 class ModelConfigurationUpdate(ModelParametersDto):
+    #: Omitted keeps the active version's model; old models stay selectable.
+    model_version: ModelVersionDto | None = None
     reason: Annotated[str, Field(min_length=3, max_length=500)]

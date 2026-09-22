@@ -3,7 +3,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Final, Literal
 
-MODEL_VERSION: Final = "poisson-1.0"
+LEGACY_MODEL_VERSION: Final = "poisson-1.0"
+PROGRESSIVE_MODEL_VERSION: Final = "progressive-2.0"
+MODEL_VERSION: Final = PROGRESSIVE_MODEL_VERSION
+MODEL_VERSIONS: Final[tuple[str, ...]] = (
+    LEGACY_MODEL_VERSION,
+    PROGRESSIVE_MODEL_VERSION,
+)
 
 KICK_OFF_MINUTE: Final = 0
 FIRST_PLAYING_MINUTE: Final = 1
@@ -98,6 +104,56 @@ class ModelConfiguration:
     offsides_per_team: float = 2.0
     max_offsides: int = 10
 
+    effective_minutes: float = 104.0
+    stoppage_first_half_base: float = 1.0
+    stoppage_second_half_base: float = 2.0
+    stoppage_per_goal: float = 0.5
+    stoppage_per_card: float = 0.3
+    stoppage_per_substitution: float = 0.3
+    max_stoppage_first_half: int = 5
+    max_stoppage_second_half: int = 8
+    leading_attack_factor: float = 0.85
+    trailing_attack_factor: float = 1.2
+    counter_attack_factor: float = 1.15
+    late_urgency_minute: int = 75
+    late_urgency_factor: float = 1.2
+    red_card_attack_penalty_min: float = 0.15
+    red_card_attack_penalty_max: float = 0.35
+    red_card_defence_penalty_min: float = 0.2
+    red_card_defence_penalty_max: float = 0.5
+    max_red_cards_per_team: int = 3
+    booked_player_caution: float = 0.35
+    trailing_card_factor: float = 1.2
+    momentum_boost: float = 0.2
+    concede_vulnerability: float = 0.1
+    momentum_minutes: int = 5
+    possession_state_shift: float = 3.0
+    possession_red_card_shift: float = 5.0
+    pricing_simulations: int = 5000
+
+    weather_enabled: bool = False
+    weather_severity: float = 0.5
+    pitch_quality: float = 1.0
+    referee_strictness: float = 1.0
+    referee_variance: float = 0.0
+    fatigue_enabled: bool = False
+    fatigue_onset_minute: int = 60
+    fatigue_rate: float = 0.005
+
+    #: Tactical formation effects on scoring rates
+    formation_attack_modifier: float = 1.0
+    formation_defence_modifier: float = 1.0
+    formation_midfield_modifier: float = 1.0
+
+    #: Position-specific fatigue rates (multiplied by base fatigue_rate)
+    fatigue_rate_forward: float = 1.2
+    fatigue_rate_midfielder: float = 1.0
+    fatigue_rate_defender: float = 0.8
+    fatigue_rate_goalkeeper: float = 0.6
+
+    #: Substitution freshness boost (reduces fatigue for the substituted player)
+    substitution_fresh_boost: float = 0.3
+
 
 @dataclass(frozen=True)
 class MatchResult:
@@ -156,6 +212,22 @@ class ProbabilityMatrix:
 @dataclass(frozen=True)
 class SimulationOutput:
     result: MatchResult
-    probabilities: ProbabilityMatrix
+    #: The legacy model's pre-match matrix; ``None`` for the progressive model.
+    probabilities: ProbabilityMatrix | None
     events: tuple[MatchEventDraft, ...]
     stats: MatchStats
+    home_xg: float
+    away_xg: float
+
+
+def derive_winner(home_goals: int, away_goals: int) -> Winner:
+    if home_goals > away_goals:
+        return "HOME"
+    if away_goals > home_goals:
+        return "AWAY"
+
+    return "DRAW"
+
+
+class UnknownModelVersionError(ValueError):
+    """The configuration names a model this build cannot run."""

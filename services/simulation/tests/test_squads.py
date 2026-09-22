@@ -1,11 +1,22 @@
 from __future__ import annotations
 
+import itertools
+import uuid
 from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
 
-from betng_simulation.engine import ModelConfiguration, simulate
+from betng_simulation.engine import (
+    EXPANDED_NAME_POOL,
+    LEGACY_MODEL_VERSION,
+    LEGACY_NAME_POOL,
+    MODEL_VERSION,
+    ModelConfiguration,
+    simulate,
+    squad_for,
+)
+from betng_simulation.engine.players import name_pool_size
 
 from .conftest import AWAY_TEAM, HOME_TEAM
 from .test_rpc import call
@@ -125,3 +136,39 @@ class TestTimelinePlayersAreInTheSquads:
                     assert event.player not in starters[event.side]
 
         assert named > len(MATCH_IDS)
+
+
+class TestNamePools:
+    def test_each_model_version_pins_its_own_squads(self, client: TestClient) -> None:
+        legacy = squads(client, {**PAYLOAD, "modelVersion": LEGACY_MODEL_VERSION})
+        current = squads(client, {**PAYLOAD, "modelVersion": MODEL_VERSION})
+
+        assert current == squads(client)
+        assert names(legacy["home"]) == {
+            player.name
+            for player in (
+                *squad_for(HOME_TEAM.team_id, LEGACY_NAME_POOL).starters,
+                *squad_for(HOME_TEAM.team_id, LEGACY_NAME_POOL).bench,
+            )
+        }
+        assert names(legacy["home"]) != names(current["home"])
+
+        body = call(client, "simulation.getSquads", {**PAYLOAD, "modelVersion": "x"})
+        assert body["error"]["code"] == "RPC_VALIDATION_ERROR"
+
+    def test_the_expanded_pool_makes_cross_team_collisions_rare(self) -> None:
+        team_ids = [str(uuid.UUID(int=index * 7919 + 1)) for index in range(120)]
+
+        def shared_names(pool: int) -> float:
+            rosters = [
+                {p.name for p in (*s.starters, *s.bench)}
+                for s in (squad_for(team_id, pool) for team_id in team_ids)
+            ]
+            overlaps = sum(len(a & b) for a, b in itertools.combinations(rosters, 2))
+            return overlaps / (len(rosters) * (len(rosters) - 1) / 2)
+
+        assert name_pool_size(EXPANDED_NAME_POOL) > 10 * name_pool_size(
+            LEGACY_NAME_POOL
+        )
+        assert shared_names(EXPANDED_NAME_POOL) < 0.03
+        assert shared_names(EXPANDED_NAME_POOL) < shared_names(LEGACY_NAME_POOL) / 5

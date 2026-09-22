@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import logging
+import uuid
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from betng_service_kit import (
+    Container,
     RpcClient,
     ServiceSettings,
     apply_migrations,
@@ -24,10 +26,22 @@ from .configs import (
     load_simulation_settings,
     require_database_url,
 )
-from .constants import BACKGROUND_AUDITOR_TOKEN
+from .constants import (
+    BACKGROUND_AUDITOR_TOKEN,
+    AuditEntity,
+    SimulationAuditAction,
+)
 from .controllers import AdminSimulationController, SimulationController
 from .engine import ModelConfiguration, simulate
-from .interfaces import AuditRecorder, MatchReadModel, Simulate
+from .interfaces import (
+    SYSTEM_ACTOR_ID,
+    SYSTEM_ACTOR_ROLE,
+    AuditEntry,
+    AuditRecorder,
+    MatchReadModel,
+    Simulate,
+    StoredConfiguration,
+)
 from .loaders import load_container, load_services
 from .middlewares import bind_request_context
 from .procedures import create_simulation_rpc_server
@@ -44,6 +58,36 @@ DESCRIPTION = (
     "match id, never bet data, so a result cannot be influenced by the book's "
     "position."
 )
+
+
+def _announce_upgrade(
+    upgraded: StoredConfiguration, container: Container, logger: logging.Logger
+) -> None:
+    configuration = upgraded.configuration
+    logger.info(
+        "Model configuration upgraded",
+        extra={
+            "event": SimulationAuditAction.CONFIGURATION_CHANGED,
+            "configurationVersion": configuration.version,
+            "modelVersion": configuration.model_version,
+        },
+    )
+    container.resolve(BACKGROUND_AUDITOR_TOKEN).submit(
+        AuditEntry(
+            actor_id=SYSTEM_ACTOR_ID,
+            actor_role=SYSTEM_ACTOR_ROLE,
+            action=SimulationAuditAction.CONFIGURATION_CHANGED,
+            entity_type=AuditEntity.CONFIGURATION,
+            entity_id=str(configuration.version),
+            request_id=f"startup-{uuid.uuid4()}",
+            after={
+                "version": configuration.version,
+                "modelVersion": configuration.model_version,
+            },
+            reason=upgraded.reason,
+            severity="WARNING",
+        )
+    )
 
 
 def create_app(
@@ -89,7 +133,11 @@ def create_app(
             )
         try:
             await apply_migrations(pool, DATABASE_SCHEMA, MIGRATIONS_DIRECTORY, logger)
-            await repository.ensure_default_configuration(ModelConfiguration())
+            upgraded = await repository.ensure_default_configuration(
+                ModelConfiguration()
+            )
+            if upgraded is not None:
+                _announce_upgrade(upgraded, container, logger)
             yield
             await container.resolve(BACKGROUND_AUDITOR_TOKEN).drain()
         finally:

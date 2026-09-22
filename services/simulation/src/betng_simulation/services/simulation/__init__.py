@@ -23,6 +23,7 @@ from .queries import (
     GetSquadsHandler,
     ListAdminRunsHandler,
     ListMatchEventsHandler,
+    ReplayMatchHandler,
 )
 
 
@@ -44,7 +45,12 @@ def register_simulation_service(
         )
     )
     command_bus.register(
-        ApplyRunActionHandler(repository, match_read_model, auditor, logger)
+        ApplyRunActionHandler(
+            repository,
+            match_read_model,
+            container.resolve(AUDIT_RECORDER_TOKEN),
+            logger,
+        )
     )
     command_bus.register(
         UpdateConfigurationHandler(
@@ -57,4 +63,7 @@ def register_simulation_service(
     query_bus.register(ListMatchEventsHandler(repository))
     query_bus.register(ListAdminRunsHandler(repository, match_read_model))
     query_bus.register(GetConfigurationHandler(repository))
-    query_bus.register(GetSquadsHandler())
+    query_bus.register(GetSquadsHandler(repository))
+    query_bus.register(
+        ReplayMatchHandler(repository, container.resolve(SEED_SECRET_TOKEN))
+    )

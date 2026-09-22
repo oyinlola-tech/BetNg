@@ -1,7 +1,20 @@
-from .engine import derive_winner, simulate
+from .calibration import (
+    brier_score,
+    calibration_tolerance,
+    expected_brier_score,
+    log_loss,
+    market_probabilities,
+    outcome_frequencies,
+    result_index,
+)
+from .conditions import NEUTRAL_CONDITIONS, MatchConditions, match_conditions
+from .engine import simulate, simulate_with_seed
 from .goals import sample_score
 from .models import (
+    LEGACY_MODEL_VERSION,
     MODEL_VERSION,
+    MODEL_VERSIONS,
+    PROGRESSIVE_MODEL_VERSION,
     EventType,
     MatchEventDraft,
     MatchResult,
@@ -13,21 +26,41 @@ from .models import (
     SimulationOutput,
     SimulationTeam,
     TeamStrength,
+    UnknownModelVersionError,
     Winner,
+    derive_winner,
 )
-from .players import STARTING_FORMATION, Player, Position, Squad, squad_for
+from .players import (
+    EXPANDED_NAME_POOL,
+    LEGACY_NAME_POOL,
+    STARTING_FORMATION,
+    Player,
+    Position,
+    Squad,
+    name_pool_for,
+    squad_for,
+)
+from .pricing import monte_carlo_matrix, price_match, pricing_seed, sample_scores
 from .probabilities import (
     calculate_probabilities,
     expected_goals,
     outcome_probabilities,
     score_matrix,
 )
+from .progressive import RateModel, TeamState, play_core
 from .seeds import create_prng, derive_seed, seed_material
 
 __all__ = [
+    "EXPANDED_NAME_POOL",
+    "LEGACY_MODEL_VERSION",
+    "LEGACY_NAME_POOL",
     "MODEL_VERSION",
+    "MODEL_VERSIONS",
+    "NEUTRAL_CONDITIONS",
+    "PROGRESSIVE_MODEL_VERSION",
     "STARTING_FORMATION",
     "EventType",
+    "MatchConditions",
     "MatchEventDraft",
     "MatchResult",
     "MatchStats",
@@ -35,22 +68,40 @@ __all__ = [
     "Player",
     "Position",
     "ProbabilityMatrix",
+    "RateModel",
     "Side",
     "SideStats",
     "SimulationOutput",
     "SimulationTeam",
     "Squad",
+    "TeamState",
     "TeamStrength",
+    "UnknownModelVersionError",
     "Winner",
+    "brier_score",
     "calculate_probabilities",
+    "calibration_tolerance",
     "create_prng",
     "derive_seed",
     "derive_winner",
+    "expected_brier_score",
     "expected_goals",
+    "log_loss",
+    "market_probabilities",
+    "match_conditions",
+    "monte_carlo_matrix",
+    "name_pool_for",
+    "outcome_frequencies",
     "outcome_probabilities",
+    "play_core",
+    "price_match",
+    "pricing_seed",
+    "result_index",
     "sample_score",
+    "sample_scores",
     "score_matrix",
     "seed_material",
     "simulate",
+    "simulate_with_seed",
     "squad_for",
 ]

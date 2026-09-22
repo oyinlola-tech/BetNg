@@ -8,6 +8,8 @@ from pydantic import ValidationError
 
 from betng_simulation.dtos import (
     CalculateProbabilitiesRequest,
+    GetSquadsRequest,
+    ReplayMatchRequest,
     RunMatchBody,
     RunMatchRequest,
     SimulationTeamDto,
@@ -16,7 +18,9 @@ from betng_simulation.dtos import (
 from betng_simulation.engine import (
     ModelConfiguration,
     calculate_probabilities,
+    price_match,
     simulate,
+    simulate_with_seed,
 )
 from betng_simulation.interfaces import Simulate
 from betng_simulation.services.simulation.commands import RunMatchCommand
@@ -87,6 +91,19 @@ class TestNoInputForBets:
             "away",
             "configuration",
         ]
+        assert list(inspect.signature(price_match).parameters) == [
+            "match_id",
+            "home",
+            "away",
+            "configuration",
+        ]
+        assert list(inspect.signature(simulate_with_seed).parameters) == [
+            "match_id",
+            "home",
+            "away",
+            "configuration",
+            "seed",
+        ]
         assert list(inspect.signature(Simulate.__call__).parameters) == [
             "self",
             *parameters,
@@ -95,7 +112,11 @@ class TestNoInputForBets:
     def test_the_request_models_have_exactly_the_contract_fields(self) -> None:
         assert set(RunMatchRequest.model_fields) == {"match_id", "home", "away"}
         assert set(RunMatchBody.model_fields) == {"home", "away"}
-        assert set(CalculateProbabilitiesRequest.model_fields) == {"home", "away"}
+        assert set(CalculateProbabilitiesRequest.model_fields) == {
+            "match_id",
+            "home",
+            "away",
+        }
         assert set(SimulationTeamDto.model_fields) == {
             "team_id",
             "name",
@@ -115,7 +136,12 @@ class TestNoInputForBets:
         }
 
     def test_no_field_anywhere_in_a_request_names_bet_data(self) -> None:
-        for model in (RunMatchRequest, CalculateProbabilitiesRequest):
+        for model in (
+            RunMatchRequest,
+            CalculateProbabilitiesRequest,
+            ReplayMatchRequest,
+            GetSquadsRequest,
+        ):
             for name in _field_names(model):
                 assert not set(name.lower().split("_")) & set(FORBIDDEN_WORDS), name
 

@@ -53,6 +53,8 @@ class RunMatchResponse(ContractModel):
 
 
 class CalculateProbabilitiesRequest(ContractModel):
+    #: Seeds the Monte Carlo pricing stream and the match's conditions.
+    match_id: UUID | None = None
     home: TeamStrengthDto
     away: TeamStrengthDto
 
@@ -120,3 +122,25 @@ class MatchEventView(ContractModel):
 
 class MatchEventList(ContractModel):
     items: list[MatchEventView]
+
+
+ReplayMismatch = Literal["result", "events", "stats", "xg", "seed"]
+
+
+class ReplayMatchRequest(ContractModel):
+    match_id: UUID
+
+
+class ReplayMatchResponse(ContractModel):
+    match_id: UUID
+    simulation_id: UUID
+    model_version: str
+    configuration_version: int
+    replayable: bool
+    #: ``None`` when the run cannot be replayed.
+    identical: bool | None
+    #: ``None`` without the seed key, which a verifier may not hold.
+    seed_verified: bool | None
+    mismatches: list[ReplayMismatch]
+    event_count: Annotated[int, Field(ge=0)]
+    reason: str | None = None

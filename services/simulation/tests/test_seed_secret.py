@@ -81,7 +81,9 @@ class TestKeyedSeed:
         second = simulate(MATCH_ID, HOME_TEAM, AWAY_TEAM, CONFIGURATION, SECRET)
 
         assert first == second
-        assert first.result.seed == derive_seed(MATCH_ID, "poisson-1.0", 1, SECRET)
+        assert first.result.seed == derive_seed(
+            MATCH_ID, CONFIGURATION.model_version, 1, SECRET
+        )
 
     def test_a_different_secret_gives_a_different_seed(self) -> None:
         assert derive_seed(MATCH_ID, "poisson-1.0", 1, SECRET) != derive_seed(
@@ -211,8 +213,9 @@ class TestSecretNeverLeaks:
 
         body = created.json()
         version = body["configurationVersion"]
-        assert body["seed"] == derive_seed(match_id, "poisson-1.0", version, SECRET)
-        assert body["seed"] != derive_seed(match_id, "poisson-1.0", version)
+        model = body["modelVersion"]
+        assert body["seed"] == derive_seed(match_id, model, version, SECRET)
+        assert body["seed"] != derive_seed(match_id, model, version)
         assert any(
             getattr(record, "event", None) == "simulation_completed"
             for record in service_log.records

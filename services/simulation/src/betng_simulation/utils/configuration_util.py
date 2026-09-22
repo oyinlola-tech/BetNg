@@ -7,7 +7,7 @@ from typing import Any
 from pydantic import ValidationError
 
 from ..dtos import ModelParametersDto
-from ..engine import ModelConfiguration
+from ..engine import MODEL_VERSIONS, ModelConfiguration
 from ..errors import InvalidConfigurationError
 
 _IDENTITY_FIELDS = frozenset({"version", "model_version"})
@@ -38,6 +38,26 @@ def _check_consistency(configuration: ModelConfiguration) -> None:
     if configuration.min_substitutions > configuration.max_substitutions:
         raise InvalidConfigurationError(
             "minSubstitutions must not exceed maxSubstitutions."
+        )
+
+    for low, high, label in (
+        (
+            configuration.red_card_attack_penalty_min,
+            configuration.red_card_attack_penalty_max,
+            "redCardAttackPenalty",
+        ),
+        (
+            configuration.red_card_defence_penalty_min,
+            configuration.red_card_defence_penalty_max,
+            "redCardDefencePenalty",
+        ),
+    ):
+        if low > high:
+            raise InvalidConfigurationError(f"{label}Min must not exceed {label}Max.")
+
+    if configuration.model_version not in MODEL_VERSIONS:
+        raise InvalidConfigurationError(
+            f"modelVersion must be one of {', '.join(MODEL_VERSIONS)}."
         )
 
 

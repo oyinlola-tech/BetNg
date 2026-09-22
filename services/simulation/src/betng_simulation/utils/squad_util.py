@@ -4,7 +4,13 @@ from typing import Final
 from uuid import UUID
 
 from ..dtos import LineupPositionDto, SquadPlayerView, TeamSquadView
-from ..engine import STARTING_FORMATION, Player, Position, squad_for
+from ..engine import (
+    EXPANDED_NAME_POOL,
+    STARTING_FORMATION,
+    Player,
+    Position,
+    squad_for,
+)
 
 POSITION_CODES: Final[dict[Position, LineupPositionDto]] = {
     "GOALKEEPER": "GK",
@@ -32,10 +38,10 @@ def _views(
     ]
 
 
-def to_team_squad(team_id: UUID) -> TeamSquadView:
+def to_team_squad(team_id: UUID, name_pool: int = EXPANDED_NAME_POOL) -> TeamSquadView:
     # The timeline keys its squads by `str(team_id)` too, so both name the same people.
     key = str(team_id)
-    squad = squad_for(key)
+    squad = squad_for(key, name_pool)
 
     return TeamSquadView(
         team_id=team_id,

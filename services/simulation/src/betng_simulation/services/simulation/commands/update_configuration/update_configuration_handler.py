@@ -6,7 +6,6 @@ from betng_service_kit import CommandHandler, ServiceError
 
 from .....constants import AuditEntity, SimulationAuditAction, SimulationCommand
 from .....dtos import ModelConfigurationView
-from .....engine import MODEL_VERSION
 from .....errors import AuditUnavailableError, InvalidConfigurationError
 from .....interfaces import AuditEntry, AuditRecorder
 from .....middlewares import current_request_id
@@ -15,6 +14,7 @@ from .....utils import build_configuration, parameters_of, parameters_to_json
 from .update_configuration_command import UpdateConfigurationCommand
 
 REASON_FIELD = "reason"
+MODEL_VERSION_FIELD = "model_version"
 
 
 class UpdateConfigurationHandler(
@@ -41,10 +41,10 @@ class UpdateConfigurationHandler(
         changes = {
             name: getattr(request, name)
             for name in request.model_fields_set
-            if name != REASON_FIELD
+            if name not in (REASON_FIELD, MODEL_VERSION_FIELD)
         }
 
-        if not changes:
+        if not changes and request.model_version is None:
             raise InvalidConfigurationError("At least one parameter must be supplied.")
 
         async with self._repository.transaction() as connection:
@@ -52,7 +52,10 @@ class UpdateConfigurationHandler(
             current = await self._repository.get_active_configuration(connection)
             version = await self._repository.next_configuration_version(connection)
             configuration = build_configuration(
-                version, MODEL_VERSION, changes, base=current.configuration
+                version,
+                request.model_version or current.configuration.model_version,
+                changes,
+                base=current.configuration,
             )
             stored = await self._repository.activate_new_configuration(
                 connection, configuration, message.actor.id, request.reason
@@ -69,10 +72,12 @@ class UpdateConfigurationHandler(
                         request_id=current_request_id(),
                         before={
                             "version": current.configuration.version,
+                            "modelVersion": current.configuration.model_version,
                             "params": parameters_to_json(current.configuration),
                         },
                         after={
                             "version": version,
+                            "modelVersion": configuration.model_version,
                             "params": parameters_to_json(configuration),
                         },
                         reason=request.reason,

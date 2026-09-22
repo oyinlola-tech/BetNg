@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 import uuid
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -13,12 +14,14 @@ from psycopg.types.json import Jsonb
 from psycopg_pool import PoolTimeout
 
 from ..engine import (
+    MODEL_VERSION,
     MatchEventDraft,
     MatchStats,
     ModelConfiguration,
     SideStats,
     SimulationOutput,
     SimulationTeam,
+    TeamStrength,
     seed_material,
 )
 from ..errors import DatabaseUnavailableError
@@ -36,6 +39,9 @@ Connection = AsyncConnection[DictRow]
 CONFIGURATION_LOCK_KEY = "simulation:model_configurations"
 SYSTEM_AUTHOR = "system"
 DEFAULT_CONFIGURATION_REASON = "Initial model parameters."
+UPGRADE_REASON = (
+    "Model upgraded to {model}; parameters carried over from version {version}."
+)
 
 _RUN_COLUMNS = (
     "id::text AS id, match_id::text AS match_id, status, model_version, "
@@ -106,10 +112,18 @@ def _to_admin_run(row: DictRow) -> AdminRunRecord:
     )
 
 
+#: Stored versions are immutable, so a renamed parameter keeps its old key there.
+RENAMED_PARAMETERS = {"trailingExposureFactor": "counterAttackFactor"}
+
+
+def _stored_parameters(params: dict[str, Any]) -> dict[str, Any]:
+    return {RENAMED_PARAMETERS.get(key, key): value for key, value in params.items()}
+
+
 def _to_stored_configuration(row: DictRow) -> StoredConfiguration:
     return StoredConfiguration(
         configuration=build_configuration(
-            row["version"], row["model_version"], row["params"]
+            row["version"], row["model_version"], _stored_parameters(row["params"])
         ),
         active=row["active"],
         created_at=row["created_at"],
@@ -129,6 +143,28 @@ def _side_stats_json(stats: SideStats) -> dict[str, int]:
         "yellowCards": stats.yellow_cards,
         "redCards": stats.red_cards,
     }
+
+
+def team_to_json(team: SimulationTeam) -> dict[str, Any]:
+    return {
+        "teamId": team.team_id,
+        "name": team.name,
+        "shortName": team.short_name,
+        "strength": dataclasses.asdict(team.strength),
+    }
+
+
+def team_from_json(data: dict[str, Any]) -> SimulationTeam:
+    return SimulationTeam(
+        team_id=str(data["teamId"]),
+        name=str(data["name"]),
+        short_name=str(data["shortName"]),
+        strength=TeamStrength(**{k: float(v) for k, v in data["strength"].items()}),
+    )
+
+
+def inputs_to_json(home: SimulationTeam, away: SimulationTeam) -> dict[str, Any]:
+    return {"home": team_to_json(home), "away": team_to_json(away)}
 
 
 def stats_to_json(match_id: str, stats: MatchStats) -> dict[str, Any]:
@@ -153,7 +189,14 @@ class SimulationRepository:
         except (psycopg.OperationalError, PoolTimeout) as error:
             raise DatabaseUnavailableError from error
 
-    async def ensure_default_configuration(self, defaults: ModelConfiguration) -> None:
+    async def ensure_default_configuration(
+        self, defaults: ModelConfiguration
+    ) -> StoredConfiguration | None:
+        """Seed version 1; move a store without the current model onto it once.
+
+        Returns the new version when an upgrade happened. The previous
+        versions stay stored, so their runs still replay under their own model.
+        """
         async with self.transaction() as connection:
             await connection.execute(
                 "SELECT pg_advisory_xact_lock(hashtext(%s))",
@@ -173,6 +216,31 @@ class SimulationRepository:
                     DEFAULT_CONFIGURATION_REASON,
                 ),
             )
+            if defaults.model_version != MODEL_VERSION:
+                return None
+
+            cursor = await connection.execute(
+                "SELECT 1 FROM simulation.model_configurations "
+                "WHERE model_version = %s LIMIT 1",
+                (MODEL_VERSION,),
+            )
+            if await cursor.fetchone() is not None:
+                return None
+
+            current = await self.get_active_configuration(connection)
+            version = await self.next_configuration_version(connection)
+            upgraded = dataclasses.replace(
+                current.configuration, version=version, model_version=MODEL_VERSION
+            )
+
+            return await self.activate_new_configuration(
+                connection,
+                upgraded,
+                SYSTEM_AUTHOR,
+                UPGRADE_REASON.format(
+                    model=MODEL_VERSION, version=current.configuration.version
+                ),
+            )
 
     async def get_active_configuration(
         self, connection: Connection
@@ -187,6 +255,33 @@ class SimulationRepository:
             raise RuntimeError("No model configuration is active.")
 
         return _to_stored_configuration(row)
+
+    async def get_configuration(
+        self, connection: Connection, version: int
+    ) -> StoredConfiguration | None:
+        cursor = await connection.execute(
+            "SELECT version, model_version, params, active, created_at, "
+            "created_by, reason FROM simulation.model_configurations "
+            "WHERE version = %s",
+            (version,),
+        )
+        row = await cursor.fetchone()
+
+        return None if row is None else _to_stored_configuration(row)
+
+    async def get_run_inputs(
+        self, connection: Connection, run_id: str
+    ) -> tuple[SimulationTeam, SimulationTeam] | None:
+        cursor = await connection.execute(
+            "SELECT inputs FROM simulation.simulation_runs WHERE id = %s", (run_id,)
+        )
+        row = await cursor.fetchone()
+
+        if row is None or row["inputs"] is None:
+            return None
+
+        inputs = row["inputs"]
+        return team_from_json(inputs["home"]), team_from_json(inputs["away"])
 
     async def lock_configurations(self, connection: Connection) -> None:
         """Serialise configuration changes for the rest of the transaction."""
@@ -249,12 +344,14 @@ class SimulationRepository:
             "INSERT INTO simulation.simulation_runs "
             "(id, match_id, status, model_version, configuration_version, seed, "
             "seed_material, "
-            "attempt, home_team_id, home_team_name, away_team_id, away_team_name) "
+            "attempt, home_team_id, home_team_name, away_team_id, away_team_name, "
+            "inputs) "
             "SELECT %(id)s::uuid, %(match_id)s::uuid, 'RUNNING', "
             "%(model_version)s::text, %(configuration_version)s::integer, "
             "%(seed)s::text, %(seed_material)s::text, "
             "COALESCE(MAX(attempt), 0) + 1, %(home_id)s::uuid, "
-            "%(home_name)s::text, %(away_id)s::uuid, %(away_name)s::text "
+            "%(home_name)s::text, %(away_id)s::uuid, %(away_name)s::text, "
+            "%(inputs)s::jsonb "
             "FROM simulation.simulation_runs WHERE match_id = %(match_id)s::uuid "
             "ON CONFLICT (match_id) WHERE status IN ('RUNNING', 'COMPLETED') "
             "DO NOTHING RETURNING id",
@@ -271,6 +368,7 @@ class SimulationRepository:
                 "home_name": home.name,
                 "away_id": away.team_id,
                 "away_name": away.name,
+                "inputs": Jsonb(inputs_to_json(home, away)),
             },
         )
 
@@ -294,8 +392,8 @@ class SimulationRepository:
                 result.away_goals,
                 result.winner,
                 result.winning_gap,
-                round(output.probabilities.home_xg, 4),
-                round(output.probabilities.away_xg, 4),
+                round(output.home_xg, 4),
+                round(output.away_xg, 4),
                 result.seed,
                 result.model_version,
                 result.configuration_version,
@@ -361,13 +459,13 @@ class SimulationRepository:
             "(id, match_id, status, model_version, configuration_version, seed, "
             "seed_material, "
             "attempt, completed_at, failure_reason, home_team_id, home_team_name, "
-            "away_team_id, away_team_name) "
+            "away_team_id, away_team_name, inputs) "
             "SELECT %(id)s::uuid, %(match_id)s::uuid, 'FAILED', "
             "%(model_version)s::text, %(configuration_version)s::integer, "
             "%(seed)s::text, %(seed_material)s::text, "
             "COALESCE(MAX(attempt), 0) + 1, now(), "
             "%(failure_reason)s::text, %(home_id)s::uuid, %(home_name)s::text, "
-            "%(away_id)s::uuid, %(away_name)s::text "
+            "%(away_id)s::uuid, %(away_name)s::text, %(inputs)s::jsonb "
             "FROM simulation.simulation_runs WHERE match_id = %(match_id)s::uuid",
             {
                 "id": run_id,
@@ -383,6 +481,7 @@ class SimulationRepository:
                 "home_name": home.name,
                 "away_id": away.team_id,
                 "away_name": away.name,
+                "inputs": Jsonb(inputs_to_json(home, away)),
             },
         )
 

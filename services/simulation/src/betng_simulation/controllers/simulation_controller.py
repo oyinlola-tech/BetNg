@@ -7,12 +7,17 @@ from betng_service_kit import CommandBus, QueryBus
 from ..dtos import (
     MatchEventList,
     MatchRunDetail,
+    ReplayMatchResponse,
     RunMatchBody,
     RunMatchRequest,
     RunMatchResponse,
 )
 from ..services.simulation.commands import RunMatchCommand
-from ..services.simulation.queries import GetMatchRunQuery, ListMatchEventsQuery
+from ..services.simulation.queries import (
+    GetMatchRunQuery,
+    ListMatchEventsQuery,
+    ReplayMatchQuery,
+)
 
 
 class SimulationController:
@@ -30,3 +35,6 @@ class SimulationController:
 
     async def list_match_events(self, match_id: UUID) -> MatchEventList:
         return await self._query_bus.execute(ListMatchEventsQuery(str(match_id)))
+
+    async def replay_match(self, match_id: UUID) -> ReplayMatchResponse:
+        return await self._query_bus.execute(ReplayMatchQuery(str(match_id)))

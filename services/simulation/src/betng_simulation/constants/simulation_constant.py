@@ -16,6 +16,7 @@ class SimulationQuery:
     LIST_ADMIN_RUNS: Final = "simulation.listAdminRuns"
     GET_CONFIGURATION: Final = "simulation.getConfiguration"
     GET_SQUADS: Final = "simulation.getSquads"
+    REPLAY_MATCH: Final = "simulation.replayMatch"
 
 
 class SimulationPermission:

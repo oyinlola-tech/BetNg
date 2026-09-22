@@ -62,6 +62,40 @@ class ModelParametersDto(ContractModel):
     max_extra_fouls: Cap = None
     offsides_per_team: Rate = None
     max_offsides: Cap = None
+    effective_minutes: Annotated[float | None, _number(80, 130)] = None
+    stoppage_first_half_base: Annotated[float | None, _number(0, 5)] = None
+    stoppage_second_half_base: Annotated[float | None, _number(0, 8)] = None
+    stoppage_per_goal: Annotated[float | None, _number(0, 2)] = None
+    stoppage_per_card: Annotated[float | None, _number(0, 2)] = None
+    stoppage_per_substitution: Annotated[float | None, _number(0, 2)] = None
+    max_stoppage_first_half: Annotated[int | None, Field(ge=0, le=10)] = None
+    max_stoppage_second_half: Annotated[int | None, Field(ge=0, le=15)] = None
+    leading_attack_factor: Annotated[float | None, _number(0.5, 1.5)] = None
+    trailing_attack_factor: Annotated[float | None, _number(0.5, 2)] = None
+    counter_attack_factor: Annotated[float | None, _number(0.5, 2)] = None
+    late_urgency_minute: Annotated[int | None, Field(ge=46, le=90)] = None
+    late_urgency_factor: Annotated[float | None, _number(0.5, 2)] = None
+    red_card_attack_penalty_min: Annotated[float | None, _number(0, 0.8)] = None
+    red_card_attack_penalty_max: Annotated[float | None, _number(0, 0.8)] = None
+    red_card_defence_penalty_min: Annotated[float | None, _number(0, 1.5)] = None
+    red_card_defence_penalty_max: Annotated[float | None, _number(0, 1.5)] = None
+    max_red_cards_per_team: Annotated[int | None, Field(ge=0, le=3)] = None
+    booked_player_caution: Probability = None
+    trailing_card_factor: Annotated[float | None, _number(0.5, 2)] = None
+    momentum_boost: Annotated[float | None, _number(0, 1)] = None
+    concede_vulnerability: Annotated[float | None, _number(0, 1)] = None
+    momentum_minutes: Annotated[int | None, Field(ge=0, le=15)] = None
+    possession_state_shift: Annotated[float | None, _number(0, 10)] = None
+    possession_red_card_shift: Annotated[float | None, _number(0, 15)] = None
+    pricing_simulations: Annotated[int | None, Field(ge=1000, le=50000)] = None
+    weather_enabled: bool | None = None
+    weather_severity: Probability = None
+    pitch_quality: Annotated[float | None, _number(0.5, 1)] = None
+    referee_strictness: Annotated[float | None, _number(0.5, 1.5)] = None
+    referee_variance: Annotated[float | None, _number(0, 0.5)] = None
+    fatigue_enabled: bool | None = None
+    fatigue_onset_minute: Annotated[int | None, Field(ge=30, le=90)] = None
+    fatigue_rate: Annotated[float | None, _number(0, 0.02)] = None
 
     @model_validator(mode="after")
     def _reject_explicit_nulls(self) -> Self:
