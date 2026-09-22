@@ -14,9 +14,14 @@ export type {
 
 export {
   canBet,
+  isBettable,
+  isClosed,
   isFinished,
+  isHalfTime,
   isInPlay,
   isInterrupted,
+  isSettled,
+  isStarting,
   isUpcoming,
   phaseDescription,
   phaseLabel,
@@ -87,6 +92,17 @@ export {
   validateSlip,
 } from "./betslip.js";
 export type { StakeProblem } from "./betslip.js";
+
+export {
+  MARKET_GROUP_LABEL,
+  MARKET_GROUP_ORDER,
+  groupMarkets,
+  isKnownMarketKind,
+  marketShape,
+  marketTitle,
+  sortMarkets,
+} from "./markets/catalogue.js";
+export type { MarketGroupView, MarketShape } from "./markets/catalogue.js";
 
 export { computeStandings } from "./standings.js";
 

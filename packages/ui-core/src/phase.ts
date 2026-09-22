@@ -147,3 +147,24 @@ export function phaseDescription(phase: MatchPhase): string {
       return "Suspended";
   }
 }
+
+export function isBettable(phase: MatchPhase): boolean {
+  return canBet(phase);
+}
+
+export function isClosed(phase: MatchPhase): boolean {
+  return phase === "BETTING_CLOSED";
+}
+
+/** Closed to new bets and waiting on kick-off: the transition the lobby calls "starting soon". */
+export function isStarting(phase: MatchPhase): boolean {
+  return phase === "BETTING_CLOSED" || phase === "DELAYED";
+}
+
+export function isHalfTime(phase: MatchPhase): boolean {
+  return phase === "HALFTIME";
+}
+
+export function isSettled(phase: MatchPhase): boolean {
+  return phase === "SETTLED";
+}

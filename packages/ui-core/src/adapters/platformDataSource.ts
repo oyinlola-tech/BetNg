@@ -37,6 +37,7 @@ import { formatScore } from "../format.js";
 import { localDayRange } from "../datetime.js";
 import { currentCurrency } from "../money.js";
 import { isFinished, resolvePhase } from "../phase.js";
+import { marketShape } from "../markets/catalogue.js";
 import type {
   BetLegView,
   BetPlacementView,
@@ -45,7 +46,6 @@ import type {
   ClockPeriod,
   ConnectionState,
   HeadToHeadView,
-  MarketGroupKey,
   MatchClockView,
   MatchLineupsView,
   MatchPhase,
@@ -88,15 +88,6 @@ const DEFAULT_PREFERENCES: NotificationPreferences = {
   goals: false,
 };
 
-const MARKET_NAMES: Readonly<Record<MarketKind, string>> = {
-  MATCH_RESULT: "Match Result",
-  DOUBLE_CHANCE: "Double Chance",
-  OVER_UNDER: "Total Goals",
-  BOTH_TEAMS_TO_SCORE: "Both Teams To Score",
-  CORRECT_SCORE: "Correct Score",
-  GOAL_SPREAD: "Goal Spread",
-};
-
 const MAX_WINDOW = 500;
 
 /** The platform status a phase is read under. Several phases share one; the phase filter is applied again after the read. */
@@ -109,24 +100,6 @@ const STATUS_FOR_PHASE: Readonly<Partial<Record<MatchPhase, string>>> = {
   FINISHED: "COMPLETED",
   SETTLED: "COMPLETED",
   CANCELLED: "CANCELLED",
-};
-
-const MARKET_GROUPS: Readonly<Record<MarketKind, MarketGroupKey>> = {
-  MATCH_RESULT: "MAIN",
-  DOUBLE_CHANCE: "MAIN",
-  OVER_UNDER: "GOALS",
-  BOTH_TEAMS_TO_SCORE: "GOALS",
-  CORRECT_SCORE: "SCORE",
-  GOAL_SPREAD: "HANDICAP",
-};
-
-const MARKET_COLUMNS: Readonly<Record<MarketKind, number>> = {
-  MATCH_RESULT: 3,
-  DOUBLE_CHANCE: 3,
-  OVER_UNDER: 2,
-  BOTH_TEAMS_TO_SCORE: 2,
-  CORRECT_SCORE: 3,
-  GOAL_SPREAD: 2,
 };
 
 function fallbackColors(seed: string): TeamView["colors"] {
@@ -859,30 +832,34 @@ export function createPlatformDataSource(
       return {
         matchId,
         generatedAt: odds.generatedAt,
-        markets: odds.markets.map((m): MarketView => ({
-          id: m.id,
-          matchId: m.matchId,
-          kind: m.type,
-          name: MARKET_NAMES[m.type],
-          ...(m.line === undefined ? {} : { line: m.line }),
-          status: m.status,
-          columns: MARKET_COLUMNS[m.type],
-          group: MARKET_GROUPS[m.type],
-          updatedAt: m.updatedAt,
-          ...(m.oddsVersion === undefined
-            ? {}
-            : { oddsVersion: m.oddsVersion }),
-          selections: m.selections.map((s) => ({
-            id: s.id,
-            marketId: s.marketId,
-            code: s.code,
-            label: s.label,
-            shortLabel: s.label,
-            odds: s.odds,
-            probability: s.probability,
-            trend: "STEADY",
-          })),
-        })),
+        markets: odds.markets.map((m): MarketView => {
+          const shape = marketShape(m.type, m.selections.length);
+
+          return {
+            id: m.id,
+            matchId: m.matchId,
+            kind: m.type,
+            name: shape.name,
+            ...(m.line === undefined ? {} : { line: m.line }),
+            status: m.status,
+            columns: shape.columns,
+            group: shape.group,
+            updatedAt: m.updatedAt,
+            ...(m.oddsVersion === undefined
+              ? {}
+              : { oddsVersion: m.oddsVersion }),
+            selections: m.selections.map((s) => ({
+              id: s.id,
+              marketId: s.marketId,
+              code: s.code,
+              label: s.label,
+              shortLabel: s.label,
+              odds: s.odds,
+              probability: s.probability,
+              trend: "STEADY",
+            })),
+          };
+        }),
       };
     },
 
