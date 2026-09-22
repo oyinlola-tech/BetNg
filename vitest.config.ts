@@ -10,6 +10,7 @@ export default defineConfig({
             "packages/*/tests/**/*.test.ts",
             "apps/gateway/tests/**/*.test.ts",
             "apps/services/*/tests/**/*.test.ts",
+            "apps/mobile/tests/**/*.test.ts",
           ],
           environment: "node",
           fileParallelism: false,

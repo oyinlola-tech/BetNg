@@ -1,0 +1,4 @@
+# Reviewed false positives: test idempotency keys and a password-generation alphabet, not secrets.
+cedcea657a925642bd27c42845399bf41eefc333:packages/client-sdk/tests/resilience.test.ts:generic-api-key:100
+cedcea657a925642bd27c42845399bf41eefc333:packages/ui-core/tests/platformDataSource.test.ts:generic-api-key:108
+84d6ba0a598b57a61167d26ab23eb762eb50f0cf:apps/services/identity/src/utils/credential.util.ts:generic-api-key:5

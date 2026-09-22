@@ -42,17 +42,22 @@ The platform is authoritative and the clients are untrusted. Every rule below is
 
 | Control | How it is enforced | Proven by |
 | --- | --- | --- |
-| One public edge | Clients reach only the gateway (`/api/v1`) and the realtime endpoint. Internal REST (`/internal/*`) and `POST /rpc` are never proxied. | `apps/gateway/tests/gateway.test.ts` |
+| One public edge | Clients reach only the gateway (`/api/v1`) and the realtime endpoint. In the deployment compose profile both sit behind the TLS edge (`api.<domain>`, `wss://live.<domain>/live`), and no service publishes a host port. Internal REST (`/internal/*`), `POST /rpc` and `/metrics` are never proxied. | `apps/gateway/tests/gateway.test.ts`, `infrastructure/edge/templates/conf.d/edge.conf.template`, `infrastructure/docker/docker-compose.yml` |
 | Actor identity | The gateway resolves the bearer token, strips every inbound `x-betng-*` header and rebuilds the actor headers from the session. Services never trust a user id from a path or body over the actor. | `gateway.test.ts` (forged actor headers dropped), e2e step 22 |
 | Service-to-service trust | RPC and actor headers are honoured only with `x-betng-internal-token`, compared in constant time. Production refuses to start without it, with a short one, or with the `.env.example` placeholder. | e2e step 22 (RPC without the token refused) |
 | Least privilege in the database | One schema and one login per service; a service writes only its own schema. The analytics login is read-only. | `services/odds/tests/test_read_model.py`, `services/analytics/tests/test_security.py` |
-| Credentials | Sessions are random tokens stored as SHA-256. Passwords and PINs are scrypt hashes. Admin 2FA is TOTP with replay refusal. Repeated failures lock the account. | `apps/services/identity/tests/*` |
+| Credentials | Sessions are random tokens stored as SHA-256. Passwords and PINs are scrypt hashes. Customers can turn on TOTP two-factor sign-in with single-use backup codes; admin TOTP is mandatory in production, and admin secrets can be stored encrypted. Replayed codes are refused and repeated failures lock the account. | `apps/services/identity/tests/accountSecurity.test.ts`, `staffAuth.test.ts`, `totp.test.ts` |
 | Authorisation | Every service re-checks the actor kind and permission and scopes data to the actor (roles: customer; shop OWNER, MANAGER, CASHIER; admin SUPER_ADMIN, OPERATIONS, RISK_ANALYST, SUPPORT). | `apps/services/identity/tests/rbac.test.ts`, e2e step 17 |
 | Money | Integer kobo end to end (`BIGINT`), integer payout arithmetic, append-only ledgers, idempotency keys on every credit. | `apps/services/wallet/tests/ledger.test.ts`, `apps/services/settlement/tests/payout.test.ts` |
 | Bet integrity | Client-sent odds, stake, user id and role are ignored or re-checked. Odds are stored at acceptance and settlement pays on them. `idempotency-key` makes a repeated submission answer the original bet and move no money. | `apps/services/betting/tests/placement.test.ts`, e2e steps 7 and 21 |
 | Result integrity | A result is immutable (database triggers reject UPDATE, DELETE and TRUNCATE). No route sets a score or picks a winner, and a re-run is refused as `RESULT_IMMUTABLE`. | `services/simulation/tests/test_persistence.py`, e2e steps 11, 19 and 20 |
 | Result secrecy | The seed is `HMAC-SHA256(SIMULATION_SEED_SECRET, …)`, so a result cannot be computed from the source before betting closes. Events are revealed only as the match clock reaches them. | `services/simulation/tests/test_seed_secret.py`, `test_rest.py`, e2e step 10 |
-| Rate limits and headers | Login and other sensitive routes are rate limited (Redis counters). API responses carry `Content-Security-Policy: default-src 'none'`, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff` and `Referrer-Policy: no-referrer`. CORS answers only the configured origins, never `*`. | `apps/gateway/src/middlewares/securityHeaders.middleware.ts`, `cors.middleware.ts`, `gateway.test.ts` |
+| Gateway limits | A global per-address limit, tighter limits on credential routes (2FA and password reset included) and bet placement per customer, all answering 429 with `Retry-After`. Money routes fail closed and reads fail open when Redis is unreachable. Oversized bodies are refused before they reach a service, with a smaller limit for webhooks. Blocked address ranges, static or added at runtime, are refused before routing. | `apps/gateway/tests/gateway.hardening.test.ts` |
+| Session resolution | The gateway caches a resolved actor for 5 seconds and identity evicts it on sign-out or revocation. Account routes send identity a hash of the session, never the token. | `gateway.hardening.test.ts` (session cache) |
+| API headers and CORS | API responses, errors included, carry `Content-Security-Policy: default-src 'none'`, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff` and `Referrer-Policy: no-referrer`. CORS answers only the configured origins, never `*`. | `apps/gateway/src/middlewares/securityHeaders.middleware.ts`, `cors.middleware.ts`, `gateway.hardening.test.ts` |
+| Realtime authorisation | `match:*` and `system` are public. Every other channel (`user`, `wallet`, `bets`, `notifications`, `shop`, `admin`, `risk`) needs a session, sent as an `AUTH` frame or `?access_token=`, and must belong to the caller. The session is re-checked on subscribe and every 30 seconds, and `event.revokeSessions` drops it at once. Private channels carry signals only; the state is always re-read over authenticated REST. Connections, frames and channels are limited per address and per connection. | `apps/services/event/tests/live.test.ts` |
+| Production configuration | Production refuses to start with a missing, short or development value for the internal token, the seed secret, `IDENTITY_DATA_KEY` and `WALLET_ENCRYPTION_KEY`, with sandbox or log-only providers, or with plain `http` public URLs. Any variable can be read from a file (`NAME_FILE`) for Docker and Kubernetes secrets. | `apps/services/identity/tests/providers.test.ts`, `apps/services/wallet/tests/paymentsUnit.test.ts`, `services/simulation/tests/test_seed_secret.py`, `packages/service-kit/tests/secretFiles.test.ts` |
+| Static front-ends | nginx serves the four browser apps with a Content-Security-Policy built from the configured platform origins and hashed inline code, plus HSTS, `nosniff`, a strict referrer policy, a locked-down `Permissions-Policy`, COOP, CORP and `X-Frame-Options: DENY`. | `infrastructure/nginx/`, [`docs/security-headers.md`](docs/security-headers.md) |
 
 ### Clients
 
@@ -75,9 +80,9 @@ The trust boundary and integrity rules run end to end against the real services 
 
 ![End-to-end scenario: 22 steps passed](docs/images/proof/backend-e2e-scenario.webp)
 
-The gateway and service suites (identity, RBAC, forged headers, ledgers, idempotency) and the client error, session and logger rules:
+The gateway and service suites (identity, 2FA, RBAC, forged headers, gateway limits, realtime authorisation, ledgers, idempotency) and the client error, session and logger rules:
 
-![TypeScript service suites: 386 tests passed](docs/images/proof/backend-ts-tests.webp)
+![TypeScript service suites: 537 tests passed](docs/images/proof/backend-ts-tests.webp)
 
 ![Client data-layer suites including error redaction and resilience](docs/images/proof/data-layer-tests.webp)
 
@@ -85,7 +90,6 @@ The gateway and service suites (identity, RBAC, forged headers, ledgers, idempot
 
 These are open design gaps, not undisclosed vulnerabilities:
 
-- The realtime endpoint serves public match channels only and does not authenticate connections yet. Account data (bets, wallet, notifications) is therefore read over authenticated REST, never pushed. The client already supports an authenticated socket for when the service does (`docs/realtime.md`).
-- The realtime endpoint is reached directly in development; in a deployment it belongs behind the same edge, origin and rate rules as the gateway.
-- The static front-ends set no Content-Security-Policy of their own; add one at the web server or CDN that serves them.
-- Local development credentials in `.env.example` and the demo seed are placeholders. Production refuses to start with them.
+- Account updates are pushed only when realtime authentication is configured (`VITE_REALTIME_AUTH` or the mobile `realtimeAuth` set to `frame` or `query`). The web and mobile apps then subscribe to `user:{id}`, where the wallet publishes `WALLET_UPDATED`. Settlement does not publish signals yet, so the apps also re-read account data over REST every 60 seconds. With the default (`none`), and in the shop and admin apps, account data is re-read over REST on a timer and after every action. The signal is only a prompt: balances and bet states are always read over REST.
+- Under `pnpm dev` the realtime endpoint is reached directly on port 3008. Only the deployment compose profile puts it behind the TLS edge.
+- `.env.example` and the demo seed use public placeholder secrets and development keys for local work. Production refuses every one of them.

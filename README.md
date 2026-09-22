@@ -4,8 +4,8 @@
 </picture>
 
 <p align="center">
-  <img alt="Frontend tests: 644 passing" src="docs/images/badges/frontend-tests.svg">
-  <img alt="Platform tests: 1,578 passing" src="docs/images/badges/platform-tests.svg">
+  <img alt="Frontend tests: 848 passing" src="docs/images/badges/frontend-tests.svg">
+  <img alt="Platform tests: 1,729 passing" src="docs/images/badges/platform-tests.svg">
   <img alt="End-to-end scenario: 22 of 22 steps" src="docs/images/badges/scenario.svg">
   <img alt="TypeScript 7" src="docs/images/badges/typescript.svg">
   <img alt="Node.js 24" src="docs/images/badges/node.svg">
@@ -39,7 +39,7 @@ It is a simulation that uses **play money only**. Nothing here is, or may be, co
 | **The platform decides** | Clock, phase, odds, market status, bet acceptance, payouts, balances, risk decisions and operator figures all come from the backend. The clients display them and never compute them. |
 | **Five clients, one model** | Web, mobile, TV, shop and admin all render the same canonical match, identified by one `match_id`. |
 | **Money is exact** | Integer kobo from the database to the pixel. No floating-point arithmetic touches an amount, and settlement pays on the odds stored at acceptance. |
-| **Built to be checked** | 2,222 automated tests across both halves, a 22-step end-to-end scenario against the real services, and a verification script that fails if a production bundle contains development code. |
+| **Built to be checked** | 2,577 automated tests across both halves, a 22-step end-to-end scenario against the real services, and a verification script that fails if a production bundle contains development code. |
 
 ## Screens
 
@@ -253,14 +253,15 @@ Against a local platform the backend's seed provides the accounts; its super-adm
 
 ## Quality and proof
 
-The numbers in the badges above come from these runs, recorded on 2026-09-21. Every image is real command output, rendered from the log by `scripts/docs/render-terminal.mjs`.
+The numbers in the badges above come from these runs, recorded on 2026-09-21 and 2026-09-22. Every image is real command output, rendered from the log by `scripts/docs/render-terminal.mjs`.
 
 | Suite | Result |
 | --- | --- |
-| Frontend unit, contract and data layer (`vitest run --project unit packages`) | 283 tests in 25 files |
-| Components and apps in jsdom (`pnpm test:dom`) | 327 tests in 38 files |
+| Frontend unit, contract and data layer (`vitest run --project unit packages`) | 332 tests in 30 files |
+| Mobile deep links, offline cache and crash-report redaction (`vitest run --project unit apps/mobile`) | 18 tests in 3 files |
+| Components and apps in jsdom (`pnpm test:dom`) | 464 tests in 49 files |
 | Browser end to end (`pnpm test:e2e`) | 34 tests across desktop, mobile and TV |
-| TypeScript services (`vitest --project unit apps`) | 386 tests in 29 files |
+| TypeScript services (`vitest run --project unit apps/gateway apps/services`) | 537 tests in 37 files |
 | Python services (`pnpm py:test`) | 1,192 tests across simulation, odds, risk and analytics |
 | Platform scenario (`pnpm e2e`) | 22 of 22 steps |
 
@@ -316,6 +317,11 @@ The numbers in the badges above come from these runs, recorded on 2026-09-21. Ev
 | [`docs/frontend-api.md`](docs/frontend-api.md) | Every route the clients call, with its status |
 | [`docs/frontend.md`](docs/frontend.md) | Every screen of every client, with screenshots |
 | [`docs/testing.md`](docs/testing.md) | Test layers, how to run them, what each proves |
+| [`docs/frontend-backend-contracts.md`](docs/frontend-backend-contracts.md) | Shared contracts, who is authoritative for each value, error codes, routes pending on the backend |
+| [`docs/frontend-api-matrix.md`](docs/frontend-api-matrix.md) | Per-screen wiring: route, permission, realtime signal, cache key, invalidation, status |
+| [`docs/development.md`](docs/development.md) | Running each app, mock and API modes, environment, backend requirements |
+| [`docs/deployment.md`](docs/deployment.md) | Frontend containers, CI workflows, approval-gated deploys |
+| [`docs/security-headers.md`](docs/security-headers.md) | CSP and security headers delivered by the frontend servers |
 | [`SECURITY.md`](SECURITY.md) | Reporting a vulnerability, and the security model with its evidence |
 
 ## Security

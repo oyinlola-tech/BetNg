@@ -43,11 +43,22 @@ export const useSettings = () => useQuery({ queryKey: keys.settings, queryFn: ()
 export const useAnalyticsOverview = (window: AnalyticsWindow = {}, enabled = true) =>
   useQuery({ queryKey: keys.analyticsOverview(window), queryFn: () => adminSource.getAnalyticsOverview(window), enabled, staleTime: 30_000, refetchInterval: 60_000, placeholderData: keepPreviousData });
 
-export const useAnalyticsBreakdown = (by: AnalyticsDimension, window: AnalyticsWindow, limit: number) =>
-  useQuery({ queryKey: keys.analyticsBreakdown({ by, ...window, limit }), queryFn: () => adminSource.getAnalyticsBreakdown({ by, ...window, limit }), staleTime: 30_000, placeholderData: keepPreviousData });
+/** Narrows a breakdown to one league or shop, where the analytics contract supports it. */
+export interface AnalyticsScope {
+  readonly leagueId?: string;
+  readonly shopId?: string;
+}
 
-export const useAnalyticsSessions = (kind: SessionAnalysis["kind"], window: AnalyticsWindow) =>
-  useQuery({ queryKey: keys.analyticsSessions({ kind, ...window }), queryFn: () => adminSource.listAnalyticsSessions({ kind, ...window }), staleTime: 30_000, placeholderData: keepPreviousData });
+export const useAnalyticsBreakdown = (by: AnalyticsDimension, window: AnalyticsWindow, limit: number, scope: AnalyticsScope = {}) =>
+  useQuery({ queryKey: keys.analyticsBreakdown({ by, ...window, ...scope, limit }), queryFn: () => adminSource.getAnalyticsBreakdown({ by, ...window, ...scope, limit }), staleTime: 30_000, placeholderData: keepPreviousData });
+
+export const useAnalyticsSessions = (kind: SessionAnalysis["kind"], window: AnalyticsWindow, leagueId?: string) =>
+  useQuery({
+    queryKey: keys.analyticsSessions({ kind, ...window, leagueId }),
+    queryFn: () => adminSource.listAnalyticsSessions({ kind, ...window, ...(leagueId === undefined ? {} : { leagueId }) }),
+    staleTime: 30_000,
+    placeholderData: keepPreviousData,
+  });
 
 export const useAccountAnalysis = (kind: "accounts" | "shops" | "cashiers" | undefined, id: string | undefined, window: AnalyticsWindow) =>
   useQuery({
