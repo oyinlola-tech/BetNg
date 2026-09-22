@@ -5,7 +5,7 @@ import { isoTimestampSchema, httpsUrlSchema } from "../common/index.js";
 
 export const passwordChangeRequestSchema = z.object({
   currentPassword: z.string().min(1).max(128),
-  newPassword: z.string().min(8).max(128),
+  newPassword: z.string().min(12).max(128),
 });
 
 export type PasswordChangeRequest = z.infer<typeof passwordChangeRequestSchema>;
@@ -13,7 +13,7 @@ export type PasswordChangeRequest = z.infer<typeof passwordChangeRequestSchema>;
 export const passwordResetConfirmRequestSchema = z.object({
   email: z.email(),
   code: z.string().regex(/^\d{6}$/),
-  newPassword: z.string().min(8).max(128),
+  newPassword: z.string().min(12).max(128),
 });
 
 export type PasswordResetConfirmRequest = z.infer<typeof passwordResetConfirmRequestSchema>;

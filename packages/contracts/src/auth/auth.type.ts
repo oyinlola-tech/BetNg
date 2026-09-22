@@ -3,7 +3,7 @@ import { brandedIdSchema, isoTimestampSchema, type UserId } from "../common/inde
 
 export const customerRegisterRequestSchema = z.object({
   email: z.email(),
-  password: z.string().min(8).max(128),
+  password: z.string().min(12).max(128),
   displayName: z.string().min(2).max(60),
   phone: z.string().max(20).optional(),
 });
