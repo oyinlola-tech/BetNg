@@ -1,6 +1,28 @@
-import { isInPlay, type MatchView } from "@betng/ui-core";
-import { useNow } from "../hooks/useNow";
+import { isInPlay, type MatchEventKind, type MatchView } from "@betng/ui-core";
 import { cn } from "../lib/cn";
+
+function ballSpot(
+  kind: MatchEventKind,
+  side?: "HOME" | "AWAY",
+): { readonly x: number; readonly y: number } | undefined {
+  const right = side === "HOME";
+
+  switch (kind) {
+    case "KICK_OFF":
+    case "SECOND_HALF":
+    case "OWN_GOAL":
+      return { x: 80, y: 45 };
+    case "GOAL":
+      return side === undefined ? undefined : { x: right ? 150 : 10, y: 45 };
+    case "PENALTY_GOAL":
+    case "PENALTY_MISSED":
+      return side === undefined ? undefined : { x: right ? 138 : 22, y: 45 };
+    case "CORNER":
+      return side === undefined ? undefined : { x: right ? 151 : 9, y: 7 };
+    default:
+      return undefined;
+  }
+}
 
 export function Pitch({
   match,
@@ -9,12 +31,12 @@ export function Pitch({
   readonly match: MatchView;
   readonly className?: string;
 }): React.JSX.Element {
-  const now = useNow(250);
   const live = isInPlay(match.phase);
-  const possession = match.stats?.home.possession ?? 50;
-  const t = (now / 1000) % 3600;
-  const x = 50 + ((possession - 50) / 50) * 22 + Math.sin(t * 5.6) * 22;
-  const y = 50 + Math.cos(t * 3.8) * 26;
+
+  const ball = [...match.events]
+    .sort((a, b) => b.sequence - a.sequence)
+    .map((e) => ballSpot(e.kind, e.side))
+    .find((spot) => spot !== undefined);
 
   return (
     <svg
@@ -46,13 +68,13 @@ export function Pitch({
         <path d="M28 37 A9 9 0 0 1 28 53" />
         <path d="M132 37 A9 9 0 0 0 132 53" />
       </g>
-      {live && (
+      {live && ball !== undefined && (
         <circle
-          cx={8 + (x / 100) * 144}
-          cy={6 + (y / 100) * 78}
+          cx={ball.x}
+          cy={ball.y}
           r="1.7"
           fill="white"
-          style={{ transition: "cx 250ms linear, cy 250ms linear" }}
+          style={{ transition: "cx 0.8s ease-out, cy 0.8s ease-out" }}
         />
       )}
     </svg>
