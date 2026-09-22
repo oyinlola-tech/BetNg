@@ -17,6 +17,6 @@ runs:
     - if: inputs.build-packages == 'true'
       shell: bash
       run: |
-        for name in contracts client-sdk design-tokens brand ui-core mock-data; do
+        for name in contracts client-sdk design-tokens brand ui-core; do
           pnpm --filter "@betng/${name}" build
         done

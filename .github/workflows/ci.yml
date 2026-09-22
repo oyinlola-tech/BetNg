@@ -115,10 +115,10 @@ jobs:
           for name in web tv shop admin; do
             VITE_APP_ENV=production pnpm --filter "@betng/${name}" exec vite build
           done
-      - name: Production bundles contain no development stand-in
+      - name: Production bundles carry no data-source switch, stand-in or demo credential
         run: |
-          if grep -rlE "betng-demo|betng-admin|demo@betng\.test" apps/{web,tv,shop,admin}/dist/assets; then
-            echo "::error::The mock is present in a production bundle."
+          if grep -rlE "VITE_DATA_SOURCE|createMock|betng-demo|demo@betng\.test" apps/{web,tv,shop,admin}/dist/assets; then
+            echo "::error::A production bundle references development-only data."
             exit 1
           fi
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -147,7 +147,22 @@ jobs:
 
   e2e:
     runs-on: ubuntu-24.04
-    timeout-minutes: 40
+    timeout-minutes: 45
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: betng
+          POSTGRES_PASSWORD: betng_local_dev
+          POSTGRES_DB: postgres
+        ports: ["55432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U betng" --health-interval 5s --health-timeout 5s --health-retries 20
+      redis:
+        image: redis:8-alpine
+        ports: ["56379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 3s --health-retries 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -155,8 +170,16 @@ jobs:
       - uses: ./.github/actions/setup
         with:
           build-packages: "true"
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends postgresql-client redis-tools
+      - run: bash scripts/python-install.sh
+      - run: |
+          pnpm --filter @betng/service-kit build
+          pnpm db:generate
       - run: pnpm exec playwright install --with-deps chromium
-      # playwright.config.ts starts the four Vite dev servers against the development mock (VITE_DATA_SOURCE=mock).
+      # e2e/support/global-setup.ts boots the platform on a fresh seeded database; the Vite dev servers point at its gateway.
       - run: pnpm test:e2e
       - if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -165,6 +188,7 @@ jobs:
           path: |
             playwright-report/
             test-results/
+            scripts/e2e/.logs/*.log
           retention-days: 7
 
   python:
