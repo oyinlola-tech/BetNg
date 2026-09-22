@@ -30,12 +30,30 @@ export interface RateLimitRule {
   readonly windowSeconds: number;
 }
 
+/** `ip` limits run before authentication, `actor` limits after it. A fail-closed limit answers 503 when Redis is unreachable. */
+export interface RouteLimit {
+  readonly name: string;
+  readonly scope: "ip" | "actor";
+  readonly rule: RateLimitRule;
+  readonly failClosed: boolean;
+}
+
+/** Forwarded byte for byte with only the named provider headers; never re-serialised. */
+export interface WebhookPassthrough {
+  readonly signatureHeaders: readonly string[];
+}
+
 export interface GatewayRoute {
   readonly method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   readonly path: string;
   readonly upstream: UpstreamName;
   readonly access: RouteAccess;
-  readonly rateLimit?: RateLimitRule;
+  readonly limits?: readonly RouteLimit[];
+  readonly webhook?: WebhookPassthrough;
+  /** Sends `x-betng-session-hash` (sha256 of the bearer) so identity can tell the caller's own session apart. */
+  readonly sessionHash?: boolean;
+  /** Forwards a truncated `user-agent` so identity can label the session's device. */
+  readonly userAgent?: boolean;
 }
 
 export interface ActorResolver {
@@ -44,5 +62,9 @@ export interface ActorResolver {
 }
 
 export interface RateLimiter {
-  hit(key: string, rule: RateLimitRule): Promise<void>;
+  hit(key: string, rule: RateLimitRule, options?: { readonly failClosed?: boolean }): Promise<void>;
+}
+
+export interface IpBlocklist {
+  isBlocked(address: string): Promise<boolean>;
 }

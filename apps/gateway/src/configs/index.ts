@@ -4,5 +4,5 @@ export {
   SERVICE_NAME,
   SERVICE_VERSION,
 } from "./service.config.js";
-export { loadGatewaySettings } from "./gateway.config.js";
-export type { GatewaySettings } from "./gateway.config.js";
+export { DEFAULT_LIMITS, GATEWAY_HARD_BODY_CAP, loadGatewaySettings } from "./gateway.config.js";
+export type { GatewayRateLimits, GatewaySettings } from "./gateway.config.js";

@@ -32,7 +32,8 @@ export interface ActorResolverOptions {
   readonly logger: Logger;
 }
 
-function cacheKey(token: string): string {
+// Identity deletes this exact key when it revokes a session (docs/backend-interfaces.md).
+export function actorCacheKey(token: string): string {
   return `gateway:actor:${createHash("sha256").update(token).digest("hex")}`;
 }
 
@@ -79,7 +80,7 @@ export function createActorResolver(options: ActorResolverOptions): ActorResolve
 
   return {
     resolve: async (token, requestId) => {
-      const key = cacheKey(token);
+      const key = actorCacheKey(token);
       const cached = await readCache(key);
 
       if (cached !== undefined) return cached;

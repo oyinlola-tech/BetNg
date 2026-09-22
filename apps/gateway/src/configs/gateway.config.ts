@@ -1,7 +1,30 @@
+import { createIpMatcher } from "@betng/service-kit";
+import type { RateLimitRule } from "../interfaces/index.js";
+
+export interface GatewayRateLimits {
+  readonly global: RateLimitRule;
+  readonly credential: RateLimitRule;
+  readonly bets: RateLimitRule;
+  readonly deposits: RateLimitRule;
+  readonly withdrawals: RateLimitRule;
+  readonly statements: RateLimitRule;
+  readonly kycUploads: RateLimitRule;
+  readonly verification: RateLimitRule;
+  readonly webhooks: RateLimitRule;
+  readonly health: RateLimitRule;
+}
+
 export interface GatewaySettings {
   readonly corsOrigins: readonly string[];
   readonly actorCacheSeconds: number;
-  readonly loginRateLimit: { readonly limit: number; readonly windowSeconds: number };
+  readonly rateLimits: GatewayRateLimits;
+  readonly maxBodyBytes: number;
+  readonly webhookMaxBodyBytes: number;
+  readonly trustProxy: boolean | number | readonly string[];
+  readonly hsts: boolean;
+  readonly ipBlocklist: readonly string[];
+  /** Namespace for rate-limit counters and the dynamic blocklist; the actor cache key is fixed by agreement. */
+  readonly redisPrefix: string;
 }
 
 const DEFAULT_ORIGINS = [
@@ -12,36 +35,147 @@ const DEFAULT_ORIGINS = [
   "http://localhost:8081",
 ];
 
-function positiveInteger(raw: string | undefined, fallback: number, name: string): number {
+const DEFAULT_LIMITS: GatewayRateLimits = {
+  global: { limit: 300, windowSeconds: 60 },
+  credential: { limit: 10, windowSeconds: 60 },
+  bets: { limit: 30, windowSeconds: 60 },
+  deposits: { limit: 10, windowSeconds: 300 },
+  withdrawals: { limit: 5, windowSeconds: 600 },
+  statements: { limit: 5, windowSeconds: 3600 },
+  kycUploads: { limit: 10, windowSeconds: 3600 },
+  verification: { limit: 5, windowSeconds: 600 },
+  webhooks: { limit: 600, windowSeconds: 60 },
+  health: { limit: 30, windowSeconds: 60 },
+};
+
+const LIMIT_ENV: Readonly<Record<keyof GatewayRateLimits, string>> = {
+  global: "GATEWAY_RATE_GLOBAL",
+  credential: "GATEWAY_RATE_CREDENTIAL",
+  bets: "GATEWAY_RATE_BETS",
+  deposits: "GATEWAY_RATE_DEPOSITS",
+  withdrawals: "GATEWAY_RATE_WITHDRAWALS",
+  statements: "GATEWAY_RATE_STATEMENTS",
+  kycUploads: "GATEWAY_RATE_KYC_UPLOADS",
+  verification: "GATEWAY_RATE_VERIFICATION",
+  webhooks: "GATEWAY_RATE_WEBHOOKS",
+  health: "GATEWAY_RATE_HEALTH",
+};
+
+const MAX_ACTOR_CACHE_SECONDS = 10;
+const HARD_BODY_CAP = 1024 * 1024;
+const RULE = /^(\d{1,6})\/(\d{1,6})$/;
+const PREFIX = /^[a-z0-9:_-]{1,40}$/;
+
+type Env = Readonly<Record<string, string | undefined>>;
+
+function integer(raw: string | undefined, fallback: number, name: string, min: number, max: number): number {
   if (raw === undefined || raw === "") return fallback;
 
   const value = Number(raw);
 
-  if (!Number.isInteger(value) || value < 0) {
-    throw new Error(`${name} must be a non-negative integer, got "${raw}".`);
+  if (!Number.isInteger(value) || value < min || value > max) {
+    throw new Error(`${name} must be an integer between ${String(min)} and ${String(max)}, got "${raw}".`);
   }
 
   return value;
 }
 
-export function loadGatewaySettings(
-  env: Readonly<Record<string, string | undefined>> = process.env,
-): GatewaySettings {
-  const origins = (env["CORS_ORIGINS"] ?? "")
+function rule(raw: string | undefined, fallback: RateLimitRule, name: string): RateLimitRule {
+  if (raw === undefined || raw === "") return fallback;
+
+  const match = RULE.exec(raw.trim());
+  const windowSeconds = Number(match?.[2]);
+
+  if (match === null || windowSeconds === 0) {
+    throw new Error(`${name} must be "<limit>/<windowSeconds>" (0 disables the limit), got "${raw}".`);
+  }
+
+  return { limit: Number(match[1]), windowSeconds };
+}
+
+function list(raw: string | undefined): string[] {
+  return (raw ?? "")
     .split(",")
-    .map((origin) => origin.trim())
-    .filter((origin) => origin !== "");
+    .map((entry) => entry.trim())
+    .filter((entry) => entry !== "");
+}
+
+function trustProxy(raw: string | undefined): GatewaySettings["trustProxy"] {
+  const value = (raw ?? "").trim();
+
+  if (value === "" || value === "false") return false;
+  if (/^\d{1,2}$/.test(value)) return Number(value);
+
+  const entries = list(value);
+
+  if (entries.some((entry) => entry === "*" || entry.toLowerCase() === "all")) {
+    throw new Error("GATEWAY_TRUST_PROXY must name the proxy hops or addresses; trusting every peer is refused.");
+  }
+
+  return entries;
+}
+
+function flag(raw: string | undefined, fallback: boolean, name: string): boolean {
+  if (raw === undefined || raw === "") return fallback;
+  if (raw === "on" || raw === "true") return true;
+  if (raw === "off" || raw === "false") return false;
+
+  throw new Error(`${name} must be on or off, got "${raw}".`);
+}
+
+export function loadGatewaySettings(env: Env = process.env): GatewaySettings {
+  const origins = list(env["CORS_ORIGINS"]);
 
   if (origins.includes("*")) {
     throw new Error("CORS_ORIGINS must list origins explicitly; '*' is refused.");
   }
 
+  const legacyLogin = env["LOGIN_RATE_LIMIT"] === undefined && env["LOGIN_RATE_WINDOW_SECONDS"] === undefined
+    ? DEFAULT_LIMITS.credential
+    : {
+        limit: integer(env["LOGIN_RATE_LIMIT"], DEFAULT_LIMITS.credential.limit, "LOGIN_RATE_LIMIT", 0, 100_000),
+        windowSeconds: integer(env["LOGIN_RATE_WINDOW_SECONDS"], DEFAULT_LIMITS.credential.windowSeconds, "LOGIN_RATE_WINDOW_SECONDS", 1, 86_400),
+      };
+
+  // Local stacks share one loopback address across every app and script, so the global default is looser off production.
+  const defaults: GatewayRateLimits = {
+    ...DEFAULT_LIMITS,
+    credential: legacyLogin,
+    ...(env["NODE_ENV"] === "production" ? {} : { global: { limit: 3000, windowSeconds: 60 } }),
+  };
+
+  const rateLimits = Object.fromEntries(
+    (Object.keys(DEFAULT_LIMITS) as (keyof GatewayRateLimits)[]).map((key) => [
+      key,
+      rule(env[LIMIT_ENV[key]], defaults[key], LIMIT_ENV[key]),
+    ]),
+  ) as unknown as GatewayRateLimits;
+
+  const maxBodyBytes = integer(env["GATEWAY_MAX_BODY_BYTES"], 64 * 1024, "GATEWAY_MAX_BODY_BYTES", 1024, HARD_BODY_CAP);
+  const webhookMaxBodyBytes = integer(env["GATEWAY_WEBHOOK_MAX_BODY_BYTES"], 32 * 1024, "GATEWAY_WEBHOOK_MAX_BODY_BYTES", 1024, HARD_BODY_CAP);
+  const ipBlocklist = list(env["GATEWAY_IP_BLOCKLIST"]);
+
+  createIpMatcher(ipBlocklist);
+
+  const redisPrefix = env["GATEWAY_REDIS_PREFIX"] ?? "gateway";
+
+  if (!PREFIX.test(redisPrefix)) {
+    throw new Error(`GATEWAY_REDIS_PREFIX must match ${PREFIX.source}.`);
+  }
+
   return Object.freeze({
     corsOrigins: origins.length > 0 ? origins : DEFAULT_ORIGINS,
-    actorCacheSeconds: positiveInteger(env["GATEWAY_ACTOR_CACHE_SECONDS"], 10, "GATEWAY_ACTOR_CACHE_SECONDS"),
-    loginRateLimit: {
-      limit: positiveInteger(env["LOGIN_RATE_LIMIT"], 10, "LOGIN_RATE_LIMIT"),
-      windowSeconds: positiveInteger(env["LOGIN_RATE_WINDOW_SECONDS"], 60, "LOGIN_RATE_WINDOW_SECONDS"),
-    },
+    actorCacheSeconds: integer(env["GATEWAY_ACTOR_CACHE_SECONDS"], 5, "GATEWAY_ACTOR_CACHE_SECONDS", 0, MAX_ACTOR_CACHE_SECONDS),
+    rateLimits: Object.freeze(rateLimits),
+    maxBodyBytes,
+    webhookMaxBodyBytes,
+    trustProxy: trustProxy(env["GATEWAY_TRUST_PROXY"]),
+    hsts: flag(env["GATEWAY_HSTS"], env["NODE_ENV"] === "production", "GATEWAY_HSTS"),
+    ipBlocklist,
+    redisPrefix,
   });
 }
+
+export const GATEWAY_HARD_BODY_CAP = HARD_BODY_CAP;
+
+export { DEFAULT_LIMITS };

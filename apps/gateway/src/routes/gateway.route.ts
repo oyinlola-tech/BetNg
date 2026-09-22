@@ -1,15 +1,14 @@
-import { API_PREFIX, ErrorCodes } from "@betng/contracts";
-import { forbidden, getRequestId, json, unauthorized } from "@betng/service-kit";
-import type { HttpRouter, HttpRouterContext } from "@betng/service-kit";
-import { createHealthController, createProxyHandler } from "../controllers/index.js";
+import { API_PREFIX } from "@betng/contracts";
+import { json } from "@betng/service-kit";
+import type { HttpRouter } from "@betng/service-kit";
+import { createHealthController, createProxyHandler, guard } from "../controllers/index.js";
 import type { ProxyDependencies } from "../controllers/index.js";
-import type { GatewayRoute } from "../interfaces/index.js";
-
-const BEARER = /^Bearer ([A-Za-z0-9._~+/=-]{16,512})$/;
+import type { GatewayRoute, RateLimitRule } from "../interfaces/index.js";
 
 export interface GatewayRouteOptions extends ProxyDependencies {
   readonly table: readonly GatewayRoute[];
   readonly version: string;
+  readonly healthLimit: RateLimitRule;
 }
 
 export function registerGatewayRoutes(router: HttpRouter, options: GatewayRouteOptions): void {
@@ -18,21 +17,18 @@ export function registerGatewayRoutes(router: HttpRouter, options: GatewayRouteO
   }
 
   const health = createHealthController(options.clients, options.version);
+  const healthRoute = {
+    access: { type: "actor", kinds: ["ADMIN"], permission: "health:read" },
+    limits: [
+      { name: "health", scope: "ip", rule: options.healthLimit, failClosed: false },
+      { name: "health", scope: "actor", rule: options.healthLimit, failClosed: false },
+    ],
+  } as const;
 
   router.get(
     `${API_PREFIX}/admin/health/services`,
-    json(async (context: HttpRouterContext) => {
-      const token = BEARER.exec(context.request.getHeader("authorization") ?? "")?.[1];
-
-      if (token === undefined) {
-        throw unauthorized("Sign in to continue.", { code: ErrorCodes.UNAUTHENTICATED, expose: true });
-      }
-
-      const actor = await options.actors.resolve(token, getRequestId(context.request));
-
-      if (actor.kind !== "ADMIN" || !actor.permissions.includes("health:read")) {
-        throw forbidden("You do not have permission to do this.", { code: ErrorCodes.FORBIDDEN, expose: true });
-      }
+    json(async (context) => {
+      await guard(healthRoute, context, options);
 
       return health(context);
     }),

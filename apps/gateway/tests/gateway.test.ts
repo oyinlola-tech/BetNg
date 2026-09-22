@@ -3,7 +3,7 @@ import type { IncomingMessage, Server, ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
-import { loadGatewayConfig } from "../src/configs/index.js";
+import { loadGatewayConfig, loadGatewaySettings } from "../src/configs/index.js";
 import type { GatewayApp } from "../src/app.js";
 
 interface Seen {
@@ -80,11 +80,16 @@ beforeAll(async () => {
     env[`${name}_SERVICE_URL`] = url;
   }
 
-  gateway = createApp(await loadGatewayConfig(env), {
-    corsOrigins: ["http://localhost:4200"],
-    actorCacheSeconds: 0,
-    loginRateLimit: { limit: 0, windowSeconds: 60 },
-  });
+  const unlimited = Object.fromEntries(
+    ["GLOBAL", "CREDENTIAL", "BETS", "DEPOSITS", "WITHDRAWALS", "STATEMENTS", "KYC_UPLOADS", "VERIFICATION", "WEBHOOKS", "HEALTH"].map(
+      (name) => [`GATEWAY_RATE_${name}`, "0/60"],
+    ),
+  );
+
+  gateway = createApp(
+    await loadGatewayConfig(env),
+    loadGatewaySettings({ CORS_ORIGINS: "http://localhost:4200", GATEWAY_ACTOR_CACHE_SECONDS: "0", ...unlimited }),
+  );
 
   await gateway.server.start();
   base = `http://127.0.0.1:${String(gateway.server.port)}/api/v1`;
