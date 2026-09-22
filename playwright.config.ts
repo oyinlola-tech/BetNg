@@ -6,6 +6,9 @@ const executablePath =
   process.env["PLAYWRIGHT_CHROMIUM_PATH"] ??
   (existsSync(SYSTEM_CHROMIUM) ? SYSTEM_CHROMIUM : undefined);
 
+// The platform started by e2e/support/global-setup.ts; e2e/support/platform.ts reads the same variable.
+const PLATFORM_PORT = Number(process.env["E2E_BASE_PORT"] ?? 3700);
+
 const APPS = [
   { name: "web", port: 4200 },
   { name: "tv", port: 4300 },
@@ -18,6 +21,7 @@ export const appUrl = (name: (typeof APPS)[number]["name"]): string =>
 
 export default defineConfig({
   testDir: "./e2e",
+  globalSetup: "./e2e/support/global-setup.ts",
   fullyParallel: true,
   forbidOnly: process.env["CI"] !== undefined,
   retries: process.env["CI"] === undefined ? 0 : 1,
@@ -51,12 +55,12 @@ export default defineConfig({
       use: { viewport: { width: 1920, height: 1080 }, colorScheme: "dark" },
     },
   ],
-  // The suites run against the development mock, which stands behind the same interfaces as the platform.
   webServer: APPS.map((app) => ({
-    command: `pnpm --filter @betng/${app.name} exec vite --port ${String(app.port)} --strictPort`,
+    command: `node_modules/.bin/vite --port ${String(app.port)} --strictPort --host 127.0.0.1`,
+    cwd: `apps/${app.name}`,
     url: `http://127.0.0.1:${String(app.port)}`,
-    reuseExistingServer: true,
+    reuseExistingServer: process.env["CI"] === undefined,
     timeout: 120_000,
-    env: { VITE_APP_ENV: "test", VITE_DATA_SOURCE: "mock" },
+    env: { VITE_APP_ENV: "test", VITE_API_URL: `http://127.0.0.1:${String(PLATFORM_PORT)}`, VITE_WS_URL: `ws://127.0.0.1:${String(PLATFORM_PORT + 8)}/live` },
   })),
 });
