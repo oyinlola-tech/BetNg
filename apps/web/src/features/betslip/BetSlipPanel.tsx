@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Link } from "react-router";
-import { LoaderCircle, Trash2 } from "lucide-react";
+import { Gauge, LoaderCircle, Trash2, WifiOff } from "lucide-react";
 import {
   STAKE_LIMITS,
   formatMoney,
@@ -17,8 +17,12 @@ import {
   BetSlipSummary,
   Button,
   ErrorBoundary,
+  ErrorHelp,
   cn,
+  errorHelpTopic,
   presentError,
+  rejectionHelpTopic,
+  useOnline,
   type BetSlipSelectionStatus,
 } from "@betng/ui-web";
 import { useWallet } from "../../hooks/accountQueries";
@@ -26,6 +30,9 @@ import { useSlipPrices, type SlipPriceStatus } from "../../hooks/useSlipPrices";
 import { getRuntimeConfig, logger } from "../../services/runtime";
 import { useBetSlip } from "../../stores/betslip.store";
 import { useAuth } from "../auth/useAuth";
+import { ResponsibleGamingBanner } from "../limits/ResponsibleGamingBanner";
+import { useLimitsSummary } from "../limits/limitQueries";
+import { stakeLimitWarning } from "../limits/LimitsStatus";
 import { useSlipOutcome, type SlipOutcome } from "./outcome.store";
 import { StakeField } from "./StakeField";
 import { useSlipSubmission } from "./useSlipSubmission";
@@ -207,6 +214,7 @@ function RefusedNotice({
               Go to wallet
             </Link>
           )}
+          <ErrorHelp topic={rejectionHelpTopic(reason)} className="basis-full justify-center" />
         </div>
       }
     />
@@ -233,6 +241,9 @@ function SlipBody({ variant = "plain", heading = true, onDone, className }: BetS
   const wallet = useWallet();
   const prices = useSlipPrices(selections);
   const { submitting, submit } = useSlipSubmission();
+  const online = useOnline();
+  const limitsSummary = useLimitsSummary();
+  const restricted = isAuthenticated && limitsSummary.data?.restricted === true;
 
   const limits = stakeLimits();
   const totals = useMemo(() => slipTotals(selections, stake), [selections, stake]);
@@ -368,6 +379,7 @@ function SlipBody({ variant = "plain", heading = true, onDone, className }: BetS
   }
 
   const failure = outcome?.kind === "FAILED" ? outcome : undefined;
+  const limitWarning = isAuthenticated && problem === undefined ? stakeLimitWarning(limitsSummary.data, stake) : undefined;
 
   return (
     <section aria-label="Bet slip" className={frame}>
@@ -420,6 +432,7 @@ function SlipBody({ variant = "plain", heading = true, onDone, className }: BetS
                 ? `${presentError(failure.error).message} Nothing is placed twice: trying again sends the same submission.`
                 : presentError(failure.error).message,
             }}
+            action={<ErrorHelp topic={errorHelpTopic(presentError(failure.error).code)} />}
           />
         )}
         {blocked && outcome === undefined && (
@@ -442,6 +455,13 @@ function SlipBody({ variant = "plain", heading = true, onDone, className }: BetS
         )}
       </div>
       <footer className="shrink-0 space-y-3 border-t border-border px-4 py-3">
+        {restricted && <ResponsibleGamingBanner />}
+        {!online && (
+          <p role="status" className="type-small flex items-start gap-2 rounded-sm border border-border bg-surface-sunken px-3 py-2 text-text-secondary">
+            <WifiOff className="mt-0.5 size-3.5 shrink-0 text-warning" aria-hidden />
+            You are offline. Bets are never queued: reconnect to place this one. Your selections are kept.
+          </p>
+        )}
         <StakeField
           stake={stake}
           max={limits.max}
@@ -452,6 +472,12 @@ function SlipBody({ variant = "plain", heading = true, onDone, className }: BetS
             });
           }}
         />
+        {limitWarning !== undefined && (
+          <p role="status" data-testid="slip-limit-warning" className="type-small flex items-start gap-2 text-text-secondary">
+            <Gauge className="mt-0.5 size-3.5 shrink-0 text-warning" aria-hidden />
+            {limitWarning}
+          </p>
+        )}
         <BetSlipSummary totals={totals} />
         {changed && !blocked ? (
           <Button
@@ -469,7 +495,7 @@ function SlipBody({ variant = "plain", heading = true, onDone, className }: BetS
           <Button
             fullWidth
             size="lg"
-            disabled={problem !== undefined || blocked}
+            disabled={problem !== undefined || blocked || restricted}
             onClick={submit}
           >
             {failure !== undefined ? "Try again" : isAuthenticated ? "Place bet" : "Sign in to place bet"}

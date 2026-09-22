@@ -41,6 +41,37 @@ function header(): HTMLElement {
 }
 
 describe("MatchPage", () => {
+  it("offers a way back: history when the visit started in the app, a link on a deep link", async () => {
+    const user = userEvent.setup();
+    const deep = renderApp(<MatchPage />, { dataSource: source(liveMatch()), route: "/matches/m1", path: "/matches/:matchId" });
+
+    expect(await screen.findByRole("link", { name: "Back to matches" })).toHaveAttribute("href", "/virtuals");
+
+    const trail = screen.getByRole("navigation", { name: "Breadcrumb" });
+
+    expect(within(trail).getByRole("link", { name: "Fixtures" })).toHaveAttribute("href", "/virtuals");
+    expect(within(trail).getByText("m1 Home v m1 Away")).toHaveAttribute("aria-current", "page");
+
+    deep.unmount();
+
+    const { router } = renderApp(<MatchPage />, {
+      dataSource: source(liveMatch()),
+      routes: [
+        { path: "/virtuals", element: <h1>Fixtures list</h1> },
+        { path: "/matches/:matchId", element: <MatchPage /> },
+      ],
+      route: "/virtuals",
+    });
+
+    await act(async () => {
+      await router.navigate("/matches/m1");
+    });
+
+    await user.click(await screen.findByRole("button", { name: "Back" }));
+
+    expect(await screen.findByRole("heading", { name: "Fixtures list" })).toBeInTheDocument();
+  });
+
   it("shows the minute the platform reported in match.clock", async () => {
     const match = liveMatch({ clock: { period: "SECOND_HALF", minute: 67, asOf: NOW } });
 

@@ -1,16 +1,14 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
+import type { TwoFactorChallenge } from "@betng/contracts";
+import { safeReturnPath } from "@betng/ui-core";
 import { BrandLogo } from "@betng/ui-web";
 import { AUTH_TITLES, AuthFlow } from "../features/auth/AuthFlow";
 import type { AuthView } from "../features/auth/auth.store";
 import { useAuth } from "../features/auth/useAuth";
 import { usePageMeta } from "../features/seo";
 
-const PATHS: Partial<Record<AuthView, string>> = { login: "/login", register: "/register", forgot: "/forgot-password" };
-
-function safeNext(raw: string | null): string {
-  return raw !== null && raw.startsWith("/") && !raw.startsWith("//") ? raw : "/";
-}
+const PATHS: Partial<Record<AuthView, string>> = { login: "/login", register: "/register", forgot: "/forgot-password", reset: "/reset-password" };
 
 export function AuthPage({ initial }: { readonly initial: AuthView }): React.JSX.Element {
   const navigate = useNavigate();
@@ -18,8 +16,9 @@ export function AuthPage({ initial }: { readonly initial: AuthView }): React.JSX
   const { isAuthenticated } = useAuth();
   const [view, setView] = useState<AuthView>(initial);
   const [pendingEmail, setPendingEmail] = useState("");
+  const [challenge, setChallenge] = useState<TwoFactorChallenge>();
   const [arrivedSignedIn] = useState(isAuthenticated);
-  const next = safeNext(params.get("next"));
+  const next = safeReturnPath(params.get("next"));
 
   usePageMeta({ title: AUTH_TITLES[view], noindex: true });
 
@@ -47,6 +46,8 @@ export function AuthPage({ initial }: { readonly initial: AuthView }): React.JSX
             }}
             pendingEmail={pendingEmail}
             onPendingEmail={setPendingEmail}
+            challenge={challenge}
+            onChallenge={setChallenge}
             onAuthenticated={() => {
               void navigate(next, { replace: true });
             }}
@@ -68,4 +69,8 @@ export function RegisterPage(): React.JSX.Element {
 
 export function ForgotPasswordPage(): React.JSX.Element {
   return <AuthPage initial="forgot" />;
+}
+
+export function ResetPasswordPage(): React.JSX.Element {
+  return <AuthPage initial="reset" />;
 }

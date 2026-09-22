@@ -5,6 +5,7 @@ import { formatDateTime, formatMoney, formatOdds, type BetView } from "@betng/ui
 import { Card, DataTable, EmptyState, SectionHeader, StatusBadge, Tabs, type Column } from "@betng/ui-web";
 import { AccountErrorState } from "../features/auth";
 import { usePageMeta } from "../features/seo";
+import { LiveBets } from "../features/tickets/LiveBets";
 import { TicketCard, TicketSummary, ticketReturn } from "../features/tickets/TicketParts";
 import { useAccountSignals, useBets } from "../hooks/accountQueries";
 
@@ -66,6 +67,7 @@ export function TicketsPage(): React.JSX.Element {
   return (
     <div className="space-y-5">
       <SectionHeader as="h1" eyebrow="Your bets" title="My tickets" />
+      <LiveBets bets={bets.data} />
       <Tabs
         label="Ticket status"
         scrollable

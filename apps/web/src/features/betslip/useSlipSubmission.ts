@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { DataSourceError, type BetPlacementView } from "@betng/ui-core";
 import { usePlaceBet } from "../../hooks/usePlaceBet";
+import { analytics, legsBucket } from "../../services/analytics";
 import { isRetryableSubmission, type PlaceBetRequest } from "../../services/bets.service";
 import { useBetSlip } from "../../stores/betslip.store";
 import { INTENT_REASONS, useAuthDialog } from "../auth/auth.store";
@@ -48,6 +49,8 @@ export function useSlipSubmission(): SlipSubmission {
     onPlacement: (placement, request: PlaceBetRequest) => {
       const { outcome } = placement;
 
+      analytics.track(outcome === "REJECTED" || outcome === "EXPIRED" ? "bet_refused" : "bet_accepted", { outcome: outcome.toLowerCase(), legs: legsBucket(request.selections.length) });
+
       if (outcome === "REJECTED") {
         useSlipOutcome.setState({ submitting: false, outcome: { kind: "REFUSED", placement } });
       } else if (outcome === "EXPIRED") {
@@ -83,6 +86,7 @@ export function useSlipSubmission(): SlipSubmission {
 
     if (slip.selections.length === 0 || useSlipOutcome.getState().submitting) return;
 
+    analytics.track("bet_submitted", { legs: legsBucket(slip.selections.length) });
     mutate({ selections: slip.selections, stake: slip.stake });
   }, [mutate]);
 

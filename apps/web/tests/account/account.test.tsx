@@ -151,7 +151,16 @@ describe("account area", () => {
     expect(await screen.findByLabelText("Display name")).toHaveValue(TEST_USER.displayName);
     expect(screen.getByLabelText("Display name")).toHaveAttribute("readonly");
     expect(screen.getByTestId("location")).toHaveTextContent("/account/profile");
-    expect(within(screen.getByRole("navigation", { name: "Account sections" })).getAllByRole("link")).toHaveLength(6);
+    expect(within(screen.getByRole("navigation", { name: "Account sections" })).getAllByRole("link").map((link) => link.textContent)).toEqual([
+      "Profile",
+      "Preferences",
+      "Wallet",
+      "Security",
+      "Sessions",
+      "Notifications",
+      "Activity",
+      "Delete account",
+    ]);
   });
 
   it("saves a notification preference through the data source", async () => {
@@ -170,6 +179,6 @@ describe("account area", () => {
 
     expect(await screen.findByRole("heading", { name: "Two-step verification" })).toBeInTheDocument();
     expect(screen.getByText(/not offered by the platform yet/)).toBeInTheDocument();
-    expect(screen.queryByLabelText(/password/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Set up" })).not.toBeInTheDocument();
   });
 });

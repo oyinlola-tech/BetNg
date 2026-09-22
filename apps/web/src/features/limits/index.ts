@@ -3,3 +3,4 @@ export { DepositLimits, LimitRow, LossLimits, SessionLimits } from "./LimitGroup
 export { LimitHistory } from "./LimitHistory";
 export { SelfExclusion } from "./SelfExclusion";
 export { useLimitsSummary } from "./limitQueries";
+export { LimitsStatus, stakeLimitWarning } from "./LimitsStatus";

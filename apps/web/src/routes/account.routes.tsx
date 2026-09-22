@@ -43,6 +43,8 @@ const AccountActivityPage = page(() => import("../pages/AccountActivityPage").th
 const LoginPage = page(() => import("../pages/AuthPage").then((m) => ({ default: m.LoginPage })));
 const RegisterPage = page(() => import("../pages/AuthPage").then((m) => ({ default: m.RegisterPage })));
 const ForgotPasswordPage = page(() => import("../pages/AuthPage").then((m) => ({ default: m.ForgotPasswordPage })));
+const ResetPasswordPage = page(() => import("../pages/AuthPage").then((m) => ({ default: m.ResetPasswordPage })));
+const AccountDeletionPage = page(() => import("../pages/AccountDeletionPage").then((m) => ({ default: m.AccountDeletionPage })));
 
 /** Mounted under the app shell. Every account route is gated by `RequireAuth`; `/betslip` and `/settings` are open. */
 export const accountRoutes: RouteObject[] = [
@@ -63,6 +65,7 @@ export const accountRoutes: RouteObject[] = [
       { path: "sessions", Component: AccountSessionsPage },
       { path: "notifications", Component: AccountNotificationsPage },
       { path: "activity", Component: AccountActivityPage },
+      { path: "delete", Component: AccountDeletionPage },
     ],
   },
   { path: "settings", Component: SettingsPage },
@@ -73,4 +76,5 @@ export const authRoutes: RouteObject[] = [
   { path: "login", Component: LoginPage },
   { path: "register", Component: RegisterPage },
   { path: "forgot-password", Component: ForgotPasswordPage },
+  { path: "reset-password", Component: ResetPasswordPage },
 ];

@@ -2,8 +2,9 @@ import { Link } from "react-router";
 import { ChevronRight, CircleHelp, ListOrdered, LogIn, LogOut, Settings, Trophy, UserRound, Wallet } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { BottomSheet, ThemeSwitcher, useFlag } from "@betng/ui-web";
-import { useAuth } from "../../features/auth";
+import { useAuth, useLogoutFlow } from "../../features/auth";
 import { paths } from "../../lib/paths";
+import { InstallAppButton } from "./InstallApp";
 
 interface MoreLink {
   readonly to: string;
@@ -15,7 +16,8 @@ const ROW = "flex min-h-12 w-full items-center gap-3 rounded-sm px-2 text-md fon
 
 export function MoreSheet({ open, onClose }: { readonly open: boolean; readonly onClose: () => void }): React.JSX.Element {
   const walletEnabled = useFlag("walletEnabled");
-  const { status, requireAuth, signOut } = useAuth();
+  const { status, requireAuth } = useAuth();
+  const logout = useLogoutFlow();
   const signedIn = status === "AUTHENTICATED";
 
   const links: readonly MoreLink[] = [
@@ -28,6 +30,7 @@ export function MoreSheet({ open, onClose }: { readonly open: boolean; readonly 
   ];
 
   return (
+    <>
     <BottomSheet open={open} onClose={onClose} title="More">
       <ul>
         {links.map((link) => (
@@ -45,13 +48,14 @@ export function MoreSheet({ open, onClose }: { readonly open: boolean; readonly 
         <ThemeSwitcher showLabels />
       </div>
       <div className="mt-4 border-t border-border pt-2">
+        <InstallAppButton className={ROW} onDone={onClose} />
         {signedIn ? (
           <button
             type="button"
             className={ROW}
             onClick={() => {
               onClose();
-              void signOut();
+              logout.request();
             }}
           >
             <LogOut className="size-5 text-text-muted" aria-hidden />
@@ -72,5 +76,7 @@ export function MoreSheet({ open, onClose }: { readonly open: boolean; readonly 
         )}
       </div>
     </BottomSheet>
+    {logout.dialog}
+    </>
   );
 }

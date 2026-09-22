@@ -3,6 +3,7 @@ import { useLocation } from "react-router";
 import { ChevronUp, Ticket } from "lucide-react";
 import { formatMoney, slipTotals } from "@betng/ui-core";
 import { BottomSheet, cn } from "@betng/ui-web";
+import { analytics } from "../../services/analytics";
 import { useBetSlip } from "../../stores/betslip.store";
 import { BetSlipPanel } from "./BetSlipPanel";
 import { useSlipOutcome } from "./outcome.store";
@@ -37,6 +38,7 @@ export function BetSlipBar({ className }: BetSlipBarProps): React.JSX.Element | 
             aria-haspopup="dialog"
             aria-expanded={open}
             onClick={() => {
+              analytics.track("bet_slip_opened", { surface: "sheet" });
               setOpen(true);
             }}
             className="flex h-11 w-full items-center gap-3 rounded-sm bg-brand px-3 text-left text-text-on-brand focus-ring"

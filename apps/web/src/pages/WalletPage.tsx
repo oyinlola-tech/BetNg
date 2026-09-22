@@ -1,10 +1,16 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
-import { ArrowDownToLine, ArrowUpFromLine, Info } from "lucide-react";
+import { ArrowDownToLine, ArrowUpFromLine, FileText, History, Info, Landmark } from "lucide-react";
+import type { PaymentRecord } from "@betng/contracts";
 import { formatDateTime, formatMoney, formatSignedMoney, type TransactionView, type WalletView } from "@betng/ui-core";
-import { Button, Card, EmptyState, SectionHeader, SectionHeading, SkeletonRows, WalletSkeleton, cn } from "@betng/ui-web";
+import { Button, Card, EmptyState, SectionHeader, SectionHeading, SkeletonRows, WalletSkeleton, cn, useFlag } from "@betng/ui-web";
 import { AccountErrorState } from "../features/auth";
+import { LimitsStatus, ResponsibleGamingBanner, useLimitsSummary } from "../features/limits";
+import { DIRECTION_LABEL, isTerminalPayment, paymentPath } from "../features/payments/paymentMeta";
+import { usePaymentHistory } from "../features/payments/paymentQueries";
+import { PaymentStatusBadge } from "../features/payments/PaymentStatusBadge";
 import { usePageMeta } from "../features/seo";
+import { LinkButton } from "../features/wallet/LinkButton";
 import { SignedAmount, TransactionDetailDialog, TransactionTypeLabel } from "../features/wallet/TransactionParts";
 import { TRANSACTION_TYPES, TRANSACTION_TYPE_META, transactionDescription, transactionTypeMeta } from "../features/wallet/transactionMeta";
 import { WalletActionDialog, type WalletAction } from "../features/wallet/WalletActionDialog";
@@ -20,7 +26,12 @@ function Figure({ label, amount, note }: { readonly label: string; readonly amou
   );
 }
 
-function Balances({ wallet, onAction }: { readonly wallet: WalletView; readonly onAction: (action: WalletAction) => void }): React.JSX.Element {
+const RECENT_PAYMENTS = Object.freeze({ page: 1, pageSize: 10 });
+
+function Balances({ wallet, payments, onAction }: { readonly wallet: WalletView; readonly payments: boolean; readonly onAction: (action: WalletAction) => void }): React.JSX.Element {
+  const deposit = <ArrowDownToLine className="size-4" aria-hidden />;
+  const withdraw = <ArrowUpFromLine className="size-4" aria-hidden />;
+
   return (
     <Card padding="none" className="overflow-hidden">
       <div className="flex flex-wrap items-end justify-between gap-4 p-5 md:p-6">
@@ -29,28 +40,41 @@ function Balances({ wallet, onAction }: { readonly wallet: WalletView; readonly 
           <p className="type-financial mt-1 text-left text-4xl leading-none text-text-primary md:text-5xl" data-testid="wallet-available">
             {formatMoney(wallet.available)}
           </p>
-          <p className="type-small mt-2 text-text-muted">{wallet.currency} · simulated funds</p>
+          <p className="type-small mt-2 text-text-muted">{payments ? wallet.currency : `${wallet.currency} · simulated funds`}</p>
         </div>
         <div className="flex w-full gap-2 sm:w-auto">
-          <Button
-            className="flex-1 sm:flex-none"
-            leadingIcon={<ArrowDownToLine className="size-4" aria-hidden />}
-            onClick={() => {
-              onAction("DEPOSIT");
-            }}
-          >
-            Deposit
-          </Button>
-          <Button
-            className="flex-1 sm:flex-none"
-            variant="secondary"
-            leadingIcon={<ArrowUpFromLine className="size-4" aria-hidden />}
-            onClick={() => {
-              onAction("WITHDRAW");
-            }}
-          >
-            Withdraw
-          </Button>
+          {payments ? (
+            <>
+              <LinkButton to="/wallet/deposit" variant="primary" icon={deposit} className="flex-1 sm:flex-none">
+                Deposit
+              </LinkButton>
+              <LinkButton to="/wallet/withdraw" icon={withdraw} className="flex-1 sm:flex-none">
+                Withdraw
+              </LinkButton>
+            </>
+          ) : (
+            <>
+              <Button
+                className="flex-1 sm:flex-none"
+                leadingIcon={deposit}
+                onClick={() => {
+                  onAction("DEPOSIT");
+                }}
+              >
+                Deposit
+              </Button>
+              <Button
+                className="flex-1 sm:flex-none"
+                variant="secondary"
+                leadingIcon={withdraw}
+                onClick={() => {
+                  onAction("WITHDRAW");
+                }}
+              >
+                Withdraw
+              </Button>
+            </>
+          )}
         </div>
       </div>
       <dl className={cn("grid divide-y divide-border border-t border-border bg-surface-sunken sm:divide-x sm:divide-y-0", wallet.pending === undefined ? "sm:grid-cols-2" : "sm:grid-cols-3")}>
@@ -58,6 +82,55 @@ function Balances({ wallet, onAction }: { readonly wallet: WalletView; readonly 
         <Figure label="Reserved" amount={wallet.reserved} note="Held by open bets" />
         {wallet.pending !== undefined && <Figure label="Pending" amount={wallet.pending} note="Being processed" />}
       </dl>
+    </Card>
+  );
+}
+
+function MoneyLinks({ statements }: { readonly statements: boolean }): React.JSX.Element {
+  return (
+    <nav aria-label="Wallet services" className="flex flex-wrap gap-2">
+      <LinkButton to="/wallet/bank-accounts" size="sm" icon={<Landmark className="size-3.5" aria-hidden />}>
+        Bank accounts
+      </LinkButton>
+      <LinkButton to="/payments" size="sm" icon={<History className="size-3.5" aria-hidden />}>
+        Payment history
+      </LinkButton>
+      {statements && (
+        <LinkButton to="/statements" size="sm" icon={<FileText className="size-3.5" aria-hidden />}>
+          Statements
+        </LinkButton>
+      )}
+    </nav>
+  );
+}
+
+/** Deposits and withdrawals the platform still reports as open; the amounts are its records, not a computed balance. */
+function InFlightPayments({ items }: { readonly items: readonly PaymentRecord[] }): React.JSX.Element | null {
+  const open = items.filter((payment) => !isTerminalPayment(payment.status));
+
+  if (open.length === 0) return null;
+
+  return (
+    <Card padding="none">
+      <div className="border-b border-border px-4 py-3">
+        <SectionHeading as="h2">In progress</SectionHeading>
+      </div>
+      <ul className="divide-y divide-border">
+        {open.map((payment) => (
+          <li key={payment.reference}>
+            <Link to={paymentPath(payment.reference, payment.direction)} className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-surface-hover focus-ring">
+              <span className="min-w-0 flex-1">
+                <span className="type-body block font-semibold text-text-primary">{DIRECTION_LABEL[payment.direction]}</span>
+                <span className="type-small block truncate font-mono text-text-muted">{payment.reference}</span>
+              </span>
+              <span className="flex flex-col items-end gap-1">
+                <span className="type-financial text-text-primary">{formatMoney(payment.amount)}</span>
+                <PaymentStatusBadge status={payment.status} />
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
     </Card>
   );
 }
@@ -93,17 +166,23 @@ export function WalletPage(): React.JSX.Element {
   usePageMeta({ title: "Wallet", noindex: true });
   useAccountSignals();
 
+  const payments = useFlag("paymentsEnabled");
+  const statements = useFlag("statementsEnabled");
   const wallet = useWallet();
+  const limits = useLimitsSummary();
   const recent = useTransactionsPage(RECENT_TRANSACTIONS_QUERY);
+  const recentPayments = usePaymentHistory(RECENT_PAYMENTS, payments);
   const [action, setAction] = useState<WalletAction>();
   const [selected, setSelected] = useState<TransactionView>();
 
   return (
     <div className="space-y-6">
-      <SectionHeader as="h1" eyebrow="Simulated funds" title="Wallet" />
+      <SectionHeader as="h1" eyebrow={payments ? "Account" : "Simulated funds"} title="Wallet" />
+
+      <ResponsibleGamingBanner />
 
       {wallet.data !== undefined ? (
-        <Balances wallet={wallet.data} onAction={setAction} />
+        <Balances wallet={wallet.data} payments={payments} onAction={setAction} />
       ) : wallet.isError ? (
         <Card padding="none">
           <AccountErrorState error={wallet.error} onRetry={() => void wallet.refetch()} />
@@ -112,12 +191,21 @@ export function WalletPage(): React.JSX.Element {
         <WalletSkeleton transactions={0} />
       )}
 
-      <p className="type-small flex items-start gap-2 rounded-sm border border-border bg-surface px-3 py-2.5 text-text-secondary">
-        <Info className="mt-0.5 size-4 shrink-0 text-info" aria-hidden />
-        <span>
-          BETNG runs on simulated funds. Deposits and withdrawals change a play-money balance on the platform; no payment provider is connected and no real money is involved.
-        </span>
-      </p>
+      <LimitsStatus summary={limits.data} />
+
+      {payments ? (
+        <>
+          <MoneyLinks statements={statements} />
+          {recentPayments.data !== undefined && <InFlightPayments items={recentPayments.data.items} />}
+        </>
+      ) : (
+        <p className="type-small flex items-start gap-2 rounded-sm border border-border bg-surface px-3 py-2.5 text-text-secondary">
+          <Info className="mt-0.5 size-4 shrink-0 text-info" aria-hidden />
+          <span>
+            BETNG runs on simulated funds. Deposits and withdrawals change a play-money balance on the platform; no payment provider is connected and no real money is involved.
+          </span>
+        </p>
+      )}
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <Card padding="none" className="min-w-0">
@@ -167,7 +255,7 @@ export function WalletPage(): React.JSX.Element {
       </div>
 
       <WalletActionDialog
-        action={action}
+        action={payments ? undefined : action}
         available={wallet.data?.available}
         onClose={() => {
           setAction(undefined);

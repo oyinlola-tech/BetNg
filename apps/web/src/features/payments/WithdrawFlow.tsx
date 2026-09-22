@@ -1,17 +1,19 @@
 import { useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Landmark } from "lucide-react";
 import type { BankAccount, WithdrawalQuote, WithdrawalRequest } from "@betng/contracts";
 import { DataSourceError, createIdempotencyKey, currentCurrency, formatDateTime, formatMoney, parseMoney } from "@betng/ui-core";
-import { Button, Card, ConfirmDialog, EmptyState, Field, FormError, Input, SkeletonRoot, Skeleton, applyFieldErrors, useToast } from "@betng/ui-web";
+import { Button, Card, ConfirmDialog, EmptyState, Field, FormError, Input, Select, SkeletonRoot, Skeleton, applyFieldErrors, useToast } from "@betng/ui-web";
 import { useWallet } from "../../hooks/accountQueries";
+import { analytics } from "../../services/analytics";
 import { accountServices, logger } from "../../services/runtime";
 import { amountField, amountInputValue } from "../wallet/amount";
 import { LinkButton } from "../wallet/LinkButton";
 import { ServiceError } from "../wallet/ServiceStates";
 import { AmountPresets } from "./AmountPresets";
+import { OfflineMoneyNotice } from "./OfflineMoneyNotice";
 import { maskedAccount, rememberInFlight } from "./paymentMeta";
 import { useBankAccounts, useRefreshMoney } from "./paymentQueries";
 import { PaymentStatusView } from "./PaymentStatusView";
@@ -150,6 +152,7 @@ export function WithdrawFlow({ pollDelaysMs }: WithdrawFlowProps): React.JSX.Ele
       const payment = await accountServices.payments.requestWithdrawal(review.request, review.key);
 
       rememberInFlight({ reference: payment.reference, direction: "WITHDRAWAL" });
+      analytics.track("withdrawal_started");
       refresh();
       toast({ kind: "wallet", tone: "info", title: "Payment initiated", message: `Withdrawal ${payment.reference} is with the platform. It is complete only once it is confirmed.` });
       setConfirming(false);
@@ -169,6 +172,7 @@ export function WithdrawFlow({ pollDelaysMs }: WithdrawFlowProps): React.JSX.Ele
 
     return (
       <div className="space-y-4">
+        <OfflineMoneyNotice action="A withdrawal" />
         <FormError error={failure} />
         <Card padding="none">
           <div className="border-b border-border px-4 py-3">
@@ -232,22 +236,27 @@ export function WithdrawFlow({ pollDelaysMs }: WithdrawFlowProps): React.JSX.Ele
   return (
     <Card>
       <form onSubmit={(event) => void quote(event)} noValidate className="space-y-5">
+        <OfflineMoneyNotice action="A withdrawal" />
         <FormError error={failure} />
         <Field label="Bank account" error={accountError} required>
           {(control) => (
-            <select
-              {...control}
-              {...form.register("bankAccountId")}
-              disabled={busy}
-              className="h-10 w-full rounded-sm border border-border bg-surface-sunken px-3 text-base text-text-primary focus-ring"
-            >
-              {bankAccounts.map((account) => (
-                <option key={account.id} value={account.id}>
-                  {accountLabel(account)}
-                  {account.isDefault ? " (default)" : ""}
-                </option>
-              ))}
-            </select>
+            <Controller
+              control={form.control}
+              name="bankAccountId"
+              render={({ field }) => (
+                <Select
+                  {...control}
+                  ref={field.ref}
+                  name={field.name}
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  disabled={busy}
+                  fullWidth
+                  options={bankAccounts.map((account) => ({ value: account.id, label: `${accountLabel(account)}${account.isDefault ? " (default)" : ""}` }))}
+                />
+              )}
+            />
           )}
         </Field>
         <div className="space-y-3">

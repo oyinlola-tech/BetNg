@@ -168,6 +168,8 @@ export function fakeAuthSource(options: { readonly signedIn?: boolean } = {}): A
     verify: unexpected("verify"),
     resendVerification: unexpected("resendVerification"),
     requestPasswordReset: async () => undefined,
+    completeTwoFactor: async () => Promise.reject(new Error("completeTwoFactor is not part of this test")),
+    confirmPasswordReset: async () => undefined,
     login: async () => {
       const next = testSession();
 

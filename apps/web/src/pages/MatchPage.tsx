@@ -1,7 +1,7 @@
 import { useEffect, useId } from "react";
-import { Link, useParams } from "react-router";
+import { Link, useLocation, useNavigate, useParams } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, ChevronRight, Clock, Info, MapPin } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ChevronRight, Clock, Info, MapPin } from "lucide-react";
 import {
   DataSourceError,
   canBet,
@@ -15,6 +15,7 @@ import {
   type MatchView,
 } from "@betng/ui-core";
 import {
+  Breadcrumbs,
   Countdown,
   EmptyState,
   ErrorBoundary,
@@ -176,6 +177,35 @@ function Overview({
   );
 }
 
+/** History back when the visit started inside the app; a deep link gets a plain way to the list instead. */
+function MatchBack({ finished }: { readonly finished: boolean }): React.JSX.Element {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const className = "inline-flex shrink-0 items-center gap-1 rounded-xs text-sm font-semibold text-text-secondary hover:text-text-primary focus-ring";
+
+  if (location.key !== "default") {
+    return (
+      <button
+        type="button"
+        className={className}
+        onClick={() => {
+          void navigate(-1);
+        }}
+      >
+        <ArrowLeft className="size-4" aria-hidden />
+        Back
+      </button>
+    );
+  }
+
+  return (
+    <Link to={finished ? paths.results : paths.virtuals} className={className}>
+      <ArrowLeft className="size-4" aria-hidden />
+      Back to matches
+    </Link>
+  );
+}
+
 export function MatchPage(): React.JSX.Element {
   const { matchId } = useParams<{ matchId: string }>();
   const tabsId = useId();
@@ -256,17 +286,18 @@ export function MatchPage(): React.JSX.Element {
 
   return (
     <div className="space-y-5">
-      <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-1 text-sm text-text-muted">
-        <Link to={finished ? paths.results : paths.virtuals} className="shrink-0 rounded-xs hover:text-text-primary focus-ring">
-          {finished ? "Results" : "Fixtures"}
-        </Link>
-        <ChevronRight className="size-3.5 shrink-0" aria-hidden />
-        <Link to={paths.league(match.leagueId)} className="min-w-0 truncate rounded-xs hover:text-text-primary focus-ring">
-          {match.leagueName}
-        </Link>
-        <ChevronRight className="size-3.5 shrink-0" aria-hidden />
-        <span className="shrink-0">{formatMatchday(match.matchday)}</span>
-      </nav>
+      <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+        <MatchBack finished={finished} />
+        <Breadcrumbs
+          className="text-text-muted"
+          items={[
+            { label: finished ? "Results" : "Fixtures", to: finished ? paths.results : paths.virtuals },
+            { label: match.leagueName, to: paths.league(match.leagueId) },
+            { label: formatMatchday(match.matchday) },
+            { label },
+          ]}
+        />
+      </div>
 
       <header className="rounded-md border border-border bg-surface px-3 py-5 md:px-8 md:py-6">
         <h1 className="sr-only">{label}</h1>

@@ -6,6 +6,7 @@ import { DataSourceError, currentCurrency, formatMoney, parseMoney } from "@betn
 import { Button, Dialog, FormError, Input, applyFieldErrors, useToast } from "@betng/ui-web";
 import { useDeposit, useWithdraw } from "../../hooks/accountQueries";
 import { logger } from "../../services/runtime";
+import { OfflineMoneyNotice } from "../payments/OfflineMoneyNotice";
 import { amountField } from "./amount";
 
 export type WalletAction = "DEPOSIT" | "WITHDRAW";
@@ -88,6 +89,7 @@ function ActionForm({ action, available, onClose }: { readonly action: WalletAct
 
   return (
     <form onSubmit={(event) => void submit(event)} noValidate className="space-y-4">
+      <OfflineMoneyNotice action={action === "DEPOSIT" ? "A deposit" : "A withdrawal"} />
       <FormError error={failure} />
       <Input
         label="Amount"

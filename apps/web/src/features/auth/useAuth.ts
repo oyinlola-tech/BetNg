@@ -3,8 +3,9 @@ import { useQueryClient } from "@tanstack/react-query";
 import type { CustomerProfile } from "@betng/contracts";
 import type { SessionStatus } from "@betng/ui-core";
 import { useSession } from "@betng/ui-web";
-import { ACCOUNT_QUERY_KEYS } from "../../lib/queryKeys";
-import { authSource, logger, session } from "../../services/runtime";
+import { clearPrivateQueries } from "../../lib/queryClient";
+import { accountServices, authSource, logger, session } from "../../services/runtime";
+import { releasePushOnSignOut } from "../push/webPush";
 import {
   INTENT_REASONS,
   useAuthDialog,
@@ -60,6 +61,8 @@ export function useAuth(): UseAuth {
   );
 
   const signOut = useCallback(async () => {
+    await releasePushOnSignOut(() => accountServices.devices);
+
     try {
       await authSource.logout();
     } catch {
@@ -68,7 +71,7 @@ export function useAuth(): UseAuth {
 
     if (session.snapshot().status !== "ANONYMOUS") session.clear();
 
-    for (const queryKey of ACCOUNT_QUERY_KEYS) client.removeQueries({ queryKey });
+    clearPrivateQueries(client);
   }, [client]);
 
   return {

@@ -60,7 +60,14 @@ export function LeagueBar(): React.JSX.Element {
         {liveEnabled && <span aria-hidden className="h-5 w-px shrink-0 bg-border" />}
         {leagues.isPending &&
           [0, 1, 2, 3].map((slot) => <Skeleton key={slot} className="h-8 w-32 shrink-0" />)}
-        {leagues.isError && <p className="text-sm text-text-muted">Competitions could not be loaded.</p>}
+        {leagues.isError && (
+          <p className="flex shrink-0 items-center gap-2 text-sm text-text-muted">
+            Competitions could not be loaded.
+            <button type="button" onClick={() => void leagues.refetch()} className="rounded-xs font-semibold text-brand hover:underline focus-ring">
+              Try again
+            </button>
+          </p>
+        )}
         {filter?.all === true && leagues.data !== undefined && (
           <Link to={filterLink(undefined)} replace aria-current={activeId === undefined ? "page" : undefined} className={cn(chip, activeId === undefined ? on : off)}>
             <span className="whitespace-nowrap">All competitions</span>

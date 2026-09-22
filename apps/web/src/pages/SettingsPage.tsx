@@ -1,9 +1,10 @@
 import { Link } from "react-router";
-import { Bell, ChevronRight, KeyRound, LogOut, SlidersHorizontal, UserRound, Wallet } from "lucide-react";
+import { Bell, ChevronRight, KeyRound, LogOut, MonitorDown, SlidersHorizontal, UserRound, Wallet } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Button, Card, SectionHeader, SectionHeading, ThemeSwitcher } from "@betng/ui-web";
 import { useAuth, useLogoutFlow } from "../features/auth";
 import { usePageMeta } from "../features/seo";
+import { useInstallApp } from "../layouts/shell/InstallApp";
 
 const LINKS: readonly { readonly to: string; readonly label: string; readonly description: string; readonly icon: LucideIcon }[] = [
   { to: "/account/profile", label: "Profile", description: "Your name, email and account status", icon: UserRound },
@@ -18,6 +19,7 @@ export function SettingsPage(): React.JSX.Element {
 
   const { user, isAuthenticated, openAuth } = useAuth();
   const logout = useLogoutFlow();
+  const installApp = useInstallApp();
 
   return (
     <div className="mx-auto max-w-2xl space-y-5">
@@ -69,6 +71,20 @@ export function SettingsPage(): React.JSX.Element {
           ))}
         </ul>
       </Card>
+
+      {installApp.available && (
+        <Card>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="min-w-0">
+              <SectionHeading as="h2">App</SectionHeading>
+              <p className="type-small mt-2 text-text-muted">Add BETNG to this device to open it from the home screen or app list.</p>
+            </div>
+            <Button variant="secondary" size="sm" leadingIcon={<MonitorDown className="size-3.5" aria-hidden />} onClick={installApp.install}>
+              Install app
+            </Button>
+          </div>
+        </Card>
+      )}
 
       <Card>
         <SectionHeading as="h2">About</SectionHeading>

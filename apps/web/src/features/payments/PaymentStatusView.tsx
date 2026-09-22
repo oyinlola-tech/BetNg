@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { Loader2, RefreshCw } from "lucide-react";
 import type { PaymentDirection, PaymentRecord } from "@betng/contracts";
 import { Button, Card, FormError, Skeleton, SkeletonRoot } from "@betng/ui-web";
+import { analytics } from "../../services/analytics";
 import { ServiceError } from "../wallet/ServiceStates";
 import { LinkButton } from "../wallet/LinkButton";
 import { forgetInFlight, isTerminalPayment, maskedAccount } from "./paymentMeta";
@@ -64,6 +65,8 @@ export interface PaymentStatusViewProps {
   readonly pollDelaysMs?: readonly number[];
 }
 
+const reported = new Set<string>();
+
 /** Polls the platform until the payment reaches a terminal status; a provider redirect proves nothing on its own. */
 export function PaymentStatusView({ reference, direction, pollDelaysMs }: PaymentStatusViewProps): React.JSX.Element {
   const status = usePaymentStatus(reference, direction, pollDelaysMs === undefined ? {} : { pollDelaysMs });
@@ -74,6 +77,15 @@ export function PaymentStatusView({ reference, direction, pollDelaysMs }: Paymen
   useEffect(() => {
     if (terminal) forgetInFlight(reference);
   }, [terminal, reference]);
+
+  const confirmed = payment?.status === "CONFIRMED";
+
+  useEffect(() => {
+    if (!confirmed || reported.has(reference)) return;
+
+    reported.add(reference);
+    analytics.track(direction === "DEPOSIT" ? "deposit_confirmed" : "withdrawal_confirmed");
+  }, [confirmed, reference, direction]);
 
   if (payment === undefined) {
     if (status.isError) {
@@ -100,7 +112,7 @@ export function PaymentStatusView({ reference, direction, pollDelaysMs }: Paymen
         </h2>
         <p className="type-small mt-1 text-text-secondary">{copy.body}</p>
       </div>
-      {status.isError && <FormError error={status.error} />}
+      {status.isError && <FormError error={status.error} onRetry={() => void status.refetch()} />}
       <PaymentStatusCard
         payment={payment}
         bankAccountLabel={account === undefined ? undefined : `${account.bankName} ${maskedAccount(account.accountNumberMasked)}`}

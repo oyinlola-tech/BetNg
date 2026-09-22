@@ -6,7 +6,7 @@ import { useAuthDialog } from "./auth.store";
 import { AUTH_TITLES, AuthFlow } from "./AuthFlow";
 
 export function AuthDialog(): React.JSX.Element {
-  const { open, view, intent, pendingEmail, show, setView, setPendingEmail, close, complete } = useAuthDialog();
+  const { open, view, intent, pendingEmail, challenge, show, setView, setPendingEmail, setChallenge, close, complete } = useAuthDialog();
   const compact = useIsCompact();
   const { status } = useSession(session);
   const opener = useRef<HTMLElement | null>(null);
@@ -35,6 +35,8 @@ export function AuthDialog(): React.JSX.Element {
       onView={setView}
       pendingEmail={pendingEmail}
       onPendingEmail={setPendingEmail}
+      challenge={challenge}
+      onChallenge={setChallenge}
       reason={intent?.reason}
       onAuthenticated={() => {
         complete()?.run?.();

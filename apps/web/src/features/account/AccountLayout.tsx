@@ -1,19 +1,38 @@
 import { NavLink, Outlet } from "react-router";
-import { Activity, Bell, KeyRound, MonitorSmartphone, SlidersHorizontal, UserRound } from "lucide-react";
-import { Avatar, SectionHeader, StatusBadge, cn } from "@betng/ui-web";
+import { Activity, Bell, FileText, Gauge, IdCard, KeyRound, Landmark, MonitorSmartphone, ReceiptText, SlidersHorizontal, UserRound, UserX, Wallet } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import type { FeatureFlag } from "@betng/ui-core";
+import { Avatar, SectionHeader, StatusBadge, cn, useFeatureFlags } from "@betng/ui-web";
 import { useAuth } from "../auth/useAuth";
 
-const SECTIONS = [
+interface Section {
+  readonly to: string;
+  readonly label: string;
+  readonly icon: LucideIcon;
+  readonly flag?: FeatureFlag;
+  readonly end?: boolean;
+}
+
+const SECTIONS: readonly Section[] = [
   { to: "/account/profile", label: "Profile", icon: UserRound },
   { to: "/account/preferences", label: "Preferences", icon: SlidersHorizontal },
+  { to: "/wallet", label: "Wallet", icon: Wallet, flag: "walletEnabled", end: true },
+  { to: "/wallet/bank-accounts", label: "Bank accounts", icon: Landmark, flag: "paymentsEnabled" },
+  { to: "/payments", label: "Payments", icon: ReceiptText, flag: "paymentsEnabled" },
+  { to: "/statements", label: "Statements", icon: FileText, flag: "statementsEnabled" },
+  { to: "/kyc", label: "Verification", icon: IdCard, flag: "kycEnabled" },
+  { to: "/responsible-gaming", label: "Responsible gaming", icon: Gauge, flag: "responsibleGamingEnabled" },
   { to: "/account/security", label: "Security", icon: KeyRound },
   { to: "/account/sessions", label: "Sessions", icon: MonitorSmartphone },
   { to: "/account/notifications", label: "Notifications", icon: Bell },
   { to: "/account/activity", label: "Activity", icon: Activity },
-] as const;
+  { to: "/account/delete", label: "Delete account", icon: UserX },
+];
 
 export function AccountLayout(): React.JSX.Element {
   const { user } = useAuth();
+  const flags = useFeatureFlags();
+  const sections = SECTIONS.filter((section) => section.flag === undefined || flags[section.flag]);
 
   return (
     <div className="space-y-5">
@@ -32,10 +51,11 @@ export function AccountLayout(): React.JSX.Element {
           )}
           <nav aria-label="Account sections" className="-mx-4 overflow-x-auto px-4 [scrollbar-width:none] lg:mx-0 lg:overflow-visible lg:px-0">
             <ul className="flex gap-1 lg:flex-col">
-              {SECTIONS.map((section) => (
+              {sections.map((section) => (
                 <li key={section.to} className="shrink-0">
                   <NavLink
                     to={section.to}
+                    end={section.end === true}
                     className={({ isActive }) =>
                       cn(
                         "flex h-10 items-center gap-2 whitespace-nowrap rounded-sm border px-3 text-sm font-semibold transition-colors focus-ring pointer-coarse:h-11",

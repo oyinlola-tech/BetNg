@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { Link, useLocation } from "react-router";
 import { formatAge } from "@betng/ui-core";
-import { PitchRule, SectionHeading, StatusBadge, useNow, useOnline } from "@betng/ui-web";
+import { PitchRule, SectionHeading, StatusBadge, useNow, useOnline, type ErrorHelpTopic } from "@betng/ui-web";
 import { usePageMeta } from "../features/seo";
 import { useConnection, useLastSyncedAt } from "../hooks/useConnection";
 import { paths } from "../lib/paths";
@@ -9,6 +9,7 @@ import { paths } from "../lib/paths";
 const SECTIONS = [
   { id: "how-it-works", label: "How it works" },
   { id: "responsible-use", label: "Responsible use" },
+  { id: "problems", label: "When something goes wrong" },
   { id: "terms", label: "Terms" },
   { id: "privacy", label: "Privacy" },
   { id: "support", label: "Support" },
@@ -23,6 +24,99 @@ function Section({ id, title, children }: { readonly id: string; readonly title:
     </section>
   );
 }
+
+const TOPICS: readonly { readonly id: ErrorHelpTopic; readonly title: string; readonly body: readonly string[] }[] = [
+  {
+    id: "bet-rejected",
+    title: "Why was my bet not accepted?",
+    body: [
+      "Every bet is checked by the platform when it arrives. It can decline a bet when a market has closed or been suspended, when a price moved, when the stake is outside what the platform takes for that bet, or when its risk checks decline it.",
+      "A declined bet is not placed and no stake is taken for it. The slip keeps your selections and says what the platform reported, so you can adjust and try again.",
+    ],
+  },
+  {
+    id: "stake-limited",
+    title: "Why was my stake limited?",
+    body: [
+      "The platform sets a maximum stake per bet, which can depend on the market, the price and how much has already been staked on that outcome. When your stake is above it, the platform either accepts a lower stake or declines the bet and tells you the most it will take.",
+      "When a lower stake is accepted, the ticket shows the stake the platform accepted, not the one you entered.",
+    ],
+  },
+  {
+    id: "odds-changed",
+    title: "Why did the odds change?",
+    body: [
+      "Prices move while betting is open. Your bet is placed at the price the platform confirms, so if a price moved between adding it to the slip and placing the bet, the platform asks you to review the new price first.",
+      "Choose Accept new prices in the slip to continue, or remove the selection.",
+    ],
+  },
+  {
+    id: "market-suspended",
+    title: "What is a suspended market?",
+    body: [
+      "A market is suspended while the platform is not taking bets on it, for example around a goal, a card or a price update. Selections on a suspended market cannot be placed until it reopens.",
+      "Suspended selections show a lock in the slip. They stay there until you remove them or the market reopens.",
+    ],
+  },
+  {
+    id: "betting-closed",
+    title: "When does betting close?",
+    body: [
+      "Each match has a betting window that the platform opens and closes. Once it closes, no new bets are taken on that match, even if the page still shows its last prices.",
+      "Match pages show the time betting closes while the window is open.",
+    ],
+  },
+  {
+    id: "insufficient-funds",
+    title: "About your available balance",
+    body: [
+      "Only your available balance can be staked or withdrawn. Money held by open bets and payments still being processed is shown separately in the wallet and cannot be used until the platform releases it.",
+    ],
+  },
+  {
+    id: "limits",
+    title: "How limits work",
+    body: [
+      "Deposit, loss and session limits you set are applied by the platform. The slip and the wallet show what is left on each limit using the platform's latest figures, and may warn you before you go over one, but the platform makes the final decision when you submit.",
+      "Lowering a limit applies at once. Raising or removing one takes effect only after a waiting period.",
+    ],
+  },
+  {
+    id: "self-exclusion",
+    title: "About self-exclusion",
+    body: [
+      "While a self-exclusion is active, betting and deposits are paused on your account. Browsing matches, results and tables stays open. The end date, if there is one, is shown on the responsible gaming page.",
+    ],
+  },
+  {
+    id: "verification",
+    title: "Why verification is needed",
+    body: [
+      "The platform can ask for your identity to be verified before some actions, depending on your account. The verification page shows what it still needs and the status of anything you have sent.",
+    ],
+  },
+  {
+    id: "payment-failed",
+    title: "Why a payment may not go through",
+    body: [
+      "A payment can fail at the payment provider, time out before it is completed, or be declined by your bank. A deposit is only credited once the platform confirms it; a failed or expired attempt credits nothing.",
+      "The payment's status page shows what the platform reports for its reference. Starting again creates a new payment.",
+    ],
+  },
+  {
+    id: "too-many-requests",
+    title: "Why am I asked to wait?",
+    body: ["The platform limits how often some actions can be repeated in a short time. The message says how long to wait; after that, try again."],
+  },
+  {
+    id: "connection-problems",
+    title: "Connection problems",
+    body: [
+      "When this device loses its connection, the pages you have open keep showing the last data they received and say so. They refresh on their own when the connection returns.",
+      "Bets, deposits and withdrawals are never queued while you are offline. If a submission was interrupted, the slip or payment page says whether the platform received it; trying again sends the same submission, so it is never placed twice.",
+    ],
+  },
+];
 
 function SystemStatus(): React.JSX.Element {
   const online = useOnline();
@@ -114,6 +208,24 @@ export function HelpPage(): React.JSX.Element {
         <p>It is built to demonstrate a football platform, not to encourage gambling. If betting is causing you harm, speak to a local support service.</p>
       </Section>
 
+      <Section id="problems" title="When something goes wrong">
+        <p>What the messages you may see mean, and what to do next.</p>
+        <div className="space-y-5 pt-1">
+          {TOPICS.map((topic) => (
+            <section key={topic.id} id={topic.id} aria-labelledby={`${topic.id}-title`} className="scroll-mt-32">
+              <h3 id={`${topic.id}-title`} className="type-h3 text-text-primary">
+                {topic.title}
+              </h3>
+              {topic.body.map((paragraph) => (
+                <p key={paragraph.slice(0, 24)} className="mt-1.5">
+                  {paragraph}
+                </p>
+              ))}
+            </section>
+          ))}
+        </div>
+      </Section>
+
       <Section id="terms" title="Terms">
         <p>Use BETNG for evaluation and demonstration. Do not rely on it for real wagering, financial decisions or as a record of real sporting events.</p>
         <p>Teams, competitions, players and results are fictional. Any resemblance to real clubs or people is unintended.</p>
@@ -126,7 +238,10 @@ export function HelpPage(): React.JSX.Element {
           Your session is kept for the current browser tab only and ends when you sign out or close it. Theme, interface preferences and an unplaced bet slip are
           kept in this browser.
         </p>
-        <p>BETNG does not load third-party trackers or advertising.</p>
+        <p>
+          BETNG does not load third-party trackers or advertising. Where usage counts are switched on, they are cookieless: only the name of an action, the page
+          shape and coarse categories are sent, never your account, amounts or identifiers, and nothing is sent when your browser asks sites not to track.
+        </p>
       </Section>
 
       <Section id="support" title="Support">

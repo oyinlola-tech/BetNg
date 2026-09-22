@@ -31,6 +31,11 @@ describe("HomePage", () => {
     expect(await screen.findByRole("link", { name: /live1 Home 2, live1 Away 1/ })).toHaveAttribute("href", "/matches/live1");
     expect(await screen.findByRole("link", { name: /done1 Home 3, done1 Away 0/ })).toBeInTheDocument();
     expect(await screen.findByRole("link", { name: /Zebra Invitational/ })).toBeInTheDocument();
+
+    const liveSection = screen.getByRole("region", { name: "Live matches" });
+
+    expect(await within(liveSection).findByText("The match above is the only one in play right now.")).toBeInTheDocument();
+    expect(within(liveSection).getByRole("link", { name: /All live/ })).toHaveAttribute("href", "/live");
   });
 
   it("shows designed empty states when the platform has nothing", async () => {

@@ -7,3 +7,5 @@ export type { UseAuth } from "./useAuth";
 export { useAuthDialog } from "./auth.store";
 export type { AuthIntent, AuthIntentName, AuthView } from "./auth.store";
 export { useLogoutFlow } from "./useLogoutFlow";
+export { SessionGuard } from "./SessionGuard";
+export { usePrivateDataGuard } from "./usePrivateDataGuard";

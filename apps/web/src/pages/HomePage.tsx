@@ -258,11 +258,15 @@ export function HomePage(): React.JSX.Element {
           </ErrorBoundary>
 
           <FeatureGate flag="liveEnabled">
-            <section aria-labelledby="home-live" hidden={live.data?.length === 1}>
+            <section aria-labelledby="home-live">
               <SectionHeading id="home-live" action={<More to={paths.live}>All live</More>}>
                 Live matches
               </SectionHeading>
-              <MatchList query={live} skip={1} limit={4} variant="live" layout="grid" empty="noLiveMatches" stale={stale} skeletons={2} label="Live matches" className="mt-3" />
+              {live.data?.length === 1 ? (
+                <p className="type-small mt-3 text-text-muted">The match above is the only one in play right now.</p>
+              ) : (
+                <MatchList query={live} skip={1} limit={4} variant="live" layout="grid" empty="noLiveMatches" stale={stale} skeletons={2} label="Live matches" className="mt-3" />
+              )}
             </section>
           </FeatureGate>
 

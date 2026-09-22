@@ -9,6 +9,13 @@ import { useSearchDialog } from "./search.store";
 import { SearchResultList, hitDomId } from "./SearchResultList";
 import { MIN_TERM, useSearchResults } from "./useSearchResults";
 
+function isTyping(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  if (target.isContentEditable) return true;
+
+  return target.closest("input, textarea, select, [contenteditable=''], [contenteditable='true'], [role='textbox'], dialog[open]") !== null;
+}
+
 function SearchBody({ onDone }: { readonly onDone: () => void }): React.JSX.Element {
   const navigate = useNavigate();
   const listId = useId();
@@ -148,6 +155,9 @@ export function SearchDialog(): React.JSX.Element | null {
 
     const onKey = (event: KeyboardEvent): void => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        show();
+      } else if (event.key === "/" && !event.ctrlKey && !event.metaKey && !event.altKey && !isTyping(event.target)) {
         event.preventDefault();
         show();
       }

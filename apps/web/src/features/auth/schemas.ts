@@ -41,3 +41,36 @@ export const verifySchema = z.object({
 }) satisfies z.ZodType<VerifyEmailRequest>;
 
 export const forgotSchema = z.object({ email }) satisfies z.ZodType<PasswordResetRequest>;
+
+const newPassword = z.string().min(8, "Use at least 8 characters.").max(128, "Keep it under 128 characters.");
+
+function matching<T extends { readonly newPassword: string; readonly confirmPassword: string }>(values: T): boolean {
+  return values.newPassword === values.confirmPassword;
+}
+
+const mismatch = { message: "The passwords do not match.", path: ["confirmPassword"] };
+
+export const resetConfirmSchema = z
+  .object({
+    email,
+    code: z.string().regex(/^\d{6}$/, "Enter the 6-digit code."),
+    newPassword,
+    confirmPassword: z.string().min(1, "Enter the new password again."),
+  })
+  .refine(matching, mismatch);
+
+export type ResetConfirmValues = z.infer<typeof resetConfirmSchema>;
+
+export const passwordChangeSchema = z
+  .object({
+    currentPassword: z.string().min(1, "Enter your current password.").max(128),
+    newPassword,
+    confirmPassword: z.string().min(1, "Enter the new password again."),
+  })
+  .refine(matching, mismatch)
+  .refine((values) => values.currentPassword !== values.newPassword, { message: "Choose a password different from the current one.", path: ["newPassword"] });
+
+export type PasswordChangeValues = z.infer<typeof passwordChangeSchema>;
+
+export const TOTP_PATTERN = /^\d{6}$/;
+export const BACKUP_CODE_PATTERN = /^[A-Za-z0-9]{4}-?[A-Za-z0-9]{4}$/;

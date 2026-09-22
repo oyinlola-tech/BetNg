@@ -2,9 +2,9 @@ import { useMemo } from "react";
 import { Link } from "react-router";
 import { CheckCheck } from "lucide-react";
 import { formatRelative, formatShortDate, toLocalDateKey, type NotificationView } from "@betng/ui-core";
-import { Button, Card, EmptyState, SectionHeader, SectionHeading, SkeletonRows, cn } from "@betng/ui-web";
+import { Button, Card, EmptyState, SectionHeader, SectionHeading, SkeletonRows, cn, presentError, useToast } from "@betng/ui-web";
 import { AccountErrorState } from "../features/auth";
-import { GROUP_LABELS, NotificationIcon, notificationGroup, notificationTarget } from "../features/notifications/notificationMeta";
+import { GROUP_LABELS, NotificationIcon, notificationGroup, notificationTarget, notificationTone } from "../features/notifications/notificationMeta";
 import { usePageMeta } from "../features/seo";
 import { useAccountSignals, useMarkNotificationsRead, useNotifications } from "../hooks/accountQueries";
 
@@ -37,7 +37,7 @@ function NotificationRow({ notification, onOpen }: { readonly notification: Noti
   const to = notificationTarget(notification);
   const content = (
     <>
-      <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-md", notification.read ? "bg-surface-sunken text-text-muted" : "bg-brand-subtle text-brand")}>
+      <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-md", notification.read ? "bg-surface-sunken text-text-muted" : notificationTone(notification.kind) === "warning" ? "bg-warning-subtle text-warning" : "bg-brand-subtle text-brand")}>
         <NotificationIcon notification={notification} />
       </span>
       <span className="min-w-0 flex-1">
@@ -91,11 +91,16 @@ export function NotificationsPage(): React.JSX.Element {
 
   const notifications = useNotifications();
   const markRead = useMarkNotificationsRead();
+  const { toast } = useToast();
   const unread = notifications.data?.filter((n) => !n.read).length ?? 0;
   const days = useMemo(() => groupByDay(notifications.data ?? []), [notifications.data]);
 
+  const failed = (error: unknown): void => {
+    toast({ tone: "danger", title: "Not marked as read", message: presentError(error).message });
+  };
+
   const open = (notification: NotificationView): void => {
-    if (!notification.read) markRead.mutate([notification.id]);
+    if (!notification.read) markRead.mutate([notification.id], { onError: failed });
   };
 
   return (
@@ -116,7 +121,7 @@ export function NotificationsPage(): React.JSX.Element {
               disabled={unread === 0}
               loading={markRead.isPending && markRead.variables === undefined}
               onClick={() => {
-                markRead.mutate(undefined);
+                markRead.mutate(undefined, { onError: failed });
               }}
             >
               Mark all read

@@ -1,12 +1,17 @@
 import { useEffect, useRef, useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft, CheckCircle2, MailCheck } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Clock, MailCheck, ShieldCheck } from "lucide-react";
+import type { TwoFactorChallenge } from "@betng/contracts";
 import { DataSourceError } from "@betng/ui-core";
 import { Button, Checkbox, CodeInput, FormError, Input, PasswordInput, applyFieldErrors, useSession } from "@betng/ui-web";
 import { authSource, logger, session as sessionStore } from "../../services/runtime";
 import type { AuthView } from "./auth.store";
-import { forgotSchema, loginSchema, registerSchema, toRegisterRequest, type RegisterValues } from "./schemas";
+import { BreachWarning } from "./BreachWarning";
+import { isBreachMessage } from "./passwordStrength";
+import { PasswordStrengthMeter } from "./PasswordStrengthMeter";
+import { forgotSchema, loginSchema, registerSchema, resetConfirmSchema, toRegisterRequest, type RegisterValues, type ResetConfirmValues } from "./schemas";
+import { SecondFactorField, isCompleteCode, type SecondFactorMethod } from "./SecondFactorField";
 
 const RESEND_SECONDS = 30;
 
@@ -15,6 +20,8 @@ export const AUTH_TITLES: Record<AuthView, string> = {
   register: "Create your account",
   verify: "Verify your email",
   forgot: "Reset your password",
+  reset: "Choose a new password",
+  "two-factor": "Two-step verification",
   expired: "Session ended",
 };
 
@@ -23,6 +30,8 @@ export interface AuthFlowProps {
   readonly onView: (view: AuthView) => void;
   readonly pendingEmail: string;
   readonly onPendingEmail: (email: string) => void;
+  readonly challenge?: TwoFactorChallenge | undefined;
+  readonly onChallenge?: (challenge: TwoFactorChallenge | undefined) => void;
   readonly reason?: string | undefined;
   readonly onAuthenticated: () => void;
 }
@@ -39,6 +48,28 @@ function serverFailure<TName extends string>(
   const { applied, unmatched } = applyFieldErrors(cause, setError, fields);
 
   return applied.length > 0 && Object.keys(unmatched).length === 0 ? undefined : cause;
+}
+
+function retryWording(error: DataSourceError): string {
+  const seconds = error.detail.retryAfterSeconds;
+
+  if (seconds === undefined || !Number.isFinite(seconds) || seconds <= 0) return "Wait a moment before trying again.";
+
+  return seconds < 60 ? `Wait ${String(Math.ceil(seconds))} seconds before trying again.` : `Wait about ${String(Math.ceil(seconds / 60))} minutes before trying again.`;
+}
+
+function TooManyAttempts({ error, action }: { readonly error: DataSourceError; readonly action?: React.ReactNode }): React.JSX.Element {
+  return (
+    <div role="alert" className="rounded-sm border border-danger/40 bg-danger-subtle px-3 py-2 text-sm">
+      <p className="font-semibold text-danger">Too many attempts</p>
+      <p className="mt-0.5 text-text-secondary">{retryWording(error)} For your security, sign-in is paused for this account for a short time.</p>
+      {action}
+    </div>
+  );
+}
+
+function isRateLimited(error: unknown): error is DataSourceError {
+  return error instanceof DataSourceError && error.code === "RATE_LIMITED";
 }
 
 function TextLink({ children, onClick }: { readonly children: React.ReactNode; readonly onClick: () => void }): React.JSX.Element {
@@ -81,7 +112,7 @@ function useWelcome(onAuthenticated: () => void): readonly [string | undefined, 
   ];
 }
 
-function LoginView({ onView, onPendingEmail, onAuthenticated, lockedEmail }: AuthFlowProps & { readonly lockedEmail?: string | undefined }): React.JSX.Element {
+function LoginView({ onView, onPendingEmail, onChallenge, onAuthenticated, lockedEmail }: AuthFlowProps & { readonly lockedEmail?: string | undefined }): React.JSX.Element {
   const form = useForm({ resolver: zodResolver(loginSchema), defaultValues: { email: lockedEmail ?? "", password: "" } });
   const [error, setError] = useState<unknown>();
   const [welcome, showWelcome] = useWelcome(onAuthenticated);
@@ -106,6 +137,13 @@ function LoginView({ onView, onPendingEmail, onAuthenticated, lockedEmail }: Aut
         return;
       }
 
+      if (cause instanceof DataSourceError && cause.code === "TWO_FACTOR_REQUIRED" && cause.detail.challenge !== undefined && onChallenge !== undefined) {
+        onChallenge(cause.detail.challenge);
+        onView("two-factor");
+
+        return;
+      }
+
       setError(serverFailure("Sign-in", cause, form.setError, ["email", "password"]));
       if (cause instanceof DataSourceError && cause.code === "INVALID_CREDENTIALS") setFocus("password");
     }
@@ -117,7 +155,7 @@ function LoginView({ onView, onPendingEmail, onAuthenticated, lockedEmail }: Aut
 
   return (
     <form onSubmit={(event) => void submit(event)} noValidate className="space-y-4">
-      <FormError error={error} />
+      {isRateLimited(error) ? <TooManyAttempts error={error} /> : <FormError error={error} />}
       <Input label="Email" type="email" autoComplete="email" inputMode="email" readOnly={lockedEmail !== undefined} disabled={busy} error={form.formState.errors.email?.message} {...form.register("email")} />
       <div>
         <PasswordInput label="Password" autoComplete="current-password" disabled={busy} error={form.formState.errors.password?.message} {...form.register("password")} />
@@ -310,7 +348,7 @@ function VerifyView({ onView, pendingEmail, onAuthenticated }: AuthFlowProps): R
   );
 }
 
-function ForgotView({ onView }: AuthFlowProps): React.JSX.Element {
+function ForgotView({ onView, onPendingEmail }: AuthFlowProps): React.JSX.Element {
   const form = useForm({ resolver: zodResolver(forgotSchema), defaultValues: { email: "" } });
   const [error, setError] = useState<unknown>();
   const [sentTo, setSentTo] = useState<string>();
@@ -352,8 +390,18 @@ function ForgotView({ onView }: AuthFlowProps): React.JSX.Element {
         </span>
         <p className="text-md font-semibold">Check your inbox</p>
         <p className="text-base text-text-secondary">
-          If an account exists for <span className="font-medium text-text-primary">{sentTo}</span>, a link to reset the password is on its way.
+          If an account exists for <span className="font-medium text-text-primary">{sentTo}</span>, a 6-digit reset code is on its way. It expires in 15 minutes.
         </p>
+        <Button
+          fullWidth
+          size="lg"
+          onClick={() => {
+            onPendingEmail(sentTo);
+            onView("reset");
+          }}
+        >
+          Enter the code
+        </Button>
         {back}
       </div>
     );
@@ -361,13 +409,223 @@ function ForgotView({ onView }: AuthFlowProps): React.JSX.Element {
 
   return (
     <form onSubmit={(event) => void submit(event)} noValidate className="space-y-4">
-      <p className="text-base text-text-secondary">Enter the email you signed up with and we will send a reset link.</p>
+      <p className="text-base text-text-secondary">Enter the email you signed up with and we will send a 6-digit code to reset your password.</p>
       <FormError error={error} />
       <Input label="Email" type="email" autoComplete="email" inputMode="email" disabled={form.formState.isSubmitting} error={form.formState.errors.email?.message} {...form.register("email")} />
       <Button type="submit" fullWidth size="lg" loading={form.formState.isSubmitting}>
-        Send reset link
+        Send reset code
       </Button>
+      <p className="text-center text-sm text-text-secondary">
+        Already have a code?{" "}
+        <TextLink
+          onClick={() => {
+            onView("reset");
+          }}
+        >
+          Enter it
+        </TextLink>
+      </p>
       {back}
+    </form>
+  );
+}
+
+function ResetView({ onView, pendingEmail }: AuthFlowProps): React.JSX.Element {
+  const form = useForm<ResetConfirmValues>({ resolver: zodResolver(resetConfirmSchema), defaultValues: { email: pendingEmail, code: "", newPassword: "", confirmPassword: "" } });
+  const [error, setError] = useState<unknown>();
+  const [done, setDone] = useState(false);
+  const { setFocus } = form;
+  const errors = form.formState.errors;
+  const busy = form.formState.isSubmitting;
+  const password = form.watch("newPassword");
+
+  useEffect(() => {
+    setFocus(pendingEmail === "" ? "email" : "newPassword");
+  }, [setFocus, pendingEmail]);
+
+  const submit = form.handleSubmit(async (values) => {
+    setError(undefined);
+
+    try {
+      await authSource.confirmPasswordReset({ email: values.email, code: values.code, newPassword: values.newPassword });
+      if (sessionStore.snapshot().status !== "ANONYMOUS") sessionStore.clear();
+      setDone(true);
+    } catch (cause) {
+      setError(serverFailure("Password reset", cause, form.setError, ["email", "code", "newPassword"]));
+    }
+  });
+
+  if (done) {
+    return (
+      <div role="status" className="space-y-4 text-center animate-fade-in">
+        <span className="mx-auto flex size-12 items-center justify-center rounded-full bg-success-subtle text-success">
+          <CheckCircle2 className="size-6" aria-hidden />
+        </span>
+        <p className="text-md font-semibold">Password updated</p>
+        <p className="text-base text-text-secondary">Every device that was signed in has been signed out. Sign in with your new password.</p>
+        <Button
+          fullWidth
+          size="lg"
+          onClick={() => {
+            onView("login");
+          }}
+        >
+          Sign in
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={(event) => void submit(event)} noValidate className="space-y-4">
+      <FormError error={error} />
+      <Input label="Email" type="email" autoComplete="email" inputMode="email" disabled={busy} error={errors.email?.message} {...form.register("email")} />
+      <Controller
+        control={form.control}
+        name="code"
+        render={({ field }) => <CodeInput label="Reset code" length={6} value={field.value} onChange={field.onChange} error={errors.code?.message} disabled={busy} />}
+      />
+      <div>
+        <PasswordInput label="New password" autoComplete="new-password" disabled={busy} error={errors.newPassword?.message} {...form.register("newPassword")} />
+        <PasswordStrengthMeter password={password} />
+      </div>
+      {isBreachMessage(errors.newPassword?.message) && <BreachWarning />}
+      <PasswordInput label="Confirm new password" autoComplete="new-password" disabled={busy} error={errors.confirmPassword?.message} {...form.register("confirmPassword")} />
+      <Button type="submit" fullWidth size="lg" loading={busy}>
+        Set new password
+      </Button>
+      <p className="text-center text-sm text-text-secondary">
+        No code?{" "}
+        <TextLink
+          onClick={() => {
+            onView("forgot");
+          }}
+        >
+          Send a new one
+        </TextLink>
+      </p>
+    </form>
+  );
+}
+
+function useExpired(expiresAt: string | undefined): boolean {
+  const [expired, setExpired] = useState(() => expiresAt !== undefined && Date.parse(expiresAt) <= Date.now());
+
+  useEffect(() => {
+    if (expiresAt === undefined) return;
+
+    const remaining = Date.parse(expiresAt) - Date.now();
+
+    if (remaining <= 0) {
+      setExpired(true);
+
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setExpired(true);
+    }, Math.min(remaining, 2_000_000_000));
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [expiresAt]);
+
+  return expired;
+}
+
+function TwoFactorView({ onView, challenge, onChallenge, onAuthenticated }: AuthFlowProps): React.JSX.Element {
+  const methods = challenge?.methods ?? [];
+  const [method, setMethod] = useState<SecondFactorMethod>(methods.includes("TOTP") || methods.length === 0 ? "TOTP" : "BACKUP_CODE");
+  const [code, setCode] = useState("");
+  const [error, setError] = useState<unknown>();
+  const [ended, setEnded] = useState<"expired" | "locked">();
+  const [busy, setBusy] = useState(false);
+  const [welcome, showWelcome] = useWelcome(onAuthenticated);
+  const timedOut = useExpired(challenge?.expiresAt);
+
+  const restart = (): void => {
+    onChallenge?.(undefined);
+    onView("login");
+  };
+
+  const submit = async (value: string): Promise<void> => {
+    if (challenge === undefined || busy || !isCompleteCode(method, value)) return;
+
+    setBusy(true);
+    setError(undefined);
+
+    try {
+      const session = await authSource.completeTwoFactor({ challengeId: challenge.challengeId, code: value.trim() });
+
+      onChallenge?.(undefined);
+      showWelcome(session.user.displayName);
+    } catch (cause) {
+      logger.warn("auth", "Second factor failed", { code: cause instanceof DataSourceError ? cause.code : "UNKNOWN" });
+      setCode("");
+
+      if (cause instanceof DataSourceError && (cause.code === "SESSION_EXPIRED" || cause.code === "UNAUTHENTICATED")) setEnded("expired");
+      else if (isRateLimited(cause)) setEnded("locked");
+      else setError(cause);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (welcome !== undefined) return <Welcome name={welcome} />;
+
+  if (challenge === undefined || timedOut || ended !== undefined) {
+    return (
+      <div role="alert" className="space-y-4 text-center">
+        <span className="mx-auto flex size-12 items-center justify-center rounded-full bg-warning-subtle text-warning">
+          <Clock className="size-6" aria-hidden />
+        </span>
+        <p className="text-md font-semibold">{ended === "locked" ? "Too many attempts" : "This sign-in attempt has expired"}</p>
+        <p className="text-base text-text-secondary">
+          {ended === "locked" ? "For your security the code was not checked again. Sign in again to get a new challenge." : "Codes are only accepted for a few minutes after your password. Sign in again to continue."}
+        </p>
+        <Button fullWidth size="lg" onClick={restart}>
+          Sign in again
+        </Button>
+      </div>
+    );
+  }
+
+  const codeError = error instanceof DataSourceError && error.code === "VALIDATION" ? (error.detail.fields?.code ?? "That code is not right. Check it and try again.") : undefined;
+
+  return (
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        void submit(code);
+      }}
+      className="space-y-4"
+    >
+      <div className="flex items-start gap-3">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-brand-subtle text-brand">
+          <ShieldCheck className="size-4.5" aria-hidden />
+        </span>
+        <p className="text-base text-text-secondary">
+          {method === "TOTP" ? "Enter the 6-digit code from your authenticator app." : "Enter one of the backup codes you saved when you turned on two-step verification."}
+        </p>
+      </div>
+      {codeError === undefined && <FormError error={error} />}
+      <SecondFactorField
+        method={method}
+        onMethod={methods.includes("BACKUP_CODE") && methods.includes("TOTP") ? setMethod : undefined}
+        code={code}
+        onCode={setCode}
+        onComplete={(value) => void submit(value)}
+        error={codeError}
+        disabled={busy}
+        autoFocus
+      />
+      <Button type="submit" fullWidth size="lg" loading={busy} disabled={!isCompleteCode(method, code)}>
+        Verify and sign in
+      </Button>
+      <div className="text-center text-sm">
+        <TextLink onClick={restart}>Cancel and start again</TextLink>
+      </div>
     </form>
   );
 }
@@ -393,6 +651,8 @@ export function AuthFlow(props: AuthFlowProps): React.JSX.Element {
       {view === "register" && <RegisterView {...props} />}
       {view === "verify" && <VerifyView {...props} />}
       {view === "forgot" && <ForgotView {...props} />}
+      {view === "reset" && <ResetView {...props} />}
+      {view === "two-factor" && <TwoFactorView {...props} />}
       {view === "expired" && <ExpiredView {...props} />}
     </div>
   );

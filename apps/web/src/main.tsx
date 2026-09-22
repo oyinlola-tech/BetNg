@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider } from "react-router";
 import { ErrorBoundary, FeatureFlagsProvider, LoggerProvider, ThemeProvider, ToastProvider, installGlobalLogging } from "@betng/ui-web";
 import { createQueryClient } from "./lib/queryClient";
+import { listenForInstallPrompt, registerServiceWorker } from "./pwa/pwa";
 import { initRuntime, logger } from "./services/runtime";
 import "./styles/app.css";
 
@@ -13,6 +14,7 @@ async function start(): Promise<void> {
   if (container === null) throw new Error("The #root element is missing from index.html.");
 
   installGlobalLogging(logger);
+  listenForInstallPrompt();
 
   const { flags } = await initRuntime();
   const { createAppRouter } = await import("./routes");
@@ -44,6 +46,10 @@ async function start(): Promise<void> {
       </LoggerProvider>
     </StrictMode>,
   );
+
+  registerServiceWorker().catch((error: unknown) => {
+    logger.warn("flow", "The service worker could not be registered", { error: error instanceof Error ? error.name : "unknown" });
+  });
 }
 
 start().catch((error: unknown) => {

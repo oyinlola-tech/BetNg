@@ -126,7 +126,7 @@ export function AddBankAccountForm({ onDone }: AddBankAccountFormProps): React.J
   return (
     <form onSubmit={(event) => void verify(event)} noValidate className="space-y-4">
       <FormError error={failure} />
-      {banks.isError && <FormError error={banks.error} />}
+      {banks.isError && <FormError error={banks.error} onRetry={() => void banks.refetch()} />}
       <Field label="Bank" error={form.formState.errors.bankCode?.message} required>
         {(control) => (
           <select

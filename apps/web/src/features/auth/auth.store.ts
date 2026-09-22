@@ -1,6 +1,8 @@
 import { create } from "zustand";
 
-export type AuthView = "login" | "register" | "verify" | "forgot" | "expired";
+import type { TwoFactorChallenge } from "@betng/contracts";
+
+export type AuthView = "login" | "register" | "verify" | "forgot" | "reset" | "two-factor" | "expired";
 
 export type AuthIntentName =
   | "place-bet"
@@ -29,9 +31,12 @@ interface AuthDialogState {
   readonly view: AuthView;
   readonly intent: AuthIntent | undefined;
   readonly pendingEmail: string;
+  /** In memory only: the platform's pending second-factor challenge for this sign-in attempt. */
+  readonly challenge: TwoFactorChallenge | undefined;
   show: (view: AuthView, intent?: AuthIntent) => void;
   setView: (view: AuthView) => void;
   setPendingEmail: (email: string) => void;
+  setChallenge: (challenge: TwoFactorChallenge | undefined) => void;
   close: () => void;
   complete: () => AuthIntent | undefined;
 }
@@ -41,8 +46,9 @@ export const useAuthDialog = create<AuthDialogState>()((set, get) => ({
   view: "login",
   intent: undefined,
   pendingEmail: "",
+  challenge: undefined,
   show: (view, intent) => {
-    set({ open: true, view, intent });
+    set({ open: true, view, intent, challenge: undefined });
   },
   setView: (view) => {
     set({ view });
@@ -50,13 +56,16 @@ export const useAuthDialog = create<AuthDialogState>()((set, get) => ({
   setPendingEmail: (pendingEmail) => {
     set({ pendingEmail });
   },
+  setChallenge: (challenge) => {
+    set({ challenge });
+  },
   close: () => {
-    set({ open: false, intent: undefined });
+    set({ open: false, intent: undefined, challenge: undefined });
   },
   complete: () => {
     const { intent } = get();
 
-    set({ open: false, intent: undefined });
+    set({ open: false, intent: undefined, challenge: undefined });
 
     return intent;
   },

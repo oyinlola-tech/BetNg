@@ -127,6 +127,8 @@ export function fakeAuthSource(session?: CustomerSession): AuthDataSource {
       store.clear();
     },
     requestPasswordReset: unexpected("requestPasswordReset"),
+    completeTwoFactor: unexpected("completeTwoFactor"),
+    confirmPasswordReset: unexpected("confirmPasswordReset"),
   };
 }
 

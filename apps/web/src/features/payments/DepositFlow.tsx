@@ -4,13 +4,14 @@ import { Link } from "react-router";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { ExternalLink, Info, Loader2, RefreshCw, ShieldAlert } from "lucide-react";
-import type { PaymentMethod } from "@betng/contracts";
 import { DataSourceError, createIdempotencyKey, currentCurrency, formatDateTime, isAllowedExternalUrl, parseMoney } from "@betng/ui-core";
 import { Button, Card, FormError, Input, RadioGroup, SectionHeading, useToast } from "@betng/ui-web";
+import { analytics } from "../../services/analytics";
 import { accountServices, env, logger } from "../../services/runtime";
 import { amountField, amountInputValue } from "../wallet/amount";
 import { LinkButton } from "../wallet/LinkButton";
 import { AmountPresets } from "./AmountPresets";
+import { OfflineMoneyNotice } from "./OfflineMoneyNotice";
 import { INITIAL_DEPOSIT, depositReducer, isFinishedPhase, nextAttempt, type DepositPhase, type DepositState } from "./depositMachine";
 import { METHOD_META, PAYMENT_METHODS, forgetInFlight, paymentPath, readInFlight, rememberInFlight } from "./paymentMeta";
 import { usePaymentStatus, useRefreshMoney } from "./paymentQueries";
@@ -84,7 +85,7 @@ export function DepositFlow({ checkoutHosts = env.checkoutHosts, pollDelaysMs, o
   const resumable = useMemo(() => readInFlight(), []);
   const redirected = useRef<string | undefined>(undefined);
 
-  const form = useForm<Values>({ resolver: zodResolver(schema), defaultValues: { amount: "", method: "CARD" }, mode: "onSubmit" });
+  const form = useForm<Values>({ resolver: zodResolver(schema), defaultValues: { amount: "", method: "CARD" }, mode: "onTouched" });
 
   const reference = state.payment?.reference;
   const watching = state.phase === "processing" && reference !== undefined;
@@ -114,7 +115,7 @@ export function DepositFlow({ checkoutHosts = env.checkoutHosts, pollDelaysMs, o
       return;
     }
 
-    const attempt = nextAttempt(state, amount, values.method as PaymentMethod, createIdempotencyKey);
+    const attempt = nextAttempt(state, amount, values.method, createIdempotencyKey);
 
     dispatch({ type: "INITIATE", attempt });
 
@@ -126,6 +127,7 @@ export function DepositFlow({ checkoutHosts = env.checkoutHosts, pollDelaysMs, o
 
       rememberInFlight({ reference: result.payment.reference, direction: "DEPOSIT" });
       dispatch({ type: "INITIATED", result, redirectAllowed });
+      analytics.track("deposit_started", { method: attempt.method.toLowerCase() });
       refresh();
       if (result.checkoutUrl === undefined || redirectAllowed) toast({ kind: "wallet", tone: "info", title: "Payment initiated", message: `Reference ${result.payment.reference}. Waiting for the platform to confirm it.` });
     } catch (cause) {
@@ -166,6 +168,7 @@ export function DepositFlow({ checkoutHosts = env.checkoutHosts, pollDelaysMs, o
         )}
         <Card>
           <form onSubmit={onSubmit} noValidate className="space-y-5" aria-busy={busy}>
+            <OfflineMoneyNotice action="A deposit" />
             <FormError error={state.error} />
             {kycNeeded && (
               <LinkButton to="/kyc" size="sm">
@@ -238,8 +241,7 @@ export function DepositFlow({ checkoutHosts = env.checkoutHosts, pollDelaysMs, o
           <SectionHeading as="h2">{state.instructions.title}</SectionHeading>
           <ol className="type-body mt-3 list-decimal space-y-1.5 pl-5 text-text-primary">
             {state.instructions.lines.map((line, index) => (
-              // eslint-disable-next-line react/no-array-index-key -- instruction lines have no identity beyond their order
-              <li key={index}>{line}</li>
+              <li key={`${String(index)}:${line}`}>{line}</li>
             ))}
           </ol>
           {state.expiresAt !== undefined && <p className="type-small mt-3 text-text-muted">Complete the payment before {formatDateTime(state.expiresAt)}.</p>}

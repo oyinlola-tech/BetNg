@@ -1,10 +1,16 @@
+import { useEffect } from "react";
 import { Link } from "react-router";
 import { ArrowLeft } from "lucide-react";
 import { BetSlipPanel } from "../features/betslip";
 import { usePageMeta } from "../features/seo";
+import { analytics } from "../services/analytics";
 
 export function BetSlipPage(): React.JSX.Element {
   usePageMeta({ title: "Bet slip", noindex: true });
+
+  useEffect(() => {
+    analytics.track("bet_slip_opened", { surface: "page" });
+  }, []);
 
   return (
     <div className="mx-auto w-full max-w-xl space-y-4">

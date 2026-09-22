@@ -68,32 +68,12 @@ export const session: SessionStore<CustomerSession> = {
   },
 };
 
-function notReady(): never {
-  throw new Error("initRuntime() has not completed.");
-}
-
-const pending = new Proxy({}, { get: notReady });
-
-export let dataSource: BetNgDataSource = pending as BetNgDataSource;
-export let authSource: AuthDataSource = pending as AuthDataSource;
-export let accountServices: AccountServicesSource = pending as AccountServicesSource;
-
-let info: RuntimeInfo | undefined;
-let configRead: PlatformConfigView | undefined;
-
-async function createSources(): Promise<void> {
-  if (env.dataSource === "mock" && (import.meta.env.DEV || import.meta.env.VITE_APP_ENV === "test")) {
-    const { createMockSources } = await import("./mockSources");
-    const mock = createMockSources({ session: sessionStorageAdapter, local: localStorageAdapter });
-
-    dataSource = mock.dataSource;
-    authSource = mock.authSource;
-    accountServices = mock.accountServices;
-    adoptSession(mock.authSource.session);
-
-    return;
-  }
-
+function createSources(): {
+  readonly dataSource: BetNgDataSource;
+  readonly authSource: AuthDataSource;
+  readonly accountServices: AccountServicesSource;
+  readonly store: SessionStore<CustomerSession>;
+} {
   const cookieSession = env.authTransport === "cookie";
   const store = createSessionStore<CustomerSession>(SESSION_KEY, cookieSession ? withoutCredential(sessionStorageAdapter) : sessionStorageAdapter);
   const { rest, realtime } = createPlatformClients({
@@ -111,7 +91,7 @@ async function createSources(): Promise<void> {
 
   let lastToken = store.token();
 
-  store.subscribe(() => {
+  if (env.realtimeAuth !== "none") store.subscribe(() => {
     const token = store.token();
 
     if (token === lastToken) return;
@@ -120,23 +100,35 @@ async function createSources(): Promise<void> {
     realtime.replaceConnection();
   });
 
-  dataSource = createPlatformDataSource({
-    rest,
-    realtime,
-    userId: () => store.snapshot().session?.user.id,
-    storage: localStorageAdapter,
-  });
-  authSource = createPlatformAuthSource(rest, store);
-  accountServices = createPlatformAccountServices(rest, store, { uploadHosts: env.uploadHosts });
-  adoptSession(store);
+  return {
+    dataSource: createPlatformDataSource({
+      rest,
+      realtime,
+      userId: () => store.snapshot().session?.user.id,
+      storage: localStorageAdapter,
+      accountChannel: env.realtimeAuth !== "none",
+    }),
+    authSource: createPlatformAuthSource(rest, store),
+    accountServices: createPlatformAccountServices(rest, store, { uploadHosts: env.uploadHosts }),
+    store,
+  };
 }
+
+const platform = createSources();
+
+export let dataSource: BetNgDataSource = platform.dataSource;
+export let authSource: AuthDataSource = platform.authSource;
+export let accountServices: AccountServicesSource = platform.accountServices;
+
+adoptSession(platform.store);
+
+let info: RuntimeInfo | undefined;
+let configRead: PlatformConfigView | undefined;
 
 export async function initRuntime(): Promise<RuntimeInfo> {
   if (info !== undefined) return info;
 
   for (const problem of env.problems) logger.warn("flow", problem);
-
-  await createSources();
 
   try {
     configRead = await dataSource.getPlatformConfig();

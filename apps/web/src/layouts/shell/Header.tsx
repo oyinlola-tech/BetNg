@@ -1,11 +1,12 @@
 import { Link, NavLink, useNavigate } from "react-router";
-import { ArrowLeftRight, Bell, ChevronDown, LogOut, Receipt, Search, Settings, UserRound, Wallet } from "lucide-react";
+import { ArrowLeftRight, Bell, ChevronDown, LogOut, MonitorDown, Receipt, Search, Settings, UserRound, Wallet } from "lucide-react";
 import { formatMoney } from "@betng/ui-core";
 import { Avatar, BrandLogo, Button, Dropdown, FeatureGate, IconButton, cn, useFeatureFlags, useFlag } from "@betng/ui-web";
-import { useAuth } from "../../features/auth";
+import { useAuth, useLogoutFlow } from "../../features/auth";
 import { useSearchDialog } from "../../features/search";
 import { useUnreadNotifications, useWalletSummary } from "../../hooks/shellQueries";
 import { paths } from "../../lib/paths";
+import { useInstallApp } from "./InstallApp";
 import { PRIMARY_NAV } from "./nav";
 import { ThemeMenu } from "./ThemeMenu";
 
@@ -45,8 +46,10 @@ function WalletChip(): React.JSX.Element {
 
 function AccountControl(): React.JSX.Element {
   const navigate = useNavigate();
-  const { status, user, requireAuth, signOut } = useAuth();
+  const { status, user, requireAuth } = useAuth();
+  const logout = useLogoutFlow();
   const walletEnabled = useFlag("walletEnabled");
+  const installApp = useInstallApp();
 
   if (status !== "AUTHENTICATED" || user === undefined) {
     return (
@@ -67,6 +70,7 @@ function AccountControl(): React.JSX.Element {
   };
 
   return (
+    <>
     <Dropdown
       label="Account"
       className="ml-1"
@@ -86,17 +90,18 @@ function AccountControl(): React.JSX.Element {
           : []),
         { key: "account", label: "Account", icon: <UserRound />, onSelect: go(paths.account) },
         { key: "settings", label: "Settings", icon: <Settings />, onSelect: go(paths.settings) },
+        ...(installApp.available ? [{ key: "install", label: "Install app", icon: <MonitorDown />, onSelect: installApp.install }] : []),
         {
           key: "sign-out",
           label: "Sign out",
           icon: <LogOut />,
           tone: "danger" as const,
-          onSelect: () => {
-            void signOut();
-          },
+          onSelect: logout.request,
         },
       ]}
     />
+    {logout.dialog}
+    </>
   );
 }
 
@@ -138,7 +143,9 @@ export function Header(): React.JSX.Element {
             >
               <Search className="size-4 shrink-0" aria-hidden />
               <span className="flex-1 text-left">Search</span>
-              <kbd className="rounded-xs border border-border bg-surface px-1 text-xs font-medium text-text-muted">Ctrl K</kbd>
+              <kbd className="rounded-xs border border-border bg-surface px-1.5 text-xs font-medium text-text-muted" aria-label="Shortcut: slash">
+                /
+              </kbd>
             </button>
             <IconButton label="Search" className="lg:hidden" onClick={showSearch}>
               <Search className="size-5" />

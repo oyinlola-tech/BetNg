@@ -7,6 +7,7 @@ import {
 } from "@tanstack/react-query";
 import type {
   NotificationPreferences,
+  NotificationView,
   TransactionQuery,
 } from "@betng/ui-core";
 import { useSession } from "@betng/ui-web";
@@ -88,7 +89,26 @@ export function useMarkNotificationsRead() {
   return useMutation({
     mutationFn: (ids?: readonly string[]) =>
       dataSource.markNotificationsRead(ids),
-    onSuccess: () => client.invalidateQueries({ queryKey: keys.notifications }),
+    onMutate: async (ids?: readonly string[]) => {
+      await client.cancelQueries({ queryKey: keys.notifications });
+
+      const previous = client.getQueryData<readonly NotificationView[]>(keys.notifications);
+
+      if (previous !== undefined) {
+        const targets = ids === undefined ? undefined : new Set(ids);
+
+        client.setQueryData<readonly NotificationView[]>(
+          keys.notifications,
+          previous.map((item) => (item.read || (targets !== undefined && !targets.has(item.id)) ? item : { ...item, read: true })),
+        );
+      }
+
+      return { previous };
+    },
+    onError: (_error, _ids, context) => {
+      if (context?.previous !== undefined) client.setQueryData(keys.notifications, context.previous);
+    },
+    onSettled: () => client.invalidateQueries({ queryKey: keys.notifications }),
   });
 }
 
