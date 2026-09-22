@@ -94,6 +94,7 @@ const DISPLAY_TYPE: Readonly<
   TICKET_PAYOUT: "PAYOUT",
   BET_REFUND: "REFUND",
   TICKET_CANCEL: "REFUND",
+  WITHDRAWAL_REVERSAL: "REFUND",
 });
 
 const CONTRACT_DISPLAY: Readonly<Record<TransactionType, PlatformDisplayType>> = Object.freeze({

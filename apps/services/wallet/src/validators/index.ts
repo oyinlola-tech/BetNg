@@ -15,3 +15,20 @@ export type {
   FundsRequest,
   TransactionPageRequest,
 } from "./wallet.validator.js";
+export {
+  adminPaymentsQuerySchema,
+  bankAccountVerifySchema,
+  cashMovementSchema,
+  closeShiftSchema,
+  depositInitiateSchema,
+  depositVerifySchema,
+  historyQuerySchema,
+  openShiftSchema,
+  referenceSchema,
+  reviewSchema,
+  saveBankAccountSchema,
+  shiftListQuerySchema,
+  statementSchema,
+  uuidSchema,
+  withdrawalSchema,
+} from "./payments.validator.js";

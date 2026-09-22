@@ -1,5 +1,5 @@
 export { createApp } from "./app.js";
-export type { WalletApp } from "./app.js";
+export type { WalletApp, WalletAppOverrides } from "./app.js";
 export {
   DEFAULT_PORT,
   loadWalletConfig,

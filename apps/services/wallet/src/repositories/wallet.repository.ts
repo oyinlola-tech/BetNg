@@ -4,14 +4,9 @@ import { toDatabaseErrorInfo } from "@zudojs/database";
 import type { Logger } from "@betng/service-kit";
 import type { WalletSettings } from "../configs/index.js";
 import { OPENING_IDEMPOTENCY_KEY } from "../constants/index.js";
-import {
-  BalanceLimitError,
-  IdempotencyConflictError,
-  InsufficientFundsError,
-  WalletDatabaseError,
-  WalletFrozenError,
-  WalletOwnerNotFoundError,
-} from "../errors/index.js";
+import { WalletDatabaseError, WalletOwnerNotFoundError } from "../errors/index.js";
+import { postWithinTransaction, toAccount, toEntry } from "./ledger.js";
+import { pageWindow } from "../utils/page.util.js";
 import { join, sql } from "../databases/index.js";
 import type { Sql } from "../databases/index.js";
 import type { Prisma, PrismaClient } from "../generated/prisma/client.js";
@@ -35,15 +30,9 @@ import type {
 } from "../interfaces/index.js";
 
 /** Debits on one account queue behind its row lock, so a burst needs longer than Prisma's 2 s default. */
-const TRANSACTION_OPTIONS = Object.freeze({ maxWait: 10_000, timeout: 15_000 });
-
-const MAX_SAFE_KOBO = BigInt(Number.MAX_SAFE_INTEGER);
+export const TRANSACTION_OPTIONS = Object.freeze({ maxWait: 10_000, timeout: 15_000 });
 
 const ACTIVE_CUSTOMER_STATUS = "ACTIVE";
-
-type AccountRow = Prisma.WalletAccountGetPayload<Record<string, never>>;
-
-type EntryRow = Prisma.WalletTransactionGetPayload<Record<string, never>>;
 
 interface ShopEntryRow {
   readonly id: string;
@@ -149,39 +138,6 @@ interface PlatformEntryRow {
   readonly amount: bigint;
   readonly reference: string | null;
   readonly created_at: Date;
-}
-
-function toAccount(row: AccountRow): AccountRecord {
-  return {
-    id: row.id,
-    ownerType: row.ownerType,
-    ownerId: row.ownerId,
-    balance: row.balance,
-    reserved: row.reserved,
-    currency: row.currency,
-    version: row.version,
-    frozenAt: row.frozenAt,
-    createdAt: row.createdAt,
-    updatedAt: row.updatedAt,
-  };
-}
-
-function toEntry(row: EntryRow): EntryRecord {
-  return {
-    id: row.id,
-    accountId: row.accountId,
-    type: row.type,
-    sequence: row.sequence,
-    amount: row.amount,
-    currency: row.currency,
-    balanceAfter: row.balanceAfter,
-    idempotencyKey: row.idempotencyKey,
-    reference: row.reference,
-    note: row.note,
-    actorId: row.actorId,
-    correctsId: row.correctsId,
-    createdAt: row.createdAt,
-  };
 }
 
 /** An admin id is refused first: the operator's result lives in settlement's operator ledger, never in a wallet. */
@@ -319,82 +275,19 @@ export function createWalletRepository(
 
     const opened = await getOrOpenAccount(input.ownerType, input.ownerId);
 
-    return prisma.$transaction(async (tx) => {
-      // Row lock: the idempotency check, funds check, insert and balance update see one consistent account.
-      await tx.$queryRaw`
-        SELECT "id" FROM "wallet"."wallet_accounts"
-        WHERE "id" = ${opened.id}::uuid FOR UPDATE`;
-
-      const account = await tx.walletAccount.findUniqueOrThrow({
-        where: { id: opened.id },
-      });
-
-      const existing = await tx.walletTransaction.findUnique({
-        where: {
-          accountId_idempotencyKey: {
-            accountId: account.id,
-            idempotencyKey: input.idempotencyKey,
-          },
-        },
-      });
-
-      if (existing !== null) {
-        if (existing.type !== input.type || existing.amount !== input.amount) {
-          throw new IdempotencyConflictError();
-        }
-
-        return {
-          account: toAccount(account),
-          entry: toEntry(existing),
-          duplicate: true,
-        };
-      }
-
-      if (account.frozenAt !== null) {
-        throw new WalletFrozenError();
-      }
-
-      const available = account.balance - account.reserved;
-
-      if (input.amount < 0n && available + input.amount < 0n) {
-        throw new InsufficientFundsError(
-          Number(available),
-          Number(-input.amount),
-        );
-      }
-
-      const balanceAfter = account.balance + input.amount;
-
-      if (balanceAfter > MAX_SAFE_KOBO) {
-        throw new BalanceLimitError();
-      }
-
-      const entry = await tx.walletTransaction.create({
-        data: {
-          accountId: account.id,
+    return prisma.$transaction(
+      async (tx) =>
+        postWithinTransaction(tx, {
+          accountId: opened.id,
           type: input.type,
-          sequence: account.version + 1,
           amount: input.amount,
-          currency: account.currency,
-          balanceAfter,
           idempotencyKey: input.idempotencyKey,
-          reference: input.reference ?? null,
-          note: input.note ?? null,
-          actorId: input.actorId ?? null,
-        },
-      });
-
-      const updated = await tx.walletAccount.update({
-        where: { id: account.id },
-        data: { balance: balanceAfter, version: { increment: 1 } },
-      });
-
-      return {
-        account: toAccount(updated),
-        entry: toEntry(entry),
-        duplicate: false,
-      };
-    }, TRANSACTION_OPTIONS);
+          reference: input.reference,
+          note: input.note,
+          actorId: input.actorId,
+        }),
+      TRANSACTION_OPTIONS,
+    );
   }
 
   async function listEntries(
@@ -415,7 +308,7 @@ export function createWalletRepository(
     filter: EntryPageFilter,
   ): Promise<EntryPage> {
     const where = pageConditions(accountId, filter);
-    const offset = (filter.page - 1) * filter.pageSize;
+    const { pageSize, offset } = pageWindow(filter.page, filter.pageSize);
 
     const [rows, counted] = await Promise.all([
       prisma.$queryRaw<PagedEntryRow[]>`
@@ -425,7 +318,7 @@ export function createWalletRepository(
         FROM "wallet"."wallet_transactions" t
         WHERE ${where}
         ORDER BY ${PAGE_ORDER[filter.sort][filter.direction]}
-        LIMIT ${filter.pageSize}::int OFFSET ${offset}::bigint`,
+        LIMIT ${pageSize}::int OFFSET ${offset}::bigint`,
       prisma.$queryRaw<{ total: number }[]>`
         SELECT COUNT(*)::int AS "total"
         FROM "wallet"."wallet_transactions" t

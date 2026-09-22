@@ -78,6 +78,8 @@ export interface WalletControllerOptions {
   readonly commandBus: CommandBus;
   readonly queryBus: QueryBus;
   readonly settings: WalletSettings;
+  /** Withdrawals debited from the wallet but not yet settled by the provider. */
+  readonly pendingWithdrawals?: (userId: string) => Promise<number>;
 }
 
 const SELF = "me";
@@ -164,18 +166,30 @@ export function createWalletController(
 ): WalletController {
   const { commandBus, queryBus, settings } = options;
 
+  function requireSimulatedFunds(): void {
+    if (!settings.payments.simulatedFundsEnabled) {
+      throw notFound("Play-money top-ups are not available; use a payment.", {
+        code: ErrorCodes.NOT_FOUND,
+        expose: true,
+      });
+    }
+  }
+
   const depositSchema = createFundsRequestSchema(settings.depositMaxKobo);
   const withdrawalSchema = createFundsRequestSchema(settings.withdrawalMaxKobo);
 
   return {
     getWallet: async (context) => {
       const customerId = readableCustomerId(context);
-
-      return toWalletDto(
+      const wallet = toWalletDto(
         await queryBus.execute<GetWalletQuery, AccountRecord>(
           new GetWalletQuery("CUSTOMER", customerId),
         ),
       );
+
+      return options.pendingWithdrawals === undefined
+        ? wallet
+        : { ...wallet, pending: await options.pendingWithdrawals(customerId) };
     },
 
     listTransactions: async (context) => {
@@ -233,6 +247,8 @@ export function createWalletController(
     },
 
     deposit: async (context) => {
+      requireSimulatedFunds();
+
       const actor = requireCustomer(context);
       const request = parseBody(context.request, depositSchema);
 
@@ -248,6 +264,8 @@ export function createWalletController(
     },
 
     withdraw: async (context) => {
+      requireSimulatedFunds();
+
       const actor = requireCustomer(context);
       const request = parseBody(context.request, withdrawalSchema);
 

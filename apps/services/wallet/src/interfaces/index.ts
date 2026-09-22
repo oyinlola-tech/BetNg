@@ -11,6 +11,7 @@ export type {
   OverviewRecord,
   OwnerType,
   PlatformEntryRecord,
+  PostableEntryType,
   PostEntryInput,
   PostEntryResult,
   ShopEntryRecord,

@@ -1,10 +1,13 @@
 import process from "node:process";
+import { loadPaymentSettings, usesRealProvider } from "./payments.config.js";
+import type { PaymentSettings } from "./payments.config.js";
 
 export interface WalletSettings {
   readonly welcomeGrantKobo: bigint;
   readonly shopOpeningFloatKobo: bigint;
   readonly depositMaxKobo: number;
   readonly withdrawalMaxKobo: number;
+  readonly payments: PaymentSettings;
 }
 
 const DEFAULTS = Object.freeze({
@@ -42,10 +45,19 @@ function readKobo(
 export function loadWalletSettings(
   env: Readonly<Record<string, string | undefined>> = process.env,
 ): WalletSettings {
+  const payments = loadPaymentSettings(env);
+  const realMoney = usesRealProvider(payments) || payments.environment === "production";
+  const welcomeGrant = realMoney && (env["WELCOME_GRANT_KOBO"] ?? "").trim() === "" ? 0 : readKobo(env, "WELCOME_GRANT_KOBO", 0);
+
+  if (realMoney && welcomeGrant > 0) {
+    throw new Error("WELCOME_GRANT_KOBO must be 0 when wallets hold real money.");
+  }
+
   return Object.freeze({
-    welcomeGrantKobo: BigInt(readKobo(env, "WELCOME_GRANT_KOBO", 0)),
+    welcomeGrantKobo: BigInt(welcomeGrant),
     shopOpeningFloatKobo: BigInt(readKobo(env, "SHOP_OPENING_FLOAT_KOBO", 0)),
     depositMaxKobo: readKobo(env, "SIMULATED_DEPOSIT_MAX_KOBO", 1),
     withdrawalMaxKobo: readKobo(env, "SIMULATED_WITHDRAWAL_MAX_KOBO", 1),
+    payments,
   });
 }

@@ -7,7 +7,8 @@ import { createApp } from "../src/app.js";
 import type { WalletApp } from "../src/app.js";
 import { loadWalletConfig, loadWalletSettings } from "../src/configs/index.js";
 import type { WalletSettings } from "../src/configs/index.js";
-import { createWalletDatabase } from "../src/databases/index.js";
+import { createWalletDatabase, sql } from "../src/databases/index.js";
+import type { Sql } from "../src/databases/index.js";
 import { PrismaClient } from "../src/generated/prisma/client.js";
 import type { WalletRepository } from "../src/interfaces/index.js";
 import { createWalletRepository } from "../src/repositories/index.js";
@@ -29,23 +30,23 @@ export const WELCOME_GRANT = 10_000_000;
 export const OPENING_FLOAT = 50_000_000;
 
 /** The identity tables the wallet reads across schemas, with the columns docs/architecture.md §8 fixes. */
-const IDENTITY_DDL = [
-  `CREATE TABLE IF NOT EXISTS identity.customers (
+const IDENTITY_DDL: readonly Sql[] = [
+  sql`CREATE TABLE IF NOT EXISTS identity.customers (
      id uuid PRIMARY KEY, email text NOT NULL, display_name text NOT NULL, phone text,
      status text NOT NULL, email_verified_at timestamptz, last_active_at timestamptz NOT NULL DEFAULT now(),
      created_at timestamptz NOT NULL DEFAULT now())`,
-  `CREATE TABLE IF NOT EXISTS identity.admin_users (
+  sql`CREATE TABLE IF NOT EXISTS identity.admin_users (
      id uuid PRIMARY KEY, email text NOT NULL, name text NOT NULL, role text NOT NULL,
      status text NOT NULL, created_at timestamptz NOT NULL DEFAULT now())`,
-  `CREATE TABLE IF NOT EXISTS identity.shops (
+  sql`CREATE TABLE IF NOT EXISTS identity.shops (
      id uuid PRIMARY KEY, code text NOT NULL, name text NOT NULL, address text NOT NULL, phone text NOT NULL,
      email text NOT NULL, status text NOT NULL, owner_name text NOT NULL,
      created_at timestamptz NOT NULL DEFAULT now())`,
-  `CREATE TABLE IF NOT EXISTS identity.cashiers (
+  sql`CREATE TABLE IF NOT EXISTS identity.cashiers (
      id uuid PRIMARY KEY, shop_id uuid NOT NULL, username text NOT NULL, display_name text NOT NULL,
      role text NOT NULL, status text NOT NULL, last_active_at timestamptz,
      created_at timestamptz NOT NULL DEFAULT now())`,
-  `GRANT SELECT ON ALL TABLES IN SCHEMA identity TO betng_reader`,
+  sql`GRANT SELECT ON ALL TABLES IN SCHEMA identity TO betng_reader`,
 ];
 
 export interface Fixtures {
@@ -63,7 +64,7 @@ export async function createFixtures(): Promise<Fixtures> {
   });
 
   for (const statement of IDENTITY_DDL) {
-    await superuser.$executeRawUnsafe(statement);
+    await superuser.$executeRaw(statement);
   }
 
   return {
@@ -117,7 +118,7 @@ const TEST_ENV = Object.freeze({
   WALLET_DATABASE_URL: WALLET_URL,
 });
 
-export const TEST_SETTINGS: WalletSettings = loadWalletSettings({});
+export const TEST_SETTINGS: WalletSettings = loadWalletSettings({ NODE_ENV: "test" });
 
 export interface RunningApp {
   readonly app: WalletApp;
@@ -195,7 +196,7 @@ export interface ApiResponse {
 
 /** `external: true` omits the internal token, as a peer outside the platform would. */
 export async function api(
-  method: "GET" | "POST",
+  method: "GET" | "POST" | "DELETE",
   path: string,
   options: ApiOptions = {},
 ): Promise<ApiResponse> {

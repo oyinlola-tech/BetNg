@@ -17,7 +17,11 @@ export type LedgerEntryType =
   | CreditType
   | DebitType
   | "WELCOME_GRANT"
-  | "OPENING_FLOAT";
+  | "OPENING_FLOAT"
+  | "WITHDRAWAL_REVERSAL";
+
+/** Everything but the opening grants, which only account opening posts. */
+export type PostableEntryType = Exclude<LedgerEntryType, "WELCOME_GRANT" | "OPENING_FLOAT">;
 
 export interface AccountRecord {
   readonly id: string;
@@ -52,13 +56,13 @@ export interface EntryRecord {
 export interface PostEntryInput {
   readonly ownerType: OwnerType;
   readonly ownerId: string;
-  readonly type: CreditType | DebitType;
+  readonly type: PostableEntryType;
   /** Signed kobo: positive credits, negative debits. */
   readonly amount: bigint;
   readonly idempotencyKey: string;
-  readonly reference?: string;
-  readonly note?: string;
-  readonly actorId?: string;
+  readonly reference?: string | undefined;
+  readonly note?: string | undefined;
+  readonly actorId?: string | undefined;
 }
 
 export interface PostEntryResult {

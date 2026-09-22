@@ -385,3 +385,57 @@ describe("paged ledger", () => {
     expect((own.body as PageBody).items[0]?.type).toBe("WELCOME_GRANT");
   });
 });
+
+describe("pageEntries bounds in the repository", () => {
+  async function accountId(): Promise<string> {
+    return (await direct.wallets.getOrOpenAccount("CUSTOMER", customerId)).id;
+  }
+
+  async function repoPage(pageNumber: number, pageSize: number) {
+    return direct.wallets.pageEntries(await accountId(), {
+      page: pageNumber,
+      pageSize,
+      sort: "createdAt",
+      direction: "desc",
+    });
+  }
+
+  it("clamps page and pageSize so no caller reaches a negative or unbounded OFFSET", async () => {
+    const first = await repoPage(1, 3);
+
+    for (const [pageNumber, pageSize] of [
+      [0, 3],
+      [-5, 3],
+      [Number.NaN, 3],
+      [0.5, 3],
+    ] as const) {
+      expect((await repoPage(pageNumber, pageSize)).items.map((item) => item.id)).toEqual(
+        first.items.map((item) => item.id),
+      );
+    }
+
+    expect((await repoPage(1, 0)).items).toHaveLength(1);
+    expect((await repoPage(1, -10)).items).toHaveLength(1);
+    expect((await repoPage(1, Number.POSITIVE_INFINITY)).items).toHaveLength(Math.min(TOTAL, 20));
+    expect((await repoPage(1, 10_000)).items).toHaveLength(TOTAL);
+  });
+
+  it("answers an empty page past the end with the true total", async () => {
+    const beyond = await repoPage(50, 100);
+
+    expect(beyond.items).toEqual([]);
+    expect(beyond.total).toBe(TOTAL);
+
+    const stranger = await fixtures.customer();
+    const account = await direct.wallets.getOrOpenAccount("CUSTOMER", stranger);
+    const none = await direct.wallets.pageEntries(account.id, {
+      page: 1,
+      pageSize: 20,
+      sort: "createdAt",
+      direction: "desc",
+      search: "no-such-reference",
+    });
+
+    expect(none).toEqual({ items: [], total: 0 });
+  });
+});

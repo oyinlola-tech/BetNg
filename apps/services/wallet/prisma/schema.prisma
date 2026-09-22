@@ -57,6 +57,7 @@ enum TransactionType {
   TICKET_CANCEL
   CASH_IN
   CASH_OUT
+  WITHDRAWAL_REVERSAL
 
   @@map("transaction_type")
 }
@@ -96,4 +97,155 @@ model WalletTransaction {
   @@index([createdAt])
   @@index([reference])
   @@map("wallet_transactions")
+}
+
+/// One row per deposit or withdrawal; identity reads it for deposit-limit usage. Status moves are guarded by a trigger.
+model Payment {
+  id                  String    @id @db.Uuid
+  reference           String    @unique @db.VarChar(64)
+  userId              String    @map("user_id") @db.Uuid
+  direction           String
+  status              String
+  amount              BigInt
+  fee                 BigInt    @default(0)
+  netAmount           BigInt    @map("net_amount")
+  currency            String    @default("NGN") @db.Char(3)
+  method              String?
+  provider            String
+  providerReference   String?   @map("provider_reference") @db.VarChar(120)
+  providerEventIds    String[]  @default([]) @map("provider_event_ids")
+  checkoutUrl         String?   @map("checkout_url")
+  instructions        Json?
+  expiresAt           DateTime? @map("expires_at") @db.Timestamptz(3)
+  idempotencyKey      String    @map("idempotency_key") @db.VarChar(120)
+  bankAccountId       String?   @map("bank_account_id") @db.Uuid
+  failureReason       String?   @map("failure_reason") @db.VarChar(200)
+  errorCode           String?   @map("error_code") @db.VarChar(60)
+  reviewStatus        String    @default("NOT_REQUIRED") @map("review_status")
+  reviewedBy          String?   @map("reviewed_by") @db.VarChar(64)
+  reviewedAt          DateTime? @map("reviewed_at") @db.Timestamptz(3)
+  reviewReason        String?   @map("review_reason") @db.VarChar(300)
+  flaggedAt           DateTime? @map("flagged_at") @db.Timestamptz(3)
+  flagReason          String?   @map("flag_reason") @db.VarChar(200)
+  providerChecks      Int       @default(0) @map("provider_checks")
+  transferRequestedAt DateTime? @map("transfer_requested_at") @db.Timestamptz(3)
+  ledgerEntryId       String?   @map("ledger_entry_id") @db.Uuid
+  reversalEntryId     String?   @map("reversal_entry_id") @db.Uuid
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime  @default(now()) @map("updated_at") @db.Timestamptz(3)
+  completedAt         DateTime? @map("completed_at") @db.Timestamptz(3)
+
+  bankAccount BankAccount? @relation(fields: [bankAccountId], references: [id], onDelete: Restrict)
+
+  @@unique([userId, idempotencyKey])
+  @@index([userId, createdAt])
+  @@index([status, direction])
+  @@index([createdAt])
+  @@index([provider, providerReference])
+  @@index([bankAccountId])
+  @@map("payments")
+}
+
+/// The full account number exists only as AES-256-GCM ciphertext; reads show `last4`.
+model BankAccount {
+  id                     String    @id @db.Uuid
+  userId                 String    @map("user_id") @db.Uuid
+  provider               String
+  bankCode               String    @map("bank_code") @db.VarChar(10)
+  bankName               String    @map("bank_name") @db.VarChar(80)
+  accountNumberEncrypted String?   @map("account_number_encrypted")
+  accountNumberHash      String    @map("account_number_hash") @db.Char(64)
+  last4                  String    @db.Char(4)
+  accountName            String    @map("account_name") @db.VarChar(120)
+  recipientCode          String?   @map("recipient_code") @db.VarChar(120)
+  isDefault              Boolean   @default(false) @map("is_default")
+  verifiedAt             DateTime  @map("verified_at") @db.Timestamptz(3)
+  deletedAt              DateTime? @map("deleted_at") @db.Timestamptz(3)
+  createdAt              DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt              DateTime  @default(now()) @map("updated_at") @db.Timestamptz(3)
+
+  payments Payment[]
+
+  @@index([userId, createdAt])
+  @@map("bank_accounts")
+}
+
+model BankAccountVerification {
+  id                     String    @id @db.Uuid
+  userId                 String    @map("user_id") @db.Uuid
+  provider               String
+  bankCode               String    @map("bank_code") @db.VarChar(10)
+  bankName               String    @map("bank_name") @db.VarChar(80)
+  accountNumberEncrypted String    @map("account_number_encrypted")
+  accountNumberHash      String    @map("account_number_hash") @db.Char(64)
+  last4                  String    @db.Char(4)
+  accountName            String    @map("account_name") @db.VarChar(120)
+  expiresAt              DateTime  @map("expires_at") @db.Timestamptz(3)
+  consumedAt             DateTime? @map("consumed_at") @db.Timestamptz(3)
+  createdAt              DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([userId, createdAt])
+  @@map("bank_account_verifications")
+}
+
+/// Provider event ids already seen, for webhook idempotency. No payload is stored.
+model PaymentWebhookEvent {
+  id               String    @id @db.Uuid
+  provider         String
+  eventId          String    @map("event_id") @db.VarChar(200)
+  eventType        String    @map("event_type") @db.VarChar(80)
+  paymentReference String?   @map("payment_reference") @db.VarChar(120)
+  outcome          String?   @db.VarChar(40)
+  receivedAt       DateTime  @default(now()) @map("received_at") @db.Timestamptz(3)
+  processedAt      DateTime? @map("processed_at") @db.Timestamptz(3)
+
+  @@unique([provider, eventId])
+  @@map("payment_webhook_events")
+}
+
+model StatementJob {
+  id            String    @id @db.Uuid
+  userId        String    @map("user_id") @db.Uuid
+  format        String
+  fromDate      DateTime  @map("from_date") @db.Date
+  toDate        DateTime  @map("to_date") @db.Date
+  types         String[]  @default([])
+  status        String    @default("QUEUED")
+  storageKey    String?   @map("storage_key") @db.VarChar(300)
+  failureReason String?   @map("failure_reason") @db.VarChar(200)
+  claimedAt     DateTime? @map("claimed_at") @db.Timestamptz(3)
+  attempts      Int       @default(0)
+  readyAt       DateTime? @map("ready_at") @db.Timestamptz(3)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime  @default(now()) @map("updated_at") @db.Timestamptz(3)
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+  @@map("statement_jobs")
+}
+
+/// One OPEN or CLOSING shift per cashier (partial unique index in the migration).
+model CashierShift {
+  id                  String    @id @db.Uuid
+  shopId              String    @map("shop_id") @db.Uuid
+  cashierId           String    @map("cashier_id") @db.Uuid
+  cashierName         String    @map("cashier_name") @db.VarChar(60)
+  status              String    @default("OPEN")
+  openingFloat        BigInt    @map("opening_float")
+  openedAt            DateTime  @default(now()) @map("opened_at") @db.Timestamptz(3)
+  closedAt            DateTime? @map("closed_at") @db.Timestamptz(3)
+  totals              Json?
+  counted             Json?
+  countedCash         BigInt?   @map("counted_cash")
+  expectedCash        BigInt?   @map("expected_cash")
+  discrepancy         BigInt?
+  discrepancyNote     String?   @map("discrepancy_note") @db.VarChar(300)
+  openIdempotencyKey  String    @map("open_idempotency_key") @db.VarChar(120)
+  closeIdempotencyKey String?   @map("close_idempotency_key") @db.VarChar(120)
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime  @default(now()) @map("updated_at") @db.Timestamptz(3)
+
+  @@unique([cashierId, openIdempotencyKey], map: "cashier_shifts_open_key")
+  @@index([shopId, openedAt], map: "cashier_shifts_shop_opened_idx")
+  @@map("cashier_shifts")
 }

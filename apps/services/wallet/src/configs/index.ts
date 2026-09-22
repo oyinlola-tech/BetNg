@@ -7,3 +7,13 @@ export {
 
 export { loadWalletSettings } from "./wallet.config.js";
 export type { WalletSettings } from "./wallet.config.js";
+export { loadPaymentSettings, usesRealProvider } from "./payments.config.js";
+export type {
+  FlutterwaveSettings,
+  PaymentSettings,
+  PaystackSettings,
+  StorageSettings,
+  WalletEnvironment,
+  WithdrawalFeeSettings,
+} from "./payments.config.js";
+export { Secret } from "./secret.js";

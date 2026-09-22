@@ -67,6 +67,7 @@ export const LEDGER_ENTRY_TYPES = Object.freeze([
   "TICKET_CANCEL",
   "CASH_IN",
   "CASH_OUT",
+  "WITHDRAWAL_REVERSAL",
 ] as const);
 
 /** The ledger is append-only and records only what happened, so every entry is COMPLETED. */
@@ -83,6 +84,8 @@ export const MAX_LIST_LIMIT = 200;
 export const DEFAULT_PAGE_SIZE = 20;
 
 export const MAX_PAGE = 100_000;
+
+export const MAX_PAGE_SIZE = 100;
 
 export const WALLET_PERMISSION = Object.freeze({
   ADMIN_READ: "wallet:read",
