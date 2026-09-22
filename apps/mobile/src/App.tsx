@@ -12,6 +12,7 @@ import {
 import { openAuth, useAuth } from "./hooks/useAuth";
 import { RootNavigator } from "./navigation/RootNavigator";
 import { useBetSlip } from "./stores/betslip.store";
+import { hydrateDevicePreferences } from "./stores/preferences.store";
 import { initRuntime } from "./services/dataSource";
 import { crashReporter } from "./platform";
 import { logger } from "./services/logger";
@@ -51,6 +52,7 @@ export function App(): React.JSX.Element {
     hydrateStorage()
       .then(() => {
         useThemeStore.setState((s) => ({ ...s }));
+        hydrateDevicePreferences();
 
         return initRuntime();
       })

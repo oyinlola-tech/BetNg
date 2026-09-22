@@ -26,7 +26,6 @@ import { createSecureSessionStorage } from "../platform/secureStorage";
 export interface RuntimeInfo {
   readonly flags: FeatureFlags;
   readonly config: PlatformConfigView | undefined;
-  readonly mode: "mock" | "platform";
 }
 
 const SESSION_KEY = "betng.session.customer";
@@ -62,22 +61,11 @@ export function getRuntimeInfo(): RuntimeInfo {
   return required(info);
 }
 
-async function createSources(): Promise<RuntimeInfo["mode"]> {
+async function createSources(): Promise<void> {
   if (!secureStorage.persistent) logger.warn("flow", "Secure storage is unavailable in this build; the session will not persist across restarts.");
 
   removeStored(SESSION_KEY);
   await secureSession.hydrate([SESSION_KEY]);
-
-  if (env.dataSource === "mock" && (__DEV__ || env.appEnv === "test")) {
-    const { createMockSources } = await import("./mockSources");
-    const mock = createMockSources({ session: secureSession.storage, local: storage });
-
-    dataSource = withOfflineCache(mock.dataSource, offlineCache);
-    authSource = mock.authSource;
-    accountServices = mock.accountServices;
-
-    return "mock";
-  }
 
   const session = createSessionStore<CustomerSession>(SESSION_KEY, secureSession.storage);
   const { rest, realtime } = createPlatformClients({
@@ -91,7 +79,7 @@ async function createSources(): Promise<RuntimeInfo["mode"]> {
 
   let lastToken = session.token();
 
-  session.subscribe(() => {
+  if (env.realtimeAuth !== "none") session.subscribe(() => {
     const token = session.token();
 
     if (token !== lastToken) {
@@ -112,8 +100,6 @@ async function createSources(): Promise<RuntimeInfo["mode"]> {
   );
   authSource = createPlatformAuthSource(rest, session);
   accountServices = createPlatformAccountServices(rest, session, { uploadHosts: env.uploadHosts });
-
-  return "platform";
 }
 
 export async function initRuntime(): Promise<RuntimeInfo> {
@@ -121,7 +107,7 @@ export async function initRuntime(): Promise<RuntimeInfo> {
 
   for (const problem of env.problems) logger.warn("flow", problem);
 
-  const mode = await createSources();
+  await createSources();
   let config: PlatformConfigView | undefined;
 
   try {
@@ -132,7 +118,7 @@ export async function initRuntime(): Promise<RuntimeInfo> {
     logger.warn("flow", "Platform configuration could not be read; defaults are in use.");
   }
 
-  info = { mode, config, flags: config === undefined ? resolveFlags(undefined, env.flagOverrides) : resolveFlags(config.features, env.flagOverrides) };
+  info = { config, flags: config === undefined ? resolveFlags(undefined, env.flagOverrides) : resolveFlags(config.features, env.flagOverrides) };
 
   return info;
 }

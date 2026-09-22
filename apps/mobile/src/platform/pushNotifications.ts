@@ -7,6 +7,8 @@ export interface PushNotifications {
   permission(): Promise<PushPermission>;
   requestPermission(): Promise<PushPermission>;
   deviceToken(): Promise<string | undefined>;
+  /** Calls back with the data payload of a notification the customer tapped, including the one that launched the app. */
+  onTap(listener: (data: unknown) => void): () => void;
 }
 
 /** expo-notifications is not installed in this workspace. */
@@ -15,6 +17,7 @@ export function createUnavailablePushNotifications(): PushNotifications {
     permission: () => Promise.resolve("unavailable"),
     requestPermission: () => Promise.resolve("unavailable"),
     deviceToken: () => Promise.resolve(undefined),
+    onTap: () => () => undefined,
   };
 }
 

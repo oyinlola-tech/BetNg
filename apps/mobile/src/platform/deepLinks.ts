@@ -2,6 +2,10 @@ export type DeepLinkTarget =
   | { readonly name: "Home" }
   | { readonly name: "Match"; readonly matchId: string }
   | { readonly name: "Results" }
+  /* In-app targets only (notification taps); no external link resolves to these. */
+  | { readonly name: "Bets" }
+  | { readonly name: "Account" }
+  | { readonly name: "Wallet" }
   | { readonly name: "Bet"; readonly betId: string }
   | { readonly name: "Payment"; readonly reference: string };
 

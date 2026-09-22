@@ -3,7 +3,6 @@ import { readClientEnv, type RawEnv } from "@betng/ui-core";
 
 interface ExpoExtra {
   readonly appEnv?: string;
-  readonly dataSource?: string;
   readonly apiUrl?: string;
   readonly realtimeUrl?: string;
   readonly realtimeTransport?: string;
@@ -20,7 +19,6 @@ const extra = (Constants.expoConfig?.extra ?? {}) as ExpoExtra;
 const raw: RawEnv = {
   PROD: !__DEV__,
   VITE_APP_ENV: extra.appEnv,
-  VITE_DATA_SOURCE: extra.dataSource,
   VITE_API_URL: extra.apiUrl,
   VITE_WS_URL: extra.realtimeUrl,
   VITE_REALTIME_TRANSPORT: extra.realtimeTransport,

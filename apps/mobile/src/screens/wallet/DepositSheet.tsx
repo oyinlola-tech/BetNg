@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Linking, View } from "react-native";
 import type { DepositInitiation, PaymentMethod } from "@betng/contracts";
 import { formatMoney, parseStakeInput } from "@betng/ui-core";
@@ -6,6 +6,7 @@ import { Button, PaymentStatusBadge, Text, TextField } from "../../components";
 import { env } from "../../configs/env";
 import { useCanTransact } from "../../hooks/useConnectivity";
 import { presentError } from "../../lib/errors";
+import { createAttemptKey } from "../../lib/attemptKey";
 import { createOperationKey } from "../../lib/ids";
 import { paymentSummary } from "../../lib/payments";
 import { isAllowedCheckoutUrl } from "../../platform/externalUrl";
@@ -36,20 +37,16 @@ export function DepositSheet({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>(undefined);
   const [started, setStarted] = useState<DepositInitiation | undefined>(undefined);
-  const key = useRef<string | undefined>(undefined);
+  const [attempt] = useState(() => createAttemptKey(createOperationKey));
   const amount = parseStakeInput(text);
-
-  useEffect(() => {
-    key.current = undefined;
-  }, [text, method]);
 
   useEffect(() => {
     if (visible) return;
 
     setStarted(undefined);
     setError(undefined);
-    key.current = undefined;
-  }, [visible]);
+    attempt.reset();
+  }, [visible, attempt]);
 
   const submit = async (): Promise<void> => {
     if (!online) {
@@ -59,10 +56,10 @@ export function DepositSheet({
 
     setBusy(true);
     setError(undefined);
-    key.current ??= createOperationKey();
+    const key = attempt.keyFor(`${String(amount)}|${method}`);
 
     try {
-      setStarted(await getAccountServices().payments.initiateDeposit({ amount, method }, key.current));
+      setStarted(await getAccountServices().payments.initiateDeposit({ amount, method }, key));
       onStarted();
     } catch (cause) {
       setError(presentError(cause).message);

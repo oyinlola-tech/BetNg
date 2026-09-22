@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { View } from "react-native";
 import type { PaymentRecord, WithdrawalQuote } from "@betng/contracts";
 import { formatMoney, parseStakeInput } from "@betng/ui-core";
@@ -6,6 +6,7 @@ import { Button, ErrorState, PaymentStatusBadge, SkeletonRows, Text, TextField }
 import { useAsync } from "../../hooks/useAsync";
 import { useCanTransact } from "../../hooks/useConnectivity";
 import { presentError } from "../../lib/errors";
+import { createAttemptKey } from "../../lib/attemptKey";
 import { createOperationKey } from "../../lib/ids";
 import { paymentSummary } from "../../lib/payments";
 import { biometrics, confirmPresence } from "../../platform";
@@ -33,12 +34,11 @@ export function WithdrawSheet({
   const [result, setResult] = useState<PaymentRecord | undefined>(undefined);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>(undefined);
-  const key = useRef<string | undefined>(undefined);
+  const [attempt] = useState(() => createAttemptKey(createOperationKey));
   const amount = parseStakeInput(text);
   const selected = accountId ?? accounts.data?.find((a) => a.isDefault)?.id ?? accounts.data?.[0]?.id;
 
   useEffect(() => {
-    key.current = undefined;
     setQuote(undefined);
   }, [text, selected]);
 
@@ -48,8 +48,8 @@ export function WithdrawSheet({
     setResult(undefined);
     setQuote(undefined);
     setError(undefined);
-    key.current = undefined;
-  }, [visible]);
+    attempt.reset();
+  }, [visible, attempt]);
 
   const run = async (work: () => Promise<void>): Promise<void> => {
     if (!online) {
@@ -77,8 +77,9 @@ export function WithdrawSheet({
         return;
       }
 
-      key.current ??= createOperationKey();
-      setResult(await getAccountServices().payments.requestWithdrawal({ amount, bankAccountId: selected }, key.current));
+      const key = attempt.keyFor(`${String(amount)}|${selected}`);
+
+      setResult(await getAccountServices().payments.requestWithdrawal({ amount, bankAccountId: selected }, key));
       onRequested();
     });
 

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Alert, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -8,6 +9,7 @@ import {
   History,
   Info,
   LogOut,
+  Pencil,
   Receipt,
   Settings,
   Wallet,
@@ -20,6 +22,7 @@ import { requireAuth, useAuth } from "../hooks/useAuth";
 import { getDataSource } from "../services/dataSource";
 import { useBetSlip } from "../stores/betslip.store";
 import { useTheme } from "../theme";
+import { EditProfile } from "./account/EditProfile";
 
 export function AccountScreen(): React.JSX.Element {
   const t = useTheme();
@@ -29,6 +32,7 @@ export function AccountScreen(): React.JSX.Element {
   const { isAuthenticated, user, status, openAuth, logout } = useAuth();
   const { toast } = useToast();
   const selectionCount = useBetSlip((s) => s.selections.length);
+  const [editing, setEditing] = useState(false);
   const wallet = useAsync(
     () => (isAuthenticated ? getDataSource().getWallet() : Promise.resolve(undefined)),
     [version, isAuthenticated],
@@ -160,8 +164,33 @@ export function AccountScreen(): React.JSX.Element {
               <Text variant="caption" tone="muted" numberOfLines={1}>
                 {user.email}
               </Text>
+              {user.phone !== undefined && (
+                <Text variant="caption" tone="muted" numberOfLines={1}>
+                  {user.phone}
+                </Text>
+              )}
             </View>
+            {!editing && (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Edit profile"
+                onPress={() => {
+                  setEditing(true);
+                }}
+                style={{ padding: 8 }}
+              >
+                <Pencil size={16} color={t.colors.textSecondary} />
+              </Pressable>
+            )}
           </View>
+          {editing && (
+            <EditProfile
+              user={user}
+              onDone={() => {
+                setEditing(false);
+              }}
+            />
+          )}
           <View style={{ marginTop: 14, paddingTop: 14, borderTopWidth: 1, borderTopColor: t.colors.border }}>
             <Text variant="caps" tone="muted">
               Simulated balance

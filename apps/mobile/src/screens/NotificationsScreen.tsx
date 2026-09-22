@@ -14,6 +14,9 @@ import {
 } from "../components";
 import { useAccountVersion } from "../hooks/useAccount";
 import { useAsync } from "../hooks/useAsync";
+import { navigationRef } from "../navigation/ref";
+import { openTarget } from "../platform/linking";
+import { notificationTarget } from "../platform/notificationRoutes";
 import { getDataSource } from "../services/dataSource";
 import { useTheme } from "../theme";
 
@@ -93,10 +96,7 @@ export function NotificationsScreen(): React.JSX.Element {
                 onPress={() => {
                   if (!n.read)
                     void getDataSource().markNotificationsRead([n.id]);
-                  if (n.matchId !== undefined)
-                    navigation.navigate("Match", { matchId: n.matchId });
-                  else if (n.betId !== undefined)
-                    navigation.navigate("Tabs", { screen: "Bets" });
+                  openTarget(navigationRef, notificationTarget(n));
                 }}
                 style={{
                   flexDirection: "row",

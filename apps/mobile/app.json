@@ -21,7 +21,6 @@
     },
     "extra": {
       "appEnv": "development",
-      "dataSource": "platform",
       "apiUrl": "http://localhost:3000",
       "realtimeUrl": "ws://localhost:3008/live",
       "realtimeTransport": "websocket",

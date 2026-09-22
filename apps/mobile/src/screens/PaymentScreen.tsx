@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { View } from "react-native";
 import { useRoute, type RouteProp } from "@react-navigation/native";
 import type { PaymentRecord } from "@betng/contracts";
@@ -5,7 +6,7 @@ import { DataSourceError, formatDateTime, formatMoney } from "@betng/ui-core";
 import { Button, Card, EmptyState, ErrorState, PaymentStatusBadge, Screen, SkeletonRows, Text } from "../components";
 import { useAsync } from "../hooks/useAsync";
 import { useFlags } from "../hooks/useFlags";
-import { paymentStatusView, paymentSummary } from "../lib/payments";
+import { paymentPollDelay, paymentStatusView, paymentSummary } from "../lib/payments";
 import type { RootStackParamList } from "../navigation/types";
 import { getAccountServices } from "../services/dataSource";
 
@@ -24,6 +25,27 @@ async function readPayment(reference: string): Promise<PaymentRecord> {
 function PaymentDetail({ reference }: { readonly reference: string }): React.JSX.Element {
   const payment = useAsync(() => readPayment(reference), [reference]);
   const settled = payment.data === undefined ? false : paymentStatusView(payment.data.status).settled;
+  const polls = useRef(0);
+  const { data, error, refresh } = payment;
+
+  useEffect(() => {
+    polls.current = 0;
+  }, [reference]);
+
+  useEffect(() => {
+    const delay = data === undefined ? undefined : paymentPollDelay(data.status, polls.current);
+
+    if (delay === undefined) return;
+
+    const timer = setTimeout(() => {
+      polls.current += 1;
+      void refresh();
+    }, delay);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [data, error, refresh]);
 
   if (payment.data === undefined) {
     return payment.error === undefined ? <SkeletonRows rows={4} /> : <ErrorState error={payment.error} onRetry={() => void payment.refresh()} />;

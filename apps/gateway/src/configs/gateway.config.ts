@@ -41,6 +41,11 @@ const DEFAULT_ORIGINS = [
   "http://localhost:4400",
   "http://localhost:4500",
   "http://localhost:8081",
+  "http://127.0.0.1:4200",
+  "http://127.0.0.1:4300",
+  "http://127.0.0.1:4400",
+  "http://127.0.0.1:4500",
+  "http://127.0.0.1:8081",
 ];
 
 const DEFAULT_LIMITS: GatewayRateLimits = {

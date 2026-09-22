@@ -11,9 +11,12 @@ import {
   Text,
 } from "../components";
 import { useAsync } from "../hooks/useAsync";
-import { getDataSource, getRuntimeInfo } from "../services/dataSource";
+import { getDataSource } from "../services/dataSource";
 import { useTheme, useThemeStore, type ThemePreference } from "../theme";
 import { env } from "../configs/env";
+import { useDevicePreferences } from "../stores/preferences.store";
+
+const SHOW_DIAGNOSTICS = (env.appEnv === "development" && __DEV__) || env.appEnv === "test";
 
 const THEMES: readonly {
   readonly value: ThemePreference;
@@ -29,6 +32,8 @@ export function SettingsScreen(): React.JSX.Element {
   const t = useTheme();
   const preference = useThemeStore((s) => s.preference);
   const setPreference = useThemeStore((s) => s.setPreference);
+  const haptics = useDevicePreferences((s) => s.haptics);
+  const setHaptics = useDevicePreferences((s) => s.setHaptics);
   const prefs = useAsync(
     () => getDataSource().getNotificationPreferences(),
     [],
@@ -170,21 +175,50 @@ export function SettingsScreen(): React.JSX.Element {
         tone="muted"
         style={{ marginTop: 22, marginBottom: 8 }}
       >
-        Platform
+        Device
       </Text>
-      <Card style={{ padding: 14, gap: 4 }}>
-        <Text variant="caption" tone="secondary">
-          Data source ·{" "}
-          <Text variant="caption" style={{ fontWeight: "600" }}>
-            {getRuntimeInfo().mode === "mock"
-              ? "in-app virtual season (mock)"
-              : "BetNG platform"}
-          </Text>
-        </Text>
-        <Text variant="caption" tone="secondary">
-          Gateway · {env.apiUrl}
-        </Text>
+      <Card>
+        <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 10, gap: 12 }}>
+          <View style={{ flex: 1 }}>
+            <Text variant="body" style={{ fontWeight: "500" }}>
+              Vibration
+            </Text>
+            <Text variant="caption" tone="muted">
+              A short buzz when a bet is accepted, a double one when it is not
+            </Text>
+          </View>
+          <Switch
+            value={haptics}
+            onValueChange={setHaptics}
+            trackColor={{ true: t.colors.brand, false: t.colors.borderStrong }}
+            thumbColor="#fff"
+            accessibilityLabel="Vibration"
+          />
+        </View>
       </Card>
+
+      {SHOW_DIAGNOSTICS && (
+        <>
+          <Text
+            variant="caps"
+            tone="muted"
+            style={{ marginTop: 22, marginBottom: 8 }}
+          >
+            Platform
+          </Text>
+          <Card style={{ padding: 14, gap: 4 }}>
+            <Text variant="caption" tone="secondary">
+              Data source ·{" "}
+              <Text variant="caption" style={{ fontWeight: "600" }}>
+                BetNG platform
+              </Text>
+            </Text>
+            <Text variant="caption" tone="secondary">
+              Gateway · {env.apiUrl}
+            </Text>
+          </Card>
+        </>
+      )}
       <Text variant="caption" tone="muted" style={{ marginTop: 16 }}>
         BetNG is a portfolio simulation. Balances, stakes and returns are
         play-money.

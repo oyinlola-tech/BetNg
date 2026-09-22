@@ -40,3 +40,13 @@ export function paymentSummary(payment: PaymentRecord): string {
       return `${kind} is not confirmed yet. Your balance changes only when the platform confirms it.`;
   }
 }
+
+const POLL_STEPS_MS = [3000, 3000, 5000, 5000, 10_000] as const;
+const POLL_CEILING_MS = 30_000;
+
+/** How long to wait before re-reading a payment the platform has not settled yet; undefined once it is terminal. */
+export function paymentPollDelay(status: PaymentStatus, polls: number): number | undefined {
+  if (TERMINAL_PAYMENT_STATUSES.includes(status)) return undefined;
+
+  return POLL_STEPS_MS[Math.max(0, polls)] ?? POLL_CEILING_MS;
+}

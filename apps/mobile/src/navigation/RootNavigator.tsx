@@ -16,7 +16,8 @@ import { Home, Radio, Receipt, Trophy, UserRound } from "lucide-react-native";
 import { Pressable, SlipBar, Text } from "../components";
 import { useTheme } from "../theme";
 import { env } from "../configs/env";
-import { deepLinkOptions, listenForDeepLinks } from "../platform/linking";
+import { pushNotifications } from "../platform";
+import { deepLinkOptions, listenForDeepLinks, listenForNotificationTaps } from "../platform/linking";
 import { logger } from "../services/logger";
 import { gated } from "./gated";
 import { navigationRef } from "./ref";
@@ -223,13 +224,17 @@ export function RootNavigator(): React.JSX.Element {
     },
   };
 
-  useEffect(
-    () =>
-      listenForDeepLinks(navigationRef, deepLinkOptions(env.siteUrl), () => {
-        logger.warn("flow", "A link that is not a BETNG route was ignored.");
-      }),
-    [],
-  );
+  useEffect(() => {
+    const stopLinks = listenForDeepLinks(navigationRef, deepLinkOptions(env.siteUrl), () => {
+      logger.warn("flow", "A link that is not a BETNG route was ignored.");
+    });
+    const stopTaps = listenForNotificationTaps(navigationRef, pushNotifications);
+
+    return () => {
+      stopLinks();
+      stopTaps();
+    };
+  }, []);
 
   return (
     <NavigationContainer ref={navigationRef} theme={navTheme}>

@@ -1,8 +1,21 @@
 {
   "extends": "../tsconfig.json",
   "compilerOptions": {
-    "types": ["node"],
+    "types": [
+      "node"
+    ],
     "noEmit": true
   },
-  "include": ["./**/*.ts", "../src/platform/deepLinks.ts", "../src/platform/redaction.ts", "../src/platform/crashReporting.ts", "../src/platform/offlineCache.ts"]
+  "include": [
+    "./**/*.ts",
+    "../src/platform/deepLinks.ts",
+    "../src/platform/redaction.ts",
+    "../src/platform/crashReporting.ts",
+    "../src/platform/offlineCache.ts",
+    "../src/platform/notificationRoutes.ts",
+    "../src/platform/haptics.ts",
+    "../src/lib/attemptKey.ts",
+    "../src/lib/payments.ts",
+    "../src/lib/profile.ts"
+  ]
 }

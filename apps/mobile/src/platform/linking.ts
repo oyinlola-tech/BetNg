@@ -2,6 +2,8 @@ import { Linking } from "react-native";
 import type { NavigationContainerRefWithCurrent } from "@react-navigation/native";
 import type { RootStackParamList } from "../navigation/types";
 import { hostsFromSiteUrl, parseDeepLink, type DeepLinkOptions, type DeepLinkTarget } from "./deepLinks";
+import { notificationTarget } from "./notificationRoutes";
+import type { PushNotifications } from "./pushNotifications";
 
 export function deepLinkOptions(siteUrl: string | undefined): DeepLinkOptions {
   return { schemes: ["betng"], hosts: hostsFromSiteUrl(siteUrl) };
@@ -15,6 +17,15 @@ export function openTarget(ref: NavigationContainerRefWithCurrent<RootStackParam
     case "Results":
       ref.navigate("Results", {});
       return;
+    case "Bets":
+      ref.navigate("Tabs", { screen: "Bets" });
+      return;
+    case "Account":
+      ref.navigate("Tabs", { screen: "Account" });
+      return;
+    case "Wallet":
+      ref.navigate("Wallet");
+      return;
     case "Match":
       ref.navigate("Match", { matchId: target.matchId });
       return;
@@ -25,6 +36,18 @@ export function openTarget(ref: NavigationContainerRefWithCurrent<RootStackParam
       ref.navigate("Payment", { reference: target.reference });
       return;
   }
+}
+
+function whenReady(ref: NavigationContainerRefWithCurrent<RootStackParamList>, target: DeepLinkTarget, isActive: () => boolean): void {
+  const open = (attempt: number): void => {
+    if (!isActive()) return;
+    if (ref.isReady()) openTarget(ref, target);
+    else if (attempt < 50) setTimeout(() => {
+      open(attempt + 1);
+    }, 100);
+  };
+
+  open(0);
 }
 
 /** Opens the launch link once navigation is ready, then every link that arrives while running. */
@@ -42,15 +65,7 @@ export function listenForDeepLinks(
 
     if (!parsed.accepted) onRejected();
 
-    const open = (attempt: number): void => {
-      if (!active) return;
-      if (ref.isReady()) openTarget(ref, parsed.target);
-      else if (attempt < 50) setTimeout(() => {
-        open(attempt + 1);
-      }, 100);
-    };
-
-    open(0);
+    whenReady(ref, parsed.target, () => active);
   };
 
   void Linking.getInitialURL()
@@ -64,5 +79,18 @@ export function listenForDeepLinks(
   return () => {
     active = false;
     subscription.remove();
+  };
+}
+
+/** Routes a tapped push notification by its kind and ids, the same way a tap in the notification list does. */
+export function listenForNotificationTaps(ref: NavigationContainerRefWithCurrent<RootStackParamList>, push: PushNotifications): () => void {
+  let active = true;
+  const unsubscribe = push.onTap((data) => {
+    whenReady(ref, notificationTarget(data), () => active);
+  });
+
+  return () => {
+    active = false;
+    unsubscribe();
   };
 }

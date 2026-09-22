@@ -54,3 +54,9 @@ describe("parseDeepLink", () => {
     expect(hostsFromSiteUrl(undefined)).toEqual([]);
   });
 });
+
+describe("in-app only targets", () => {
+  it("never resolves bets, account or wallet from an external link", () => {
+    for (const url of ["betng://bets", "betng://account", "https://betng.example/wallet"]) expect(target(url).accepted).toBe(false);
+  });
+});

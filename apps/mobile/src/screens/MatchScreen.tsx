@@ -35,7 +35,8 @@ export function MatchScreen(): React.JSX.Element {
   const route = useRoute<RouteProp<RootStackParamList, "Match">>();
   const { matchId } = route.params;
   const [tab, setTab] = useState<Tab>(route.params.tab ?? "OVERVIEW");
-  const { match, connection, error, resyncing } = useLiveMatch(matchId);
+  const { match, connection, error, resyncing, resync } = useLiveMatch(matchId);
+  const [pulling, setPulling] = useState(false);
   const bettable = match?.phase === "BETTING_OPEN";
   const markets = useAsync(
     () => getDataSource().getMatchMarkets(matchId as never),
@@ -72,7 +73,7 @@ export function MatchScreen(): React.JSX.Element {
   if (error !== undefined && match === undefined)
     return (
       <Screen>
-        <ErrorState error={new Error(error)} />
+        <ErrorState error={new Error(error)} onRetry={resync} />
       </Screen>
     );
 
@@ -88,8 +89,16 @@ export function MatchScreen(): React.JSX.Element {
 
   const live = isInPlay(match.phase);
 
+  const pull = (): void => {
+    setPulling(true);
+    resync();
+    void Promise.all([markets.refresh(), standings.refresh(), others.refresh()]).finally(() => {
+      setPulling(false);
+    });
+  };
+
   return (
-    <Screen padded={false}>
+    <Screen padded={false} refreshing={pulling} onRefresh={pull}>
       <View style={{ paddingHorizontal: 16 }}>
         <Scoreboard match={match} />
         {(connection !== "CONNECTED" || resyncing) && (

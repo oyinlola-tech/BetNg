@@ -27,6 +27,7 @@ import { useAccountVersion } from "../hooks/useAccount";
 import { useAsync } from "../hooks/useAsync";
 import { useAuth } from "../hooks/useAuth";
 import { useCanTransact } from "../hooks/useConnectivity";
+import { haptics } from "../platform";
 import { OFFLINE_COMMAND_MESSAGE } from "../platform/offlineCache";
 import { presentError } from "../lib/errors";
 import { createOperationKey } from "../lib/ids";
@@ -111,6 +112,7 @@ export function BetSlipSheet({
       case "PARTIALLY_ACCEPTED": {
         const dropped = result.rejectedSelectionIds?.length ?? 0;
 
+        haptics.play("bet-accepted");
         clear();
         setOpen(false);
         onPlaced?.(
@@ -122,6 +124,7 @@ export function BetSlipSheet({
       }
       case "LIMITED":
         reference.current = undefined;
+        haptics.play("bet-rejected");
         setFeedback({
           tone: "warning",
           text:
@@ -133,10 +136,12 @@ export function BetSlipSheet({
         return;
       case "EXPIRED":
         reference.current = undefined;
+        haptics.play("bet-rejected");
         setFeedback({ tone: "warning", text: "This slip expired before it was accepted. Check the prices and submit again." });
         return;
       case "REJECTED":
         reference.current = undefined;
+        haptics.play("bet-rejected");
         setFeedback({
           tone: "danger",
           text: result.message ?? REJECTION_TEXT[result.reason ?? "INVALID_BET"],
@@ -159,6 +164,7 @@ export function BetSlipSheet({
     try {
       settle(await getDataSource().placeBet({ selections, stake, clientReference: reference.current }));
     } catch (error) {
+      haptics.play("bet-rejected");
       setFeedback({ tone: "danger", text: presentError(error).message });
     } finally {
       setPlacing(false);

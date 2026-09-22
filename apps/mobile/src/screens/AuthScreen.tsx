@@ -2,13 +2,13 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, View, type TextInput } from "react-native";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Check, CircleCheck, MailCheck, TriangleAlert, WifiOff } from "lucide-react-native";
+import { Check, MailCheck, TriangleAlert, WifiOff } from "lucide-react-native";
 import { DataSourceError } from "@betng/ui-core";
-import { Button, CodeField, Pressable, Text, TextField } from "../components";
+import { Button, CodeField, Pressable, Text, TextField, useToast } from "../components";
 import { presentError } from "../lib/errors";
 import { codeError, displayNameError, emailError, passwordError, phoneError } from "../lib/validation";
 import type { AuthView, RootStackParamList } from "../navigation/types";
-import { getAuthSource, getRuntimeInfo } from "../services/dataSource";
+import { getAuthSource } from "../services/dataSource";
 import { useAuthFlow } from "../stores/auth.store";
 import { useTheme } from "../theme";
 
@@ -20,7 +20,6 @@ const TITLES: Record<AuthView, string> = {
   expired: "Session ended",
 };
 const RESEND_SECONDS = 30;
-const DEMO = { email: "demo@betng.test", password: "betng-demo", code: "123456" } as const;
 
 interface ViewProps {
   readonly go: (view: AuthView, email?: string) => void;
@@ -68,34 +67,6 @@ function LinkText({ label, onPress }: { readonly label: string; readonly onPress
         {label}
       </Text>
     </Pressable>
-  );
-}
-
-function DemoHint({ text, action }: { readonly text: string; readonly action?: { readonly label: string; readonly onPress: () => void } }): React.JSX.Element | null {
-  const t = useTheme();
-
-  if (getRuntimeInfo().mode !== "mock") return null;
-
-  return (
-    <View
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: 12,
-        minHeight: 44,
-        paddingHorizontal: 12,
-        borderRadius: t.radius.sm,
-        borderWidth: 1,
-        borderStyle: "dashed",
-        borderColor: t.colors.borderStrong,
-      }}
-    >
-      <Text variant="caption" tone="secondary" style={{ flex: 1 }}>
-        {text}
-      </Text>
-      {action !== undefined && <LinkText label={action.label} onPress={action.onPress} />}
-    </View>
   );
 }
 
@@ -175,18 +146,6 @@ function LoginView({ go, done, email: initialEmail, locked = false }: ViewProps 
         />
       </View>
       <Button label="Log in" size="lg" loading={busy} onPress={() => void submit()} />
-      {!locked && (
-        <DemoHint
-          text={`Demo account: ${DEMO.email}`}
-          action={{
-            label: "Fill in",
-            onPress: () => {
-              setEmail(DEMO.email);
-              setPassword(DEMO.password);
-            },
-          }}
-        />
-      )}
       <View style={{ flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 6 }}>
         {locked ? (
           <LinkText
@@ -437,7 +396,6 @@ function VerifyView({ go, done, email }: ViewProps): React.JSX.Element {
       </Text>
       {fieldError === undefined && <ErrorBanner error={failure} onRetry={() => void submit(code)} />}
       <CodeField label="Verification code" length={6} value={code} onChange={setCode} onComplete={(value) => void submit(value)} error={fieldError} disabled={busy} autoFocus />
-      <DemoHint text={`Demo code: ${DEMO.code}`} />
       <Button label="Verify and continue" size="lg" loading={busy} disabled={code.length !== 6} onPress={() => void submit(code)} />
       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", minHeight: 44 }}>
         <LinkText
@@ -538,22 +496,6 @@ function ForgotView({ go }: ViewProps): React.JSX.Element {
   );
 }
 
-function Welcome({ name }: { readonly name: string }): React.JSX.Element {
-  const t = useTheme();
-
-  return (
-    <View accessibilityLiveRegion="polite" style={{ alignItems: "center", gap: 12, paddingVertical: 48 }}>
-      <View style={{ width: 56, height: 56, borderRadius: 28, alignItems: "center", justifyContent: "center", backgroundColor: t.colors.successSubtle }}>
-        <CircleCheck size={28} color={t.colors.success} />
-      </View>
-      <Text variant="title">You are in, {name.split(" ")[0]}</Text>
-      <Text variant="caption" tone="muted">
-        Picking up where you left off…
-      </Text>
-    </View>
-  );
-}
-
 export function AuthScreen(): React.JSX.Element {
   const t = useTheme();
   const insets = useSafeAreaInsets();
@@ -562,7 +504,7 @@ export function AuthScreen(): React.JSX.Element {
   const { view } = route.params;
   const reason = useAuthFlow((s) => s.intent?.reason);
   const expiredEmail = getAuthSource().session.snapshot().session?.user.email;
-  const [welcome, setWelcome] = useState<string>();
+  const { toast } = useToast();
   const finished = useRef(false);
 
   useLayoutEffect(() => {
@@ -583,44 +525,38 @@ export function AuthScreen(): React.JSX.Element {
       navigation.setParams({ view: next, ...(email === undefined ? {} : { email }) });
     },
     done: (name) => {
-      setWelcome(name);
-      setTimeout(() => {
-        finished.current = true;
+      if (finished.current) return;
 
-        const intent = useAuthFlow.getState().take();
+      finished.current = true;
 
-        navigation.goBack();
-        intent?.run?.();
-      }, 650);
+      const intent = useAuthFlow.getState().take();
+
+      navigation.goBack();
+      toast(`You are in, ${name.split(" ")[0] ?? name}`, "success");
+      intent?.run?.();
     },
   };
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1, backgroundColor: t.colors.background }}>
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: t.space[4], paddingBottom: insets.bottom + t.space[8], gap: 16 }}>
-        {welcome !== undefined ? (
-          <Welcome name={welcome} />
-        ) : (
-          <>
-            {reason !== undefined && (view === "login" || view === "register") && (
-              <View style={{ padding: 12, borderRadius: t.radius.sm, backgroundColor: t.colors.brandSubtle }}>
-                <Text variant="caption" tone="brand" style={{ fontWeight: "600" }}>
-                  {reason}
-                </Text>
-              </View>
-            )}
-            {view === "expired" && (
-              <Text variant="body" tone="secondary">
-                For your security you were signed out. Log in again to pick up where you left off — your bet slip is untouched.
-              </Text>
-            )}
-            {view === "login" && <LoginView key="login" {...props} />}
-            {view === "expired" && <LoginView key="expired" {...props} email={expiredEmail ?? ""} locked={expiredEmail !== undefined} />}
-            {view === "register" && <RegisterView {...props} />}
-            {view === "verify" && <VerifyView {...props} />}
-            {view === "forgot" && <ForgotView {...props} />}
-          </>
+        {reason !== undefined && (view === "login" || view === "register") && (
+          <View style={{ padding: 12, borderRadius: t.radius.sm, backgroundColor: t.colors.brandSubtle }}>
+            <Text variant="caption" tone="brand" style={{ fontWeight: "600" }}>
+              {reason}
+            </Text>
+          </View>
         )}
+        {view === "expired" && (
+          <Text variant="body" tone="secondary">
+            For your security you were signed out. Log in again to pick up where you left off — your bet slip is untouched.
+          </Text>
+        )}
+        {view === "login" && <LoginView key="login" {...props} />}
+        {view === "expired" && <LoginView key="expired" {...props} email={expiredEmail ?? ""} locked={expiredEmail !== undefined} />}
+        {view === "register" && <RegisterView {...props} />}
+        {view === "verify" && <VerifyView {...props} />}
+        {view === "forgot" && <ForgotView {...props} />}
       </ScrollView>
     </KeyboardAvoidingView>
   );
