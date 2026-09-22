@@ -1,6 +1,6 @@
 import { vi, type Mock } from "vitest";
 import type { AdminPermission, AdminSession } from "@betng/contracts";
-import { createSessionStore, type AdminDataSource, type BetNgDataSource, type SessionStore } from "@betng/ui-core";
+import { createSessionStore, type AdminDataSource, type BetNgDataSource, type ComplianceDataSource, type SessionStore } from "@betng/ui-core";
 
 export const ALL_PERMISSIONS: readonly AdminPermission[] = [
   "users:read",
@@ -26,6 +26,10 @@ export const ALL_PERMISSIONS: readonly AdminPermission[] = [
   "health:read",
   "settings:read",
   "settings:write",
+  "kyc:read",
+  "kyc:write",
+  "payments:read",
+  "payments:write",
 ];
 
 export const SUPPORT_PERMISSIONS: readonly AdminPermission[] = ["users:read", "shops:read", "audit:read", "health:read"];
@@ -74,11 +78,11 @@ const EMPTY: Readonly<Record<string, unknown>> = {
 
 export type FakeAdminSource = AdminDataSource & { readonly calls: (method: keyof AdminDataSource) => Mock };
 
-export function session(permissions: readonly AdminPermission[], role: AdminSession["admin"]["role"] = "SUPER_ADMIN"): AdminSession {
+export function session(permissions: readonly AdminPermission[], role: AdminSession["admin"]["role"] = "SUPER_ADMIN", twoFactorEnabled = true): AdminSession {
   return {
     token: "test-token-0123456789",
     expiresAt: new Date(Date.now() + 3_600_000).toISOString(),
-    admin: { id: "00000000-0000-4000-8000-000000000001" as AdminSession["admin"]["id"], email: "admin@example.test", displayName: "Test Admin", role, twoFactorEnabled: false, permissions },
+    admin: { id: "00000000-0000-4000-8000-000000000001" as AdminSession["admin"]["id"], email: "admin@example.test", displayName: "Test Admin", role, twoFactorEnabled, permissions },
   };
 }
 
@@ -126,6 +130,41 @@ export function fakeDataSource(overrides: Partial<Record<keyof BetNgDataSource, 
       if (typeof property !== "string" || property === "then") return undefined;
 
       return fixed[property] ?? (() => Promise.resolve([]));
+    },
+  });
+}
+
+export type FakeCompliance = ComplianceDataSource & { readonly calls: (method: keyof ComplianceDataSource) => Mock };
+
+const COMPLIANCE_EMPTY: Readonly<Record<string, unknown>> = {
+  listKycQueue: emptyPage,
+  listPayments: emptyPage,
+  listResponsibleGaming: emptyPage,
+  getPaymentOverview: { depositsToday: 0, withdrawalsToday: 0, pendingDeposits: 0, pendingWithdrawals: 0, failedToday: 0, providers: [] },
+};
+
+export function fakeCompliance(overrides: Partial<Record<keyof ComplianceDataSource, unknown>> = {}): FakeCompliance {
+  const mocks = new Map<string, Mock>();
+
+  const method = (name: string): Mock => {
+    let mock = mocks.get(name);
+
+    if (mock === undefined) {
+      const override = overrides[name as keyof ComplianceDataSource];
+
+      mock = typeof override === "function" ? vi.fn(override as (...args: unknown[]) => unknown) : vi.fn(() => Promise.resolve(override ?? COMPLIANCE_EMPTY[name]));
+      mocks.set(name, mock);
+    }
+
+    return mock;
+  };
+
+  return new Proxy({} as FakeCompliance, {
+    get: (_, property) => {
+      if (typeof property !== "string" || property === "then") return undefined;
+      if (property === "calls") return (name: string) => method(name);
+
+      return method(property);
     },
   });
 }

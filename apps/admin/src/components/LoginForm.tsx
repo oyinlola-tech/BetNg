@@ -8,6 +8,15 @@ import { loginSchema, type LoginValues } from "../lib/schemas";
 import { adminSource, demoSignIns, env } from "../services/runtime";
 import { TextField } from "./form/TextField";
 
+/* The platform may ask for the second factor as its own code, as a validation error on `code`, or as a bare validation error when no field is named. */
+function asksForCode(error: unknown): boolean {
+  if (!(error instanceof DataSourceError)) return false;
+  if (error.code === "TWO_FACTOR_REQUIRED") return true;
+  if (error.detail.fields?.["code"] !== undefined) return error.code === "VALIDATION" || error.code === "INVALID_CREDENTIALS";
+
+  return error.code === "VALIDATION" && error.detail.fields === undefined;
+}
+
 export function LoginForm({ lockedEmail, onSignedIn }: { readonly lockedEmail?: string | undefined; readonly onSignedIn?: () => void }): React.JSX.Element {
   const logger = useLogger();
   const [step, setStep] = useState<"credentials" | "code">("credentials");
@@ -27,12 +36,18 @@ export function LoginForm({ lockedEmail, onSignedIn }: { readonly lockedEmail?: 
       logger.info("auth", "Admin signed in");
       onSignedIn?.();
     } catch (error) {
-      const secondFactorAsked = error instanceof DataSourceError && error.code === "VALIDATION" && totp === undefined && error.detail.fields === undefined;
+      const secondFactorAsked = totp === undefined && asksForCode(error);
 
       if (secondFactorAsked) logger.info("auth", "Second factor requested");
       else logger.warn("auth", "Admin sign-in failed", { code: error instanceof DataSourceError ? error.code : "UNKNOWN", step });
 
-      if (error instanceof DataSourceError && error.code === "VALIDATION") {
+      if (secondFactorAsked) {
+        setStep("code");
+        setCode("");
+      } else if (totp !== undefined && asksForCode(error)) {
+        setCodeError("That code was not accepted. Check your authenticator and try again.");
+        setCode("");
+      } else if (error instanceof DataSourceError && error.code === "VALIDATION") {
         const { applied } = applyFieldErrors(error, form.setError, ["email", "password"]);
 
         if (applied.length > 0) setStep("credentials");
@@ -118,6 +133,20 @@ export function LoginForm({ lockedEmail, onSignedIn }: { readonly lockedEmail?: 
       <Button type="submit" full size="lg" loading={pending}>
         {pending ? "Signing in" : "Sign in"}
       </Button>
+      <button
+        type="button"
+        disabled={pending}
+        onClick={() => {
+          void form.handleSubmit(() => {
+            setFailure(undefined);
+            setStep("code");
+          })();
+        }}
+        className="flex w-full items-center justify-center gap-1.5 rounded-xs text-sm text-text-secondary hover:text-text-primary focus-ring disabled:opacity-45"
+      >
+        <ShieldCheck className="size-3.5" aria-hidden />
+        Sign in with an authenticator code
+      </button>
       {env.dataSource === "mock" && lockedEmail === undefined && demoSignIns.length > 0 && (
         <section aria-label="Development sign-ins" className="rounded-sm border border-dashed border-border-strong px-3 py-2.5 text-sm">
           <p className="caps-label">Mock data · development sign-ins</p>

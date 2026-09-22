@@ -3,7 +3,7 @@ import { useNavigate } from "react-router";
 import { CircleSlash } from "lucide-react";
 import type { MatchExposure } from "@betng/contracts";
 import { formatDateTime, formatMoney, formatMoneyCompact, formatOdds } from "@betng/ui-core";
-import { DataTable, ErrorBoundary, ErrorState, Panel, RankedBars, SectionHeading, SkeletonRows, StatusBadge, emptyPresets, type Column } from "@betng/ui-web";
+import { DataTable, EmptyState, ErrorBoundary, ErrorState, Panel, RankedBars, SectionHeading, SkeletonRows, StatusBadge, emptyPresets, type Column } from "@betng/ui-web";
 import { Meter, SignedMoney, Status, Unavailable } from "../components/Bits";
 import { MetricCard, metricFrom } from "../components/MetricCard";
 import { PageHeader } from "../components/PageHeader";
@@ -122,7 +122,7 @@ export function RiskPage(): React.JSX.Element {
           </Panel>
           <Panel title="Exposure by market type" className="lg:col-span-2">
             <ErrorBoundary scope="feature">
-              {r === undefined ? <SkeletonRows rows={5} /> : <RankedBars title="Exposure by market type" formatValue={formatMoney} items={r.byMarket.map((m) => ({ key: m.marketType, label: m.marketLabel, detail: `stake ${formatMoneyCompact(m.stake)}`, value: m.exposure }))} />}
+              {r === undefined ? overview.error !== null ? <ErrorState error={overview.error} compact onRetry={() => void overview.refetch()} /> : <SkeletonRows rows={5} /> : r.byMarket.length === 0 ? <EmptyState compact title="No data available" description="The risk service reports no exposure by market type." /> : <RankedBars title="Exposure by market type" formatValue={formatMoney} items={r.byMarket.map((m) => ({ key: m.marketType, label: m.marketLabel, detail: `stake ${formatMoneyCompact(m.stake)}`, value: m.exposure }))} />}
             </ErrorBoundary>
           </Panel>
         </div>

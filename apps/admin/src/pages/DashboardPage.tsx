@@ -199,7 +199,7 @@ export function DashboardPage(): React.JSX.Element {
                     <SkeletonRows rows={5} />
                   )
                 ) : days.length === 0 ? (
-                  <EmptyState compact title="No daily figures" description="The platform answered no days for this range." />
+                  <EmptyState compact title="No data available" description="The platform answered no days for this range." />
                 ) : (
                   <TimeSeriesChart
                     title="Stake and payouts over the last 14 days"

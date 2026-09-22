@@ -1,19 +1,23 @@
 import { useMemo } from "react";
 import { useSearchParams } from "react-router";
-import { Download } from "lucide-react";
 import type { AnalyticsBreakdownRow, AnalyticsDimension, SessionAnalysis } from "@betng/contracts";
 import { formatMoney, formatMoneyCompact, localDayRange } from "@betng/ui-core";
-import { BarChart, Button, DataTable, Drawer, Panel, RankedBars, SectionHeading, Select, Tabs, TimeSeriesChart, Tooltip, cn, emptyPresets, type Column } from "@betng/ui-web";
+import { BarChart, DataTable, Drawer, Input, Panel, RankedBars, SectionHeading, Select, Tabs, TimeSeriesChart, Tooltip, cn, emptyPresets, type Column } from "@betng/ui-web";
 import { AccountAnalysisPanel } from "../components/AccountAnalysisPanel";
 import { SignedMoney } from "../components/Bits";
 import { ChartPanel } from "../components/ChartPanel";
+import { ExportControl } from "../components/ExportControl";
 import { MetricCard, metricFrom } from "../components/MetricCard";
 import { PageHeader } from "../components/PageHeader";
-import { useAccountAnalysis, useAnalyticsBreakdown, useAnalyticsOverview, useAnalyticsSessions, type AnalyticsWindow } from "../hooks/queries";
+import { useAccountAnalysis, useAnalyticsBreakdown, useAnalyticsOverview, useAnalyticsSessions, useLeagues, useShopDirectory, type AnalyticsWindow } from "../hooks/queries";
+import { useAdmin } from "../hooks/useAdmin";
 import { downloadCsv } from "../lib/csv";
 import { dayKey, formatCount, formatMoneyAxis, formatPercent } from "../lib/format";
 
-type WindowKey = "today" | "7d" | "30d" | "all";
+type WindowKey = "today" | "7d" | "30d" | "all" | "custom";
+
+const DAY = /^\d{4}-\d{2}-\d{2}$/;
+const ID = /^[0-9a-f-]{36}$/i;
 
 const WINDOWS: readonly { readonly value: WindowKey; readonly label: string; readonly days?: number }[] = [
   { value: "today", label: "Today", days: 1 },
@@ -48,15 +52,28 @@ const ACCOUNT_KIND: Readonly<Partial<Record<AnalyticsDimension, "accounts" | "sh
 
 const CHART_ROWS = 10;
 
-function windowFor(key: WindowKey): AnalyticsWindow {
+function windowFor(key: WindowKey, from: string, to: string): AnalyticsWindow {
+  if (key === "custom") return { ...(from === "" ? {} : { from: localDayRange(from).from }), ...(to === "" ? {} : { to: localDayRange(to).to }) };
+
   const days = WINDOWS.find((w) => w.value === key)?.days;
 
   return days === undefined ? {} : { from: localDayRange(dayKey(days - 1)).from };
 }
 
+const param = (params: URLSearchParams, key: string, pattern: RegExp): string => {
+  const value = params.get(key) ?? "";
+
+  return pattern.test(value) ? value : "";
+};
+
 export function ReportsPage(): React.JSX.Element {
   const [params, setParams] = useSearchParams();
-  const windowKey: WindowKey = WINDOWS.find((w) => w.value === params.get("window"))?.value ?? "7d";
+  const { can } = useAdmin();
+  const from = param(params, "from", DAY);
+  const to = param(params, "to", DAY);
+  const leagueId = param(params, "league", ID);
+  const shopId = param(params, "shop", ID);
+  const windowKey: WindowKey = from !== "" || to !== "" ? "custom" : (WINDOWS.find((w) => w.value === params.get("window"))?.value ?? "7d");
   const by: AnalyticsDimension = DIMENSIONS.find((d) => d.by !== undefined && d.by === params.get("by"))?.by ?? "league";
   const sessionKind = SESSION_KINDS.find((k) => k.value === params.get("sessions"))?.value ?? "MATCHDAY";
   const subject = params.get("subject") ?? undefined;
@@ -64,10 +81,12 @@ export function ReportsPage(): React.JSX.Element {
   const timeDimension = by === "day" || by === "hour";
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const window = useMemo(() => windowFor(windowKey), [windowKey, dayKey(0)]);
+  const window = useMemo(() => windowFor(windowKey, from, to), [windowKey, from, to, dayKey(0)]);
   const overview = useAnalyticsOverview(window);
-  const breakdown = useAnalyticsBreakdown(by, window, 100);
-  const sessions = useAnalyticsSessions(sessionKind, window);
+  const breakdown = useAnalyticsBreakdown(by, window, 100, { ...(leagueId === "" ? {} : { leagueId }), ...(shopId === "" ? {} : { shopId }) });
+  const sessions = useAnalyticsSessions(sessionKind, window, leagueId === "" ? undefined : leagueId);
+  const leagues = useLeagues();
+  const shops = useShopDirectory(can("shops:read"));
   const accountKind = ACCOUNT_KIND[by];
   const account = useAccountAnalysis(subject === undefined ? undefined : accountKind, subject, window);
 
@@ -76,9 +95,13 @@ export function ReportsPage(): React.JSX.Element {
       (previous) => {
         const next = new URLSearchParams(previous);
 
-        if (value === undefined) next.delete(key);
+        if (value === undefined || value === "") next.delete(key);
         else next.set(key, value);
         if (key === "by") next.delete("subject");
+        if (key === "window") {
+          next.delete("from");
+          next.delete("to");
+        }
 
         return next;
       },
@@ -108,7 +131,7 @@ export function ReportsPage(): React.JSX.Element {
 
   const exportCsv = (): void => {
     downloadCsv(
-      `betng-report-${by}-${windowKey}-${dayKey(0)}.csv`,
+      `betng-report-${by}-${windowKey === "custom" ? `${from || "start"}_${to || "now"}` : windowKey}-${dayKey(0)}.csv`,
       [by, "label", "bets", "pending_bets", "winning_bets", "losing_bets", "void_bets", "stake_minor", "payout_minor", "exposure_minor", "operator_result_minor", "operator_result_rate"],
       rows.map((r) => [r.key, r.label, r.bets, r.pendingBets, r.winningBets, r.losingBets, r.voidBets, r.stake, r.payout, r.pendingLiability, r.operatorResult, r.operatorResultRate]),
     );
@@ -120,16 +143,29 @@ export function ReportsPage(): React.JSX.Element {
     <>
       <PageHeader
         title="Reports"
-        description="Analytics over every accepted bet, computed by the platform. Charts and tables show the same figures; the export is what is on screen."
+        description="Analytics over every accepted bet, computed by the platform. Charts and tables show the same figures; filters are part of the address."
         actions={
           <>
-            <Tabs<WindowKey> label="Reporting window" variant="segmented" value={windowKey} onChange={(next) => set("window", next === "7d" ? undefined : next)} items={WINDOWS.map((w) => ({ value: w.value, label: w.label }))} />
-            <Button variant="secondary" leadingIcon={<Download className="size-4" aria-hidden />} disabled={rows.length === 0} onClick={exportCsv}>
-              Export CSV
-            </Button>
+            <Tabs<WindowKey>
+              label="Reporting window"
+              variant="segmented"
+              value={windowKey}
+              onChange={(next) => set("window", next === "7d" ? undefined : next)}
+              items={[...WINDOWS.map((w) => ({ value: w.value, label: w.label })), ...(windowKey === "custom" ? [{ value: "custom" as const, label: "Custom" }] : [])]}
+            />
+            <ExportControl scope="this breakdown" rowCount={rows.length} onExport={exportCsv} />
           </>
         }
       />
+      <div role="group" aria-label="Report filters" className="mb-5 flex flex-wrap items-end gap-2">
+        <Input aria-label="From date" type="date" value={from} {...(to === "" ? {} : { max: to })} onChange={(event) => set("from", event.target.value)} className="w-36 [&>div]:h-8" />
+        <Input aria-label="To date" type="date" value={to} {...(from === "" ? {} : { min: from })} onChange={(event) => set("to", event.target.value)} className="w-36 [&>div]:h-8" />
+        <Select label="League" size="sm" value={leagueId === "" ? "all" : leagueId} onChange={(next) => set("league", next === "all" ? undefined : next)} options={[{ value: "all", label: "All leagues" }, ...(leagues.data ?? []).map((l) => ({ value: String(l.id), label: l.name }))]} />
+        {can("shops:read") && (
+          <Select label="Shop" size="sm" value={shopId === "" ? "all" : shopId} onChange={(next) => set("shop", next === "all" ? undefined : next)} options={[{ value: "all", label: "All shops" }, ...(shops.data ?? []).map((shop) => ({ value: shop.id, label: `${shop.code} · ${shop.name}` }))]} />
+        )}
+        {(leagueId !== "" || shopId !== "") && <span className="text-sm text-text-muted">League and shop narrow the breakdown{shopId === "" ? " and sessions" : ""}; the overview covers the whole platform.</span>}
+      </div>
       <div className="space-y-6">
         <section aria-labelledby="reports-overview">
           <SectionHeading id="reports-overview" className="mb-3">

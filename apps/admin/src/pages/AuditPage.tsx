@@ -4,9 +4,11 @@ import type { AuditLogEntry, AuditLogQuery, AuditSeverity } from "@betng/contrac
 import { formatDateTime, localDayRange } from "@betng/ui-core";
 import { Badge, Button, DataTable, Drawer, Input, Panel, Select, emptyPresets, useDebouncedValue, type Column } from "@betng/ui-web";
 import { CopyButton, DetailItem, Mono, Stamp, Unavailable } from "../components/Bits";
+import { ExportControl } from "../components/ExportControl";
 import { PageHeader } from "../components/PageHeader";
 import { useAuditLog } from "../hooks/queries";
-import { DASH, formatCount, humanise } from "../lib/format";
+import { downloadCsv } from "../lib/csv";
+import { DASH, dayKey, formatCount, humanise } from "../lib/format";
 
 const SEVERITIES: readonly AuditSeverity[] = ["INFO", "NOTICE", "WARNING", "CRITICAL"];
 const SEVERITY_TONE = { INFO: "neutral", NOTICE: "brand", WARNING: "warning", CRITICAL: "danger" } as const;
@@ -134,6 +136,15 @@ export function AuditPage(): React.JSX.Element {
   const audit = useAuditLog(query);
   const filtered = TEXT_FILTERS.some((key) => applied[key] !== "") || severity !== undefined || from !== "" || to !== "";
 
+  /* Before and after values stay out of the file: they can carry detail the screen redacts only on display. */
+  const exportPage = (): void => {
+    downloadCsv(
+      `betng-audit-page${String(page)}-${dayKey(0)}.csv`,
+      ["timestamp", "actor", "role", "action", "resource", "resource_id", "severity", "request_id"],
+      (audit.data?.items ?? []).map((e) => [e.timestamp, e.actorName, e.role ?? "", e.action, e.resource, e.resourceId ?? "", e.severity ?? "", e.requestId]),
+    );
+  };
+
   const textInput = (key: TextFilter, label: string, placeholder: string, width: string): React.JSX.Element => (
     <Input aria-label={label} placeholder={placeholder} value={text[key]} onChange={(event) => setText((current) => ({ ...current, [key]: event.target.value }))} className={`${width} [&>div]:h-8`} />
   );
@@ -180,8 +191,11 @@ export function AuditPage(): React.JSX.Element {
                   Clear
                 </Button>
               )}
-              <span role="status" className="ml-auto text-sm tabular text-text-muted">
-                {audit.data === undefined ? "" : `${formatCount(audit.data.total)} entries`}
+              <span className="ml-auto flex items-center gap-2">
+                <span role="status" className="text-sm tabular text-text-muted">
+                  {audit.data === undefined ? "" : `${formatCount(audit.data.total)} entries`}
+                </span>
+                <ExportControl scope="this page" rowCount={audit.data?.items.length ?? 0} onExport={exportPage} />
               </span>
             </>
           }

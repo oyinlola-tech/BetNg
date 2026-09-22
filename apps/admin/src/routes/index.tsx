@@ -9,7 +9,7 @@ import { logger } from "../services/runtime";
 
 type Loader = () => Promise<{ readonly default: React.ComponentType }>;
 
-function page(load: Loader, permission?: AdminPermission, flag?: FeatureFlag): React.ComponentType {
+function page(load: Loader, permission?: AdminPermission, gate?: { readonly flag: FeatureFlag; readonly title: string }): React.ComponentType {
   const Loaded = lazy(load);
 
   return function Page() {
@@ -21,7 +21,11 @@ function page(load: Loader, permission?: AdminPermission, flag?: FeatureFlag): R
 
     const guarded = permission === undefined ? content : <RequirePermission permission={permission}>{content}</RequirePermission>;
 
-    return flag === undefined ? guarded : <RequireFlag flag={flag}>{guarded}</RequireFlag>;
+    return gate === undefined ? guarded : (
+      <RequireFlag flag={gate.flag} title={gate.title}>
+        {guarded}
+      </RequireFlag>
+    );
   };
 }
 
@@ -51,9 +55,9 @@ export const routes: RouteObject[] = [
         children: [
           { index: true, Component: page(pick(() => import("../pages/DashboardPage"), "DashboardPage")) },
           { path: "users", Component: page(pick(() => import("../pages/UsersPage"), "UsersPage"), "users:read") },
-          { path: "kyc", Component: page(pick(() => import("../pages/KycReviewPage"), "KycReviewPage"), "kyc:read", "complianceEnabled") },
-          { path: "responsible-gaming", Component: page(pick(() => import("../pages/ResponsibleGamingPage"), "ResponsibleGamingPage"), "users:read", "complianceEnabled") },
-          { path: "payments", Component: page(pick(() => import("../pages/PaymentsPage"), "PaymentsPage"), "payments:read", "complianceEnabled") },
+          { path: "kyc", Component: page(pick(() => import("../pages/KycReviewPage"), "KycReviewPage"), "kyc:read", { flag: "complianceEnabled", title: "KYC review" }) },
+          { path: "responsible-gaming", Component: page(pick(() => import("../pages/ResponsibleGamingPage"), "ResponsibleGamingPage"), "users:read", { flag: "complianceEnabled", title: "Responsible gaming" }) },
+          { path: "payments", Component: page(pick(() => import("../pages/PaymentsPage"), "PaymentsPage"), "payments:read", { flag: "complianceEnabled", title: "Payments" }) },
           { path: "shops", Component: page(pick(() => import("../pages/ShopsPage"), "ShopsPage"), "shops:read") },
           { path: "shops/:shopId", Component: page(pick(() => import("../pages/ShopDetailPage"), "ShopDetailPage"), "shops:read") },
           { path: "cashiers", Component: page(pick(() => import("../pages/CashiersPage"), "CashiersPage"), "shops:read") },

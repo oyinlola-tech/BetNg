@@ -53,7 +53,7 @@ export function ChartPanel({ title, description, state, isEmpty, chart, columns,
             <SkeletonRows rows={5} {...(view === "table" ? { className: "p-4" } : {})} />
           )
         ) : isEmpty ? (
-          <EmptyState compact title="No figures for this window" description="The platform reports no bets here. Try a wider window." />
+          <EmptyState compact title="No data available" description="The platform reports no figures for this selection. Try a wider window." />
         ) : view === "chart" ? (
           chart()
         ) : (

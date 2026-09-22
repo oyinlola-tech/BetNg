@@ -60,6 +60,7 @@ function renderRoute(path: string): void {
       listMarketOdds: [market],
     },
     data: { listLeagues: () => Promise.resolve([league]) },
+    flags: { complianceEnabled: true },
   });
 }
 

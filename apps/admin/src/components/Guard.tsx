@@ -43,10 +43,17 @@ export function NotAvailableYet({ title = "Not available yet", description }: { 
 }
 
 /** The platform switches whole areas on with a feature flag; a direct link to one that is off lands here. */
-export function RequireFlag({ flag, children }: { readonly flag: FeatureFlag; readonly children: React.ReactNode }): React.JSX.Element {
+export function RequireFlag({ flag, title, children }: { readonly flag: FeatureFlag; readonly title: string; readonly children: React.ReactNode }): React.JSX.Element {
   const enabled = useFlag(flag);
 
-  if (!enabled) return <NotAvailableYet description="The platform has not switched this area on for this environment. Nothing here can be read or changed until it does." />;
+  if (!enabled) {
+    return (
+      <>
+        <h1 className="sr-only">{title}</h1>
+        <NotAvailableYet description="The platform has not switched this area on for this environment. Nothing here can be read or changed until it does." />
+      </>
+    );
+  }
 
   return <>{children}</>;
 }
