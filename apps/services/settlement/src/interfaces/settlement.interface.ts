@@ -23,6 +23,8 @@ export interface FinishMatchSettlement {
   readonly betsTotal: number;
   readonly betsSettled: number;
   readonly failureReason: string | null;
+  /** Raises `attempts` to at least this, so automatic callers stop and an operator retry is needed. */
+  readonly parkAfterAttempts?: number;
 }
 
 export interface RecordSettlementResult {
@@ -50,7 +52,7 @@ export interface SettlementRepository {
   recordSettlement(settlement: NewSettlement): Promise<RecordSettlementResult>;
   stampEffects(settlementId: string): Promise<boolean>;
   findByBetIds(betIds: readonly string[]): Promise<readonly SettlementRecord[]>;
-  listUnstamped(limit: number): Promise<readonly SettlementRecord[]>;
+  listUnstamped(limit: number, excludeIds?: readonly string[]): Promise<readonly SettlementRecord[]>;
 
   findByBet(betId: string, userId?: string): Promise<SettlementRecord | undefined>;
   list(filter: SettlementFilter): Promise<readonly SettlementRecord[]>;

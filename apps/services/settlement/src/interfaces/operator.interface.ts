@@ -12,6 +12,8 @@ export interface ClosePeriodInput {
   readonly expectedPeriodId?: string;
   readonly nextKind: OperatorPeriodKind;
   readonly now: Date;
+  /** Runs inside the transaction before it commits; throwing rolls the close back. */
+  readonly confirm?: (result: ClosedPeriodResult, before: OperatorPeriodRecord) => Promise<void>;
 }
 
 export interface OperatorRepository {

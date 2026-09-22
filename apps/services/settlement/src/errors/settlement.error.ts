@@ -70,3 +70,22 @@ export class AuditUnavailableError extends DomainError {
     this.name = "AuditUnavailableError";
   }
 }
+
+/** Stored data settlement cannot use. Retrying cannot help; an operator must look. */
+export class SettlementDataError extends Error {
+  public constructor(message: string) {
+    super(message);
+    this.name = "SettlementDataError";
+  }
+}
+
+// Code or data faults repeat on every retry, so they are parked for an operator instead of looping.
+export function isPermanentFailure(error: unknown): boolean {
+  return (
+    error instanceof SettlementDataError ||
+    error instanceof TypeError ||
+    error instanceof RangeError ||
+    error instanceof ReferenceError ||
+    error instanceof SyntaxError
+  );
+}

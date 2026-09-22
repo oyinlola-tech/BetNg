@@ -4,11 +4,14 @@ import {
   AUDIT_ENTITY,
   MATCH_SETTLEMENT_KIND,
   SETTLEMENT_BATCH,
+  SETTLEMENT_RETRY,
 } from "../../constants/index.js";
 import type { MatchSettlementKind } from "../../constants/index.js";
 import {
+  isPermanentFailure,
   MatchNotFoundError,
   SettlementConflictError,
+  SettlementDataError,
   SettlementFailedError,
 } from "../../errors/index.js";
 import type {
@@ -47,6 +50,8 @@ export interface SettleMatchInput {
   readonly kind: MatchSettlementKind;
   readonly actor: AuditActor;
   readonly reason?: string;
+  /** Set for automatic callers: a FAILED match past this many attempts waits for an operator retry. */
+  readonly attemptLimit?: number;
 }
 
 export interface MatchSettlementResult {
@@ -57,7 +62,7 @@ export interface MatchSettlementResult {
   readonly duplicate: boolean;
 }
 
-type BetProgress = "settled" | "waiting" | "skipped" | "failed";
+type BetProgress = "settled" | "waiting" | "skipped" | "failed" | "broken";
 
 interface MatchContext {
   readonly matchId: string;
@@ -134,6 +139,22 @@ export class MatchSettler {
       throw new SettlementConflictError("The match is not completed, so it cannot be settled yet.", {
         matchId,
       });
+    }
+
+    if (input.attemptLimit !== undefined) {
+      const current = await this.settlements.findMatchSettlement(matchId);
+
+      if (current?.status === "FAILED" && current.attempts >= input.attemptLimit) {
+        this.logger.error("Settlement is waiting for an operator retry", {
+          requestId: actor.requestId,
+          matchId,
+          event: "settlement.match_needs_operator",
+          alert: true,
+          attempts: current.attempts,
+        });
+
+        throw new SettlementFailedError(matchId, "Settlement has stopped retrying and is waiting for an operator.");
+      }
     }
 
     const begun = await this.settlements.beginMatchSettlement(matchId, input.kind);
@@ -278,7 +299,8 @@ export class MatchSettler {
 
     const counted = progress.filter((state) => state !== "skipped");
     const settled = counted.filter((state) => state === "settled").length;
-    const failed = counted.filter((state) => state === "failed").length;
+    const broken = counted.filter((state) => state === "broken").length;
+    const failed = counted.filter((state) => state === "failed").length + broken;
 
     return this.settlements.finishMatchSettlement({
       matchId,
@@ -288,7 +310,10 @@ export class MatchSettler {
       failureReason:
         failed === 0
           ? null
-          : `${String(failed)} of ${String(counted.length)} bets could not be settled and paid; they will be retried.`,
+          : broken === 0
+            ? `${String(failed)} of ${String(counted.length)} bets could not be settled and paid; they will be retried.`
+            : `${String(failed)} of ${String(counted.length)} bets could not be settled and paid; ${String(broken)} need an operator retry.`,
+      ...(broken === 0 ? {} : { parkAfterAttempts: SETTLEMENT_RETRY.AUTOMATIC_ATTEMPTS }),
     });
   }
 
@@ -351,9 +376,20 @@ export class MatchSettler {
 
       return "settled";
     } catch (error) {
-      this.logger.error("Bet could not be settled and paid", { ...log, error: describe(error) });
+      const permanent = isPermanentFailure(error);
 
-      return "failed";
+      this.logger.error(
+        permanent ? "Bet cannot be settled without an operator" : "Bet could not be settled and paid",
+        {
+          ...log,
+          event: permanent ? "settlement.bet_broken" : "settlement.bet_failed",
+          alert: permanent,
+          errorName: error instanceof Error ? error.name : typeof error,
+          error: describe(error),
+        },
+      );
+
+      return permanent ? "broken" : "failed";
     }
   }
 
@@ -364,7 +400,7 @@ export class MatchSettler {
     legs: readonly BetLegRecord[],
   ): { readonly settled: SettledLegRecord; readonly odds: string }[] | undefined {
     if (legs.length === 0) {
-      throw new Error("The bet has no legs.");
+      throw new SettlementDataError("The bet has no legs.");
     }
 
     const resolved: { settled: SettledLegRecord; odds: string }[] = [];

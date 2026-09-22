@@ -4,6 +4,7 @@
 
 import type { Logger } from "@betng/service-kit";
 import { WALLET_KEY } from "../../constants/index.js";
+import { SettlementDataError } from "../../errors/index.js";
 import type {
   BettingPeer,
   SettlementNotifier,
@@ -28,7 +29,7 @@ export function customerCreditFor(settlement: SettlementRecord): WalletCreditReq
   }
 
   if (settlement.userId === null) {
-    throw new Error("An online bet has no customer to pay.");
+    throw new SettlementDataError("An online bet has no customer to pay.");
   }
 
   const won = settlement.outcome === "WON";

@@ -281,6 +281,7 @@ export function createSettlementRepository(prisma: PrismaClient): SettlementRepo
             bets_total = ${input.betsTotal},
             bets_settled = ${input.betsSettled},
             failure_reason = ${input.failureReason},
+            attempts = GREATEST(attempts, ${input.parkAfterAttempts ?? 0}),
             completed_at = CASE WHEN ${input.status} = 'COMPLETED' THEN now() ELSE NULL END
         WHERE match_id = ${input.matchId}::uuid AND status <> 'COMPLETED'
         RETURNING ${MATCH_SETTLEMENT_COLUMNS}`;
@@ -378,11 +379,12 @@ export function createSettlementRepository(prisma: PrismaClient): SettlementRepo
 
     findByBetIds,
 
-    listUnstamped: async (limit) => {
+    listUnstamped: async (limit, excludeIds = []) => {
       const rows = await prisma.$queryRaw<SettlementRow[]>`
         SELECT ${SETTLEMENT_COLUMNS}
         FROM settlement.settlements s
         WHERE s.effects_applied_at IS NULL
+          AND ${excludeIds.length === 0 ? sql`TRUE` : sql`NOT (s.id = ANY(${[...excludeIds]}::uuid[]))`}
         ORDER BY s.settled_at
         LIMIT ${limit}`;
 

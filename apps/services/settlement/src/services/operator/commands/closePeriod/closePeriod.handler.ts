@@ -19,13 +19,15 @@ export class ClosePeriodHandler extends CommandHandler<ClosePeriodCommand, Close
   }
 
   public async execute(command: ClosePeriodCommand): Promise<ClosedPeriodResult> {
-    const result = await this.operator.closePeriod({ nextKind: command.nextKind, now: new Date() });
+    const result = await this.operator.closePeriod({
+      nextKind: command.nextKind,
+      now: new Date(),
+      confirm: async (closed, before) => this.auditor.require(closed, before, command.actor, command.reason),
+    });
 
     if (result === undefined) {
       throw new SettlementConflictError("No reporting period is open.");
     }
-
-    await this.auditor.record(result, command.actor, command.reason);
 
     return result;
   }

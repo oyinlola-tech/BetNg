@@ -78,6 +78,12 @@ export interface IdentityPeer {
   notify(notification: CustomerNotification, requestId: string): Promise<NotifyResult>;
 }
 
+export type BetSignal = "BET_SETTLED";
+
+export interface EventPeer {
+  publishSignal(channel: string, type: BetSignal, requestId: string, betId: string): Promise<void>;
+}
+
 export interface SettlementNotifier {
   /** Best effort: returns at once, never throws, and a failed delivery is only logged. */
   settled(settlement: SettlementRecord, requestId: string): void;

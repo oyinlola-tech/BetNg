@@ -213,11 +213,15 @@ export function createOperatorRepository(prisma: PrismaClient): OperatorReposito
           throw new Error("The next reporting period could not be opened.");
         }
 
-        return {
+        const result = {
           closed: toSummary(toPeriod(closedRow), totals),
           opened,
           commissions,
         };
+
+        await input.confirm?.(result, open);
+
+        return result;
       }),
   };
 }

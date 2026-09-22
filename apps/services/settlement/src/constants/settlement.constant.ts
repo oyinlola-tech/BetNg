@@ -40,12 +40,15 @@ export const AUDIT_ACTION = Object.freeze({
   SETTLEMENT_FAILED: "settlement_failed",
   PERIOD_CLOSED: "period_closed",
   COMMISSION_CONFIGURATION_CHANGED: "commission_configuration_changed",
+  SETTLEMENT_RETRY_REQUESTED: "settlement_retry_requested",
+  SETTLEMENT_RETRY_FINISHED: "settlement_retry_finished",
 });
 
 export const AUDIT_ENTITY = Object.freeze({
   MATCH: "match",
   OPERATOR_PERIOD: "operator_period",
   COMMISSION_CONFIG: "commission_config",
+  BET_SETTLEMENT: "bet_settlement",
 });
 
 export const SYSTEM_ACTOR = Object.freeze({
@@ -93,4 +96,13 @@ export const SETTLEMENT_BATCH = Object.freeze({
   LEG_CHUNK: 500,
   CONCURRENCY: 4,
   RETRY_LIMIT: 100,
+});
+
+export const SETTLEMENT_RETRY = Object.freeze({
+  /** Automatic settle calls on a FAILED match stop here; only an operator retry runs it again. */
+  AUTOMATIC_ATTEMPTS: 10,
+  /** Per-settlement backoff of the effects retry loop; a payout owed is retried at the cap, never dropped. */
+  EFFECTS_BACKOFF_BASE_MS: 5_000,
+  EFFECTS_BACKOFF_MAX_MS: 300_000,
+  EFFECTS_ALERT_AFTER: 5,
 });

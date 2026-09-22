@@ -1,5 +1,5 @@
 import { CommandHandler } from "@zudojs/cqrs";
-import { MATCH_SETTLEMENT_KIND, SETTLEMENT_COMMAND } from "../../../../constants/index.js";
+import { MATCH_SETTLEMENT_KIND, SETTLEMENT_COMMAND, SETTLEMENT_RETRY } from "../../../../constants/index.js";
 import type { MatchSettlementResult, MatchSettler } from "../../match.settler.js";
 import type { SettleMatchCommand } from "./settleMatch.command.js";
 
@@ -18,6 +18,7 @@ export class SettleMatchHandler extends CommandHandler<SettleMatchCommand, Match
       matchId: command.matchId,
       kind: MATCH_SETTLEMENT_KIND.RESULT,
       actor: command.actor,
+      attemptLimit: SETTLEMENT_RETRY.AUTOMATIC_ATTEMPTS,
       ...(command.reason === undefined ? {} : { reason: command.reason }),
     });
   }

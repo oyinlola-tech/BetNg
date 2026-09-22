@@ -1,6 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { SettleMatchCommand, VoidMatchCommand } from "../src/services/settlement/commands/index.js";
+import {
+  RetrySettlementCommand,
+  SettleMatchCommand,
+  VoidMatchCommand,
+} from "../src/services/settlement/commands/index.js";
 import type { MatchSettlementResult } from "../src/services/index.js";
 import { createHarness, FakePeers, SYSTEM } from "./support.js";
 import type { Harness } from "./support.js";
@@ -255,6 +259,47 @@ describe("settleMatch", () => {
     expect(peers.walletCallsFor(bet.betId).filter((call) => call.amount !== 16_500)).toEqual([]);
     expect((await matchSettlement(matchId)).status).toBe("COMPLETED");
     expect((await settle(harness, matchId)).duplicate).toBe(true);
+  });
+
+  it("parks a match with a corrupt result for an operator and stops automatic retries", async () => {
+    const { fixtures, app, peers } = harness;
+    const matchId = await fixtures.completedMatch(-1, 0);
+
+    const bet = await fixtures.bet({
+      stake: 1_000n,
+      legs: [{ matchId, marketType: "MATCH_RESULT", selectionCode: "HOME", odds: "2.00" }],
+    });
+
+    const attemptsOf = async (): Promise<number> => {
+      const rows = await fixtures.admin.$queryRaw<{ attempts: number }[]>`
+        SELECT attempts FROM settlement.match_settlements WHERE match_id = ${matchId}::uuid`;
+
+      return rows[0]?.attempts ?? 0;
+    };
+
+    await expect(settle(harness, matchId)).rejects.toMatchObject({ code: "SETTLEMENT_FAILED" });
+    expect((await matchSettlement(matchId)).failure_reason).toContain("1 need an operator retry");
+    expect(await attemptsOf()).toBe(10);
+    expect(await settlementsOf(bet.betId)).toEqual([]);
+    expect(peers.walletCallsFor(bet.betId)).toEqual([]);
+
+    await expect(settle(harness, matchId)).rejects.toMatchObject({
+      code: "SETTLEMENT_FAILED",
+      message: expect.stringContaining("waiting for an operator") as unknown,
+    });
+    expect(await attemptsOf()).toBe(10);
+
+    await expect(
+      app.commandBus.execute(
+        new RetrySettlementCommand({
+          betId: bet.betId,
+          reason: "Operator retry after data fix",
+          actor: { actorId: randomUUID(), actorRole: "ADMIN", requestId: "operator" },
+        }),
+      ),
+    ).rejects.toMatchObject({ code: "SETTLEMENT_FAILED" });
+    expect(await attemptsOf()).toBe(11);
+    expect(peers.walletCallsFor(bet.betId)).toEqual([]);
   });
 
   it("fails honestly when betting cannot be told", async () => {

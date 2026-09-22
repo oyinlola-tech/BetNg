@@ -1,6 +1,7 @@
 import type { Container } from "@zudojs/container";
 import type { CommandBus, QueryBus } from "@zudojs/cqrs";
 import {
+  AUDIT_RECORDER_TOKEN,
   EFFECTS_APPLIER_TOKEN,
   LOGGER_TOKEN,
   MATCH_SETTLER_TOKEN,
@@ -45,7 +46,7 @@ export function registerSettlementService(config: ServiceRegistration): void {
   commandBus.register(SETTLEMENT_COMMAND.VOID_MATCH, new VoidMatchHandler(settler));
   commandBus.register(
     SETTLEMENT_COMMAND.RETRY_SETTLEMENT,
-    new RetrySettlementHandler(settlements, settler),
+    new RetrySettlementHandler(settlements, settler, container.resolve(AUDIT_RECORDER_TOKEN)),
   );
   commandBus.register(
     SETTLEMENT_COMMAND.RETRY_EFFECTS,

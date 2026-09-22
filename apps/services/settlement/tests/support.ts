@@ -5,12 +5,15 @@ import { parseEnv } from "node:util";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { createApp, loadSettlementConfig } from "../src/index.js";
 import type { SettlementApp } from "../src/index.js";
+import { sql } from "../src/databases/sql.js";
+import type { Sql } from "../src/databases/sql.js";
 import { PrismaClient } from "../src/generated/prisma/client.js";
 import type {
   ApplySettlementRequest,
   AuditEntry,
   BettingPeer,
   CustomerNotification,
+  EventPeer,
   IdentityPeer,
   WalletCreditRequest,
   WalletPeer,
@@ -56,41 +59,41 @@ function superuserUrl(): string {
   return url.toString();
 }
 
-const FIXTURE_DDL = [
-  `CREATE TABLE IF NOT EXISTS match.matches (
+const FIXTURE_DDL: readonly Sql[] = [
+  sql`CREATE TABLE IF NOT EXISTS match.matches (
      id uuid PRIMARY KEY, fixture_id uuid UNIQUE, status text NOT NULL, lifecycle text NOT NULL,
      home_score int, away_score int, revealed_sequence int NOT NULL DEFAULT 0, completed_at timestamptz,
      created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now())`,
-  `CREATE TABLE IF NOT EXISTS simulation.match_results (
+  sql`CREATE TABLE IF NOT EXISTS simulation.match_results (
      match_id uuid PRIMARY KEY, simulation_id uuid, home_goals int NOT NULL, away_goals int NOT NULL,
      winner text NOT NULL, winning_gap int NOT NULL, home_xg numeric(6,3), away_xg numeric(6,3), seed text,
      model_version text, configuration_version text, stats jsonb, created_at timestamptz NOT NULL DEFAULT now())`,
-  `CREATE TABLE IF NOT EXISTS betting.bets (
+  sql`CREATE TABLE IF NOT EXISTS betting.bets (
      id uuid PRIMARY KEY, user_id uuid, channel text NOT NULL, shop_id uuid, cashier_id uuid,
      stake bigint NOT NULL, currency text NOT NULL DEFAULT 'NGN', total_odds numeric(12,2) NOT NULL,
      potential_payout bigint NOT NULL, status text NOT NULL, payout bigint, risk_decision_id uuid,
      idempotency_key text NOT NULL, placed_at timestamptz NOT NULL DEFAULT now(), settled_at timestamptz,
      cancelled_at timestamptz)`,
-  `CREATE TABLE IF NOT EXISTS betting.bet_selections (
+  sql`CREATE TABLE IF NOT EXISTS betting.bet_selections (
      id uuid PRIMARY KEY, bet_id uuid NOT NULL, match_id uuid NOT NULL, market_id uuid NOT NULL,
      selection_id uuid NOT NULL, league_id uuid NOT NULL, market_type text NOT NULL,
      selection_code text NOT NULL, line numeric(4,1), odds numeric(8,2) NOT NULL, odds_version int NOT NULL,
      market_label text NOT NULL, selection_label text NOT NULL, match_label text NOT NULL,
      league_name text NOT NULL, kickoff_at timestamptz NOT NULL, outcome text NOT NULL DEFAULT 'PENDING',
      result text)`,
-  `CREATE TABLE IF NOT EXISTS betting.tickets (
+  sql`CREATE TABLE IF NOT EXISTS betting.tickets (
      id uuid PRIMARY KEY, bet_id uuid UNIQUE NOT NULL, code text UNIQUE NOT NULL, shop_id uuid NOT NULL,
      shop_code text NOT NULL, cashier_id uuid NOT NULL, cashier_name text NOT NULL, customer_name text,
      customer_phone text, status text NOT NULL, paid_at timestamptz, paid_by uuid,
      expires_at timestamptz NOT NULL, cancel_reason text, created_at timestamptz NOT NULL DEFAULT now())`,
-  `CREATE TABLE IF NOT EXISTS identity.shops (
+  sql`CREATE TABLE IF NOT EXISTS identity.shops (
      id uuid PRIMARY KEY, code text NOT NULL, name text NOT NULL, address text, phone text, email text,
      status text NOT NULL DEFAULT 'ACTIVE', owner_name text, created_at timestamptz NOT NULL DEFAULT now())`,
-  `CREATE TABLE IF NOT EXISTS identity.customers (
+  sql`CREATE TABLE IF NOT EXISTS identity.customers (
      id uuid PRIMARY KEY, email text NOT NULL, display_name text NOT NULL, phone text,
      status text NOT NULL DEFAULT 'ACTIVE', email_verified_at timestamptz,
      last_active_at timestamptz NOT NULL DEFAULT now(), created_at timestamptz NOT NULL DEFAULT now())`,
-  `GRANT SELECT ON ALL TABLES IN SCHEMA match, simulation, betting, identity TO betng_reader`,
+  sql`GRANT SELECT ON ALL TABLES IN SCHEMA match, simulation, betting, identity TO betng_reader`,
 ];
 
 export interface LegFixture {
@@ -125,7 +128,7 @@ export class Fixtures {
 
   public async ensureSchema(): Promise<void> {
     for (const statement of FIXTURE_DDL) {
-      await this.admin.$executeRawUnsafe(statement);
+      await this.admin.$executeRaw(statement);
     }
   }
 
@@ -229,8 +232,15 @@ export class FakePeers {
   public readonly audits: AuditEntry[] = [];
   public readonly notifyCalls: CustomerNotification[] = [];
   public readonly notified = new Map<string, string>();
+  public readonly signals: {
+    readonly channel: string;
+    readonly type: string;
+    readonly requestId: string;
+    readonly betId: string;
+  }[] = [];
 
   public notifyFailure: Error | undefined;
+  public eventFailure: Error | undefined;
   public walletFailure: Error | undefined;
   public bettingFailure: Error | undefined;
   public auditFailure: Error | undefined;
@@ -296,6 +306,16 @@ export class FakePeers {
       this.notified.set(key, id);
 
       return { id, duplicate: false };
+    },
+  };
+
+  public readonly event: EventPeer = {
+    publishSignal: async (channel, type, requestId, betId) => {
+      if (this.eventFailure !== undefined) {
+        throw this.eventFailure;
+      }
+
+      this.signals.push({ channel, type, requestId, betId });
     },
   };
 

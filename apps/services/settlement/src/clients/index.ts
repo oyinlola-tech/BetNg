@@ -10,3 +10,8 @@ export type { IdentityClient } from "./identity.client.js";
 export { createAuditRecorder } from "./audit.recorder.js";
 
 export { createSettlementNotifier, notificationFor } from "./settlement.notifier.js";
+
+export { createEventClient, EVENT_PROCEDURE } from "./event.client.js";
+export type { EventClient } from "./event.client.js";
+
+export { betSignalChannels, withBetSignals } from "./bet.signals.js";

@@ -1,3 +1,5 @@
+import { SettlementDataError } from "../errors/index.js";
+
 export type LegOutcome = "WON" | "LOST" | "VOID";
 
 export interface FinalScore {
@@ -21,6 +23,7 @@ const CORRECT_SCORE_MAX_GOALS = 3;
 
 const OVER_UNDER_CODE = /^(OVER|UNDER)_(\d{1,2})_5$/;
 const CORRECT_SCORE_CODE = /^CS_(\d)_(\d)$/;
+const LINE_TEXT = /^(\d{1,3})\.(\d)$/;
 
 const UNRECOGNISED: LegEvaluation = Object.freeze({ outcome: "VOID", recognised: false });
 
@@ -54,7 +57,18 @@ function evaluateDoubleChance(code: string, score: FinalScore): LegEvaluation {
   }
 }
 
-// A stored line that disagrees with the code makes the leg ambiguous: void, never guessed.
+// NUMERIC(4,1) text only, read as integer tenths: "2,5", " 2.5" or "2.50" is corrupt data, never a guess.
+function lineTenths(line: string): number {
+  const match = LINE_TEXT.exec(line);
+
+  if (match === null) {
+    throw new SettlementDataError(`The stored line ${JSON.stringify(line.slice(0, 16))} is not a one-decimal number.`);
+  }
+
+  return Number(match[1]) * 10 + Number(match[2]);
+}
+
+// A well-formed stored line that disagrees with the code makes the leg ambiguous: void, never guessed.
 function evaluateOverUnder(terms: LegTerms, score: FinalScore): LegEvaluation {
   const match = OVER_UNDER_CODE.exec(terms.selectionCode);
 
@@ -64,7 +78,7 @@ function evaluateOverUnder(terms: LegTerms, score: FinalScore): LegEvaluation {
 
   const whole = Number(match[2]);
 
-  if (terms.line !== null && Number(terms.line) !== whole + 0.5) {
+  if (terms.line !== null && lineTenths(terms.line) !== whole * 10 + 5) {
     return UNRECOGNISED;
   }
 

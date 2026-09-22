@@ -9,9 +9,11 @@ import type { CommandBus, QueryBus } from "@zudojs/cqrs";
 import {
   createAuditRecorder,
   createBettingClient,
+  createEventClient,
   createIdentityClient,
   createSettlementNotifier,
   createWalletClient,
+  withBetSignals,
 } from "./clients/index.js";
 import type { SettlementConfig } from "./configs/index.js";
 import {
@@ -20,7 +22,7 @@ import {
   createSettlementController,
 } from "./controllers/index.js";
 import { createSettlementDatabase } from "./databases/index.js";
-import type { BettingPeer, IdentityPeer, WalletPeer } from "./interfaces/index.js";
+import type { BettingPeer, EventPeer, IdentityPeer, WalletPeer } from "./interfaces/index.js";
 import { createMaintenanceJob } from "./jobs/index.js";
 import type { MaintenanceJob } from "./jobs/index.js";
 import { loadContainer, loadServices } from "./loaders/index.js";
@@ -37,6 +39,7 @@ export interface SettlementPeers {
   readonly betting: BettingPeer;
   readonly wallet: WalletPeer;
   readonly identity: IdentityPeer;
+  readonly event?: EventPeer;
 }
 
 export interface SettlementApp {
@@ -64,14 +67,15 @@ export function createApp(config: SettlementConfig, peers?: SettlementPeers): Se
     const betting = createBettingClient(config.services.betting);
     const wallet = createWalletClient(config.services.wallet);
     const identity = createIdentityClient(config.services.identity);
+    const event = createEventClient(config.services.event);
 
-    resolved = { betting, wallet, identity };
+    resolved = { betting, wallet, identity, event };
     onShutdown.push(async () => {
-      await Promise.all([betting.raw.close(), wallet.raw.close(), identity.raw.close()]);
+      await Promise.all([betting.raw.close(), wallet.raw.close(), identity.raw.close(), event.raw.close()]);
     });
   }
 
-  const notifier = createSettlementNotifier(resolved.identity, logger);
+  const notifier = withBetSignals(createSettlementNotifier(resolved.identity, logger), resolved.event, logger);
   const commission = createCommissionRepository(database.prisma);
   const operator = createOperatorRepository(database.prisma);
 

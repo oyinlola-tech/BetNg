@@ -390,7 +390,7 @@ describe("append-only tables", () => {
       async () => admin.$executeRaw`UPDATE settlement.commission_config SET shop_share_percent = 99 WHERE shop_id IS NULL`,
       async () => admin.$executeRaw`UPDATE settlement.operator_periods SET status = 'OPEN', ends_at = NULL WHERE id = ${periodId}`,
       async () => admin.$executeRaw`DELETE FROM settlement.operator_periods WHERE id = ${periodId}`,
-      async () => admin.$executeRawUnsafe(`TRUNCATE settlement.operator_ledger_entries`),
+      async () => admin.$executeRaw`TRUNCATE settlement.operator_ledger_entries`,
     ];
 
     for (const attempt of attempts) {

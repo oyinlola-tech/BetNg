@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { evaluateLeg, formatResult } from "../src/utils/index.js";
+import { SettlementDataError } from "../src/errors/index.js";
 import type { LegOutcome } from "../src/utils/index.js";
 
 type Row = readonly [market: string, code: string, home: number, away: number, expected: LegOutcome];
@@ -111,6 +112,32 @@ describe("evaluateLeg", () => {
       recognised: false,
     });
   });
+
+  it("reads the stored line as exact tenths", () => {
+    const score = { homeGoals: 1, awayGoals: 1 };
+
+    expect(evaluateLeg({ marketType: "OVER_UNDER", selectionCode: "UNDER_2_5", line: "2.5" }, score)).toEqual({
+      outcome: "WON",
+      recognised: true,
+    });
+    expect(evaluateLeg({ marketType: "OVER_UNDER", selectionCode: "OVER_10_5", line: "10.5" }, score)).toEqual({
+      outcome: "LOST",
+      recognised: true,
+    });
+    expect(evaluateLeg({ marketType: "OVER_UNDER", selectionCode: "OVER_1_5", line: "2.5" }, score)).toEqual({
+      outcome: "VOID",
+      recognised: false,
+    });
+  });
+
+  it.each(["2,5", " 2.5", "2.5 ", "2.50", "2", ".5", "NaN", "", "2.5e0", "+2.5", "-2.5", "0x2"])(
+    "fails the settlement on the malformed line %j instead of guessing",
+    (line) => {
+      expect(() =>
+        evaluateLeg({ marketType: "OVER_UNDER", selectionCode: "OVER_2_5", line }, { homeGoals: 3, awayGoals: 0 }),
+      ).toThrow(SettlementDataError);
+    },
+  );
 
   it.each([
     ["HALF_TIME_RESULT", "HOME"],
