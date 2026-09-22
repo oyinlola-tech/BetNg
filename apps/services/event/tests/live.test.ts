@@ -219,6 +219,14 @@ describe("private channels", () => {
 
     expect(published.result?.["delivered"]).toBe(1);
     expect(event["event"]).toMatchObject({ type: "BET_UPDATED", sequence: 1 });
+
+    const betId = crypto.randomUUID();
+
+    await rpc("event.publishSignal", { channel: `bets:${ALICE}`, type: "BET_SETTLED", payload: { betId } });
+
+    const settled = await client.next(isEvent(`bets:${ALICE}`));
+
+    expect(settled["event"]).toMatchObject({ type: "BET_SETTLED", sequence: 2, payload: { betId } });
   });
 
   it("authenticates from ?access_token= and rejects an unknown token", async () => {

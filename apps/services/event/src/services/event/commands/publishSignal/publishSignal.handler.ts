@@ -30,7 +30,12 @@ export class PublishSignalHandler extends CommandHandler<PublishSignalCommand, S
     const frame = JSON.stringify({
       type: "EVENT",
       channel: command.channel,
-      event: { type: command.signal, sequence, occurredAt: this.now().toISOString() },
+      event: {
+        type: command.signal,
+        sequence,
+        occurredAt: this.now().toISOString(),
+        ...(command.hint === undefined ? {} : { payload: command.hint }),
+      },
     });
 
     for (const session of subscribers) session.send(frame);

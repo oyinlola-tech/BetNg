@@ -32,7 +32,16 @@ const privateOrSystemChannel = z
 
 export const publishSignalPayloadSchema = z.object({
   channel: privateOrSystemChannel,
-  type: z.enum(["BET_UPDATED", "WALLET_UPDATED", "NOTIFICATION_CREATED", "SYSTEM_STATUS_UPDATED"]),
+  type: z.enum([
+    "BET_UPDATED",
+    "BET_ACCEPTED",
+    "BET_SETTLED",
+    "WALLET_UPDATED",
+    "NOTIFICATION_CREATED",
+    "SYSTEM_STATUS_UPDATED",
+    "RISK_ALERT",
+  ]),
+  payload: z.strictObject({ betId: z.uuid().optional() }).optional(),
 });
 
 export type PublishSignalPayload = z.infer<typeof publishSignalPayloadSchema>;
