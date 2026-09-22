@@ -382,6 +382,22 @@ class PostgresOddsRepository(OddsRepository):
 
             return {row["selection_id"]: row["odds"] for row in await cursor.fetchall()}
 
+    async def record_snapshot(
+        self, match_id: str, odds_version: int, reason: str
+    ) -> None:
+        """Record an odds snapshot for all markets of a match."""
+        async with transaction(self.pool) as connection:
+            cursor = await connection.execute(
+                "SELECT id FROM odds.markets WHERE match_id = %s",
+                (match_id,),
+            )
+            market_ids = [str(row["id"]) for row in await cursor.fetchall()]
+
+            if market_ids:
+                await connection.execute(
+                    _SNAPSHOT_SQL, (reason, market_ids)
+                )
+
     async def _active_configuration(
         self, connection: Connection
     ) -> ConfigurationRecord:

@@ -14,6 +14,7 @@ from ...constants import (
 from .commands import (
     ApplyMarketActionHandler,
     PublishMarketsHandler,
+    RecalculateOddsHandler,
     SetMatchMarketsStatusHandler,
     UpdatePricingConfigurationHandler,
 )
@@ -53,6 +54,11 @@ def register_odds_service(
     )
     command_bus.register(
         UpdatePricingConfigurationHandler(repository, audit_recorder, logger)
+    )
+    command_bus.register(
+        RecalculateOddsHandler(
+            repository, probability_model, match_directory, event_publisher, logger
+        )
     )
 
     query_bus.register(GetMatchOddsHandler(repository))

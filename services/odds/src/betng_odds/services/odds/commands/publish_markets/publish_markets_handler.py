@@ -50,7 +50,7 @@ class PublishMarketsHandler(
             raise MatchNotFoundError(match_id)
 
         matrix = await self.probability_model.calculate(
-            message.request.home, message.request.away, message.request_id
+            match_id, message.request.home, message.request.away, message.request_id
         )
 
         try:

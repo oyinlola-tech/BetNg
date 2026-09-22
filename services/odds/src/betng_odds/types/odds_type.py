@@ -71,6 +71,8 @@ class MatchInfo:
     league_name: str
     lifecycle: str
     betting_closes_at: datetime
+    home_strength: dict[str, float] | None = None
+    away_strength: dict[str, float] | None = None
 
     @property
     def label(self) -> str:

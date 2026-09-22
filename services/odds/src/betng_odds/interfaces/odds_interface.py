@@ -73,10 +73,20 @@ class OddsRepository(Protocol):
 
     async def opening_odds(self, market_ids: list[str]) -> dict[str, Decimal]: ...
 
+    async def record_snapshot(
+        self, match_id: str, odds_version: int, reason: str
+    ) -> None:
+        """Record an odds snapshot for all markets of a match."""
+        ...
+
 
 class ProbabilityModel(Protocol):
     async def calculate(
-        self, home: TeamStrength, away: TeamStrength, request_id: str | None
+        self,
+        match_id: str,
+        home: TeamStrength,
+        away: TeamStrength,
+        request_id: str | None,
     ) -> ProbabilityMatrix: ...
 
     async def ping(self) -> None: ...

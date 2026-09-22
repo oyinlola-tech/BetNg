@@ -8,6 +8,7 @@ class OddsCommand:
     SET_MATCH_MARKETS_STATUS: Final = "odds.setMatchMarketsStatus"
     APPLY_MARKET_ACTION: Final = "odds.applyMarketAction"
     UPDATE_PRICING_CONFIGURATION: Final = "odds.updatePricingConfiguration"
+    RECALCULATE_ODDS: Final = "odds.recalculateOdds"
 
 
 class OddsQuery:
@@ -21,6 +22,7 @@ class OddsQuery:
 class OddsProcedure:
     PUBLISH_MARKETS: Final = "odds.publishMarkets"
     SET_MATCH_MARKETS_STATUS: Final = "odds.setMatchMarketsStatus"
+    RECALCULATE_ODDS: Final = "odds.recalculateOdds"
 
 
 class PeerProcedure:
@@ -47,6 +49,10 @@ class MarketStatusValue:
 class SnapshotReasonValue:
     INITIAL: Final = "INITIAL"
     STATUS_CHANGE: Final = "STATUS_CHANGE"
+    GOAL: Final = "GOAL"
+    RED_CARD: Final = "RED_CARD"
+    HALF_TIME: Final = "HALF_TIME"
+    SECOND_HALF: Final = "SECOND_HALF"
 
 
 class AuditAction:

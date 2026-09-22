@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import uuid
 from decimal import Decimal
-from typing import Any
+from typing import Any, cast
 
 import psycopg
 import pytest
@@ -114,6 +114,7 @@ class TestPublishMarkets:
         assert body["result"] == {"matchId": match_id, "markets": 8, "oddsVersion": 1}
         assert rows(database, sql, match_id) == first
         assert harness.peers.probability_model.calls == 1
+        assert harness.peers.probability_model.match_ids == [match_id]
         assert (
             rows(
                 database,
@@ -153,6 +154,51 @@ class TestPublishMarkets:
             rows(database, "SELECT 1 FROM odds.markets WHERE match_id = %s", match_id)
             == []
         )
+
+    async def test_the_model_is_asked_for_this_match_only(self) -> None:
+        class RecordingClient:
+            def __init__(self) -> None:
+                self.calls: list[tuple[str, dict[str, Any]]] = []
+
+            async def call(
+                self,
+                procedure: str,
+                payload: dict[str, Any],
+                request_id: str | None = None,
+            ) -> dict[str, Any]:
+                self.calls.append((procedure, payload))
+                return {
+                    "homeXg": 1.2,
+                    "awayXg": 0.9,
+                    "maxGoals": 1,
+                    "scoreMatrix": [[0.4, 0.2], [0.3, 0.1]],
+                    "modelVersion": "progressive-2.0",
+                    "configurationVersion": 3,
+                }
+
+        client = RecordingClient()
+        model = RpcProbabilityModel(
+            client=cast(RpcClient, client),
+            health_url="http://127.0.0.1:9/health",
+            timeout_seconds=0.5,
+            logger=logging.getLogger("test"),
+        )
+        match_id = str(uuid.uuid4())
+        strength = TeamStrength.model_validate(STRENGTH)
+
+        matrix = await model.calculate(match_id, strength, strength, "req-1")
+
+        assert matrix.model_version == "progressive-2.0"
+        assert client.calls == [
+            (
+                "simulation.calculateProbabilities",
+                {
+                    "matchId": match_id,
+                    "home": strength.model_dump(by_alias=True),
+                    "away": strength.model_dump(by_alias=True),
+                },
+            )
+        ]
 
     def test_an_unreachable_simulation_service_is_odds_unavailable(
         self, database_url: str, harness: Harness, database: Database

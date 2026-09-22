@@ -137,6 +137,13 @@ class SetMatchMarketsStatusResult(WireModel):
     updated: int
 
 
+class RecalculateOddsResult(WireModel):
+    match_id: str
+    markets: int
+    odds_version: int
+    recalculated: bool
+
+
 class AdminSelectionOdds(WireModel):
     selection_id: str
     label: str

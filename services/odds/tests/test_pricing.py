@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from decimal import Decimal
+from typing import ClassVar
 
 import pytest
 
@@ -174,3 +176,72 @@ class TestMargin:
 class TestDeterminism:
     def test_the_same_inputs_give_the_same_prices(self) -> None:
         assert priced() == priced()
+
+
+class TestMonteCarloMatrix:
+    """The simulation prices by Monte Carlo: an empirical, sparse, wider matrix."""
+
+    COUNTS: ClassVar[dict[tuple[int, int], int]] = {
+        (0, 0): 480,
+        (1, 0): 900,
+        (0, 1): 610,
+        (1, 1): 1010,
+        (2, 0): 560,
+        (2, 1): 610,
+        (0, 2): 300,
+        (1, 2): 340,
+        (2, 2): 200,
+        (3, 0): 240,
+        (3, 1): 230,
+        (4, 2): 40,
+        (10, 0): 1,
+    }
+
+    def matrix(self) -> list[list[float]]:
+        total = sum(self.COUNTS.values())
+        size = 11
+        return [
+            [self.COUNTS.get((h, a), 0) / total for a in range(size)]
+            for h in range(size)
+        ]
+
+    def test_market_probabilities_are_the_simulated_frequencies(self) -> None:
+        total = sum(self.COUNTS.values())
+        markets = {
+            (m.type, m.line): {s.code: s.probability for s in m.selections}
+            for m in derive_market_probabilities(self.matrix(), "LIO", "TIG")
+        }
+
+        def share(predicate: Callable[[int, int], bool]) -> Decimal:
+            count = sum(n for (h, a), n in self.COUNTS.items() if predicate(h, a))
+            return Decimal(count / total).quantize(Decimal("0.000001"))
+
+        assert markets[("MATCH_RESULT", None)]["HOME"] == share(lambda h, a: h > a)
+        assert markets[("OVER_UNDER", Decimal("2.5"))]["OVER_2_5"] == share(
+            lambda h, a: h + a > 2
+        )
+        assert markets[("BOTH_TEAMS_TO_SCORE", None)]["YES"] == share(
+            lambda h, a: h > 0 and a > 0
+        )
+        assert markets[("CORRECT_SCORE", None)]["CS_OTHER"] == share(
+            lambda h, a: h > 3 or a > 3
+        )
+        assert markets[("CORRECT_SCORE", None)]["CS_3_3"] == 0
+
+    def test_the_margin_applies_exactly_as_for_an_analytic_matrix(self) -> None:
+        markets = price_markets(
+            derive_market_probabilities(self.matrix(), "LIO", "TIG"), CONFIGURATION
+        )
+
+        for market in markets:
+            if market.type == "CORRECT_SCORE":
+                continue
+            measured = overround(
+                [s.odds for s in market.selections],
+                [s.probability for s in market.selections],
+            )
+            assert abs(measured - MARGINS[market.type]) < ROUNDING_TOLERANCE
+
+        correct = next(m for m in markets if m.type == "CORRECT_SCORE")
+        never_seen = next(s for s in correct.selections if s.code == "CS_3_3")
+        assert never_seen.odds == CONFIGURATION.max_odds

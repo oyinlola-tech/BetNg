@@ -72,11 +72,17 @@ class FakeProbabilityModel:
     matrix: list[list[float]] = field(default_factory=lambda: poisson_matrix(1.6, 1.1))
     reachable: bool = True
     calls: int = 0
+    match_ids: list[str] = field(default_factory=list)
 
     async def calculate(
-        self, home: TeamStrength, away: TeamStrength, request_id: str | None
+        self,
+        match_id: str,
+        home: TeamStrength,
+        away: TeamStrength,
+        request_id: str | None,
     ) -> ProbabilityMatrix:
         self.calls += 1
+        self.match_ids.append(match_id)
 
         return ProbabilityMatrix(
             home_xg=1.6,

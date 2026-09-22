@@ -22,9 +22,15 @@ class RpcProbabilityModel(ProbabilityModel):
     logger: logging.Logger
 
     async def calculate(
-        self, home: TeamStrength, away: TeamStrength, request_id: str | None
+        self,
+        match_id: str,
+        home: TeamStrength,
+        away: TeamStrength,
+        request_id: str | None,
     ) -> ProbabilityMatrix:
+        # The match id seeds the model's pricing stream; it carries no bet data.
         payload = {
+            "matchId": match_id,
             "home": home.model_dump(by_alias=True),
             "away": away.model_dump(by_alias=True),
         }
