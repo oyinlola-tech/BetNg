@@ -1,11 +1,11 @@
 import { CommandHandler } from "@zudojs/cqrs";
 import { IDENTITY_COMMAND, SECURITY } from "../../../../constants/index.js";
-import { TooManyAttemptsError } from "../../../../errors/index.js";
+import { ServiceUnavailableError, TooManyAttemptsError } from "../../../../errors/index.js";
 import type { HandlerDependencies } from "../../../../interfaces/index.js";
 import { normaliseEmail } from "../../../../utils/index.js";
 import type { ResendVerificationCommand } from "./resendVerification.command.js";
 
-type Dependencies = Pick<HandlerDependencies, "store" | "verifications">;
+type Dependencies = Pick<HandlerDependencies, "store" | "verifications" | "logger">;
 
 export class ResendVerificationHandler extends CommandHandler<ResendVerificationCommand> {
   public readonly commandType = IDENTITY_COMMAND.RESEND_VERIFICATION;
@@ -34,8 +34,20 @@ export class ResendVerificationHandler extends CommandHandler<ResendVerification
       throw new TooManyAttemptsError("A code was sent moments ago. Wait a minute before asking for another.");
     }
 
-    await store.transaction(async (repositories) =>
+    const issued = await store.transaction(async (repositories) =>
       verifications.issue(repositories, customer, command.requestId),
     );
+
+    try {
+      await issued.send();
+    } catch (error) {
+      this.deps.logger.warn("Verification code could not be delivered", {
+        event: "verification_delivery_failed",
+        requestId: command.requestId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+
+      throw new ServiceUnavailableError("The code could not be sent. Try again in a minute.");
+    }
   }
 }

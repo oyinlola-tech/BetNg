@@ -1,8 +1,11 @@
 export type {
   CashierFigures,
   CustomerFigures,
+  DeletionBlockers,
+  LossUsage,
   ReadModelRepository,
   ShopFigures,
+  WindowUsage,
 } from "./readModel.interface.js";
 export type {
   AdminUserRepository,
@@ -44,3 +47,49 @@ export type {
   SessionResolver,
   VerificationIssuer,
 } from "./security.interface.js";
+export type {
+  Anonymised,
+  ChannelRepository,
+  ClientLabels,
+  DeletionRepository,
+  KycQueueEntry,
+  KycQueueFilter,
+  KycRepository,
+  LimitsRepository,
+  NewChallenge,
+  NewDeletion,
+  NewEnrollment,
+  NewIdentityCheck,
+  NewKycUpload,
+  NewLimitHistory,
+  NewPushDevice,
+  NewSelfExclusion,
+  PasswordRepository,
+  PendingEviction,
+  ResponsibleGamingFilter,
+  ResponsibleGamingRow,
+  SessionListing,
+  TwoFactorRepository,
+} from "./account.interface.js";
+export type {
+  CustomerNotice,
+  DeliveryProviders,
+  EmailMessage,
+  EmailProvider,
+  Messenger,
+  PushMessage,
+  PushOutcome,
+  PushProvider,
+  SecurityAlert,
+  SmsMessage,
+  SmsProvider,
+} from "./delivery.interface.js";
+export type {
+  DocumentStorage,
+  IdentityVerificationInput,
+  IdentityVerificationOutcome,
+  IdentityVerificationProvider,
+  PresignedDownload,
+  PresignedUpload,
+  StoredObject,
+} from "./kyc.interface.js";

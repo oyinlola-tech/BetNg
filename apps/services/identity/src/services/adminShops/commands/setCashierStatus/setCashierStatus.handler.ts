@@ -6,7 +6,7 @@ import { ConflictError, ResourceNotFoundError } from "../../../../errors/index.j
 import type { HandlerDependencies } from "../../../../interfaces/index.js";
 import type { SetCashierStatusCommand } from "./setCashierStatus.command.js";
 
-type Dependencies = Pick<HandlerDependencies, "store" | "readModel" | "audit">;
+type Dependencies = Pick<HandlerDependencies, "store" | "readModel" | "audit" | "evictor">;
 
 export class SetCashierStatusHandler extends CommandHandler<SetCashierStatusCommand, AdminCashierSummary> {
   public readonly commandType = IDENTITY_COMMAND.SET_CASHIER_STATUS;
@@ -56,6 +56,8 @@ export class SetCashierStatusHandler extends CommandHandler<SetCashierStatusComm
 
       return next;
     });
+
+    await this.deps.evictor.flush();
 
     const figures = await readModel.cashierFigures([updated.id]);
 

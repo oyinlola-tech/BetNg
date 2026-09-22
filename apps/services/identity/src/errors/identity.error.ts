@@ -55,9 +55,27 @@ export class TooManyAttemptsError extends DomainError {
 }
 
 export class ConflictError extends DomainError {
-  public constructor(message: string) {
+  public readonly details: Readonly<Record<string, unknown>> | undefined;
+
+  public constructor(message: string, data?: Readonly<Record<string, unknown>>) {
     super(message, { code: ErrorCodes.CONFLICT, statusCode: 409 });
     this.name = "ConflictError";
+    this.details = data;
+  }
+}
+
+export class ForbiddenError extends DomainError {
+  public constructor(message = "You do not have permission to do this.") {
+    super(message, { code: ErrorCodes.FORBIDDEN, statusCode: 403 });
+    this.name = "ForbiddenError";
+  }
+}
+
+/** A dependency the operation needs (storage, a provider) is absent or failed; nothing was done. */
+export class ServiceUnavailableError extends DomainError {
+  public constructor(message: string) {
+    super(message, { code: ErrorCodes.SERVICE_UNAVAILABLE, statusCode: 503 });
+    this.name = "ServiceUnavailableError";
   }
 }
 

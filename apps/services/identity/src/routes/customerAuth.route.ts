@@ -8,6 +8,9 @@ export function registerCustomerAuthRoutes(router: HttpRouter, controller: Custo
   router.post(`${API_PREFIX}/auth/verify`, ok(controller.verify));
   router.post(`${API_PREFIX}/auth/verify/resend`, noContent(controller.resendVerification));
   router.post(`${API_PREFIX}/auth/login`, ok(controller.login));
+  router.post(`${API_PREFIX}/auth/login/2fa`, ok(controller.loginTwoFactor));
+  router.post(`${API_PREFIX}/auth/password/reset`, noContent(controller.resetPassword));
+  router.post(`${API_PREFIX}/auth/session/refresh`, ok(controller.refreshSession));
   router.post(`${API_PREFIX}/auth/logout`, noContent(controller.logout));
   router.get(`${API_PREFIX}/auth/me`, ok(controller.me));
   router.post(`${API_PREFIX}/auth/password/forgot`, noContent(controller.forgotPassword));

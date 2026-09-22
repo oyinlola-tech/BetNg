@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import type { CustomerProfile, CustomerSession, RegistrationPending } from "@betng/contracts";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { loadIdentityConfig } from "../src/configs/index.js";
-import { adminActor, freshEmail, PASSWORD, startHarness } from "./harness.js";
+import { adminActor, freshEmail, PASSWORD, PRODUCTION_REQUIREMENTS, startHarness } from "./harness.js";
 import type { ErrorBody, Harness } from "./harness.js";
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
@@ -189,7 +189,7 @@ describe("e-mail verification", () => {
       SEED_DEMO_DATA: "true",
     };
     const development = await loadIdentityConfig({ ...base, NODE_ENV: "development" });
-    const production = await loadIdentityConfig({ ...base, NODE_ENV: "production" });
+    const production = await loadIdentityConfig({ ...base, ...PRODUCTION_REQUIREMENTS, NODE_ENV: "production" });
     const unset = await loadIdentityConfig({ IDENTITY_DATABASE_URL: base.IDENTITY_DATABASE_URL, NODE_ENV: "test" });
 
     expect(development.security.devVerificationCode).toBe("123456");

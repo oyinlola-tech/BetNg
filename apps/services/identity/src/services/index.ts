@@ -1,5 +1,22 @@
 import type { Command, CommandBus, CommandHandler, Query, QueryBus, QueryHandler } from "@zudojs/cqrs";
 import type { HandlerDependencies } from "../interfaces/index.js";
+import {
+  CancelAccountDeletionHandler,
+  ChangePasswordHandler,
+  CompleteTwoFactorLoginHandler,
+  ConfirmTwoFactorHandler,
+  DisableTwoFactorHandler,
+  EnrollTwoFactorHandler,
+  GetAccountDeletionHandler,
+  GetTwoFactorStatusHandler,
+  ListAccountSessionsHandler,
+  RefreshSessionHandler,
+  RegenerateBackupCodesHandler,
+  RequestAccountDeletionHandler,
+  ResetPasswordHandler,
+  RevokeOtherSessionsHandler,
+  RevokeSessionHandler,
+} from "./accountSecurity/index.js";
 import { LoginAdminHandler, GetAdminSessionHandler } from "./adminAuth/index.js";
 import {
   CreateCashierHandler,
@@ -15,6 +32,13 @@ import {
 import { ListCustomersHandler, SetCustomerStatusHandler } from "./adminUsers/index.js";
 import { ListAuditLogsHandler, RecordAuditHandler } from "./audit/index.js";
 import {
+  GetChannelPreferencesHandler,
+  ListPushDevicesHandler,
+  RegisterPushDeviceHandler,
+  RemovePushDeviceHandler,
+  UpdateChannelPreferencesHandler,
+} from "./channels/index.js";
+import {
   GetCustomerProfileHandler,
   LoginCustomerHandler,
   RegisterCustomerHandler,
@@ -22,6 +46,27 @@ import {
   ResendVerificationHandler,
   VerifyEmailHandler,
 } from "./customerAuth/index.js";
+import {
+  GetKycOverviewHandler,
+  GetKycStatusHandler,
+  IssueKycUploadHandler,
+  ListKycDocumentsHandler,
+  ListKycQueueHandler,
+  PreviewKycDocumentHandler,
+  ReviewKycHandler,
+  SubmitKycDocumentHandler,
+  VerifyIdentityNumberHandler,
+} from "./kyc/index.js";
+import {
+  CancelSelfExclusionHandler,
+  CheckLimitsHandler,
+  GetLimitsSummaryHandler,
+  ListLimitHistoryHandler,
+  ListResponsibleGamingHandler,
+  RemoveLimitHandler,
+  SelfExcludeHandler,
+  SetLimitHandler,
+} from "./limits/index.js";
 import {
   ListNotificationsHandler,
   MarkNotificationsReadHandler,
@@ -74,6 +119,31 @@ export function registerIdentityServices(config: IdentityServiceConfig): void {
   command(new UpdateSettingsHandler(deps));
   command(new NotifyCustomerHandler(deps));
   command(new MarkNotificationsReadHandler(deps));
+  command(new CompleteTwoFactorLoginHandler(deps));
+  command(new EnrollTwoFactorHandler(deps));
+  command(new ConfirmTwoFactorHandler(deps));
+  command(new DisableTwoFactorHandler(deps));
+  command(new RegenerateBackupCodesHandler(deps));
+  command(new ResetPasswordHandler(deps));
+  command(new ChangePasswordHandler(deps));
+  command(new RefreshSessionHandler(deps));
+  command(new RevokeSessionHandler(deps));
+  command(new RevokeOtherSessionsHandler(deps));
+  command(new RequestAccountDeletionHandler(deps));
+  command(new CancelAccountDeletionHandler(deps));
+  command(new UpdateChannelPreferencesHandler(deps));
+  command(new RegisterPushDeviceHandler(deps));
+  command(new RemovePushDeviceHandler(deps));
+  command(new IssueKycUploadHandler(deps));
+  command(new SubmitKycDocumentHandler(deps));
+  command(new VerifyIdentityNumberHandler(deps));
+  command(new ReviewKycHandler(deps));
+  command(new PreviewKycDocumentHandler(deps));
+  command(new SetLimitHandler(deps));
+  command(new RemoveLimitHandler(deps));
+  command(new SelfExcludeHandler(deps));
+  command(new CancelSelfExclusionHandler(deps));
+  command(new CheckLimitsHandler(deps));
 
   query(new GetCustomerProfileHandler(deps));
   query(new GetShopSessionHandler(deps));
@@ -86,13 +156,29 @@ export function registerIdentityServices(config: IdentityServiceConfig): void {
   query(new ListAuditLogsHandler(deps));
   query(new GetSettingsHandler(deps));
   query(new ListNotificationsHandler(deps));
+  query(new GetTwoFactorStatusHandler(deps));
+  query(new ListAccountSessionsHandler(deps));
+  query(new GetAccountDeletionHandler(deps));
+  query(new GetChannelPreferencesHandler(deps));
+  query(new ListPushDevicesHandler(deps));
+  query(new GetKycOverviewHandler(deps));
+  query(new ListKycDocumentsHandler(deps));
+  query(new GetKycStatusHandler(deps));
+  query(new ListKycQueueHandler(deps));
+  query(new GetLimitsSummaryHandler(deps));
+  query(new ListLimitHistoryHandler(deps));
+  query(new ListResponsibleGamingHandler(deps));
 }
 
+export * from "./accountSecurity/index.js";
 export * from "./adminAuth/index.js";
 export * from "./adminShops/index.js";
 export * from "./adminUsers/index.js";
 export * from "./audit/index.js";
+export * from "./channels/index.js";
 export * from "./customerAuth/index.js";
+export * from "./kyc/index.js";
+export * from "./limits/index.js";
 export * from "./notifications/index.js";
 export * from "./session/index.js";
 export * from "./settings/index.js";

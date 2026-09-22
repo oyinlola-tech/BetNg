@@ -72,9 +72,28 @@ model Customer {
   createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt       DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  verifications  EmailVerification[]
-  passwordResets PasswordReset[]
-  notifications  Notification[]
+  passwordChangedAt DateTime? @map("password_changed_at") @db.Timestamptz(3)
+  deletedAt         DateTime? @map("deleted_at") @db.Timestamptz(3)
+
+  verifications       EmailVerification[]
+  passwordResets      PasswordReset[]
+  notifications       Notification[]
+  twoFactor           CustomerTwoFactor?
+  twoFactorEnrollment TwoFactorEnrollment[]
+  backupCodes         BackupCode[]
+  loginChallenges     LoginChallenge[]
+  passwordHistory     PasswordHistory[]
+  deletions           AccountDeletion[]
+  preferences         NotificationPreference?
+  pushDevices         PushDevice[]
+  kycUploads          KycUpload[]
+  kycDocuments        KycDocument[]
+  identityChecks      KycIdentityCheck[]
+  kycProfile          KycProfile?
+  limits              ResponsibleGamingLimit[]
+  limitHistory        LimitHistory[]
+  selfExclusions      SelfExclusion[]
+  limitRefusals       LimitCheckRefusal[]
 
   @@index([createdAt])
   @@map("customers")
@@ -95,11 +114,13 @@ model EmailVerification {
   @@map("email_verifications")
 }
 
+/// `tokenHash` is the hash of the six-digit code bound to the row id; `attempts` caps guesses per code.
 model PasswordReset {
   id         String    @id @default(uuid()) @db.Uuid
   customerId String    @map("customer_id") @db.Uuid
   tokenHash  String    @unique @map("token_hash")
   expiresAt  DateTime  @map("expires_at") @db.Timestamptz(3)
+  attempts   Int       @default(0)
   consumedAt DateTime? @map("consumed_at") @db.Timestamptz(3)
   createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
 
@@ -165,16 +186,22 @@ model Cashier {
   @@map("cashiers")
 }
 
-/// Only the SHA-256 of a session token is stored.
+/// Only the SHA-256 of a session token is stored. For a revoked session, `cacheEvictedAt` records that the gateway's cached actor
+/// was deleted and `realtimeRevokedAt` that the event service dropped its private subscriptions.
 model Session {
-  id         String      @id @default(uuid()) @db.Uuid
-  kind       SessionKind
-  subjectId  String      @map("subject_id") @db.Uuid
-  tokenHash  String      @unique @map("token_hash")
-  expiresAt  DateTime    @map("expires_at") @db.Timestamptz(3)
-  revokedAt  DateTime?   @map("revoked_at") @db.Timestamptz(3)
-  createdAt  DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
-  lastSeenAt DateTime    @default(now()) @map("last_seen_at") @db.Timestamptz(3)
+  id             String      @id @default(uuid()) @db.Uuid
+  kind           SessionKind
+  subjectId      String      @map("subject_id") @db.Uuid
+  tokenHash      String      @unique @map("token_hash")
+  expiresAt      DateTime    @map("expires_at") @db.Timestamptz(3)
+  revokedAt      DateTime?   @map("revoked_at") @db.Timestamptz(3)
+  createdAt      DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  lastSeenAt     DateTime    @default(now()) @map("last_seen_at") @db.Timestamptz(3)
+  device         String?     @db.VarChar(80)
+  browser        String?     @db.VarChar(80)
+  platform       String?     @db.VarChar(80)
+  cacheEvictedAt    DateTime? @map("cache_evicted_at") @db.Timestamptz(3)
+  realtimeRevokedAt DateTime? @map("realtime_revoked_at") @db.Timestamptz(3)
 
   @@index([kind, subjectId])
   @@index([expiresAt])
@@ -243,4 +270,304 @@ model PlatformSettings {
   updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(3)
 
   @@map("platform_settings")
+}
+
+enum KycStatus {
+  NOT_STARTED
+  PENDING
+  VERIFIED
+  REJECTED
+  REQUIRES_ACTION
+
+  @@map("kyc_status")
+}
+
+enum KycDocumentType {
+  NATIONAL_ID
+  PASSPORT
+  DRIVERS_LICENSE
+  VOTERS_CARD
+  PROOF_OF_ADDRESS
+  SELFIE
+
+  @@map("kyc_document_type")
+}
+
+enum IdentityCheckKind {
+  BVN
+  NIN
+
+  @@map("identity_check_kind")
+}
+
+enum AccountDeletionStatus {
+  PENDING
+  CANCELLED
+  COMPLETED
+
+  @@map("account_deletion_status")
+}
+
+enum PushPlatform {
+  web
+  ios
+  android
+
+  @@map("push_platform")
+}
+
+/// The TOTP secret is AES-256-GCM ciphertext bound to the customer id; `lastStep` is the last accepted time step (replay guard).
+model CustomerTwoFactor {
+  customerId       String   @id @map("customer_id") @db.Uuid
+  secretCiphertext String   @map("secret_ciphertext")
+  lastStep         BigInt?  @map("last_step")
+  enabledAt        DateTime @map("enabled_at") @db.Timestamptz(3)
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@map("customer_two_factor")
+}
+
+model TwoFactorEnrollment {
+  id               String    @id @default(uuid()) @db.Uuid
+  customerId       String    @map("customer_id") @db.Uuid
+  secretCiphertext String    @map("secret_ciphertext")
+  attempts         Int       @default(0)
+  expiresAt        DateTime  @map("expires_at") @db.Timestamptz(3)
+  consumedAt       DateTime? @map("consumed_at") @db.Timestamptz(3)
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId, createdAt])
+  @@map("two_factor_enrollments")
+}
+
+/// Keyed hash only; a code is spent by setting `usedAt` in a conditional update.
+model BackupCode {
+  id         String    @id @default(uuid()) @db.Uuid
+  customerId String    @map("customer_id") @db.Uuid
+  codeHash   String    @unique @map("code_hash")
+  usedAt     DateTime? @map("used_at") @db.Timestamptz(3)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@map("backup_codes")
+}
+
+/// A password-proven sign-in waiting for its second factor. Only the hash of the challenge id handed to the client is stored.
+model LoginChallenge {
+  id         String    @id @default(uuid()) @db.Uuid
+  customerId String    @map("customer_id") @db.Uuid
+  tokenHash  String    @unique @map("token_hash")
+  attempts   Int       @default(0)
+  expiresAt  DateTime  @map("expires_at") @db.Timestamptz(3)
+  consumedAt DateTime? @map("consumed_at") @db.Timestamptz(3)
+  device     String?   @db.VarChar(80)
+  browser    String?   @db.VarChar(80)
+  platform   String?   @db.VarChar(80)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId, createdAt])
+  @@index([expiresAt])
+  @@map("login_challenges")
+}
+
+model PasswordHistory {
+  id           String   @id @default(uuid()) @db.Uuid
+  customerId   String   @map("customer_id") @db.Uuid
+  passwordHash String   @map("password_hash")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId, createdAt(sort: Desc)])
+  @@map("password_history")
+}
+
+/// At most one PENDING request per customer (partial unique index in the migration).
+model AccountDeletion {
+  id             String                @id @default(uuid()) @db.Uuid
+  customerId     String                @map("customer_id") @db.Uuid
+  status         AccountDeletionStatus @default(PENDING)
+  reason         String?               @db.VarChar(500)
+  idempotencyKey String                @map("idempotency_key") @db.VarChar(120)
+  requestedAt    DateTime              @default(now()) @map("requested_at") @db.Timestamptz(3)
+  scheduledFor   DateTime              @map("scheduled_for") @db.Timestamptz(3)
+  cancelledAt    DateTime?             @map("cancelled_at") @db.Timestamptz(3)
+  completedAt    DateTime?             @map("completed_at") @db.Timestamptz(3)
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@unique([customerId, idempotencyKey])
+  @@index([status, scheduledFor])
+  @@map("account_deletions")
+}
+
+model NotificationPreference {
+  customerId String   @id @map("customer_id") @db.Uuid
+  channels   Json
+  updatedAt  DateTime @default(now()) @map("updated_at") @db.Timestamptz(3)
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@map("notification_preferences")
+}
+
+/// The token is kept as a keyed hash (lookup) and AES-256-GCM ciphertext (sending); it is never returned.
+model PushDevice {
+  id              String       @id @db.Uuid
+  customerId      String       @map("customer_id") @db.Uuid
+  platform        PushPlatform
+  label           String       @db.VarChar(80)
+  tokenHash       String       @unique @map("token_hash")
+  tokenCiphertext String       @map("token_ciphertext")
+  sessionId       String?      @map("session_id") @db.Uuid
+  registeredAt    DateTime     @default(now()) @map("registered_at") @db.Timestamptz(3)
+  lastSeenAt      DateTime?    @map("last_seen_at") @db.Timestamptz(3)
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId, registeredAt])
+  @@map("push_devices")
+}
+
+/// A single-use upload ticket. The object key is derived from the ids, never from the client's file name.
+model KycUpload {
+  id          String          @id @db.Uuid
+  customerId  String          @map("customer_id") @db.Uuid
+  type        KycDocumentType
+  fileName    String          @map("file_name") @db.VarChar(200)
+  contentType String          @map("content_type") @db.VarChar(40)
+  sizeBytes   Int             @map("size_bytes")
+  objectKey   String          @map("object_key") @db.VarChar(200)
+  expiresAt   DateTime        @map("expires_at") @db.Timestamptz(3)
+  consumedAt  DateTime?       @map("consumed_at") @db.Timestamptz(3)
+  createdAt   DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId, createdAt])
+  @@map("kyc_uploads")
+}
+
+model KycDocument {
+  id              String          @id @default(uuid()) @db.Uuid
+  customerId      String          @map("customer_id") @db.Uuid
+  type            KycDocumentType
+  status          KycStatus       @default(PENDING)
+  fileName        String          @map("file_name") @db.VarChar(200)
+  contentType     String          @map("content_type") @db.VarChar(40)
+  sizeBytes       Int             @map("size_bytes")
+  objectKey       String          @unique @map("object_key") @db.VarChar(200)
+  uploadedAt      DateTime        @default(now()) @map("uploaded_at") @db.Timestamptz(3)
+  reviewedAt      DateTime?       @map("reviewed_at") @db.Timestamptz(3)
+  reviewedBy      String?         @map("reviewed_by") @db.VarChar(80)
+  rejectionReason String?         @map("rejection_reason") @db.VarChar(300)
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId, uploadedAt])
+  @@index([status, uploadedAt])
+  @@map("kyc_documents")
+}
+
+/// BVN/NIN are never stored: only a keyed hash (duplicate detection) and the last four digits.
+model KycIdentityCheck {
+  id                String            @id @default(uuid()) @db.Uuid
+  customerId        String            @map("customer_id") @db.Uuid
+  check             IdentityCheckKind
+  status            KycStatus
+  numberHash        String            @map("number_hash")
+  numberLast4       String            @map("number_last4") @db.VarChar(4)
+  provider          String            @db.VarChar(40)
+  providerReference String?           @map("provider_reference") @db.VarChar(120)
+  message           String?           @db.VarChar(200)
+  createdAt         DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId, check, createdAt(sort: Desc)])
+  @@map("kyc_identity_checks")
+}
+
+/// The latest operator decision on a customer's verification.
+model KycProfile {
+  customerId      String    @id @map("customer_id") @db.Uuid
+  decision        KycStatus
+  reason          String?   @db.VarChar(300)
+  reviewedAt      DateTime  @map("reviewed_at") @db.Timestamptz(3)
+  reviewedBy      String    @map("reviewed_by") @db.VarChar(80)
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@map("kyc_profiles")
+}
+
+/// Money limits in kobo, `session_minutes` in minutes. A loosening waits in `pendingValue`, a removal in `removalEffectiveAt`.
+model ResponsibleGamingLimit {
+  customerId         String    @map("customer_id") @db.Uuid
+  kind               String    @db.VarChar(20)
+  value              BigInt
+  effectiveAt        DateTime  @map("effective_at") @db.Timestamptz(3)
+  pendingValue       BigInt?   @map("pending_value")
+  pendingEffectiveAt DateTime? @map("pending_effective_at") @db.Timestamptz(3)
+  removalEffectiveAt DateTime? @map("removal_effective_at") @db.Timestamptz(3)
+  updatedAt          DateTime  @default(now()) @map("updated_at") @db.Timestamptz(3)
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@id([customerId, kind])
+  @@map("rg_limits")
+}
+
+/// Append-only (trigger in the migration).
+model LimitHistory {
+  id            String   @id @default(uuid()) @db.Uuid
+  customerId    String   @map("customer_id") @db.Uuid
+  kind          String   @db.VarChar(20)
+  action        String   @db.VarChar(10)
+  previousValue BigInt?  @map("previous_value")
+  value         BigInt?
+  at            DateTime @default(now()) @db.Timestamptz(3)
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Restrict)
+
+  @@index([customerId, at(sort: Desc)])
+  @@map("rg_limit_history")
+}
+
+model SelfExclusion {
+  id          String    @id @default(uuid()) @db.Uuid
+  customerId  String    @map("customer_id") @db.Uuid
+  period      String    @db.VarChar(10)
+  startedAt   DateTime  @default(now()) @map("started_at") @db.Timestamptz(3)
+  endsAt      DateTime? @map("ends_at") @db.Timestamptz(3)
+  canCancelAt DateTime? @map("can_cancel_at") @db.Timestamptz(3)
+  cancelledAt DateTime? @map("cancelled_at") @db.Timestamptz(3)
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Restrict)
+
+  @@index([customerId, startedAt(sort: Desc)])
+  @@map("rg_self_exclusions")
+}
+
+/// Every refusal `limits.check` answered, for the operator's responsible-gaming view.
+model LimitCheckRefusal {
+  id         String   @id @default(uuid()) @db.Uuid
+  customerId String   @map("customer_id") @db.Uuid
+  action     String   @db.VarChar(12)
+  code       String   @db.VarChar(24)
+  amount     BigInt
+  at         DateTime @default(now()) @db.Timestamptz(3)
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId, at(sort: Desc)])
+  @@index([at])
+  @@map("rg_limit_refusals")
 }

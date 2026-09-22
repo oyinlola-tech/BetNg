@@ -5,7 +5,7 @@ import type { HandlerDependencies } from "../../../../interfaces/index.js";
 import { sha256Hex } from "../../../../utils/index.js";
 import type { LogoutCommand } from "./logout.command.js";
 
-type Dependencies = Pick<HandlerDependencies, "store" | "audit">;
+type Dependencies = Pick<HandlerDependencies, "store" | "audit" | "evictor">;
 
 /** Only a session of the route's own kind is revoked; an already-dead token still answers 204. */
 export class LogoutHandler extends CommandHandler<LogoutCommand> {
@@ -19,7 +19,7 @@ export class LogoutHandler extends CommandHandler<LogoutCommand> {
   }
 
   public async execute(command: LogoutCommand): Promise<void> {
-    const { store, audit } = this.deps;
+    const { store, audit, evictor } = this.deps;
 
     if (command.token === undefined) {
       throw new UnauthenticatedError();
@@ -48,5 +48,7 @@ export class LogoutHandler extends CommandHandler<LogoutCommand> {
         });
       }
     });
+
+    await evictor.flush();
   }
 }

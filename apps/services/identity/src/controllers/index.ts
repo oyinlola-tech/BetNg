@@ -1,7 +1,17 @@
+export { createAccountController } from "./account.controller.js";
+export type { AccountController } from "./account.controller.js";
 export { createAdminController } from "./admin.controller.js";
 export type { AdminController } from "./admin.controller.js";
+export { createChannelsController } from "./channels.controller.js";
+export type { ChannelsController } from "./channels.controller.js";
+export { createComplianceController } from "./compliance.controller.js";
+export type { ComplianceController } from "./compliance.controller.js";
 export { createCustomerAuthController } from "./customerAuth.controller.js";
 export type { CustomerAuthController } from "./customerAuth.controller.js";
+export { createKycController } from "./kyc.controller.js";
+export type { KycController } from "./kyc.controller.js";
+export { createLimitsController } from "./limits.controller.js";
+export type { LimitsController } from "./limits.controller.js";
 export { createNotificationController } from "./notification.controller.js";
 export type { NotificationController } from "./notification.controller.js";
 export { createShopController } from "./shop.controller.js";

@@ -21,6 +21,15 @@ export const TEST_DATABASE = "betng_test_identity";
 export const INTERNAL_TOKEN = "identity-test-internal-token-0001";
 export const PASSWORD = "correct-horse-battery";
 
+/** The minimum a production identity config needs besides the database; placeholder values only. */
+export const PRODUCTION_REQUIREMENTS: Readonly<Record<string, string>> = {
+  REDIS_URL: "redis://localhost:6379",
+  IDENTITY_DATA_KEY: Buffer.alloc(32, 7).toString("base64"),
+  EMAIL_PROVIDER: "sendgrid",
+  SENDGRID_API_KEY: "SG.placeholder-key-for-config-tests",
+  EMAIL_FROM: "no-reply@betng.example",
+};
+
 const BASE = `http://127.0.0.1:${String(TEST_PORT)}`;
 
 export interface Reply<T = unknown> {
@@ -50,6 +59,7 @@ export interface CallOptions {
 }
 
 export interface Harness {
+  readonly app: IdentityApp;
   readonly prisma: PrismaClient;
   readonly superuser: PrismaClient;
   readonly store: IdentityStore;
@@ -58,6 +68,7 @@ export interface Harness {
   call<T = unknown>(method: string, path: string, options?: CallOptions): Promise<Reply<T>>;
   rpc<T = unknown>(procedure: string, payload: unknown): Promise<{ success: boolean; result?: T; error?: { code: string } }>;
   issuedCode(email: string): string;
+  issuedResetCode(email: string): string;
   makeCustomer(options?: { verified?: boolean }): Promise<Customer>;
   makeAdmin(role: AdminRole, options?: { totp?: boolean }): Promise<AdminUser & { secret?: string }>;
   makeShop(): Promise<Shop>;
@@ -95,7 +106,7 @@ export const cashierActor = (cashier: Cashier): ActorInput => ({
   permissions: SHOP_ROLE_PERMISSIONS[cashier.role],
 });
 
-export async function startHarness(): Promise<Harness> {
+export async function startHarness(overrides: Readonly<Record<string, string>> = {}): Promise<Harness> {
   const envFile = resolve(import.meta.dirname, "../../../../.env");
 
   if (process.env["IDENTITY_DATABASE_URL"] === undefined && existsSync(envFile)) {
@@ -135,6 +146,9 @@ export async function startHarness(): Promise<Harness> {
     LOG_LEVEL: "info",
     LOG_VERIFICATION_CODES: "true",
     SEED_DEMO_DATA: "true",
+    EVENT_SERVICE_URL: "http://127.0.0.1:9",
+    ...(process.env["REDIS_URL"] === undefined ? {} : { REDIS_URL: process.env["REDIS_URL"] }),
+    ...overrides,
   });
 
   const app: IdentityApp = createApp(config);
@@ -148,7 +162,19 @@ export async function startHarness(): Promise<Harness> {
   const hasher = createPasswordHasher();
   const passwordHash = await hasher.hash(PASSWORD);
 
+  const loggedCode = (event: string, email: string): string => {
+    const entry = logs.findLast((line) => line.includes(event) && line.includes(email));
+    const code = entry === undefined ? undefined : /"code":\s*"(\d{6})"/u.exec(entry)?.[1];
+
+    if (code === undefined) {
+      throw new Error(`No ${event} code was logged for ${email}.`);
+    }
+
+    return code;
+  };
+
   return {
+    app,
     prisma,
     superuser,
     store,
@@ -194,18 +220,9 @@ export async function startHarness(): Promise<Harness> {
       return (await response.json()) as never;
     },
 
-    issuedCode: (email) => {
-      const entry = logs.findLast(
-        (line) => line.includes("verification_code_issued") && line.includes(email),
-      );
-      const code = entry === undefined ? undefined : /"code":\s*"(\d{6})"/u.exec(entry)?.[1];
+    issuedCode: (email) => loggedCode("verification_code_issued", email),
 
-      if (code === undefined) {
-        throw new Error(`No verification code was logged for ${email}.`);
-      }
-
-      return code;
-    },
+    issuedResetCode: (email) => loggedCode("password_reset_code_issued", email),
 
     makeCustomer: async ({ verified = true } = {}) =>
       store.customers.create({
@@ -263,4 +280,37 @@ export async function startHarness(): Promise<Harness> {
       process.stdout.write = write;
     },
   };
+}
+
+/**
+ * Rebuilds the wallet and betting tables identity reads (§8 columns plus `wallet.payments`) in identity's own test database.
+ * Refuses to run anywhere else, because it drops tables.
+ */
+export async function resetReadModelFixtures(h: Harness): Promise<void> {
+  const su = h.superuser;
+  const [where] = await su.$queryRaw<{ name: string }[]>`SELECT current_database()::text AS name`;
+
+  if (where?.name !== TEST_DATABASE) {
+    throw new Error("Read-model fixtures only run in the identity test database.");
+  }
+
+  await su.$executeRawUnsafe("DROP TABLE IF EXISTS betting.tickets, betting.bets, wallet.wallet_accounts, wallet.payments");
+  await su.$executeRawUnsafe(`CREATE TABLE wallet.wallet_accounts (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), owner_type text NOT NULL, owner_id uuid NOT NULL, balance bigint NOT NULL, UNIQUE (owner_type, owner_id))`);
+  await su.$executeRawUnsafe(`CREATE TABLE wallet.payments (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), reference text UNIQUE NOT NULL DEFAULT gen_random_uuid()::text, user_id uuid NOT NULL, direction text NOT NULL, status text NOT NULL, amount bigint NOT NULL, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), completed_at timestamptz)`);
+  await su.$executeRawUnsafe(`CREATE TABLE betting.bets (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid, channel text NOT NULL, shop_id uuid, cashier_id uuid, stake bigint NOT NULL, status text NOT NULL, payout bigint, placed_at timestamptz NOT NULL DEFAULT now(), settled_at timestamptz)`);
+  await su.$executeRawUnsafe(`CREATE TABLE betting.tickets (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), bet_id uuid NOT NULL UNIQUE, shop_id uuid NOT NULL, cashier_id uuid NOT NULL, status text NOT NULL, paid_at timestamptz, paid_by uuid)`);
+  await su.$executeRawUnsafe("GRANT SELECT ON wallet.wallet_accounts, wallet.payments, betting.bets, betting.tickets TO betng_reader");
+}
+
+export async function signIn(h: Harness, email: string, userAgent?: string): Promise<{ token: string; expiresAt: string }> {
+  const reply = await h.call<{ token: string; expiresAt: string }>("POST", "/auth/login", {
+    body: { email, password: PASSWORD },
+    ...(userAgent === undefined ? {} : { headers: { "user-agent": userAgent } }),
+  });
+
+  if (reply.status !== 200 || reply.body.token === undefined) {
+    throw new Error(`Sign-in failed with ${String(reply.status)}.`);
+  }
+
+  return reply.body;
 }

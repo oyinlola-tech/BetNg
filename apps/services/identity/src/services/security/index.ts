@@ -1,6 +1,14 @@
 export { createAuditWriter } from "./auditWriter.service.js";
+export { createBreachChecker } from "./breachChecker.service.js";
+export type { BreachChecker } from "./breachChecker.service.js";
+export { resolveCaller } from "./customerCaller.service.js";
+export type { CallingCustomer, CustomerCaller } from "./customerCaller.service.js";
 export { createLoginThrottle, throttleKey } from "./loginThrottle.service.js";
 export { createPasswordHasher } from "./passwordHasher.service.js";
+export { backupCodeHash, totpContext, verifySecondFactor } from "./secondFactor.service.js";
+export { createRealtimeRevoker } from "./realtimeRevoker.service.js";
+export { createSessionCacheEvictor, gatewayActorKey } from "./sessionCacheEvictor.service.js";
+export type { RealtimeRevoker, SessionCacheEvictor } from "./sessionCacheEvictor.service.js";
 export { createSessionIssuer } from "./sessionIssuer.service.js";
 export { createSessionResolver } from "./sessionResolver.service.js";
 export { createVerificationIssuer } from "./verificationIssuer.service.js";

@@ -3,11 +3,11 @@ import { randomNumericCode } from "@zudojs/crypto";
 import type { Logger } from "@betng/service-kit";
 import type { SecurityConfig } from "../../configs/index.js";
 import { SECURITY } from "../../constants/index.js";
-import type { VerificationIssuer } from "../../interfaces/index.js";
+import type { Messenger, VerificationIssuer } from "../../interfaces/index.js";
 import { verificationCodeHash } from "../../utils/index.js";
 
-/** No mail server exists: the code is logged in development and test only, never in production, and no route returns it. */
-export function createVerificationIssuer(security: SecurityConfig, logger: Logger): VerificationIssuer {
+/** The code is stored hashed in the caller's transaction and emailed by `send()` once that has committed. No route returns it. */
+export function createVerificationIssuer(security: SecurityConfig, messenger: Messenger, logger: Logger): VerificationIssuer {
   return {
     issue: async (repositories, customer, requestId) => {
       const now = new Date();
@@ -33,7 +33,7 @@ export function createVerificationIssuer(security: SecurityConfig, logger: Logge
         });
       }
 
-      return { expiresAt };
+      return { expiresAt, send: async () => messenger.sendCode(customer.email, "verification", code, expiresAt) };
     },
   };
 }

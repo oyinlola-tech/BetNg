@@ -5,11 +5,33 @@ import type { PrismaClient } from "../generated/prisma/client.js";
 import type {
   CashierFigures,
   CustomerFigures,
+  DeletionBlockers,
+  LossUsage,
   ReadModelRepository,
   ShopFigures,
+  WindowUsage,
 } from "../interfaces/index.js";
 
-type Source = "wallet.wallet_accounts" | "betting.bets" | "betting.tickets";
+type Source = "wallet.wallet_accounts" | "wallet.payments" | "betting.bets" | "betting.tickets";
+
+/** Payments that have left, or may still leave, the customer's control. */
+const COUNTED_DEPOSIT_STATUSES = ["INITIATED", "PENDING", "PROCESSING", "CONFIRMED"];
+const OPEN_PAYMENT_STATUSES = ["INITIATED", "PENDING", "PROCESSING"];
+
+interface UsageRow {
+  readonly used: bigint;
+  readonly oldest: Date | null;
+}
+
+interface LossRow {
+  readonly net: bigint;
+  readonly open_stakes: bigint;
+  readonly oldest: Date | null;
+}
+
+interface CountRow {
+  readonly count: bigint;
+}
 
 const MISSING_RELATION_CODES: readonly string[] = ["42P01", "3F000"];
 
@@ -97,7 +119,62 @@ export function createReadModelRepository(prisma: PrismaClient, logger: Logger):
     return new Map(rows.map((row) => [row.id, Number(row.balance)]));
   };
 
+  const depositUsage = async (customerId: string, since: Date): Promise<WindowUsage> => {
+    const [row] = await read<UsageRow>("wallet.payments", async () => prisma.$queryRaw<UsageRow[]>`
+        SELECT coalesce(sum(amount), 0)::bigint AS used, min(created_at) AS oldest
+        FROM wallet.payments
+        WHERE user_id = ${customerId}::uuid AND direction::text = 'DEPOSIT'
+          AND status::text = ANY(${COUNTED_DEPOSIT_STATUSES}::text[]) AND created_at >= ${since}`,
+    );
+
+    return { used: row?.used ?? 0n, oldestAt: row?.oldest ?? undefined };
+  };
+
+  // Net loss of bets settled in the window (VOID refunds net to zero), plus stakes still open.
+  const lossUsage = async (customerId: string, since: Date): Promise<LossUsage> => {
+    const [row] = await read<LossRow>("betting.bets", async () => prisma.$queryRaw<LossRow[]>`
+        SELECT (coalesce(sum(stake) FILTER (WHERE status::text IN ('WON', 'LOST') AND settled_at >= ${since}), 0)
+              - coalesce(sum(payout) FILTER (WHERE status::text IN ('WON', 'LOST') AND settled_at >= ${since}), 0))::bigint AS net,
+               coalesce(sum(stake) FILTER (WHERE status::text = 'PENDING'), 0)::bigint AS open_stakes,
+               min(coalesce(settled_at, placed_at)) FILTER (WHERE coalesce(settled_at, placed_at) >= ${since}) AS oldest
+        FROM betting.bets
+        WHERE user_id = ${customerId}::uuid
+          AND (status::text = 'PENDING' OR (status::text IN ('WON', 'LOST') AND settled_at >= ${since}))`,
+    );
+
+    const net = row?.net ?? 0n;
+
+    return { used: net > 0n ? net : 0n, openStakes: row?.open_stakes ?? 0n, oldestAt: row?.oldest ?? undefined };
+  };
+
+  const deletionBlockers = async (customerId: string): Promise<DeletionBlockers> => {
+    const [balances, payments, bets] = await Promise.all([
+      read<{ balance: bigint }>("wallet.wallet_accounts", async () => prisma.$queryRaw<{ balance: bigint }[]>`
+          SELECT balance::bigint AS balance FROM wallet.wallet_accounts
+          WHERE owner_type::text = 'CUSTOMER' AND owner_id = ${customerId}::uuid`,
+      ),
+      read<CountRow>("wallet.payments", async () => prisma.$queryRaw<CountRow[]>`
+          SELECT count(*)::bigint AS count FROM wallet.payments
+          WHERE user_id = ${customerId}::uuid AND status::text = ANY(${OPEN_PAYMENT_STATUSES}::text[])`,
+      ),
+      read<CountRow>("betting.bets", async () => prisma.$queryRaw<CountRow[]>`
+          SELECT count(*)::bigint AS count FROM betting.bets
+          WHERE user_id = ${customerId}::uuid AND status::text = 'PENDING'`,
+      ),
+    ]);
+
+    return {
+      balance: balances[0]?.balance ?? 0n,
+      openPayments: Number(payments[0]?.count ?? 0n),
+      openBets: Number(bets[0]?.count ?? 0n),
+    };
+  };
+
   return {
+    depositUsage,
+    lossUsage,
+    deletionBlockers,
+
     customerFigures: async (customerIds) => {
       if (customerIds.length === 0) {
         return new Map();

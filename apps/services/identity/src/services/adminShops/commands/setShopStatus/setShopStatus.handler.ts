@@ -11,7 +11,7 @@ import type { HandlerDependencies } from "../../../../interfaces/index.js";
 import { summariseShop } from "../../shopSummary.helper.js";
 import type { SetShopStatusCommand } from "./setShopStatus.command.js";
 
-type Dependencies = Pick<HandlerDependencies, "store" | "readModel" | "audit">;
+type Dependencies = Pick<HandlerDependencies, "store" | "readModel" | "audit" | "evictor">;
 
 export class SetShopStatusHandler extends CommandHandler<SetShopStatusCommand, AdminShopSummary> {
   public readonly commandType = IDENTITY_COMMAND.SET_SHOP_STATUS;
@@ -66,6 +66,8 @@ export class SetShopStatusHandler extends CommandHandler<SetShopStatusCommand, A
 
       return next;
     });
+
+    await this.deps.evictor.flush();
 
     return summariseShop(this.deps, updated);
   }

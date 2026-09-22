@@ -1,5 +1,5 @@
 import { PrismaPg } from "@prisma/adapter-pg";
-import { createServiceDatabase, databaseProbe, databaseSchema } from "@betng/service-kit";
+import { createServiceDatabase, databaseProbe, databaseSchema, poolOptions } from "@betng/service-kit";
 import type { DependencyProbe, ServiceDatabase } from "@betng/service-kit";
 import { PrismaClient } from "../generated/prisma/client.js";
 
@@ -12,7 +12,7 @@ export interface IdentityDatabase {
 export function createIdentityDatabase(databaseUrl: string): IdentityDatabase {
   const prisma = new PrismaClient({
     adapter: new PrismaPg(
-      { connectionString: databaseUrl },
+      poolOptions(databaseUrl),
       { schema: databaseSchema(databaseUrl) },
     ),
   });

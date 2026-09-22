@@ -9,6 +9,7 @@ import {
 import { toAdminUser } from "../../../../dtos/index.js";
 import {
   AccountSuspendedError,
+  ForbiddenError,
   InvalidCredentialsError,
   InvalidInputError,
 } from "../../../../errors/index.js";
@@ -18,15 +19,17 @@ import { normaliseEmail, verifyTotp } from "../../../../utils/index.js";
 import { throttleKey } from "../../../security/index.js";
 import type { LoginAdminCommand } from "./loginAdmin.command.js";
 
-type Dependencies = Pick<HandlerDependencies, "store" | "hasher" | "sessions" | "throttle" | "audit">;
+type Dependencies = Pick<HandlerDependencies, "store" | "hasher" | "sessions" | "throttle" | "audit" | "security" | "protector">;
 
-type FailureCause = "credentials" | "two_factor_code" | "suspended";
+export const adminTotpContext = (adminId: string): string => `admin-totp:${adminId}`;
+
+type FailureCause = "credentials" | "two_factor_code" | "two_factor_not_enrolled" | "suspended";
 
 const CODE_REQUIRED =
   "This account uses two-factor authentication. Enter the six-digit code from your authenticator.";
 const CODE_REJECTED = "That code is not correct. Check your authenticator and try again.";
 
-/** Reads `admin_users` only. The admin app moves to its code step on a 422 `VALIDATION_FAILED`, sent only after the password is proven. */
+/** Reads `admin_users` only. With ADMIN_TOTP_REQUIRED an admin without two-factor authentication cannot sign in at all. The admin app moves to its code step on a 422 `VALIDATION_FAILED`, sent only after the password is proven. */
 export class LoginAdminHandler extends CommandHandler<LoginAdminCommand, AdminSession> {
   public readonly commandType = IDENTITY_COMMAND.LOGIN_ADMIN;
 
@@ -62,6 +65,13 @@ export class LoginAdminHandler extends CommandHandler<LoginAdminCommand, AdminSe
       throw new AccountSuspendedError();
     }
 
+    if (!admin.twoFactorEnabled && this.deps.security.adminTotpRequired) {
+      await this.auditFailure(command, email, admin, "two_factor_not_enrolled");
+      throw new ForbiddenError(
+        "Two-factor authentication must be set up before this account can sign in. Ask a super administrator to enrol it.",
+      );
+    }
+
     let step: number | undefined;
 
     if (admin.twoFactorEnabled) {
@@ -73,7 +83,9 @@ export class LoginAdminHandler extends CommandHandler<LoginAdminCommand, AdminSe
         admin.totpSecret === null
           ? undefined
           : verifyTotp({
-              secretBase32: admin.totpSecret,
+              secretBase32: admin.totpSecret.startsWith("v1.")
+                ? this.deps.protector.decrypt(admin.totpSecret, adminTotpContext(admin.id))
+                : admin.totpSecret,
               code,
               atMs: Date.now(),
               lastUsedStep: admin.totpLastStep === null ? undefined : Number(admin.totpLastStep),

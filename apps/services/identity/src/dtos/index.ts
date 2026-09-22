@@ -12,7 +12,19 @@ export {
 export type {
   AuditRecordedDto,
   AuthenticatedActorDto,
+  CustomerLoginOutcome,
+  KycStatusDto,
+  LimitsCheckDto,
   ListDto,
   NotifiedDto,
   PinVerificationDto,
 } from "./identity.dto.js";
+export {
+  toAccountDeletion,
+  toAccountSession,
+  toKycDocument,
+  toLimit,
+  toLimitHistoryEntry,
+  toPushDevice,
+  toSelfExclusion,
+} from "./account.dto.js";

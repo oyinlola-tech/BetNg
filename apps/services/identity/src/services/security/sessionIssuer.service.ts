@@ -16,7 +16,9 @@ export function createSessionIssuer(security: SecurityConfig): SessionIssuer {
   };
 
   return {
-    issue: async (repositories, kind, subjectId) => {
+    ttlMs: (kind) => ttlHours[kind] * HOUR_MS,
+    maxLifetimeMs: security.customerSessionMaxHours * HOUR_MS,
+    issue: async (repositories, kind, subjectId, labels = {}) => {
       const token = await randomToken(SECURITY.SESSION_TOKEN_BYTES);
 
       const session = await repositories.sessions.create({
@@ -24,6 +26,9 @@ export function createSessionIssuer(security: SecurityConfig): SessionIssuer {
         subjectId,
         tokenHash: sha256Hex(token),
         expiresAt: new Date(Date.now() + ttlHours[kind] * HOUR_MS),
+        device: labels.device,
+        browser: labels.browser,
+        platform: labels.platform,
       });
 
       return { token, session };

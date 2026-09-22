@@ -10,6 +10,7 @@ import {
 import type { HandlerDependencies } from "../../../../interfaces/index.js";
 import {
   constantTimeEqual,
+  describeClient,
   normaliseEmail,
   verificationCodeHash,
 } from "../../../../utils/index.js";
@@ -73,7 +74,7 @@ export class VerifyEmailHandler extends CommandHandler<VerifyEmailCommand, Custo
       }
 
       const verified = await repositories.customers.markVerified(customer.id, now);
-      const issued = await sessions.issue(repositories, "CUSTOMER", verified.id);
+      const issued = await sessions.issue(repositories, "CUSTOMER", verified.id, describeClient(command.userAgent));
 
       return {
         token: issued.token,

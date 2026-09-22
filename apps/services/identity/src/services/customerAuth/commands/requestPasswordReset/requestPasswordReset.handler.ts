@@ -1,14 +1,17 @@
+import { randomUUID } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
 import { CommandHandler } from "@zudojs/cqrs";
-import { randomToken } from "@zudojs/crypto";
-import { IDENTITY_COMMAND, SECURITY } from "../../../../constants/index.js";
+import { ACCOUNT_SECURITY, IDENTITY_COMMAND, SECURITY } from "../../../../constants/index.js";
 import type { HandlerDependencies } from "../../../../interfaces/index.js";
-import { normaliseEmail, sha256Hex } from "../../../../utils/index.js";
+import { normaliseEmail, sixDigitCode, verificationCodeHash } from "../../../../utils/index.js";
 import type { RequestPasswordResetCommand } from "./requestPasswordReset.command.js";
 
-type Dependencies = Pick<HandlerDependencies, "store" | "logger">;
+type Dependencies = Pick<HandlerDependencies, "store" | "logger" | "messenger" | "security">;
 
-/** Same answer and same duration whether or not the address exists; failures are logged, never surfaced, for the same reason. */
+/**
+ * Same answer and same duration whether or not the address exists. The code is emailed after the answer's timing floor is
+ * already fixed, and delivery failures are logged, never surfaced, for the same reason.
+ */
 export class RequestPasswordResetHandler extends CommandHandler<RequestPasswordResetCommand> {
   public readonly commandType = IDENTITY_COMMAND.REQUEST_PASSWORD_RESET;
 
@@ -23,7 +26,17 @@ export class RequestPasswordResetHandler extends CommandHandler<RequestPasswordR
     const floor = delay(SECURITY.PASSWORD_RESET_RESPONSE_MS);
 
     try {
-      await this.record(normaliseEmail(command.email));
+      const send = await this.record(normaliseEmail(command.email), command.requestId);
+
+      if (send !== undefined) {
+        void send().catch((error: unknown) => {
+          this.deps.logger.warn("Password reset code could not be delivered", {
+            event: "password_reset_delivery_failed",
+            requestId: command.requestId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        });
+      }
     } catch (error) {
       this.deps.logger.error("Password reset request could not be recorded", {
         event: "password_reset_failed",
@@ -34,21 +47,32 @@ export class RequestPasswordResetHandler extends CommandHandler<RequestPasswordR
     await floor;
   }
 
-  private async record(email: string): Promise<void> {
-    const { store } = this.deps;
-    const tokenHash = sha256Hex(await randomToken(SECURITY.SESSION_TOKEN_BYTES));
+  private async record(email: string, requestId: string): Promise<(() => Promise<void>) | undefined> {
+    const { store, messenger, security, logger } = this.deps;
     const customer = await store.customers.findByEmail(email);
 
-    if (customer === undefined || customer.status !== "ACTIVE" || customer.emailVerifiedAt === null) {
-      return;
+    if (customer === undefined || customer.status !== "ACTIVE" || customer.emailVerifiedAt === null || customer.deletedAt !== null) {
+      return undefined;
     }
 
+    const latest = await store.passwords.findLatestReset(customer.id);
+
+    if (latest !== undefined && Date.now() - latest.createdAt.getTime() < ACCOUNT_SECURITY.PASSWORD_RESET_INTERVAL_MS) {
+      return undefined;
+    }
+
+    const id = randomUUID();
+    const code = sixDigitCode();
+    const expiresAt = new Date(Date.now() + ACCOUNT_SECURITY.PASSWORD_RESET_TTL_MS);
+
     await store.transaction(async (repositories) =>
-      repositories.passwordResets.replace(
-        customer.id,
-        tokenHash,
-        new Date(Date.now() + SECURITY.PASSWORD_RESET_TTL_MS),
-      ),
+      repositories.passwords.replaceReset(customer.id, id, verificationCodeHash(id, code), expiresAt),
     );
+
+    if (security.logVerificationCodes) {
+      logger.info("Password reset code issued", { event: "password_reset_code_issued", requestId, email: customer.email, code });
+    }
+
+    return async () => messenger.sendCode(customer.email, "password_reset", code, expiresAt);
   }
 }

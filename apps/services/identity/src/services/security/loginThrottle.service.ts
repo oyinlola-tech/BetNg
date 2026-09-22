@@ -32,4 +32,7 @@ export const throttleKey = Object.freeze({
   admin: (email: string): string => `ADMIN:${email}`,
   cashier: (shopCode: string, username: string): string => `CASHIER:${shopCode}:${username}`,
   cashierPin: (cashierId: string): string => `CASHIER_PIN:${cashierId}`,
+  secondFactor: (customerId: string): string => `SECOND_FACTOR:${customerId}`,
+  reauthenticate: (customerId: string): string => `REAUTH:${customerId}`,
+  passwordReset: (email: string): string => `PASSWORD_RESET:${email}`,
 });

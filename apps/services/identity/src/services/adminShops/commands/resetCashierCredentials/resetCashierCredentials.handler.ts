@@ -12,7 +12,7 @@ import { issueTemporarySecrets, sha256Hex } from "../../../../utils/index.js";
 import { throttleKey } from "../../../security/index.js";
 import type { ResetCashierCredentialsCommand } from "./resetCashierCredentials.command.js";
 
-type Dependencies = Pick<HandlerDependencies, "store" | "hasher" | "audit">;
+type Dependencies = Pick<HandlerDependencies, "store" | "hasher" | "audit" | "evictor">;
 
 export class ResetCashierCredentialsHandler extends CommandHandler<
   ResetCashierCredentialsCommand,
@@ -70,6 +70,8 @@ export class ResetCashierCredentialsHandler extends CommandHandler<
 
       return cashier.username;
     });
+
+    await this.deps.evictor.flush();
 
     return {
       username,

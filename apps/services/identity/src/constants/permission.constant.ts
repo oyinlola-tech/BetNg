@@ -7,6 +7,7 @@ const CASHIER_PERMISSIONS: readonly ShopPermission[] = [
   "tickets:sell",
   "tickets:check",
   "tickets:payout",
+  "shifts:operate",
 ];
 
 const MANAGER_PERMISSIONS: readonly ShopPermission[] = [
@@ -14,6 +15,7 @@ const MANAGER_PERMISSIONS: readonly ShopPermission[] = [
   "tickets:cancel",
   "transactions:read",
   "reports:read",
+  "cash:move",
 ];
 
 export const SHOP_ROLE_PERMISSIONS: Readonly<Record<ShopRole, readonly ShopPermission[]>> =
@@ -41,6 +43,7 @@ export const ADMIN_ROLE_PERMISSIONS: Readonly<Record<AdminRole, readonly AdminPe
       "audit:read",
       "health:read",
       "settings:read",
+      "payments:read",
     ],
     RISK_ANALYST: [
       "catalogue:read",
@@ -51,8 +54,10 @@ export const ADMIN_ROLE_PERMISSIONS: Readonly<Record<AdminRole, readonly AdminPe
       "settlement:read",
       "reports:read",
       "health:read",
+      "kyc:read",
+      "payments:read",
     ],
-    SUPPORT: ["users:read", "shops:read", "audit:read", "health:read"],
+    SUPPORT: ["users:read", "shops:read", "audit:read", "health:read", "kyc:read", "payments:read"],
   });
 
 export const ADMIN_PERMISSION = Object.freeze({
@@ -64,6 +69,8 @@ export const ADMIN_PERMISSION = Object.freeze({
   AUDIT_READ: "audit:read",
   SETTINGS_READ: "settings:read",
   SETTINGS_WRITE: "settings:write",
+  KYC_READ: "kyc:read",
+  KYC_WRITE: "kyc:write",
 } satisfies Record<string, AdminPermission>);
 
 export const SHOP_PERMISSION = Object.freeze({

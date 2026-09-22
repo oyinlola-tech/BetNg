@@ -1,5 +1,5 @@
 import type { Logger } from "@betng/service-kit";
-import type { SecurityConfig } from "../configs/index.js";
+import type { IdentityConfig, SecurityConfig } from "../configs/index.js";
 import type {
   AdminUser,
   Cashier,
@@ -8,6 +8,10 @@ import type {
   SessionKind,
   Shop,
 } from "../generated/prisma/client.js";
+import type { DataProtector } from "../utils/index.js";
+import type { ClientLabels } from "./account.interface.js";
+import type { Messenger } from "./delivery.interface.js";
+import type { DocumentStorage, IdentityVerificationProvider } from "./kyc.interface.js";
 import type { ReadModelRepository } from "./readModel.interface.js";
 import type { IdentityRepositories, IdentityStore, NewAuditLog } from "./repository.interface.js";
 
@@ -23,7 +27,10 @@ export interface IssuedSession {
 }
 
 export interface SessionIssuer {
-  issue(repositories: IdentityRepositories, kind: SessionKind, subjectId: string): Promise<IssuedSession>;
+  issue(repositories: IdentityRepositories, kind: SessionKind, subjectId: string, labels?: ClientLabels): Promise<IssuedSession>;
+  ttlMs(kind: SessionKind): number;
+  /** Absolute lifetime of a customer session, counted from sign-in. */
+  readonly maxLifetimeMs: number;
 }
 
 export interface LoginThrottle {
@@ -66,6 +73,8 @@ export interface SessionResolver {
 
 export interface IssuedVerification {
   readonly expiresAt: Date;
+  /** Emails the code. Call after the transaction that stored it has committed; throws when the provider refused it. */
+  send(): Promise<void>;
 }
 
 export interface VerificationIssuer {
@@ -83,4 +92,12 @@ export interface HandlerDependencies {
   readonly verifications: VerificationIssuer;
   readonly security: SecurityConfig;
   readonly logger: Logger;
+  readonly protector: DataProtector;
+  readonly messenger: Messenger;
+  readonly evictor: { flush(): Promise<void> };
+  readonly breachChecker: { isBreached(password: string): Promise<boolean> };
+  /** Undefined when KYC object storage is not configured. */
+  readonly storage: DocumentStorage | undefined;
+  readonly identityVerifier: IdentityVerificationProvider;
+  readonly kyc: IdentityConfig["kyc"];
 }

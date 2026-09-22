@@ -9,9 +9,13 @@ import type {
   AuditLogEntry,
   Cashier,
   CustomerProfile,
+  CustomerSession,
+  KycStatus,
+  KycTier,
   Notification,
   NotificationKind,
   Shop,
+  TwoFactorChallenge,
 } from "@betng/contracts";
 import {
   ADMIN_ROLE_PERMISSIONS,
@@ -223,3 +227,16 @@ export function toAuditLogEntry(row: AuditLogRow): AuditLogEntry {
     requestId: row.requestId,
   };
 }
+
+export type CustomerLoginOutcome = CustomerSession | { readonly twoFactor: TwoFactorChallenge };
+
+export interface KycStatusDto {
+  readonly status: KycStatus;
+  readonly tier: KycTier;
+  readonly dailyDeposit?: number;
+  readonly dailyWithdrawal?: number;
+}
+
+export type LimitsCheckDto =
+  | { readonly allowed: true }
+  | { readonly allowed: false; readonly code: "SELF_EXCLUDED" | "LIMIT_EXCEEDED" | "ACCOUNT_RESTRICTED"; readonly message: string };

@@ -19,6 +19,7 @@ import type {
   ThrottleRepository,
   VerificationRepository,
 } from "../interfaces/index.js";
+import { channels, deletions, kyc, limits, passwords, sessionListing, twoFactor } from "./account.repository.js";
 
 type Db = PrismaClient | Prisma.TransactionClient;
 
@@ -109,10 +110,6 @@ function verifications(db: Db): VerificationRepository {
 
 function passwordResets(db: Db): PasswordResetRepository {
   return {
-    replace: async (customerId, tokenHash, expiresAt) => {
-      await db.passwordReset.deleteMany({ where: { customerId } });
-      await db.passwordReset.create({ data: { customerId, tokenHash, expiresAt } });
-    },
     purgeOlderThan: async (before) =>
       (await db.passwordReset.deleteMany({ where: { createdAt: { lt: before } } })).count,
   };
@@ -213,7 +210,19 @@ function cashiers(db: Db): CashierRepository {
 
 function sessions(db: Db): SessionRepository {
   return {
-    create: async (session) => db.session.create({ data: session }),
+    ...sessionListing(db),
+    create: async (session) =>
+      db.session.create({
+        data: {
+          kind: session.kind,
+          subjectId: session.subjectId,
+          tokenHash: session.tokenHash,
+          expiresAt: session.expiresAt,
+          device: session.device ?? null,
+          browser: session.browser ?? null,
+          platform: session.platform ?? null,
+        },
+      }),
     findByTokenHash: async (tokenHash) =>
       orUndefined(await db.session.findUnique({ where: { tokenHash } })),
     revokeByTokenHash: async (tokenHash, kind, at) => {
@@ -412,6 +421,12 @@ function bind(db: Db): IdentityRepositories {
     audit: audit(db),
     settings: settings(db),
     notifications: notifications(db),
+    twoFactor: twoFactor(db),
+    passwords: passwords(db),
+    deletions: deletions(db),
+    channels: channels(db),
+    kyc: kyc(db),
+    limits: limits(db),
   };
 }
 

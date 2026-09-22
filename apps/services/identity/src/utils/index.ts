@@ -16,3 +16,17 @@ export {
   verifyTotp,
 } from "./totp.util.js";
 export type { TotpCheck } from "./totp.util.js";
+export { createDataProtector } from "./dataProtector.util.js";
+export type { DataProtector } from "./dataProtector.util.js";
+export { describeClient } from "./userAgent.util.js";
+export type { ClientDescription } from "./userAgent.util.js";
+export {
+  generateBackupCode,
+  isTotpCode,
+  maskEmail,
+  maskPhone,
+  normaliseBackupCode,
+  randomUrlToken,
+  sixDigitCode,
+} from "./code.util.js";
+export { DEFAULT_CHANNELS, LOCKED_CHANNELS, resolveChannels } from "./preferences.util.js";

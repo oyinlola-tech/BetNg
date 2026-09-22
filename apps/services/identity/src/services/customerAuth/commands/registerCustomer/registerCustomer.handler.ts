@@ -2,12 +2,12 @@ import { CommandHandler } from "@zudojs/cqrs";
 import { isConflictError } from "@zudojs/database";
 import type { RegistrationPending } from "@betng/contracts";
 import { IDENTITY_COMMAND } from "../../../../constants/index.js";
-import { ConflictError } from "../../../../errors/index.js";
-import type { HandlerDependencies } from "../../../../interfaces/index.js";
+import { ConflictError, ServiceUnavailableError } from "../../../../errors/index.js";
+import type { HandlerDependencies, IssuedVerification } from "../../../../interfaces/index.js";
 import { normaliseEmail } from "../../../../utils/index.js";
 import type { RegisterCustomerCommand } from "./registerCustomer.command.js";
 
-type Dependencies = Pick<HandlerDependencies, "store" | "hasher" | "verifications">;
+type Dependencies = Pick<HandlerDependencies, "store" | "hasher" | "verifications" | "logger">;
 
 const TAKEN = "An account with that email already exists. Log in instead.";
 
@@ -67,6 +67,8 @@ export class RegisterCustomerHandler extends CommandHandler<RegisterCustomerComm
         return verifications.issue(repositories, customer, command.requestId);
       });
 
+      await this.deliver(issued, command.requestId);
+
       return { email, verificationRequired: true, expiresAt: issued.expiresAt.toISOString() };
     } catch (error) {
       if (isConflictError(error)) {
@@ -74,6 +76,21 @@ export class RegisterCustomerHandler extends CommandHandler<RegisterCustomerComm
       }
 
       throw error;
+    }
+  }
+
+  /** The account exists either way; the caller learns the truth about the email and can ask for the code again. */
+  private async deliver(issued: IssuedVerification, requestId: string): Promise<void> {
+    try {
+      await issued.send();
+    } catch (error) {
+      this.deps.logger.warn("Verification code could not be delivered", {
+        event: "verification_delivery_failed",
+        requestId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+
+      throw new ServiceUnavailableError("Your account was created but the code could not be sent. Ask for a new code in a minute.");
     }
   }
 }

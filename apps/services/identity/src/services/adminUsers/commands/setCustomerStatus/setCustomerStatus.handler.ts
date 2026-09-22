@@ -6,7 +6,7 @@ import { ConflictError, ResourceNotFoundError } from "../../../../errors/index.j
 import type { HandlerDependencies } from "../../../../interfaces/index.js";
 import type { SetCustomerStatusCommand } from "./setCustomerStatus.command.js";
 
-type Dependencies = Pick<HandlerDependencies, "store" | "readModel" | "audit">;
+type Dependencies = Pick<HandlerDependencies, "store" | "readModel" | "audit" | "evictor">;
 
 export class SetCustomerStatusHandler extends CommandHandler<SetCustomerStatusCommand, AdminCustomer> {
   public readonly commandType = IDENTITY_COMMAND.SET_CUSTOMER_STATUS;
@@ -55,6 +55,8 @@ export class SetCustomerStatusHandler extends CommandHandler<SetCustomerStatusCo
 
       return next;
     });
+
+    await this.deps.evictor.flush();
 
     const figures = await readModel.customerFigures([updated.id]);
 

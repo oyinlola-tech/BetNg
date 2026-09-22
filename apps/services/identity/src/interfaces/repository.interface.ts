@@ -15,6 +15,16 @@ import type {
   ShopRole,
   ShopStatus,
 } from "../generated/prisma/client.js";
+import type {
+  ChannelRepository,
+  ClientLabels,
+  DeletionRepository,
+  KycRepository,
+  LimitsRepository,
+  PasswordRepository,
+  SessionListing,
+  TwoFactorRepository,
+} from "./account.interface.js";
 
 export interface NewCustomer {
   readonly email: string;
@@ -53,7 +63,6 @@ export interface VerificationRepository {
 }
 
 export interface PasswordResetRepository {
-  replace(customerId: string, tokenHash: string, expiresAt: Date): Promise<void>;
   purgeOlderThan(before: Date): Promise<number>;
 }
 
@@ -121,14 +130,14 @@ export interface CashierRepository {
   touchActive(id: string, at: Date, olderThan: Date): Promise<void>;
 }
 
-export interface NewSession {
+export interface NewSession extends ClientLabels {
   readonly kind: SessionKind;
   readonly subjectId: string;
   readonly tokenHash: string;
   readonly expiresAt: Date;
 }
 
-export interface SessionRepository {
+export interface SessionRepository extends SessionListing {
   create(session: NewSession): Promise<Session>;
   findByTokenHash(tokenHash: string): Promise<Session | undefined>;
   /** Revokes one live session of the given kind. Returns it, or `undefined` when there was nothing live to revoke. */
@@ -219,6 +228,12 @@ export interface IdentityRepositories {
   readonly audit: AuditLogRepository;
   readonly settings: SettingsRepository;
   readonly notifications: NotificationRepository;
+  readonly twoFactor: TwoFactorRepository;
+  readonly passwords: PasswordRepository;
+  readonly deletions: DeletionRepository;
+  readonly channels: ChannelRepository;
+  readonly kyc: KycRepository;
+  readonly limits: LimitsRepository;
 }
 
 export interface IdentityStore extends IdentityRepositories {
