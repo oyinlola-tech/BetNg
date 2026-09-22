@@ -9,7 +9,7 @@ export interface BreachChecker {
   isBreached(password: string): Promise<boolean>;
 }
 
-/** HIBP k-anonymity: only the first five hex characters of the SHA-1 leave the service, with padding requested. */
+/** HIBP k-anonymity: SHA-1 is required by the range API; only the first five hex characters leave the service. */
 export function createBreachChecker(enabled: boolean, logger: Logger): BreachChecker {
   return {
     isBreached: async (password) => {
@@ -17,6 +17,7 @@ export function createBreachChecker(enabled: boolean, logger: Logger): BreachChe
         return false;
       }
 
+      // codeql[js/insufficient-password-hash] This digest is not stored or used for authentication; it is the HIBP range API identifier.
       const digest = createHash("sha1").update(password, "utf8").digest("hex").toUpperCase();
       const prefix = digest.slice(0, 5);
       const suffix = digest.slice(5);
