@@ -6,6 +6,7 @@ import {
   Card,
   Divider,
   Pressable,
+  PushNotificationsCard,
   Screen,
   Text,
 } from "../components";
@@ -162,6 +163,7 @@ export function SettingsScreen(): React.JSX.Element {
         <Divider />
         {row("goals", "Goals", "Every goal in matches you are watching")}
       </Card>
+      <PushNotificationsCard />
 
       <Text
         variant="caps"

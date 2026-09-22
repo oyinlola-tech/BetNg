@@ -1,7 +1,7 @@
 import { useLayoutEffect } from "react";
 import { View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import { Bell, Goal, Receipt, Timer, Trophy } from "lucide-react-native";
+import { Bell, Gauge, Goal, IdCard, Receipt, ShieldAlert, Timer, Trophy, Wallet } from "lucide-react-native";
 import { formatRelative, type NotificationKind } from "@betng/ui-core";
 import {
   Card,
@@ -23,6 +23,11 @@ const ICONS: Record<NotificationKind, typeof Bell> = {
   RESULT_AVAILABLE: Trophy,
   BET_SETTLED: Receipt,
   MATCH_EVENT: Goal,
+  BET_ACCEPTED: Receipt,
+  PAYMENT_UPDATED: Wallet,
+  KYC_UPDATED: IdCard,
+  SECURITY_ALERT: ShieldAlert,
+  LIMIT_WARNING: Gauge,
 };
 
 export function NotificationsScreen(): React.JSX.Element {

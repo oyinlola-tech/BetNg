@@ -76,7 +76,7 @@ export function targetForPath(path: string): ParsedDeepLink {
 /** Only ids travel through a link; the screen it opens reads everything else from the platform. */
 export function parseDeepLink(url: unknown, options: DeepLinkOptions): ParsedDeepLink {
   if (typeof url !== "string" || url.length === 0 || url.length > MAX_URL_LENGTH) return rejected();
-  if (/[\s@\u0000-\u001f\u007f]/.test(url)) return rejected();
+  if (/[\s@]/.test(url) || [...url].some((ch) => ch.charCodeAt(0) < 0x20 || ch.charCodeAt(0) === 0x7f)) return rejected();
 
   const path = extractPath(url, options);
 

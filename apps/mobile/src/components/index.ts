@@ -29,3 +29,4 @@ export { CodeField } from "./CodeField";
 export { SignInPrompt } from "./SignInPrompt";
 export { FootballIcon, iconForEvent } from "./FootballIcon";
 export { PaymentRow, PaymentStatusBadge } from "./PaymentRow";
+export { PushNotificationsCard } from "./PushNotificationsCard";

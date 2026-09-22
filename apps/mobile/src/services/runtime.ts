@@ -106,6 +106,7 @@ async function createSources(): Promise<RuntimeInfo["mode"]> {
       realtime,
       userId: () => session.snapshot().session?.user.id,
       storage,
+      accountChannel: env.realtimeAuth !== "none",
     }),
     offlineCache,
   );

@@ -11,6 +11,7 @@ import {
 import {
   Button,
   Card,
+  PaymentRow,
   EmptyState,
   ErrorState,
   Screen,
@@ -22,7 +23,12 @@ import {
 import { useAccountVersion } from "../hooks/useAccount";
 import { useAsync } from "../hooks/useAsync";
 import { presentError } from "../lib/errors";
-import { getDataSource } from "../services/dataSource";
+import { useCanTransact } from "../hooks/useConnectivity";
+import { useFlags } from "../hooks/useFlags";
+import { OFFLINE_COMMAND_MESSAGE } from "../platform/offlineCache";
+import { getAccountServices, getDataSource } from "../services/dataSource";
+import { DepositSheet } from "./wallet/DepositSheet";
+import { WithdrawSheet } from "./wallet/WithdrawSheet";
 import { useTheme } from "../theme";
 
 type Action = "DEPOSIT" | "WITHDRAW" | undefined;
@@ -37,12 +43,34 @@ export function WalletScreen(): React.JSX.Element {
     () => getDataSource().listTransactions(),
     [version],
   );
+  const payments = useFlags().paymentsEnabled;
+  const online = useCanTransact();
+  const history = useAsync(
+    () => (payments ? getAccountServices().payments.listHistory({ pageSize: 6 }) : Promise.resolve(undefined)),
+    [version, payments],
+  );
   const [action, setAction] = useState<Action>(undefined);
   const [text, setText] = useState("5000");
   const [busy, setBusy] = useState(false);
   const amount = parseStakeInput(text);
 
+  const refreshAll = (): void => {
+    void wallet.refresh();
+    void transactions.refresh();
+    void history.refresh();
+  };
+
+  const viewPayment = (reference: string): void => {
+    setAction(undefined);
+    navigation.navigate("Payment", { reference });
+  };
+
   const submit = async (): Promise<void> => {
+    if (!online) {
+      toast(OFFLINE_COMMAND_MESSAGE, "danger");
+      return;
+    }
+
     setBusy(true);
 
     try {
@@ -73,7 +101,7 @@ export function WalletScreen(): React.JSX.Element {
       ) : (
         <Card style={{ padding: 16 }}>
           <Text variant="caps" tone="muted">
-            Available · simulated
+            {payments ? "Available" : "Available · simulated"}
           </Text>
           <Text variant="display" tabular style={{ marginTop: 4 }}>
             {wallet.data === undefined
@@ -104,6 +132,7 @@ export function WalletScreen(): React.JSX.Element {
               onPress={() => {
                 setAction("DEPOSIT");
               }}
+              disabled={!online}
               style={{ flex: 1 }}
             />
             <Button
@@ -112,11 +141,39 @@ export function WalletScreen(): React.JSX.Element {
               onPress={() => {
                 setAction("WITHDRAW");
               }}
+              disabled={!online}
               style={{ flex: 1 }}
             />
           </View>
+          {!online && (
+            <Text variant="caption" tone="warning" style={{ marginTop: 8 }}>
+              {OFFLINE_COMMAND_MESSAGE}
+            </Text>
+          )}
         </Card>
       )}
+      {payments ? (
+        <>
+          <SectionHeader title="Payments" />
+          <Card>
+            {history.data === undefined ? (
+              history.error === undefined ? (
+                <View style={{ padding: 12 }}>
+                  <SkeletonRows rows={3} />
+                </View>
+              ) : (
+                <ErrorState error={history.error} onRetry={() => void history.refresh()} />
+              )
+            ) : history.data.items.length === 0 ? (
+              <EmptyState title="No payments yet" description="Deposits and withdrawals appear here with the status the platform reports." />
+            ) : (
+              history.data.items.map((p, i) => (
+                <PaymentRow key={p.reference} payment={p} first={i === 0} onPress={() => { viewPayment(p.reference); }} />
+              ))
+            )}
+          </Card>
+        </>
+      ) : (
       <Card
         style={{
           marginTop: 12,
@@ -133,6 +190,7 @@ export function WalletScreen(): React.JSX.Element {
           provider is connected.
         </Text>
       </Card>
+      )}
       <SectionHeader
         title="Recent transactions"
         onPress={() => {
@@ -184,8 +242,24 @@ export function WalletScreen(): React.JSX.Element {
         )}
       </Card>
 
+      <DepositSheet
+        visible={payments && action === "DEPOSIT"}
+        onClose={() => {
+          setAction(undefined);
+        }}
+        onStarted={refreshAll}
+        onViewStatus={viewPayment}
+      />
+      <WithdrawSheet
+        visible={payments && action === "WITHDRAW"}
+        onClose={() => {
+          setAction(undefined);
+        }}
+        onRequested={refreshAll}
+        onViewStatus={viewPayment}
+      />
       <Modal
-        visible={action !== undefined}
+        visible={!payments && action !== undefined}
         transparent
         animationType="fade"
         onRequestClose={() => {

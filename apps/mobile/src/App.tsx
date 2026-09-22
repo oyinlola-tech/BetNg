@@ -13,6 +13,7 @@ import { openAuth, useAuth } from "./hooks/useAuth";
 import { RootNavigator } from "./navigation/RootNavigator";
 import { useBetSlip } from "./stores/betslip.store";
 import { initRuntime } from "./services/dataSource";
+import { crashReporter } from "./platform";
 import { logger } from "./services/logger";
 import { hydrateStorage } from "./services/storage";
 import { useTheme, useThemeStore } from "./theme";
@@ -57,6 +58,7 @@ export function App(): React.JSX.Element {
         setReady(true);
       })
       .catch((cause: unknown) => {
+        crashReporter.captureException(cause, { phase: "startup" });
         logger.error("flow", "The app could not start", { cause: cause instanceof Error ? cause.message : "unknown" });
         setFailed(true);
       });
