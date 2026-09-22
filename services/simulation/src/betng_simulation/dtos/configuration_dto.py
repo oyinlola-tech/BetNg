@@ -96,6 +96,14 @@ class ModelParametersDto(ContractModel):
     fatigue_enabled: bool | None = None
     fatigue_onset_minute: Annotated[int | None, Field(ge=30, le=90)] = None
     fatigue_rate: Annotated[float | None, _number(0, 0.02)] = None
+    formation_attack_modifier: Annotated[float | None, _number(0.5, 2)] = None
+    formation_defence_modifier: Annotated[float | None, _number(0.5, 2)] = None
+    formation_midfield_modifier: Annotated[float | None, _number(0.5, 2)] = None
+    fatigue_rate_forward: Annotated[float | None, _number(0, 3)] = None
+    fatigue_rate_midfielder: Annotated[float | None, _number(0, 3)] = None
+    fatigue_rate_defender: Annotated[float | None, _number(0, 3)] = None
+    fatigue_rate_goalkeeper: Annotated[float | None, _number(0, 3)] = None
+    substitution_fresh_boost: Annotated[float | None, _number(0, 1)] = None
 
     @model_validator(mode="after")
     def _reject_explicit_nulls(self) -> Self:
