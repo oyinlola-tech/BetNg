@@ -39,11 +39,11 @@ It is a simulation that uses **play money only**. Nothing here is, or may be, co
 | **The platform decides** | Clock, phase, odds, market status, bet acceptance, payouts, balances, risk decisions and operator figures all come from the backend. The clients display them and never compute them. |
 | **Five clients, one model** | Web, mobile, TV, shop and admin all render the same canonical match, identified by one `match_id`. |
 | **Money is exact** | Integer kobo from the database to the pixel. No floating-point arithmetic touches an amount, and settlement pays on the odds stored at acceptance. |
-| **Built to be checked** | 2,577 automated tests across both halves, a 22-step end-to-end scenario against the real services, and a verification script that fails if a production bundle contains development code. |
+| **Built to be checked** | 2,577 automated tests across both halves, a 22-step end-to-end scenario against the real services, and a verification script that fails if a production bundle carries development-only data. |
 
 ## Screens
 
-All screenshots below were taken from the apps **running against the real platform** (`pnpm dev` services, live matches), not the development stand-in.
+All screenshots below were taken from the apps **running against the real platform** (`pnpm dev` services, live matches).
 
 ### Web
 
@@ -122,7 +122,7 @@ Betting closes before the simulation starts, so no accepted bet can influence th
   <img alt="Frontend layers from UI component through hooks, services, data source interfaces and the platform adapter to the SDK and gateway" src="docs/images/diagrams/frontend-layers-light.svg" width="100%">
 </picture>
 
-Components never call `fetch`, build a URL or import the SDK. They render view models from a data-source interface whose platform adapter speaks to the gateway. A development stand-in implements the same interfaces for offline work and deterministic browser tests, and deployed bundles do not contain it.
+Components never call `fetch`, build a URL or import the SDK. They render view models from a data-source interface whose platform adapter speaks to the gateway. There is no offline stand-in: development, the browser suites and production all run against the platform.
 
 ## Technology
 
@@ -160,7 +160,6 @@ packages/
   ui-web/           React + Tailwind components for web, shop and admin
   design-tokens/    colour, type, spacing, motion and TV tokens -> TypeScript and CSS
   brand/            logo, league marks, the procedural crest system, football icon geometry
-  mock-data/        development stand-in behind the same interfaces (never in production bundles)
   service-kit/      shared service plumbing
 infrastructure/     Docker Compose, PostgreSQL bootstrap
 scripts/            verification, platform launcher, smoke check, documentation renderers
@@ -205,7 +204,7 @@ pnpm dev:admin        # http://localhost:4500  administration control plane
 pnpm dev:mobile       # Expo
 ```
 
-Point a client at the platform with `VITE_API_URL` and `VITE_WS_URL` (see `apps/*/.env.example`). To work without a platform, `VITE_DATA_SOURCE=mock` opts a development build into the in-process stand-in. Staging and production builds ignore it.
+Every client talks only to the platform. Start it first (`pnpm dev`, or `serve.mjs` above), then point a client at it with `VITE_API_URL` and `VITE_WS_URL` (see `apps/*/.env.example`); for `serve.mjs` on 3100 that is `http://127.0.0.1:3100` and `ws://127.0.0.1:3108/live`.
 
 `node scripts/smoke-platform.mjs` reads a running platform through the same adapter the clients use, which is the quickest way to confirm a backend is reachable and speaking the right contract.
 
@@ -216,7 +215,6 @@ Point a client at the platform with `VITE_API_URL` and `VITE_WS_URL` (see `apps/
 | `VITE_API_URL` | `http://localhost:3000` | Public gateway origin |
 | `VITE_WS_URL` | `ws://localhost:3008/live` | Public realtime endpoint |
 | `VITE_APP_ENV` | `development` | `development`, `test`, `staging` or `production` |
-| `VITE_DATA_SOURCE` | `platform` | `mock` opts a development or test build into the stand-in |
 | `VITE_REALTIME_TRANSPORT` | `websocket` | `websocket` or `sse` |
 | `VITE_REALTIME_AUTH` | `none` | `none`, `frame` or `query` |
 | `VITE_FEATURE_FLAGS` | none | Build-time overrides such as `walletEnabled=false` |
@@ -226,26 +224,24 @@ Point a client at the platform with `VITE_API_URL` and `VITE_WS_URL` (see `apps/
 
 Platform settings (ports, database logins, the internal token, the simulation seed secret, CORS origins) live in `.env.example`, which documents each one. Production refuses to start with the placeholder secrets.
 
-### Development sign-ins
+### Demo accounts
 
-With the development stand-in, the sign-in screens list these themselves:
+The identity demo seed (`SEED_DEMO_DATA=true`, development and test only; production refuses it) creates these on an empty database:
 
 | Client | Sign-in |
 | --- | --- |
-| Web, mobile | `demo@betng.test` / `betng-demo` |
-| Shop | shop `BNG-LAG-001`, user `bisi` (cashier) or `ada` (owner), password `betng-demo`, PIN `1234` |
-| Admin | `operations@betng.test`, `risk@betng.test`, `support@betng.test` / `betng-admin` |
-
-Against a local platform the backend's seed provides the accounts; its super-admin account needs a real authenticator code.
+| Web, mobile | `demo@betng.test`, `amaka@betng.test` or `segun@betng.test` / `betng-demo` (already verified). A new registration's code is `DEV_VERIFICATION_CODE` when identity has one (the e2e stack sets `246810`), otherwise the code identity logs with `LOG_VERIFICATION_CODES=true` |
+| Shop | shop `BNG-LAG-001`: `ada` (owner), `tunde` (manager), `bisi` (cashier), `kunle` (suspended), PIN `1234`; shop `BNG-ABJ-001`: `amina` (owner), PIN `4321`; password `betng-demo` |
+| Admin | `ops@betng.test` (super admin) / `betng-admin` with an authenticator code. Its TOTP secret is random per database: the seed prints the enrolment URI once, and `pnpm --filter @betng/identity-service totp:dev` prints the current code. `operations@`, `risk@` and `support@betng.test` have no second factor, so the console stays locked for them |
 
 ### Scripts
 
 | Command | What it does |
 | --- | --- |
-| `pnpm verify` | Builds the shared packages, typechecks and lints every client, runs the unit and component suites, builds four production bundles and checks none contains the stand-in |
-| `pnpm test:unit` | Data layer, contracts, SDK, realtime, money, tokens, brand, stand-in |
+| `pnpm verify` | Builds the shared packages, typechecks and lints every client, runs the unit and component suites, builds four production bundles and checks none carries development-only data |
+| `pnpm test:unit` | Data layer, contracts, SDK, realtime, money, tokens, brand |
 | `pnpm test:dom` | Components and the four browser apps in jsdom |
-| `pnpm test:e2e` | Playwright: desktop, mobile and TV projects |
+| `pnpm test:e2e` | Playwright against a freshly seeded platform stack: desktop, mobile and TV projects |
 | `pnpm test` | Every TypeScript suite, services included |
 | `pnpm py:test` | The Python services' suites |
 | `pnpm e2e` | The platform's end-to-end scenario against the real services on a throwaway database |
@@ -319,7 +315,7 @@ The numbers in the badges above come from these runs, recorded on 2026-09-21 and
 | [`docs/testing.md`](docs/testing.md) | Test layers, how to run them, what each proves |
 | [`docs/frontend-backend-contracts.md`](docs/frontend-backend-contracts.md) | Shared contracts, who is authoritative for each value, error codes, routes pending on the backend |
 | [`docs/frontend-api-matrix.md`](docs/frontend-api-matrix.md) | Per-screen wiring: route, permission, realtime signal, cache key, invalidation, status |
-| [`docs/development.md`](docs/development.md) | Running each app, mock and API modes, environment, backend requirements |
+| [`docs/development.md`](docs/development.md) | Running the platform and each app, demo accounts, environment, backend requirements |
 | [`docs/deployment.md`](docs/deployment.md) | Frontend containers, CI workflows, approval-gated deploys |
 | [`docs/security-headers.md`](docs/security-headers.md) | CSP and security headers delivered by the frontend servers |
 | [`SECURITY.md`](SECURITY.md) | Reporting a vulnerability, and the security model with its evidence |
