@@ -32,7 +32,7 @@ Please test only against your own local copy. Do not run automated scanners, loa
 
 In scope: the gateway, the TypeScript and Python services, the shared contracts and SDK, and the web, mobile, TV, shop and admin clients in this repository.
 
-Out of scope: the development stand-in (`packages/mock-data`, never shipped in staging or production bundles), the local Docker infrastructure defaults, demo accounts and the fixed development codes, and findings that need physical access to a developer's machine.
+Out of scope: the local Docker infrastructure defaults, demo accounts and the fixed development codes, and findings that need physical access to a developer's machine.
 
 ## Security model
 
@@ -64,7 +64,7 @@ The platform is authoritative and the clients are untrusted. Every rule below is
 | Control | Where |
 | --- | --- |
 | The browser knows only two addresses: the public gateway and the public realtime endpoint. No service, database or Redis URL, and no secret, is ever configured in a client. Every `VITE_` variable is public by definition. | `packages/ui-core/src/runtime/clientEnv.ts` |
-| Staging and production builds always use the platform. The development stand-in is loaded through a dynamic import that Vite removes from deployed bundles, and `pnpm verify` fails if a production bundle contains it. | `apps/*/src/services/runtime.ts`, `scripts/verify.sh` |
+| Every build talks only to the platform; there is no data-source switch or in-process stand-in, and `pnpm verify`, CI and the web image build fail if a production bundle references `VITE_DATA_SOURCE`, `createMock`, `betng-demo` or `demo@betng.test`. | `apps/*/src/services/runtime.ts`, `scripts/verify.sh` |
 | Session tokens live in `sessionStorage` (web, shop, admin) or in memory only (mobile, since AsyncStorage is not an encrypted store). Passwords and PINs are never stored. | `apps/*/src/services/runtime.ts` |
 | A rejected or expired token ends the session everywhere and the realtime connection is replaced. | `packages/ui-core/src/session.ts`, `platformClients.ts` |
 | Roles and permissions come only from the platform's session. Guards hide what a role cannot use, but the platform enforces every permission again. | `apps/admin`, `apps/shop` |
