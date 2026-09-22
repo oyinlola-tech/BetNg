@@ -4,10 +4,10 @@ import userEvent from "@testing-library/user-event";
 import { RouterProvider, createMemoryRouter } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CashierShift, ShopSession } from "@betng/contracts";
-import { DEFAULT_FLAGS, DataSourceError, createSessionStore, formatMoney, formatSignedMoney, type ShopShiftSource } from "@betng/ui-core";
+import { DEFAULT_FLAGS, DataSourceError, createSessionStore, formatMoney, formatSignedMoney, type SessionStore, type ShopShiftSource } from "@betng/ui-core";
 import { FeatureFlagsProvider, ToastProvider } from "@betng/ui-web";
 
-const fake = vi.hoisted(() => ({ shifts: {} as ShopShiftSource, session: undefined as unknown }));
+const fake = vi.hoisted(() => ({ shifts: {} as ShopShiftSource, session: undefined as SessionStore<ShopSession> | undefined }));
 
 vi.mock("../../src/services/dataSource", () => ({
   shopSource: {
@@ -31,7 +31,7 @@ const SESSION: ShopSession = {
   expiresAt: new Date(Date.now() + 3_600_000).toISOString(),
   shop: { id: "shop-1", code: "BNG-LAG-001", name: "Test Shop", address: "1 Road", phone: "0800", email: "shop@example.com", status: "ACTIVE", ownerName: "Owner", balance: 0, createdAt: new Date().toISOString() },
   cashier: { id: "cashier-1", shopId: "shop-1", username: "bisi", displayName: "Bisi Adeyemi", role: "CASHIER", status: "ACTIVE", createdAt: new Date().toISOString() },
-  permissions: ["tickets:sell", "tickets:check", "tickets:payout"],
+  permissions: ["tickets:sell", "tickets:check", "tickets:payout", "shifts:operate"],
 } as unknown as ShopSession;
 
 function openShift(overrides: Partial<CashierShift> = {}): CashierShift {

@@ -40,7 +40,7 @@ function CloseShift(): React.JSX.Element {
 
 export function ShiftClosePage(): React.JSX.Element {
   return (
-    <Guard permission="tickets:sell">
+    <Guard permission="shifts:operate">
       <div className="mx-auto max-w-5xl p-4 lg:p-6">
         <PageHeader title="Close shift" description="Count the drawer and confirm with your PIN. The shift cannot be reopened." />
         <CloseShift />

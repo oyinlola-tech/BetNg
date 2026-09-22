@@ -13,7 +13,7 @@ export function CurrentShiftPanel({ shift }: { readonly shift: CashierShift }): 
   const printer = usePrintReceipt();
   const [movement, setMovement] = useState<CashMovementRequest["type"] | undefined>();
   const t = shift.totals;
-  const canMoveCash = can("transactions:read");
+  const canMoveCash = can("cash:move");
 
   return (
     <>

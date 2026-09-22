@@ -40,7 +40,7 @@ export const NAVIGATION: readonly NavGroup[] = [
     label: "Cashier",
     items: [
       { to: "/cashier/payout", label: "Payout", icon: HandCoins, permission: "tickets:payout", shortcut: "F4" },
-      { to: "/cashier/shift", label: "Shift", icon: Timer, permission: "tickets:sell", shortcut: "F7", flag: "cashShiftsEnabled" },
+      { to: "/cashier/shift", label: "Shift", icon: Timer, permission: "shifts:operate", shortcut: "F7", flag: "cashShiftsEnabled" },
       { to: "/cashier/transactions", label: "Transactions", icon: ReceiptText, permission: "transactions:read" },
     ],
   },

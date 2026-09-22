@@ -20,7 +20,7 @@ function Shift(): React.JSX.Element {
 
 export function ShiftPage(): React.JSX.Element {
   return (
-    <Guard permission="tickets:sell">
+    <Guard permission="shifts:operate">
       <div className="mx-auto max-w-5xl p-4 lg:p-6">
         <PageHeader title="Shift" description="Your cash drawer for this session: opening float, cash movements and the close." />
         <Shift />
