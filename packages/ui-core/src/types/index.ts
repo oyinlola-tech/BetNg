@@ -21,6 +21,7 @@ export type {
   SideStats,
 } from "./match.type.js";
 export type {
+  KnownMarketKind,
   MarketGroupKey,
   MarketKind,
   MarketView,
