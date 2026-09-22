@@ -5,6 +5,8 @@ from __future__ import annotations
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from dataclasses import replace
+from datetime import timedelta
 
 import psycopg
 from betng_service_kit import Pool
@@ -29,6 +31,7 @@ from ..types import (
     Window,
 )
 from . import analytics_sql as sql
+from .daily_summary import DailySummary
 
 Connection = AsyncConnection[DictRow]
 
@@ -41,11 +44,16 @@ POOL_TIMEOUT_SECONDS = 5.0
 
 class PostgresAnalyticsReader(AnalyticsReader):
     def __init__(
-        self, pool: Pool, report_timezone: str, logger: logging.Logger
+        self,
+        pool: Pool,
+        report_timezone: str,
+        logger: logging.Logger,
+        summary: DailySummary | None = None,
     ) -> None:
         self._pool = pool
         self._timezone = report_timezone
         self._logger = logger
+        self._summary = summary
 
     @asynccontextmanager
     async def _snapshot(self) -> AsyncIterator[Connection]:
@@ -205,6 +213,25 @@ class PostgresAnalyticsReader(AnalyticsReader):
             )
 
     async def daily_reports(self, days: DayRange) -> list[Row]:
+        sealed = self._summary.sealed(days) if self._summary is not None else {}
+        span = (days.last - days.first).days + 1
+        open_days = [
+            day
+            for day in (days.first + timedelta(days=n) for n in range(span))
+            if day not in sealed
+        ]
+
+        if not open_days:
+            return [sealed[day] for day in sorted(sealed)]
+
+        rows = await self._raw_daily_reports(
+            replace(days, first=open_days[0], last=open_days[-1])
+        )
+        merged = {**sealed, **{row["day"]: row for row in rows}}
+
+        return [merged[day] for day in sorted(merged)]
+
+    async def _raw_daily_reports(self, days: DayRange) -> list[Row]:
         async with self._snapshot() as connection:
             return await self._all(
                 connection,
@@ -270,6 +297,9 @@ class PostgresAnalyticsReader(AnalyticsReader):
 
 
 def create_analytics_reader(
-    pool: Pool, report_timezone: str, logger: logging.Logger
+    pool: Pool,
+    report_timezone: str,
+    logger: logging.Logger,
+    summary: DailySummary | None = None,
 ) -> AnalyticsReader:
-    return PostgresAnalyticsReader(pool, report_timezone, logger)
+    return PostgresAnalyticsReader(pool, report_timezone, logger, summary)

@@ -126,4 +126,12 @@ TABLES: dict[str, str] = {
         display_name text NOT NULL, role text NOT NULL, status text NOT NULL,
         last_active_at timestamptz, created_at timestamptz NOT NULL DEFAULT now()
     """,
+    "identity.audit_logs": """
+        id uuid PRIMARY KEY, actor_id varchar(80) NOT NULL,
+        actor_role varchar(40) NOT NULL, actor_name varchar(80) NOT NULL,
+        action varchar(80) NOT NULL, entity_type varchar(80) NOT NULL,
+        entity_id varchar(80) NOT NULL, before jsonb, after jsonb,
+        reason varchar(240), severity text NOT NULL,
+        request_id varchar(64) NOT NULL, created_at timestamptz NOT NULL
+    """,
 }

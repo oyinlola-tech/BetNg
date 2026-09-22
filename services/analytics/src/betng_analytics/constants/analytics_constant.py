@@ -9,6 +9,12 @@ LEG_DIMENSIONS: Final[frozenset[str]] = frozenset(
 )
 
 REPORTS_READ: Final = "reports:read"
+AUDIT_READ: Final = "audit:read"
+
+EXPORT_PAGE_SIZE: Final = 1_000
+MAX_EXPORT_ROWS: Final = 100_000
+
+DEFAULT_SUMMARY_REFRESH_SECONDS: Final = 300
 
 ACTOR_ADMIN: Final = "ADMIN"
 ACTOR_CASHIER: Final = "CASHIER"
@@ -41,3 +47,4 @@ class AnalyticsQueryType:
     LIST_SESSIONS: Final = "analytics.listSessions"
     GET_ACCOUNT_ANALYSIS: Final = "analytics.getAccountAnalysis"
     LIST_SHOP_DAILY_REPORTS: Final = "analytics.listShopDailyReports"
+    EXPORT_REPORT: Final = "analytics.exportReport"

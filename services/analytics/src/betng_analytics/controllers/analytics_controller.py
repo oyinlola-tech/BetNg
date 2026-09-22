@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from betng_service_kit import QueryBus
+from betng_service_kit import Actor, QueryBus
 
+from ..constants import AUDIT_READ
 from ..dtos import (
     AccountAnalysis,
     AnalyticsBreakdown,
@@ -12,6 +13,7 @@ from ..dtos import (
     BetsParams,
     BreakdownParams,
     DailyReportParams,
+    ExportParams,
     ExposureParams,
     ExposureReport,
     MatchAnalysis,
@@ -24,7 +26,10 @@ from ..dtos import (
     ShopDailyReportList,
     WindowParams,
 )
+from ..errors import ForbiddenError
 from ..services.analytics.queries import (
+    ExportReportQuery,
+    ExportStream,
     GetAccountAnalysisQuery,
     GetBreakdownQuery,
     GetExposureQuery,
@@ -139,3 +144,13 @@ class AnalyticsController:
         days = validate_days(first, last, self._timezone)
 
         return await self._query_bus.execute(ListShopDailyReportsQuery(shop_id, days))
+
+    async def export(self, actor: Actor, params: ExportParams) -> ExportStream:
+        if params.report == "audit" and AUDIT_READ not in actor.permissions:
+            raise ForbiddenError("You may not export the audit trail.")
+
+        days = validate_days(params.from_, params.to, self._timezone)
+
+        return await self._query_bus.execute(
+            ExportReportQuery(params.report, days, params.status, params.channel)
+        )

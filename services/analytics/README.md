@@ -6,7 +6,7 @@ The service owns no schema and writes nothing. Its login (`betng_analytics`) hol
 
 ## Principles
 
-- Every figure is a SQL aggregate over database rows. Nothing is mocked, hard-coded, sampled, cached or remembered; a read that fails answers `DATABASE_UNAVAILABLE` (503).
+- Every figure is a SQL aggregate over database rows. Nothing is mocked, hard-coded or sampled; a read that fails answers `DATABASE_UNAVAILABLE` (503). The one thing remembered is the daily summary below, and only for days whose figures can no longer change.
 - The population is **every accepted bet**: every customer, every shop, every cashier. A row exists in `betting.bets` only for an accepted bet. A scope (window, league, match, shop, customer, cashier) narrows that population; the caller's identity never does.
 - Customer, shop and cashier analyses are *views over the same global bets*. Their shares add up to the global totals. Nothing here implies separate games, matches or prices.
 - Money is integer kobo (`bigint` in SQL, `int` in Python). Rates are computed with `Decimal`, rounded half-even to 6 places, and serialised as numbers.
@@ -96,6 +96,14 @@ An optional window applies to `placed_at` for the bets, `created_at` for wallet 
 - `todayStake` / `todayPayouts` / `todayNet` = `totalStake` / `totalPayout` / `operatorResult` of the bets placed today.
 - A `PlatformReportDay` is the same for the bets placed on that day: `stake`, `payouts`, `net = settledStake − payouts`, `bets`, and `onlineStake` / `shopStake` = `totalStake` by channel. `net` is therefore not `stake − payouts` while bets are pending or void. Every day of the range is answered, including days with no bets. A range defaults to the 7 days ending today and may span at most 366 days.
 
+### Daily summary
+
+The login cannot write, so the summary lives in the process. Every `ANALYTICS_SUMMARY_REFRESH_SECONDS` a job reads the daily figures of the last 366 days in one statement and seals a day once it ended over an hour ago and none of its bets is `PENDING`. A bet leaves `PENDING` once and is never placed in the past, so a sealed day is final. The daily report answers sealed days from the summary and reads every other day (today, and any day still holding a pending bet) with the raw query; `tests/test_summary_and_export.py` checks both give the same rows. The platform overview is today only and never sealed; windowed overviews count distinct customers, shops and matches, which do not add across days, so neither uses the summary.
+
+### Export
+
+`GET /api/v1/admin/reports/export?format=csv&report=daily|bets|audit&from&to[&status&channel]` streams a CSV attachment. `from`/`to` are days as for the daily report (at most 366). `bets` and `audit` are read in keyset pages of 1,000 and refused with 422 above 100,000 rows. `audit` reads `identity.audit_logs` and also needs `audit:read`. A text cell that starts with `=`, `+`, `-`, `@`, a tab or a carriage return is prefixed with `'`. Only CSV is produced; xlsx and PDF would need a new dependency.
+
 ### Shop daily report
 
 A till view of one shop, always the calling cashier's (`x-betng-shop-id`); a shop id in the query is ignored.
@@ -123,6 +131,7 @@ Gateway-proxied, same path here. `401 UNAUTHENTICATED` without an actor, `403 FO
 | --- | --- | --- |
 | `GET /api/v1/admin/overview` | ADMIN | — |
 | `GET /api/v1/admin/reports/daily?from&to` | ADMIN | `reports:read` |
+| `GET /api/v1/admin/reports/export?format=csv&report&from&to` | ADMIN | `reports:read` (`audit:read` too for `audit`) |
 | `GET /api/v1/admin/analytics/overview?from&to` | ADMIN | `reports:read` |
 | `GET /api/v1/admin/analytics/breakdown?by&from&to&leagueId&matchId&shopId&limit` | ADMIN | `reports:read` |
 | `GET /api/v1/admin/analytics/sessions?kind&from&to&leagueId&limit` | ADMIN | `reports:read` |
@@ -142,6 +151,7 @@ Gateway-proxied, same path here. `401 UNAUTHENTICATED` without an actor, `403 FO
 | `ANALYTICS_DATABASE_URL` | — (required) | the `betng_analytics` login |
 | `ANALYTICS_PORT` | `3009` | |
 | `ANALYTICS_REPORT_TIMEZONE` | `UTC` | IANA zone for days and hours |
+| `ANALYTICS_SUMMARY_REFRESH_SECONDS` | `300` | daily summary refresh; `0` turns it off |
 | `INTERNAL_SERVICE_TOKEN` | — | shared kit: gates actor headers and `/internal` |
 
 ## Development

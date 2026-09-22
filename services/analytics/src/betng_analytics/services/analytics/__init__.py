@@ -2,8 +2,14 @@ from __future__ import annotations
 
 from betng_service_kit import Container, QueryBus
 
-from ...constants import ANALYTICS_READER_TOKEN
+from ...constants import (
+    ANALYTICS_READER_TOKEN,
+    EXPORT_READER_TOKEN,
+    LOGGER_TOKEN,
+    REPORT_TIMEZONE_TOKEN,
+)
 from .queries import (
+    ExportReportHandler,
     GetAccountAnalysisHandler,
     GetBreakdownHandler,
     GetExposureHandler,
@@ -21,7 +27,15 @@ from .queries import (
 def register_analytics_service(container: Container, query_bus: QueryBus) -> None:
     reader = container.resolve(ANALYTICS_READER_TOKEN)
 
+    export_handler = ExportReportHandler(
+        reader,
+        container.resolve(EXPORT_READER_TOKEN),
+        container.resolve(REPORT_TIMEZONE_TOKEN),
+        container.resolve(LOGGER_TOKEN),
+    )
+
     for handler in (
+        export_handler,
         GetAccountAnalysisHandler(reader),
         GetBreakdownHandler(reader),
         GetExposureHandler(reader),

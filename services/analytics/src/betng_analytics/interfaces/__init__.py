@@ -1,3 +1,3 @@
-from .analytics_interface import AnalyticsReader
+from .analytics_interface import AnalyticsReader, ExportReader
 
-__all__ = ["AnalyticsReader"]
+__all__ = ["AnalyticsReader", "ExportReader"]

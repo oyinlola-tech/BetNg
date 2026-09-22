@@ -1,13 +1,16 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Protocol
 
 from ..types import (
     BetPageRows,
     BetScope,
     DayRange,
+    ExportFilter,
     ExposureRows,
     MatchAnalysisRows,
+    PagedReport,
     ReaderDimension,
     Row,
     SessionKind,
@@ -45,3 +48,19 @@ class AnalyticsReader(Protocol):
     ) -> Row | None: ...
 
     async def shop_daily(self, shop_id: str, days: DayRange) -> ShopDailyRows: ...
+
+
+class ExportReader(Protocol):
+    async def count(
+        self, report: PagedReport, where: ExportFilter, cap: int
+    ) -> int: ...
+
+    async def page(
+        self,
+        report: PagedReport,
+        where: ExportFilter,
+        after: tuple[datetime, str] | None,
+        limit: int,
+    ) -> list[Row]: ...
+
+    def cursor_of(self, report: PagedReport, row: Row) -> tuple[datetime, str]: ...

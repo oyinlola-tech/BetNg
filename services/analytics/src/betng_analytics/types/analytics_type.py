@@ -43,6 +43,10 @@ BetStatus = Literal["PENDING", "WON", "LOST", "VOID", "CANCELLED"]
 
 BetChannel = Literal["ONLINE", "SHOP"]
 
+ExportReport = Literal["daily", "bets", "audit"]
+
+PagedReport = Literal["bets", "audit"]
+
 
 @dataclass(frozen=True)
 class Window:
@@ -98,3 +102,11 @@ class ShopDailyRows:
     days: list[Row]
     by_cashier: list[Row]
     by_league: list[Row]
+
+
+@dataclass(frozen=True)
+class ExportFilter:
+    start: datetime
+    end: datetime
+    status: str | None = None
+    channel: str | None = None

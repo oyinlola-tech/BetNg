@@ -10,6 +10,7 @@ SERVICE_NAME = "analytics"
 SERVICE_VERSION = "0.1.0"
 DEFAULT_PORT = 3009
 
+SUMMARY_REFRESH_ENV = "ANALYTICS_SUMMARY_REFRESH_SECONDS"
 REPORT_TIMEZONE_ENV = "ANALYTICS_REPORT_TIMEZONE"
 DEFAULT_REPORT_TIMEZONE = "UTC"
 
@@ -29,6 +30,21 @@ def load_report_timezone() -> str:
         ) from error
 
     return name
+
+
+def load_summary_refresh_seconds(default: int) -> int:
+    """``0`` turns the summary off; otherwise 10 seconds to a day."""
+    raw = os.environ.get(SUMMARY_REFRESH_ENV) or str(default)
+
+    try:
+        seconds = int(raw)
+    except ValueError as error:
+        raise ValueError(f"{SUMMARY_REFRESH_ENV} must be an integer.") from error
+
+    if seconds != 0 and not 10 <= seconds <= 86_400:
+        raise ValueError(f"{SUMMARY_REFRESH_ENV} must be 0 or 10..86400.")
+
+    return seconds
 
 
 def read_only_conninfo(database_url: str) -> str:

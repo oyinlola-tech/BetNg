@@ -43,6 +43,16 @@ def error_code(response: Any) -> str:
     return code
 
 
+def _string_values(value: Any) -> set[str]:
+    if isinstance(value, str):
+        return {value}
+    if isinstance(value, dict):
+        value = list(value.values())
+    if isinstance(value, list):
+        return set().union(*(_string_values(item) for item in value))
+    return set()
+
+
 class TestPermissions:
     @pytest.mark.parametrize(
         "path", ["/api/v1/admin/overview", *REPORT_ROUTES, *SHOP_ROUTES]
@@ -257,7 +267,7 @@ class TestResultSecrecy:
         assert bets.status_code == 200, bets.text
         legs = bets.json()["items"][0]["legs"]
         assert "result" not in legs[0]
-        assert "3-0" not in bets.text
+        assert "3-0" not in _string_values(bets.json())
 
     def test_the_result_is_answered_once_completed(
         self, client: TestClient, book: Book

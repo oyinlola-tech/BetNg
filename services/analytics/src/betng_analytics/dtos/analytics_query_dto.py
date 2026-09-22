@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -13,7 +13,7 @@ from ..constants import (
     MAX_BREAKDOWN_LIMIT,
     MAX_PAGE_SIZE,
 )
-from ..types import BetChannel, BetStatus, Dimension, SessionKind
+from ..types import BetChannel, BetStatus, Dimension, ExportReport, SessionKind
 
 Limit = Annotated[int, Field(ge=1, le=MAX_BREAKDOWN_LIMIT)]
 DayText = Annotated[str, Field(min_length=10, max_length=40)]
@@ -71,6 +71,17 @@ class DailyReportParams(QueryModel):
 
     from_: DayText | None = Field(default=None, alias="from")
     to: DayText | None = None
+
+
+class ExportParams(QueryModel):
+    """``from`` and ``to`` are days; ``status`` and ``channel`` narrow ``bets``."""
+
+    format: Literal["csv"]
+    report: ExportReport
+    from_: DayText | None = Field(default=None, alias="from")
+    to: DayText | None = None
+    status: BetStatus | None = None
+    channel: BetChannel | None = None
 
 
 class ShopQueryModel(QueryModel):

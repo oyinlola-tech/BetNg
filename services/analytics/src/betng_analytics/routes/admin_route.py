@@ -3,7 +3,9 @@ from __future__ import annotations
 from typing import Annotated
 from uuid import UUID
 
+from betng_service_kit import Actor
 from fastapi import APIRouter, Depends, Query
+from fastapi.responses import StreamingResponse
 
 from ..constants import REPORTS_READ
 from ..controllers import AnalyticsController
@@ -13,6 +15,7 @@ from ..dtos import (
     AnalyticsOverview,
     BreakdownParams,
     DailyReportParams,
+    ExportParams,
     MatchAnalysis,
     PlatformOverview,
     PlatformReportDayList,
@@ -41,6 +44,23 @@ def create_admin_router(controller: AnalyticsController) -> APIRouter:
         params: Annotated[DailyReportParams, Query()],
     ) -> PlatformReportDayList:
         return await controller.daily_reports(params)
+
+    @router.get("/reports/export", response_class=StreamingResponse)
+    async def export_report(
+        actor: Annotated[Actor, Depends(admin_guard(REPORTS_READ))],
+        params: Annotated[ExportParams, Query()],
+    ) -> StreamingResponse:
+        stream = await controller.export(actor, params)
+
+        return StreamingResponse(
+            stream.chunks,
+            media_type="text/csv; charset=utf-8",
+            headers={
+                "content-disposition": f'attachment; filename="{stream.filename}"',
+                "cache-control": "no-store",
+                "x-content-type-options": "nosniff",
+            },
+        )
 
     @router.get(
         "/analytics/overview",

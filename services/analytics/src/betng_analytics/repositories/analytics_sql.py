@@ -454,6 +454,87 @@ DAILY_REPORTS_SQL: Final = f"""
     ORDER BY d.day
 """
 
+DAILY_SUMMARY_SQL: Final = f"""
+    WITH {_DAYS_CTE},
+    figures AS (
+        SELECT (b.placed_at AT TIME ZONE %(tz)s::text)::date AS day,
+               COUNT(*) AS bets,
+               COUNT(*) FILTER (WHERE b.status::text = 'PENDING') AS pending_bets,
+               COALESCE(SUM(b.stake) FILTER (
+                   WHERE b.status::text <> 'CANCELLED'), 0)::bigint AS stake,
+               COALESCE(SUM(b.stake) FILTER (
+                   WHERE b.status::text IN ('WON', 'LOST')), 0)::bigint
+                   AS settled_stake,
+               COALESCE(SUM(b.payout) FILTER (
+                   WHERE b.status::text = 'WON'), 0)::bigint AS payout,
+               COALESCE(SUM(b.stake) FILTER (
+                   WHERE b.status::text <> 'CANCELLED'
+                     AND b.channel::text = 'ONLINE'), 0)::bigint AS online_stake,
+               COALESCE(SUM(b.stake) FILTER (
+                   WHERE b.status::text <> 'CANCELLED'
+                     AND b.channel::text = 'SHOP'), 0)::bigint AS shop_stake
+        FROM betting.bets b
+        WHERE {_DAY_BOUNDS.format(column="b.placed_at")}
+        GROUP BY 1
+    )
+    SELECT d.day,
+           COALESCE(f.bets, 0) AS bets,
+           COALESCE(f.pending_bets, 0) AS pending_bets,
+           COALESCE(f.stake, 0)::bigint AS stake,
+           COALESCE(f.settled_stake, 0)::bigint AS settled_stake,
+           COALESCE(f.payout, 0)::bigint AS payout,
+           COALESCE(f.online_stake, 0)::bigint AS online_stake,
+           COALESCE(f.shop_stake, 0)::bigint AS shop_stake
+    FROM days d
+    LEFT JOIN figures f USING (day)
+    WHERE d.day <> ALL(%(sealed)s::date[])
+    ORDER BY d.day
+"""
+
+EXPORT_BETS_SQL: Final = """
+    SELECT b.id, b.placed_at, b.channel::text AS channel, b.status::text AS status,
+           b.stake, b.total_odds, b.potential_payout, b.payout, b.currency,
+           b.user_id, b.shop_id, b.cashier_id, b.settled_at, b.cancelled_at
+    FROM betting.bets b
+    WHERE b.placed_at >= %(from)s AND b.placed_at < %(to)s
+      AND (%(status)s::text IS NULL OR b.status::text = %(status)s::text)
+      AND (%(channel)s::text IS NULL OR b.channel::text = %(channel)s::text)
+      AND (%(after_at)s::timestamptz IS NULL
+           OR (b.placed_at, b.id) > (%(after_at)s::timestamptz, %(after_id)s::uuid))
+    ORDER BY b.placed_at, b.id
+    LIMIT %(limit)s
+"""
+
+EXPORT_BETS_COUNT_SQL: Final = """
+    SELECT COUNT(*) AS total FROM (
+        SELECT 1 FROM betting.bets b
+        WHERE b.placed_at >= %(from)s AND b.placed_at < %(to)s
+          AND (%(status)s::text IS NULL OR b.status::text = %(status)s::text)
+          AND (%(channel)s::text IS NULL OR b.channel::text = %(channel)s::text)
+        LIMIT %(cap)s
+    ) capped
+"""
+
+EXPORT_AUDIT_SQL: Final = """
+    SELECT a.id, a.created_at, a.actor_id, a.actor_role, a.actor_name, a.action,
+           a.entity_type, a.entity_id, a.severity::text AS severity, a.reason,
+           a.request_id, a.before, a.after
+    FROM identity.audit_logs a
+    WHERE a.created_at >= %(from)s AND a.created_at < %(to)s
+      AND (%(after_at)s::timestamptz IS NULL
+           OR (a.created_at, a.id) > (%(after_at)s::timestamptz, %(after_id)s::uuid))
+    ORDER BY a.created_at, a.id
+    LIMIT %(limit)s
+"""
+
+EXPORT_AUDIT_COUNT_SQL: Final = """
+    SELECT COUNT(*) AS total FROM (
+        SELECT 1 FROM identity.audit_logs a
+        WHERE a.created_at >= %(from)s AND a.created_at < %(to)s
+        LIMIT %(cap)s
+    ) capped
+"""
+
 _SUBJECT_LABELS: Final[dict[str, str]] = {
     "CUSTOMER": "SELECT c.display_name AS label FROM identity.customers c "
     "WHERE c.id = %(subject_id)s",
