@@ -48,6 +48,7 @@ export type {
 export {
   SYSTEM_CHANNEL,
   accountChannel,
+  betsChannel,
   createConnectionManager,
   createEventRouter,
   createRealtimeClient,

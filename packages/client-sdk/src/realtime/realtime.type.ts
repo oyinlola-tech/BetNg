@@ -7,6 +7,8 @@ export type RealtimeEventType =
   | "CARD"
   | "MARKET_UPDATED"
   | "BET_UPDATED"
+  | "BET_ACCEPTED"
+  | "BET_SETTLED"
   | "WALLET_UPDATED"
   | "NOTIFICATION_CREATED"
   | "SYSTEM_STATUS_UPDATED";
@@ -46,4 +48,5 @@ export type RealtimeTransport = (
 export type RealtimeAuthMode = "none" | "frame" | "query";
 
 export const accountChannel = (userId: string): string => `user:${userId}`;
+export const betsChannel = (userId: string): string => `bets:${userId}`;
 export const SYSTEM_CHANNEL = "system";

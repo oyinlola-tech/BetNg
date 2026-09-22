@@ -61,8 +61,12 @@ import {
   type TwoFactorStatus,
   type WithdrawalQuote,
   type WithdrawalRequest,
+  customerProfileSchema,
+  type CustomerProfile,
+  type UpdateProfileRequest,
 } from "@betng/contracts";
 import { buildQuery, type Requester } from "./request.js";
+import { BetNgApiError } from "./restError.js";
 import { validated, validatedList, validatedPage, type PageShape } from "./validated.js";
 
 export interface IdempotentOptions {
@@ -121,6 +125,12 @@ export interface BetNgSecurityClient {
   getStatement(id: string): Promise<StatementJob>;
 }
 
+export interface BetNgProfileClient {
+  update(request: UpdateProfileRequest): Promise<CustomerProfile>;
+  /** The customer's identity data as the platform holds it; money records come from statements. */
+  exportData(): Promise<Readonly<Record<string, unknown>>>;
+}
+
 export interface BetNgDevicesClient {
   getChannelPreferences(): Promise<ChannelPreferences>;
   setChannelPreferences(preferences: ChannelPreferences["channels"]): Promise<ChannelPreferences>;
@@ -135,6 +145,7 @@ export interface BetNgAccountClient {
   readonly limits: BetNgLimitsClient;
   readonly security: BetNgSecurityClient;
   readonly devices: BetNgDevicesClient;
+  readonly profile: BetNgProfileClient;
 }
 
 const id = (value: string): string => encodeURIComponent(value);
@@ -205,6 +216,16 @@ export function createAccountClient(request: Requester): BetNgAccountClient {
       cancelDeletion: async () => validated(accountDeletionSchema, await request("DELETE", `${account}/deletion`)),
       createStatement: async (body) => validated(statementJobSchema, await request("POST", `${account}/statements`, body)),
       getStatement: async (jobId) => validated(statementJobSchema, await request("GET", `${account}/statements/${id(jobId)}`)),
+    },
+    profile: {
+      update: async (body) => validated(customerProfileSchema, await request("PATCH", `${account}/profile`, body)),
+      exportData: async () => {
+        const reply = await request<unknown>("GET", `${account}/export`);
+
+        if (typeof reply !== "object" || reply === null || Array.isArray(reply)) throw new BetNgApiError(200, { code: "INVALID_RESPONSE", message: "The platform sent an answer that did not match its contract.", requestId: "" }, { kind: "parse" });
+
+        return reply as Readonly<Record<string, unknown>>;
+      },
     },
     devices: {
       getChannelPreferences: async () => validated(channelPreferencesSchema, await request("GET", `${notifications}/preferences`)),

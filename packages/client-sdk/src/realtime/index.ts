@@ -17,7 +17,7 @@ export type {
   EventSourceConstructor,
   WebSocketConstructor,
 } from "./transports.js";
-export { SYSTEM_CHANNEL, accountChannel } from "./realtime.type.js";
+export { SYSTEM_CHANNEL, accountChannel, betsChannel } from "./realtime.type.js";
 export type {
   ConnectionStatus,
   RealtimeAuthMode,

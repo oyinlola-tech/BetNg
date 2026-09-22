@@ -2,6 +2,7 @@ import { API_PREFIX } from "@betng/contracts/runtime";
 import type {
   AdminCashierSummary,
   AdminCustomer,
+  AdminUpdateCustomerRequest,
   AdminFixture,
   AdminLoginRequest,
   AdminMarketOdds,
@@ -113,6 +114,9 @@ export interface BetNgAdminClient {
 
   listCustomers(q?: string): Promise<readonly AdminCustomer[]>;
   setCustomerStatus(userId: string, status: "ACTIVE" | "SUSPENDED", reason: string): Promise<AdminCustomer>;
+  updateCustomer(userId: string, request: AdminUpdateCustomerRequest): Promise<AdminCustomer>;
+  /** Sends the customer a reset code by email; the operator never sees or sets the password. */
+  sendCustomerPasswordReset(userId: string, reason: string): Promise<void>;
 
   listShops(): Promise<readonly AdminShopSummary[]>;
   getShop(shopId: string): Promise<AdminShopSummary>;
@@ -200,6 +204,10 @@ export function createAdminClient(request: Requester): BetNgAdminClient {
 
     listCustomers: async (q) => list<AdminCustomer>(`${base}/users${buildQuery({ q })}`),
     setCustomerStatus: async (userId, status, reason) => request<AdminCustomer>("POST", `${base}/users/${userId}/status`, { status, reason }),
+    updateCustomer: async (userId, body) => request<AdminCustomer>("PATCH", `${base}/users/${encodeURIComponent(userId)}`, body),
+    sendCustomerPasswordReset: async (userId, reason) => {
+      await request<unknown>("POST", `${base}/users/${encodeURIComponent(userId)}/password-reset`, { reason });
+    },
 
     listShops: async () => list<AdminShopSummary>(`${base}/shops`),
     getShop: async (shopId) => request<AdminShopSummary>("GET", `${base}/shops/${shopId}`),

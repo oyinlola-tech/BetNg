@@ -19,6 +19,7 @@ export type {
   BetNgKycClient,
   BetNgLimitsClient,
   BetNgPaymentsClient,
+  BetNgProfileClient,
   BetNgSecurityClient,
   IdempotentOptions,
 } from "./accountClient.js";
