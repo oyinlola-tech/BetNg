@@ -1,51 +1,33 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { dataSource, logger } from "../services/runtime";
-
-export interface BetSettlement {
-  readonly betId: string;
-  readonly status: "WON" | "LOST" | "VOID" | "PARTIALLY_WON";
-  readonly payout: number;
-  readonly settledAt: string;
-}
 
 export interface BetSettlementNotification {
   readonly betId: string;
-  readonly status: "WON" | "LOST" | "VOID" | "PARTIALLY_WON";
-  readonly payout: number;
-  readonly settledAt: string;
+  readonly kind: "BET_ACCEPTED" | "BET_SETTLED" | "BET_UPDATED";
 }
 
 /**
  * Subscribes to real-time bet settlement updates via WebSocket/SSE.
- * Falls back to polling if real-time is unavailable.
+ * Uses the platform data source's subscribeBetSignals method.
  */
 export function useBetSettlementSubscription(): void {
-  const pendingRef = useRef<Set<string>>(new Set());
-
   useEffect(() => {
-    const unsubscribe = dataSource.subscribeBets?.((event: { type: string; data: unknown }) => {
-      if (event.type === "SETTLEMENT") {
-        const settlement = event.data as BetSettlement;
+    if (!dataSource.subscribeBetSignals) return;
 
-        logger.info("flow", "Bet settlement received", {
-          betId: settlement.betId,
-          status: settlement.status,
-          payout: settlement.payout,
-        });
+    const unsubscribe = dataSource.subscribeBetSignals((signal) => {
+      logger.info("flow", "Bet signal received", {
+        kind: signal.kind,
+        betId: signal.betId,
+      });
 
-        pendingRef.current.delete(settlement.betId);
+      const notification: BetSettlementNotification = {
+        betId: signal.betId ?? "unknown",
+        kind: signal.kind,
+      };
 
-        const notification: BetSettlementNotification = {
-          betId: settlement.betId,
-          status: settlement.status,
-          payout: settlement.payout,
-          settledAt: settlement.settledAt,
-        };
-
-        window.dispatchEvent(
-          new CustomEvent("bet:settled", { detail: notification }),
-        );
-      }
+      window.dispatchEvent(
+        new CustomEvent("bet:signal", { detail: notification }),
+      );
     });
 
     return () => {
@@ -57,7 +39,7 @@ export function useBetSettlementSubscription(): void {
 /**
  * Listens for bet settlement events and returns the latest notification.
  */
-export function useBetSettlementListener(): BetSettlementNotification | null {
+export function useBetSignalListener(): BetSettlementNotification | null {
   const [notification, setNotification] = useState<BetSettlementNotification | null>(null);
 
   useEffect(() => {
@@ -66,22 +48,9 @@ export function useBetSettlementListener(): BetSettlementNotification | null {
       setNotification(customEvent.detail);
     };
 
-    window.addEventListener("bet:settled", handler);
-    return () => window.removeEventListener("bet:settled", handler);
+    window.addEventListener("bet:signal", handler);
+    return () => window.removeEventListener("bet:signal", handler);
   }, []);
 
   return notification;
-}
-
-/**
- * Dismisses the current settlement notification.
- */
-export function useDismissSettlement(): () => void {
-  const [, setNotification] = useState<BetSettlementNotification | null>(null);
-
-  const dismiss = useCallback(() => {
-    setNotification(null);
-  }, []);
-
-  return dismiss;
 }

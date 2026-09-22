@@ -36,6 +36,8 @@ import type {
   TwoFactorStatus,
   WithdrawalQuote,
   WithdrawalRequest,
+  CustomerProfile,
+  UpdateProfileRequest,
 } from "@betng/contracts";
 import type { PageView } from "./types/index.js";
 
@@ -103,6 +105,11 @@ export interface SecuritySource {
   getStatement(id: string): Promise<StatementJob>;
 }
 
+export interface ProfileSource {
+  update(request: UpdateProfileRequest): Promise<CustomerProfile>;
+  exportData(): Promise<Readonly<Record<string, unknown>>>;
+}
+
 export interface DevicesSource {
   getChannelPreferences(): Promise<ChannelPreferences>;
   setChannelPreferences(channels: ChannelPreferences["channels"]): Promise<ChannelPreferences>;
@@ -118,4 +125,5 @@ export interface AccountServicesSource {
   readonly limits: LimitsSource;
   readonly security: SecuritySource;
   readonly devices: DevicesSource;
+  readonly profile: ProfileSource;
 }

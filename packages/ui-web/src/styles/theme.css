@@ -337,3 +337,48 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* A region that stays dark in either theme, e.g. the footer band. */
+@layer base {
+  [data-scheme="dark"] {
+    --color-background: var(--bn-background);
+    --color-surface: var(--bn-surface);
+    --color-surface-elevated: var(--bn-surface-elevated);
+    --color-surface-sunken: var(--bn-surface-sunken);
+    --color-surface-hover: var(--bn-surface-hover);
+    --color-text-primary: var(--bn-text-primary);
+    --color-text-secondary: var(--bn-text-secondary);
+    --color-text-muted: var(--bn-text-muted);
+    --color-text-on-brand: var(--bn-text-on-brand);
+    --color-text-on-live: var(--bn-text-on-live);
+    --color-text-on-status: var(--bn-text-on-status);
+    --color-border: var(--bn-border);
+    --color-border-strong: var(--bn-border-strong);
+    --color-focus-ring: var(--bn-focus-ring);
+    --color-brand: var(--bn-brand);
+    --color-brand-hover: var(--bn-brand-hover);
+    --color-brand-active: var(--bn-brand-active);
+    --color-brand-subtle: var(--bn-brand-subtle);
+    --color-success: var(--bn-success);
+    --color-success-subtle: var(--bn-success-subtle);
+    --color-danger: var(--bn-danger);
+    --color-danger-subtle: var(--bn-danger-subtle);
+    --color-warning: var(--bn-warning);
+    --color-warning-subtle: var(--bn-warning-subtle);
+    --color-info: var(--bn-info);
+    --color-info-subtle: var(--bn-info-subtle);
+    --color-live: var(--bn-live);
+    --color-live-subtle: var(--bn-live-subtle);
+    --color-pending: var(--bn-pending);
+    --color-pending-subtle: var(--bn-pending-subtle);
+    --color-void: var(--bn-void);
+    --color-void-subtle: var(--bn-void-subtle);
+    --color-suspended: var(--bn-suspended);
+    --color-suspended-subtle: var(--bn-suspended-subtle);
+    --color-overlay: var(--bn-overlay);
+    --color-skeleton: var(--bn-skeleton);
+    --color-series-1: var(--bn-series1);
+    --color-series-2: var(--bn-series2);
+    --color-series-3: var(--bn-series3);
+  }
+}

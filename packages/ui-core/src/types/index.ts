@@ -74,6 +74,7 @@ export type {
   FeatureFlags,
   PlatformConfigView,
   StakeLimits,
+  WebPushConfig,
 } from "./config.type.js";
 export type {
   PageQuery,

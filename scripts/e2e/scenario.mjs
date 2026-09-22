@@ -4,10 +4,9 @@
 
 import { createHmac } from "node:crypto";
 import assert from "node:assert/strict";
-import { psql, resetDatabase, stackEnv, startStack, url } from "./stack.mjs";
+import { psql, resetDatabase, SEED_TOTP_SECRET, stackEnv, startStack, url } from "./stack.mjs";
 
 const API = `${url("gateway")}/api/v1`;
-const SEED_TOTP_SECRET = "BETNGDEVSEEDTOTPSECRET234567AAAA";
 
 let step = 0;
 const done = (text) => console.log(`  ${String(++step).padStart(2, " ")}. ${text}`);

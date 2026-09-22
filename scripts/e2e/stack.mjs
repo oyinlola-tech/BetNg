@@ -1,6 +1,7 @@
 // Boots the whole platform on spare ports against a throwaway database, for the end-to-end scenario.
 
 import { spawn, spawnSync } from "node:child_process";
+import { randomBytes } from "node:crypto";
 import { existsSync, mkdirSync, createWriteStream } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -28,6 +29,14 @@ export const SERVICES = [
 const PRISMA_SERVICES = ["match", "betting", "wallet", "settlement", "identity"];
 const PYTHON_SCHEMAS = ["simulation", "odds", "risk", "analytics"];
 
+// A fresh admin TOTP secret per run: identity seeds it (encrypted) and the scenario signs in with it.
+export const SEED_TOTP_SECRET = [...randomBytes(20)]
+  .map((byte) => byte.toString(2).padStart(8, "0"))
+  .join("")
+  .match(/.{5}/g)
+  .map((bits) => "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"[parseInt(bits, 2)])
+  .join("");
+
 export const port = (name) => BASE_PORT + SERVICES.find((s) => s.name === name).offset;
 export const url = (name) => `http://127.0.0.1:${port(name)}`;
 
@@ -49,6 +58,7 @@ export function stackEnv(overrides = {}) {
     SIMULATION_SEED_SECRET: "e2e-simulation-seed-secret-0123456789abcdef",
     DEV_VERIFICATION_CODE: "246810",
     SEED_DEMO_DATA: "true",
+    SEED_ADMIN_TOTP_SECRET: SEED_TOTP_SECRET,
     CORS_ORIGINS: "http://localhost:4200",
     LOGIN_RATE_LIMIT: "1000",
     SERVICE_TIMEOUT_MS: "8000",

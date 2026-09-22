@@ -159,8 +159,6 @@ function frontendLayers(t) {
 
   parts.push(arrow(t, 408, 36 + 5 * 96 + 72, 408, 36 + 6 * 96));
   parts.push(box(t, 48, 36 + 6 * 96, 720, 60, "Public gateway  /api/v1   ·   WS /live", undefined, { accent: t.live }));
-  parts.push(box(t, 820, 36 + 4 * 96 - 6, 412, 84, "Development stand-in", ["packages/mock-data, same interfaces", "dynamic import, development and test only", "absent from staging and production bundles"], { dashed: true, center: false }));
-  parts.push(arrow(t, 820, 36 + 4 * 96 + 36, 770, 36 + 4 * 96 + 36, { dashed: true }));
   parts.push(frame(t, 820, 36, 412, 300, "The platform decides", t.success));
   ["match state, phase and clock", "results, odds, market status", "bet acceptance and payouts", "wallet balances", "risk decisions, operator figures", "roles and permissions"].forEach((line, i) =>
     parts.push(`<circle cx="848" cy="${96 + i * 38}" r="4" fill="${t.success}"/>${text(864, 100 + i * 38, line, { size: 14, fill: t.text })}`));
@@ -257,8 +255,8 @@ console.log("banner and diagrams written");
 const BADGES = [
   ["licence", "licence", "MIT", "#2457F5"],
   ["play-money", "money", "play money only", "#9C5207"],
-  ["platform-tests", "platform tests", "1,578 passing", "#0E7553"],
-  ["frontend-tests", "frontend tests", "644 passing", "#0E7553"],
+  ["platform-tests", "platform tests", "1,729 passing", "#0E7553"],
+  ["frontend-tests", "frontend tests", "848 passing", "#0E7553"],
   ["scenario", "end-to-end scenario", "22 / 22 steps", "#0E7553"],
   ["typescript", "TypeScript", "7", "#3178C6"],
   ["python", "Python", "3.14", "#3776AB"],

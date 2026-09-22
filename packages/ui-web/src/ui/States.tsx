@@ -13,6 +13,7 @@ import { emptyPresets } from "./emptyPresets";
 import type { EmptyPresetName } from "./emptyPresets";
 import { cn } from "../lib/cn";
 import { presentError } from "../lib/errors";
+import { ErrorHelp, errorHelpTopic } from "../feedback/ErrorHelp";
 import type { ErrorTone } from "../lib/errors";
 
 export interface EmptyStateProps {
@@ -137,6 +138,7 @@ export function ErrorState({
         </Button>
       )}
       {action !== undefined && <div className="mt-4">{action}</div>}
+      <ErrorHelp topic={errorHelpTopic(presented.code)} className="mt-3" />
       {presented.requestId !== undefined && (
         <p className="mt-4 font-mono text-xs text-text-muted">
           Support reference{" "}

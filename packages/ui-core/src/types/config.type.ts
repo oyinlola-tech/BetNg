@@ -33,10 +33,17 @@ export interface StakeLimits {
   readonly maxSelections: number;
 }
 
+export interface WebPushConfig {
+  /** VAPID application server key, base64url. */
+  readonly vapidPublicKey: string;
+}
+
 export interface PlatformConfigView {
   readonly currency: CurrencyConfig;
   readonly features: Partial<FeatureFlags>;
   readonly stakeLimits?: StakeLimits;
   readonly competitionTimezone?: string;
   readonly maintenance?: boolean;
+  /** Present only when the platform delivers browser push. */
+  readonly webPush?: WebPushConfig;
 }

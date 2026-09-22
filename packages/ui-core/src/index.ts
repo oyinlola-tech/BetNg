@@ -3,6 +3,7 @@ export type * from "./types/index.js";
 export { DataSourceError } from "./dataSource.type.js";
 export type {
   BetNgDataSource,
+  BetSignal,
   DataSourceErrorCode,
   DataSourceErrorDetail,
   LiveMatchHandlers,
@@ -112,6 +113,7 @@ export type {
   KycUploadInput,
   LimitsSource,
   PaymentsSource,
+  ProfileSource,
   SecuritySource,
   UploadProgress,
 } from "./accountServices.type.js";
@@ -137,7 +139,6 @@ export { readClientEnv } from "./runtime/clientEnv.js";
 export type {
   AppEnvironment,
   ClientEnv,
-  DataSourceMode,
   RawEnv,
 } from "./runtime/clientEnv.js";
 export { createPlatformClients } from "./runtime/platformClients.js";

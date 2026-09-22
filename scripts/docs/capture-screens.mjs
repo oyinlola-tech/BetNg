@@ -1,5 +1,6 @@
-// Captures documentation screenshots of the four browser apps running against a real platform.
-// Start the apps in platform mode on localhost:4200-4500 first. Usage: node scripts/docs/capture-screens.mjs <outDir>
+// Captures documentation screenshots of the four browser apps running against the platform.
+// Start the platform with its demo seed and the four apps on localhost:4200-4500 first.
+// Usage: ADMIN_TOTP_SECRET=<seeded secret> node scripts/docs/capture-screens.mjs <outDir>
 import { createHmac } from "node:crypto";
 import { existsSync, mkdirSync } from "node:fs";
 import { chromium, devices } from "@playwright/test";
@@ -9,7 +10,12 @@ const WEB = "http://localhost:4200";
 const TV = "http://localhost:4300";
 const SHOP = "http://localhost:4400";
 const ADMIN = "http://localhost:4500";
-const TOTP_SECRET = process.env.ADMIN_TOTP_SECRET ?? "BETNGDEVSEEDTOTPSECRET234567AAAA";
+const TOTP_SECRET = process.env.ADMIN_TOTP_SECRET;
+
+if (TOTP_SECRET === undefined || !/^[A-Z2-7]{16,64}$/.test(TOTP_SECRET)) {
+  console.error("Set ADMIN_TOTP_SECRET to the seeded super admin's secret (printed by the identity demo seed, or `pnpm --filter @betng/identity-service totp:dev`).");
+  process.exit(1);
+}
 const problems = [];
 const shots = [];
 

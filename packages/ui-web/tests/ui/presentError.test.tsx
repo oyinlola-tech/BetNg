@@ -24,6 +24,11 @@ const CODES: Record<DataSourceErrorCode, true> = {
   FORBIDDEN: true,
   CONFLICT: true,
   RATE_LIMITED: true,
+  TWO_FACTOR_REQUIRED: true,
+  LIMIT_EXCEEDED: true,
+  SELF_EXCLUDED: true,
+  KYC_REQUIRED: true,
+  PAYMENT_FAILED: true,
 };
 
 const ALL = Object.keys(CODES) as DataSourceErrorCode[];
@@ -69,10 +74,10 @@ describe("presentError", () => {
   it("mentions the wait for RATE_LIMITED", () => {
     expect(
       presentError(new DataSourceError("RATE_LIMITED", "", { retryAfterSeconds: 30 })).message,
-    ).toBe("Wait 30 seconds before trying again.");
+    ).toBe("Too many requests. Wait 30 seconds before trying again.");
     expect(
       presentError(new DataSourceError("RATE_LIMITED", "", { retryAfterSeconds: 90 })).message,
-    ).toBe("Wait about 2 minutes before trying again.");
+    ).toBe("Too many requests. Wait about 2 minutes before trying again.");
     expect(presentError(new DataSourceError("RATE_LIMITED", "")).message).toBe(
       "Wait a moment before trying again.",
     );

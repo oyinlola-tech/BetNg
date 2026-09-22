@@ -5,7 +5,12 @@ export type NotificationKind =
   | "MATCH_FINISHED"
   | "RESULT_AVAILABLE"
   | "BET_SETTLED"
-  | "MATCH_EVENT";
+  | "MATCH_EVENT"
+  | "BET_ACCEPTED"
+  | "PAYMENT_UPDATED"
+  | "KYC_UPDATED"
+  | "SECURITY_ALERT"
+  | "LIMIT_WARNING";
 
 export interface NotificationView {
   readonly id: string;
@@ -16,6 +21,7 @@ export interface NotificationView {
   readonly read: boolean;
   readonly matchId?: MatchId;
   readonly betId?: BetId;
+  readonly paymentReference?: string;
 }
 
 export interface NotificationPreferences {

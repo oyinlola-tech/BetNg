@@ -5,7 +5,6 @@ import {
   type BetView,
   type SlipTotals,
 } from "@betng/ui-core";
-import { cn } from "../lib/cn";
 import { Tooltip } from "../ui";
 
 const ESTIMATE_NOTE =
@@ -15,8 +14,7 @@ export interface BetSlipSummaryProps {
   readonly totals: SlipTotals;
   /** The accepted bet. Once present, the platform's own figures replace the estimate. */
   readonly accepted?:
-    | Pick<BetView, "potentialPayout" | "stake" | "totalOdds">
-    | undefined;
+    Pick<BetView, "potentialPayout" | "stake" | "totalOdds"> | undefined;
   readonly className?: string | undefined;
 }
 
@@ -27,38 +25,52 @@ export function BetSlipSummary({
 }: BetSlipSummaryProps): React.JSX.Element {
   const stake = accepted?.stake ?? totals.stake;
   const odds = accepted?.totalOdds ?? totals.totalOdds;
+  const payout = formatMoney(
+    accepted?.potentialPayout ?? totals.potentialReturn,
+  );
+  const announcement = `Stake ${formatMoney(stake)}. ${accepted === undefined ? "Estimated return" : "Potential payout"} ${payout}.`;
 
   return (
-    <dl className={cn("space-y-1.5", className)}>
-      <Line label="Selections" value={String(totals.selectionCount)} />
-      <Line
-        label={accepted === undefined ? "Combined odds" : "Accepted odds"}
-        value={odds > 0 ? formatOdds(odds) : "–"}
-      />
-      <Line label="Stake" value={formatMoney(stake)} />
-      <div className="flex items-center justify-between gap-3 border-t border-border pt-2">
-        <dt className="type-body flex items-center gap-1 font-semibold text-text-primary">
-          {accepted === undefined ? "Estimated return" : "Potential payout"}
-          {accepted === undefined && (
-            <Tooltip content={ESTIMATE_NOTE}>
-              <button
-                type="button"
-                aria-label="About the estimated return"
-                className="flex size-5 items-center justify-center rounded-xs text-text-muted focus-ring"
-              >
-                <Info className="size-3.5" aria-hidden />
-              </button>
-            </Tooltip>
-          )}
-        </dt>
-        <dd className="type-financial text-right text-text-primary">
-          {formatMoney(accepted?.potentialPayout ?? totals.potentialReturn)}
-        </dd>
-      </div>
-      {accepted === undefined && (
-        <p className="type-small text-text-muted">{ESTIMATE_NOTE}</p>
-      )}
-    </dl>
+    <div className={className}>
+      <dl className="space-y-1.5">
+        <Line label="Selections" value={String(totals.selectionCount)} />
+        <Line
+          label={accepted === undefined ? "Combined odds" : "Accepted odds"}
+          value={odds > 0 ? formatOdds(odds) : "–"}
+        />
+        <Line label="Stake" value={formatMoney(stake)} />
+        <div className="flex items-center justify-between gap-3 border-t border-border pt-2">
+          <dt className="type-body flex items-center gap-1 font-semibold text-text-primary">
+            {accepted === undefined ? "Estimated return" : "Potential payout"}
+            {accepted === undefined && (
+              <Tooltip content={ESTIMATE_NOTE}>
+                <button
+                  type="button"
+                  aria-label="About the estimated return"
+                  className="flex size-5 items-center justify-center rounded-xs text-text-muted focus-ring"
+                >
+                  <Info className="size-3.5" aria-hidden />
+                </button>
+              </Tooltip>
+            )}
+          </dt>
+          <dd className="type-financial text-right text-text-primary">
+            {payout}
+          </dd>
+        </div>
+        {accepted === undefined && (
+          <p className="type-small text-text-muted">{ESTIMATE_NOTE}</p>
+        )}
+      </dl>
+      <p
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+      >
+        {announcement}
+      </p>
+    </div>
   );
 }
 

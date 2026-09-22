@@ -1,6 +1,7 @@
 import {
   BetNgApiError,
   accountChannel,
+  betsChannel,
   type BetNgRestClient,
   type ConnectionStatus,
   type MatchWindowQuery,
@@ -25,6 +26,7 @@ import type {
 } from "@betng/contracts";
 import type {
   BetNgDataSource,
+  BetSignal,
   LiveMatchHandlers,
   MatchFilter,
   MatchSignal,
@@ -189,6 +191,21 @@ const SIGNALS: Readonly<Partial<Record<string, MatchSignal>>> = {
   SETTLEMENT_STARTED: "SETTLEMENT_STARTED",
   SETTLEMENT_COMPLETED: "SETTLEMENT_COMPLETED",
 };
+
+const BET_SIGNALS: ReadonlySet<string> = new Set(["BET_ACCEPTED", "BET_SETTLED", "BET_UPDATED"]);
+const BET_ID = /^[A-Za-z0-9_-]{1,64}$/;
+
+function toBetSignal(event: RealtimeEvent): BetSignal | undefined {
+  if (!BET_SIGNALS.has(event.type)) return undefined;
+
+  const payload = event.payload as { readonly betId?: unknown } | null | undefined;
+  const betId = typeof payload === "object" && payload !== null ? payload.betId : undefined;
+
+  return {
+    kind: event.type as BetSignal["kind"],
+    ...(typeof betId === "string" && BET_ID.test(betId) ? { betId } : {}),
+  };
+}
 
 function toLiveEventView(event: LiveEvent): MatchEventView | undefined {
   const kind = TIMELINE_KINDS[event.type];
@@ -677,6 +694,7 @@ export function createPlatformDataSource(
       read: n.read,
       ...(n.matchId === undefined ? {} : { matchId: n.matchId }),
       ...(n.betId === undefined ? {} : { betId: n.betId }),
+      ...(n.paymentReference === undefined ? {} : { paymentReference: n.paymentReference }),
     };
   }
 
@@ -968,6 +986,7 @@ export function createPlatformDataSource(
           ? {}
           : { competitionTimezone: wire.competitionTimezone }),
         ...(wire.maintenance === undefined ? {} : { maintenance: wire.maintenance }),
+        ...(wire.webPush === undefined ? {} : { webPush: { vapidPublicKey: wire.webPush.vapidPublicKey } }),
       };
     },
 
@@ -1161,6 +1180,27 @@ export function createPlatformDataSource(
       storage?.set(VIEWED_KEY, JSON.stringify(viewed));
     },
 
+    subscribeBetSignals: (listener) => {
+      const id =
+        typeof options.userId === "function"
+          ? options.userId()
+          : options.userId;
+
+      if (id === undefined || options.accountChannel !== true) return () => undefined;
+
+      const client = ensureLive();
+      const onEvent = (event: RealtimeEvent): void => {
+        const signal = toBetSignal(event);
+
+        if (signal !== undefined) listener(signal);
+      };
+      const releases = [client.subscribe(accountChannel(id), onEvent), client.subscribe(betsChannel(id), onEvent)];
+
+      return () => {
+        for (const release of releases) release();
+      };
+    },
+
     subscribeAccount: (listener) => {
       accountListeners.add(listener);
 
@@ -1171,7 +1211,14 @@ export function createPlatformDataSource(
       let release: (() => void) | undefined;
 
       if (id !== undefined && options.accountChannel === true) {
-        release = ensureLive().subscribe(accountChannel(id), notifyAccount);
+        const unsubscribe = ensureLive().subscribe(accountChannel(id), notifyAccount);
+        // Not every service signals yet (settlement doesn't), so a slow re-read stays as a backstop.
+        const timer = setInterval(listener, options.accountRefreshMs ?? 60_000);
+
+        release = () => {
+          unsubscribe();
+          clearInterval(timer);
+        };
       } else if (id !== undefined) {
         const timer = setInterval(listener, options.accountRefreshMs ?? 20_000);
 

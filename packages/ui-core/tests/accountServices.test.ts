@@ -114,7 +114,7 @@ describe("cookie session storage", () => {
 
     store.set(customer());
 
-    expect(JSON.parse(data.get("c") ?? "{}").token).toBe(COOKIE_SESSION_TOKEN);
+    expect((JSON.parse(data.get("c") ?? "{}") as { token?: string }).token).toBe(COOKIE_SESSION_TOKEN);
   });
 });
 
@@ -125,10 +125,6 @@ describe("client env", () => {
     expect(env.flagOverrides).toMatchObject({ paymentsEnabled: true, kycEnabled: true });
     expect(env.checkoutHosts).toEqual(["checkout.paystack.com", ".flutterwave.com"]);
     expect(env.authTransport).toBe("cookie");
-  });
-
-  it("never honours the mock in production", () => {
-    expect(readClientEnv({ VITE_APP_ENV: "production", VITE_DATA_SOURCE: "mock", VITE_API_URL: "https://api.betng.ng", VITE_WS_URL: "wss://live.betng.ng" }).dataSource).toBe("platform");
   });
 });
 

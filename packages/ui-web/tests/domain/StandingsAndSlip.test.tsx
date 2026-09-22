@@ -84,6 +84,18 @@ describe("Bet slip presentation", () => {
     expect(screen.queryByText("Potential payout")).not.toBeInTheDocument();
   });
 
+  it("announces the computed stake and return politely", () => {
+    const { rerender } = render(<BetSlipSummary totals={totals} />);
+    const status = screen.getByRole("status");
+
+    expect(status).toHaveAttribute("aria-live", "polite");
+    expect(status).toHaveTextContent(`Stake ${formatMoney(20_000)}. Estimated return ${formatMoney(42_000)}.`);
+
+    rerender(<BetSlipSummary totals={{ ...totals, stake: 50_000, potentialReturn: 105_000 }} />);
+
+    expect(status).toHaveTextContent(`Stake ${formatMoney(50_000)}. Estimated return ${formatMoney(105_000)}.`);
+  });
+
   it("shows the platform's payout once accepted", () => {
     render(<BetSlipSummary totals={totals} accepted={bet()} />);
 

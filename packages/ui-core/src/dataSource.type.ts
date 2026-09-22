@@ -48,6 +48,12 @@ export type MatchSignal =
   | "SETTLEMENT_COMPLETED"
   | "MATCH_UPDATED";
 
+/** A "re-read this bet" signal from the customer's private channels. It carries no status or amount; `betId` is only a hint of which bet to re-read. */
+export interface BetSignal {
+  readonly kind: "BET_ACCEPTED" | "BET_SETTLED" | "BET_UPDATED";
+  readonly betId?: string;
+}
+
 export interface LiveMatchHandlers {
   readonly onEvent: (event: MatchEventView) => void;
   readonly onSignal?: (signal: MatchSignal) => void;
@@ -106,6 +112,8 @@ export interface BetNgDataSource {
   recordView(matchId: MatchId): void;
 
   subscribeAccount(listener: () => void): () => void;
+  /** Absent, or a no-op, until the realtime endpoint authenticates the account channels. */
+  subscribeBetSignals?(listener: (signal: BetSignal) => void): () => void;
 }
 
 export type DataSourceErrorCode =

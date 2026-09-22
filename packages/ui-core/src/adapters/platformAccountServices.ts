@@ -39,7 +39,7 @@ export function createPlatformAccountServices(
     }
   };
 
-  const { payments, kyc, limits, security, devices } = rest.account;
+  const { payments, kyc, limits, security, devices, profile } = rest.account;
 
   return {
     payments: {
@@ -113,6 +113,17 @@ export function createPlatformAccountServices(
       cancelDeletion: () => call(() => security.cancelDeletion()),
       createStatement: (request) => call(() => security.createStatement(request)),
       getStatement: (id) => call(() => security.getStatement(id), false),
+    },
+    profile: {
+      update: async (request) => {
+        const updated = await call(() => profile.update(request));
+        const current = session.snapshot().session;
+
+        if (current !== undefined) session.set({ ...current, user: updated });
+
+        return updated;
+      },
+      exportData: () => call(() => profile.exportData()),
     },
     devices: {
       getChannelPreferences: () => call(() => devices.getChannelPreferences()),

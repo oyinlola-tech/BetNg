@@ -67,7 +67,7 @@ export function Drawer({
         {children}
       </div>
       {footer !== undefined && (
-        <footer className="flex justify-end gap-2 border-t border-border px-5 py-3">
+        <footer className="flex flex-wrap justify-end gap-2 border-t border-border px-5 py-3">
           {footer}
         </footer>
       )}

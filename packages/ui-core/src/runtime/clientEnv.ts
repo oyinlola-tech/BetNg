@@ -2,11 +2,9 @@ import { FLAG_VARIABLES, parseFlagOverrides } from "../flags.js";
 import type { FeatureFlag, FeatureFlags } from "../types/index.js";
 
 export type AppEnvironment = "development" | "test" | "staging" | "production";
-export type DataSourceMode = "mock" | "platform";
 
 export interface ClientEnv {
   readonly appEnv: AppEnvironment;
-  readonly dataSource: DataSourceMode;
   readonly apiUrl: string;
   readonly realtimeUrl: string;
   readonly realtimeTransport: "websocket" | "sse";
@@ -52,17 +50,12 @@ function validUrl(value: string, protocols: readonly string[]): boolean {
 
 /**
  * Reads a browser app's build-time environment. Only the public gateway and
- * the public realtime endpoint are ever configured here. The platform is the
- * default everywhere; the mock is an explicit opt-in that only a development
- * or test build honours.
+ * the public realtime endpoint are ever configured here.
  */
 export function readClientEnv(raw: RawEnv): ClientEnv {
   const problems: string[] = [];
   const appEnv = oneOf(text(raw, "VITE_APP_ENV"), ENVIRONMENTS, raw["PROD"] === true ? "production" : "development");
   const deployed = appEnv === "production" || appEnv === "staging";
-  const requested = oneOf(text(raw, "VITE_DATA_SOURCE"), ["mock", "platform"] as const, "platform");
-
-  if (deployed && requested === "mock") problems.push("VITE_DATA_SOURCE=mock is ignored outside development and test.");
 
   const apiUrl = text(raw, "VITE_API_URL", "VITE_GATEWAY_URL") ?? "http://localhost:3000";
   const realtimeUrl = text(raw, "VITE_WS_URL", "VITE_LIVE_URL") ?? "ws://localhost:3008/live";
@@ -90,7 +83,6 @@ export function readClientEnv(raw: RawEnv): ClientEnv {
 
   return Object.freeze({
     appEnv,
-    dataSource: deployed ? "platform" : requested,
     apiUrl,
     realtimeUrl,
     realtimeTransport,

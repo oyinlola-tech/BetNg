@@ -12,3 +12,5 @@ export type {
 } from "./applyFieldErrors";
 export { useUnsavedChangesGuard } from "./useUnsavedChangesGuard";
 export type { UnsavedChangesGuard } from "./useUnsavedChangesGuard";
+export { FileUpload, checkFile, formatFileSize } from "./FileUpload";
+export type { FileRules, FileUploadProps, FileUploadState } from "./FileUpload";

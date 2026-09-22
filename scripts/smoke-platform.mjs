@@ -1,7 +1,7 @@
 // Reads the public platform through the same adapter the clients use. Usage: VITE_API_URL=… VITE_WS_URL=… node scripts/smoke-platform.mjs
 import { readClientEnv, createPlatformClients, createPlatformDataSource, createLogger, displayClock } from "../packages/ui-core/dist/index.js";
 
-const env = readClientEnv({ VITE_APP_ENV: "test", VITE_DATA_SOURCE: "platform", VITE_API_URL: process.env.VITE_API_URL ?? "http://localhost:3000", VITE_WS_URL: process.env.VITE_WS_URL ?? "ws://localhost:3008/live" });
+const env = readClientEnv({ VITE_APP_ENV: "test", VITE_API_URL: process.env.VITE_API_URL ?? "http://localhost:3000", VITE_WS_URL: process.env.VITE_WS_URL ?? "ws://localhost:3008/live" });
 const failures = [];
 const logger = createLogger({ minLevel: "warn", sinks: [(e) => failures.push(`${e.message} ${JSON.stringify(e.context ?? {})}`)] });
 const { rest, realtime } = createPlatformClients({ env, getToken: () => undefined, onUnauthorized: () => undefined, logger });

@@ -2,21 +2,16 @@ import { describe, expect, it } from "vitest";
 import { readClientEnv } from "../src/runtime/clientEnv.js";
 
 describe("client environment", () => {
-  it("defaults to the platform, and honours the mock only as an explicit development or test opt-in", () => {
-    expect(readClientEnv({})).toMatchObject({ appEnv: "development", dataSource: "platform", apiUrl: "http://localhost:3000", problems: [] });
-    expect(readClientEnv({ VITE_DATA_SOURCE: "mock" }).dataSource).toBe("mock");
+  it("defaults to a local development platform", () => {
+    expect(readClientEnv({})).toMatchObject({ appEnv: "development", apiUrl: "http://localhost:3000", problems: [] });
+    expect(readClientEnv({})).not.toHaveProperty("dataSource");
   });
 
-  it("pins a production build to the platform whatever was asked", () => {
-    const env = readClientEnv({ PROD: true, VITE_DATA_SOURCE: "mock", VITE_API_URL: "https://api.example.test", VITE_WS_URL: "wss://live.example.test/live" });
+  it("reads a production build and its secure endpoints", () => {
+    const env = readClientEnv({ PROD: true, VITE_API_URL: "https://api.example.test", VITE_WS_URL: "wss://live.example.test/live" });
 
-    expect(env.dataSource).toBe("platform");
     expect(env.appEnv).toBe("production");
-    expect(env.problems).toEqual(["VITE_DATA_SOURCE=mock is ignored outside development and test."]);
-  });
-
-  it("lets a production-mode build run the mock only when it is declared a test build", () => {
-    expect(readClientEnv({ PROD: true, VITE_APP_ENV: "test", VITE_DATA_SOURCE: "mock" }).dataSource).toBe("mock");
+    expect(env.problems).toEqual([]);
   });
 
   it("accepts the earlier variable names", () => {
