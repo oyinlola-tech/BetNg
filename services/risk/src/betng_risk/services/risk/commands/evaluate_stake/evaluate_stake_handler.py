@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 import uuid
 from collections.abc import Callable
@@ -48,11 +49,12 @@ class EvaluateStakeHandler(CommandHandler[EvaluateStakeCommand, RiskDecision]):
             for leg in request.legs
         ]
 
-        record = await self._repository.load_limits()
-        states = await self._repository.load_selection_states(
-            [leg.selection_id for leg in legs]
+        # Independent reads; exposure and market state are always read live.
+        record, states, book = await asyncio.gather(
+            self._repository.load_limits(),
+            self._repository.load_selection_states([leg.selection_id for leg in legs]),
+            self._repository.load_book(sorted({leg.match_id for leg in legs})),
         )
-        book = await self._repository.load_book(sorted({leg.match_id for leg in legs}))
 
         outcome = decide(
             stake=request.stake,

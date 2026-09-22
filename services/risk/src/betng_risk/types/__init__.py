@@ -1,4 +1,5 @@
 from .risk_type import (
+    AlertCrossing,
     AuditEntry,
     BookRows,
     BookTotals,
@@ -16,6 +17,7 @@ from .risk_type import (
 )
 
 __all__ = [
+    "AlertCrossing",
     "AuditEntry",
     "BookRows",
     "BookTotals",

@@ -6,6 +6,7 @@ from typing import Any, Protocol
 
 from ..engine import SelectionState
 from ..types import (
+    AlertCrossing,
     AuditEntry,
     BookRows,
     BookTotals,
@@ -68,8 +69,20 @@ class RiskRepository(Protocol):
 
     async def count_decisions(self, since: datetime) -> DecisionTally: ...
 
+    async def sync_alerts(
+        self, crossings: Sequence[AlertCrossing], match_ids: Sequence[str] | None
+    ) -> list[AlertCrossing]:
+        """Re-arm thresholds no longer crossed; return the newly crossed ones."""
+        ...
+
 
 class AuditRecorder(Protocol):
     """Writes an audit entry through the identity service."""
 
     async def record(self, entry: AuditEntry) -> None: ...
+
+
+class SignalPublisher(Protocol):
+    """Sends a state-free signal through the event service; never raises."""
+
+    async def publish(self, channel: str, signal: str, request_id: str) -> bool: ...

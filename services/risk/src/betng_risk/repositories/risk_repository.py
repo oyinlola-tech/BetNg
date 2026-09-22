@@ -17,6 +17,7 @@ from ..engine import OPEN_LIFECYCLES, Limits, SelectionState
 from ..errors import DatabaseUnavailableError
 from ..interfaces import BeforeLimitsCommit, RiskRepository
 from ..types import (
+    AlertCrossing,
     BookRows,
     BookTotals,
     DecisionRecord,
@@ -31,6 +32,7 @@ from ..types import (
     SelectionBookRow,
     SelectionRow,
 )
+from .limits_cache import LimitsCache
 
 #: Closed for betting, not yet settled: the pending book still stands.
 UNSETTLED_LIFECYCLES = (
@@ -117,9 +119,15 @@ def _limits_record(row: DictRow) -> LimitsRecord:
 
 
 class PostgresRiskRepository(RiskRepository):
-    def __init__(self, pool: Pool, logger: logging.Logger) -> None:
+    def __init__(
+        self,
+        pool: Pool,
+        logger: logging.Logger,
+        limits_cache: LimitsCache | None = None,
+    ) -> None:
         self._pool = pool
         self._logger = logger
+        self._limits_cache = limits_cache or LimitsCache(0)
 
     @asynccontextmanager
     async def _connection(self) -> AsyncIterator[AsyncConnection[DictRow]]:
@@ -133,8 +141,17 @@ class PostgresRiskRepository(RiskRepository):
             raise DatabaseUnavailableError from error
 
     async def load_limits(self) -> LimitsRecord:
+        cached = self._limits_cache.get()
+        if cached is not None:
+            return cached
+
+        generation = self._limits_cache.generation()
         async with self._connection() as connection:
-            return await self._read_limits(connection)
+            record = await self._read_limits(connection)
+
+        self._limits_cache.store(record, generation)
+
+        return record
 
     async def _read_limits(self, connection: AsyncConnection[DictRow]) -> LimitsRecord:
         cursor = await connection.execute(
@@ -194,9 +211,14 @@ class PostgresRiskRepository(RiskRepository):
                 raise DatabaseUnavailableError
 
             created = _limits_record(row)
-            await before_commit(current, created)
+            try:
+                await before_commit(current, created)
+            finally:
+                self._limits_cache.invalidate()
 
-            return created
+        self._limits_cache.invalidate()
+
+        return created
 
     async def load_selection_states(
         self, selection_ids: Sequence[str]
@@ -536,3 +558,56 @@ class PostgresRiskRepository(RiskRepository):
         return DecisionTally(
             accepted=row["accepted"], limited=row["limited"], rejected=row["rejected"]
         )
+
+    async def sync_alerts(
+        self, crossings: Sequence[AlertCrossing], match_ids: Sequence[str] | None
+    ) -> list[AlertCrossing]:
+        """Re-arm thresholds no longer crossed; return the newly crossed ones."""
+        async with self._connection() as connection:
+            await connection.execute(
+                """
+                DELETE FROM risk.exposure_alerts a
+                WHERE (%(every)s OR a.match_id = ANY(%(match_ids)s::uuid[]))
+                  AND NOT EXISTS (
+                      SELECT 1
+                      FROM unnest(%(scopes)s::text[], %(ids)s::uuid[],
+                                  %(thresholds)s::int[]) AS k(scope, id, threshold)
+                      WHERE k.scope = a.scope AND k.id = a.scope_id
+                        AND k.threshold = a.threshold
+                  )
+                """,
+                {
+                    "every": match_ids is None,
+                    "match_ids": list(match_ids or []),
+                    "scopes": [crossing.scope for crossing in crossings],
+                    "ids": [crossing.scope_id for crossing in crossings],
+                    "thresholds": [crossing.threshold for crossing in crossings],
+                },
+            )
+
+            fresh: list[AlertCrossing] = []
+            for crossing in crossings:
+                cursor = await connection.execute(
+                    """
+                    INSERT INTO risk.exposure_alerts (
+                        scope, scope_id, threshold, match_id, exposure,
+                        limit_amount, limits_version
+                    )
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (scope, scope_id, threshold) DO NOTHING
+                    RETURNING scope
+                    """,
+                    (
+                        crossing.scope,
+                        crossing.scope_id,
+                        crossing.threshold,
+                        crossing.match_id,
+                        crossing.exposure,
+                        crossing.limit,
+                        crossing.limits_version,
+                    ),
+                )
+                if await cursor.fetchone() is not None:
+                    fresh.append(crossing)
+
+        return fresh

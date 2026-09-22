@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
-from typing import Any
+from typing import Any, Literal
 
 from ..engine import DecisionKind, Limits, RiskReason
 
@@ -139,3 +139,14 @@ class AuditEntry:
     reason: str
     severity: str
     request_id: str
+
+
+@dataclass(frozen=True)
+class AlertCrossing:
+    scope: Literal["MARKET", "MATCH"]
+    scope_id: str
+    match_id: str
+    threshold: int
+    exposure: int
+    limit: int
+    limits_version: int

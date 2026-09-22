@@ -350,6 +350,10 @@ class Book:
             "DELETE FROM risk.exposure_freezes WHERE match_id = ANY(%s::uuid[])",
             (match_ids,),
         )
+        self.connection.execute(
+            "DELETE FROM risk.exposure_alerts WHERE match_id = ANY(%s::uuid[])",
+            (match_ids,),
+        )
         for table, row_id in reversed(self._created):
             self.connection.execute(f"DELETE FROM {table} WHERE id = %s", (row_id,))
 
@@ -379,15 +383,50 @@ def audit() -> FakeAudit:
     return FakeAudit()
 
 
+class FakeSignals:
+    """Stands in for the event service's ``event.publishSignal``."""
+
+    def __init__(self) -> None:
+        self.published: list[tuple[str, str]] = []
+        self.fail = False
+
+    async def publish(self, channel: str, signal: str, request_id: str) -> bool:
+        if self.fail:
+            return False
+        self.published.append((channel, signal))
+        return True
+
+
 @pytest.fixture
-def client(
-    audit: FakeAudit, superuser: psycopg.Connection[Any]
-) -> Iterator[TestClient]:
+def signals() -> FakeSignals:
+    return FakeSignals()
+
+
+def make_app(
+    audit: FakeAudit,
+    signals: FakeSignals,
+    *,
+    limits_cache_ms: int = 0,
+    alert_every_ms: int = 0,
+) -> Any:
     settings = ServiceSettings(
         service_name=SERVICE_NAME, version=SERVICE_VERSION, NODE_ENV="test"
     )
+    return create_app(
+        settings,
+        audit=audit,
+        signals=signals,
+        limits_cache_ms=limits_cache_ms,
+        alert_every_ms=alert_every_ms,
+    )
+
+
+@pytest.fixture
+def client(
+    audit: FakeAudit, signals: FakeSignals, superuser: psycopg.Connection[Any]
+) -> Iterator[TestClient]:
     with TestClient(
-        create_app(settings, audit=audit), raise_server_exceptions=False
+        make_app(audit, signals), raise_server_exceptions=False
     ) as test_client:
         yield test_client
 
