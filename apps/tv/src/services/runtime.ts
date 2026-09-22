@@ -13,38 +13,26 @@ import { logger } from "./logger";
 import { storage } from "./storage";
 
 export interface RuntimeInfo {
-  readonly mode: "mock" | "platform";
   readonly flags: FeatureFlags;
   readonly config: PlatformConfigView | undefined;
 }
 
-export let dataSource: BetNgDataSource;
-
-let info: RuntimeInfo | undefined;
-
 /* A display has no account: it reads public data only and never holds a token. */
-async function createSource(): Promise<RuntimeInfo["mode"]> {
-  if (env.dataSource === "mock" && (import.meta.env.DEV || import.meta.env.VITE_APP_ENV === "test")) {
-    const { createMockSources } = await import("./mockSources");
-
-    dataSource = createMockSources(storage).dataSource;
-
-    return "mock";
-  }
-
+function createSource(): BetNgDataSource {
   const { rest, realtime } = createPlatformClients({ env, getToken: () => undefined, onUnauthorized: () => undefined, logger });
 
-  dataSource = createPlatformDataSource({ rest, realtime, userId: () => undefined, storage });
-
-  return "platform";
+  return createPlatformDataSource({ rest, realtime, userId: () => undefined, storage });
 }
+
+export let dataSource: BetNgDataSource = createSource();
+
+let info: RuntimeInfo | undefined;
 
 export async function initRuntime(): Promise<RuntimeInfo> {
   if (info !== undefined) return info;
 
   for (const problem of env.problems) logger.warn("flow", problem);
 
-  const mode = await createSource();
   let config: PlatformConfigView | undefined;
 
   try {
@@ -55,7 +43,7 @@ export async function initRuntime(): Promise<RuntimeInfo> {
     logger.warn("flow", "Platform configuration could not be read; defaults are in use.");
   }
 
-  info = { mode, config, flags: resolveFlags(config?.features, env.flagOverrides) };
+  info = { config, flags: resolveFlags(config?.features, env.flagOverrides) };
 
   return info;
 }
@@ -64,4 +52,9 @@ export function getRuntimeInfo(): RuntimeInfo {
   if (info === undefined) throw new Error("initRuntime() has not completed.");
 
   return info;
+}
+
+export function __setRuntimeForTests(source: BetNgDataSource): void {
+  dataSource = source;
+  info = undefined;
 }

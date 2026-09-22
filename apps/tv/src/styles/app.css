@@ -53,6 +53,9 @@
   --animate-shimmer: shimmer 1.4s linear infinite;
   --animate-lower-third: lower-third var(--bn-duration-broadcast)
     var(--bn-ease-decelerate);
+  --animate-score-roll: score-roll var(--bn-duration-slow) var(--bn-ease-decelerate);
+  --animate-goal-flash: goal-flash 1s var(--bn-ease-standard) 3 alternate;
+  --animate-goal-in: goal-in var(--bn-duration-broadcast) var(--bn-ease-decelerate);
 
   @keyframes fade-in {
     from {
@@ -87,6 +90,34 @@
     }
     to {
       background-position: 200% 0;
+    }
+  }
+  @keyframes score-roll {
+    from {
+      transform: translateY(55%);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+  @keyframes goal-flash {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0.55;
+    }
+  }
+  @keyframes goal-in {
+    from {
+      transform: scale(0.85);
+      opacity: 0;
+    }
+    to {
+      transform: scale(1);
+      opacity: 1;
     }
   }
   @keyframes lower-third {
@@ -167,7 +198,24 @@
   animation: var(--animate-shimmer);
 }
 
+@keyframes ticker {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@utility ticker-track {
+  animation: ticker var(--tv-ticker-duration, 90s) linear infinite;
+  will-change: transform;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .ticker-track {
+    animation: none !important;
+  }
   *,
   *::before,
   *::after {

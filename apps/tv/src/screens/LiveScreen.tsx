@@ -8,8 +8,11 @@ import {
   type MatchEventView,
 } from "@betng/ui-core";
 import {
+  AnimatedScore,
   BroadcastOverlay,
   Countdown,
+  Focusable,
+  GoalFlash,
   FootballIcon,
   iconForEvent,
   LiveTag,
@@ -20,11 +23,15 @@ import {
   TeamMark,
 } from "../components";
 import { useAsync } from "../hooks/useAsync";
+import { useGoalFlash } from "../hooks/useGoalFlash";
 import { useLiveMatch } from "../hooks/useLiveMatch";
+import { useMatchAudio } from "../hooks/useMatchAudio";
 import { useNow } from "../hooks/useNow";
 import { cn } from "../lib/cn";
 import { freshness, liveClockNow, useDataHealth } from "../lib/dataHealth";
 import { clockTime } from "../components/ConnectionPill";
+import { useDisplaySettings } from "../lib/displaySettings";
+import { reads } from "../lib/reads";
 import { dataSource } from "../services/dataSource";
 
 const KEY_EVENTS = new Set<MatchEventView["kind"]>([
@@ -58,14 +65,16 @@ function eventLabel(e: MatchEventView): string {
 export function LiveScreen(): React.JSX.Element {
   const { matchId } = useParams<{ matchId: string }>();
   const { match, lastEvent, connection, error } = useLiveMatch(matchId);
+  const [settings] = useDisplaySettings();
+  const flash = useGoalFlash(matchId, match?.score);
   const live = useAsync(
-    () => dataSource.listMatches({ phases: ["LIVE", "HALFTIME"] }),
+    () => reads.listMatches({ phases: ["LIVE", "HALFTIME"] }),
     [],
     4000,
   );
   const next = useAsync(
     () =>
-      dataSource.listMatches({
+      reads.listMatches({
         phases: ["BETTING_OPEN", "BETTING_CLOSED"],
         limit: 1,
       }),
@@ -74,6 +83,8 @@ export function LiveScreen(): React.JSX.Element {
   );
   const now = useNow(250);
   const health = useDataHealth();
+
+  useMatchAudio([match]);
 
   useEffect(() => {
     if (matchId !== undefined) dataSource.recordView(matchId as never);
@@ -125,7 +136,9 @@ export function LiveScreen(): React.JSX.Element {
               {match.home.code}
             </span>
             <span className="flex items-center bg-white px-[1.2rem] font-display text-[2.4rem] font-black tabular text-black">
-              {match.score.home} – {match.score.away}
+              <AnimatedScore value={match.score.home} />
+              <span className="mx-[0.3em]">–</span>
+              <AnimatedScore value={match.score.away} />
             </span>
             <span className="flex items-center gap-[0.7rem] px-[1.2rem] py-[0.7rem] font-display text-[1.7rem] font-black">
               {match.away.code}
@@ -159,6 +172,9 @@ export function LiveScreen(): React.JSX.Element {
                   {match.home.name} <span className="text-white/60">v</span>{" "}
                   {match.away.name}
                 </p>
+                <Focusable to={`/replay/${match.id}`} autoFocusOnMount className="mt-[1.2rem] bg-white px-[1.4rem] py-[0.6rem] text-[1.1rem] font-bold text-black">
+                  Replay the recorded timeline
+                </Focusable>
               </>
             ) : (
               <>
@@ -190,7 +206,8 @@ export function LiveScreen(): React.JSX.Element {
                   : "Reconnecting…"}
           </div>
         )}
-        <BroadcastOverlay match={match} lastEvent={lastEvent} />
+        <GoalFlash flash={flash} home={match.home} away={match.away} score={match.score} />
+        <BroadcastOverlay match={match} lastEvent={lastEvent} quiet={settings.quietMode} />
       </div>
 
       <div className="grid grid-cols-[1.3fr_1fr_0.9fr] gap-[1rem]">

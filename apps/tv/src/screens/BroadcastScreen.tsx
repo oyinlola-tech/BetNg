@@ -3,12 +3,14 @@ import { useSearchParams } from "react-router";
 import { useBroadcastDirector, type BroadcastScene } from "../hooks/useBroadcastDirector";
 import { useBroadcastMode } from "../hooks/useBroadcastMode";
 import { BoardScreen } from "./BoardScreen";
+import { FeedScreen } from "./FeedScreen";
 import { ResultsScreen } from "./ResultsScreen";
 import { StandingsScreen } from "./StandingsScreen";
 import { UpcomingScreen } from "./UpcomingScreen";
 
 const SCENES: Readonly<Record<BroadcastScene, () => React.JSX.Element>> = {
   board: BoardScreen,
+  feed: FeedScreen,
   results: ResultsScreen,
   standings: StandingsScreen,
   upcoming: UpcomingScreen,

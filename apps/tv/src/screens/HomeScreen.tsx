@@ -7,6 +7,7 @@ import {
   type MatchSummary,
 } from "@betng/ui-core";
 import {
+  AnimatedScore,
   Countdown,
   Focusable,
   LiveTag,
@@ -18,7 +19,7 @@ import { useAsync } from "../hooks/useAsync";
 import { useNow } from "../hooks/useNow";
 import { cn } from "../lib/cn";
 import { polledClockNow, useDataHealth } from "../lib/dataHealth";
-import { dataSource } from "../services/dataSource";
+import { reads } from "../lib/reads";
 
 function Rail({
   title,
@@ -73,11 +74,11 @@ function Hero({ match }: { readonly match: MatchSummary }): React.JSX.Element {
       <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-[2rem] px-[2rem] py-[2rem]">
         <HeroSide team={match.home} />
         <p className="whitespace-nowrap font-display text-[6rem] font-black leading-none tabular tracking-tighter">
-          {match.score.home}
+          <AnimatedScore value={match.score.home} />
           <span className="mx-[0.2em] font-sans font-medium text-text-muted">
             –
           </span>
-          {match.score.away}
+          <AnimatedScore value={match.score.away} />
         </p>
         <HeroSide team={match.away} />
       </div>
@@ -157,13 +158,13 @@ function ResultRow({
 
 export function HomeScreen(): React.JSX.Element {
   const live = useAsync(
-    () => dataSource.listMatches({ phases: ["LIVE", "HALFTIME"] }),
+    () => reads.listMatches({ phases: ["LIVE", "HALFTIME"] }),
     [],
     3000,
   );
   const next = useAsync(
     () =>
-      dataSource.listMatches({
+      reads.listMatches({
         phases: ["BETTING_OPEN", "BETTING_CLOSED"],
         limit: 5,
       }),
@@ -171,11 +172,11 @@ export function HomeScreen(): React.JSX.Element {
     5000,
   );
   const results = useAsync(
-    () => dataSource.listMatches({ phases: ["FINISHED", "SETTLED"], limit: 4 }),
+    () => reads.listMatches({ phases: ["FINISHED", "SETTLED"], limit: 4 }),
     [],
     6000,
   );
-  const leagues = useAsync(() => dataSource.listLeagues(), [], 30_000);
+  const leagues = useAsync(() => reads.listLeagues(), [], 30_000);
   const featured = live.data?.[0];
 
   return (

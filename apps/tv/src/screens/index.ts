@@ -8,3 +8,7 @@ export { StandingsScreen } from "./StandingsScreen";
 export { UpcomingScreen } from "./UpcomingScreen";
 export { BoardScreen } from "./BoardScreen";
 export { BroadcastScreen } from "./BroadcastScreen";
+export { MultiScreen } from "./MultiScreen";
+export { FeedScreen } from "./FeedScreen";
+export { ReplayScreen } from "./ReplayScreen";
+export { SettingsScreen } from "./SettingsScreen";

@@ -8,7 +8,7 @@ import { useAsync } from "../hooks/useAsync";
 import { useNow } from "../hooks/useNow";
 import { cn } from "../lib/cn";
 import { polledClockNow, useDataHealth } from "../lib/dataHealth";
-import { dataSource } from "../services/dataSource";
+import { reads } from "../lib/reads";
 
 const PHASES: readonly MatchPhase[] = ["BETTING_OPEN", "BETTING_CLOSED", "LIVE", "HALFTIME"];
 const HIGHLIGHT_MS = 14_000;
@@ -57,20 +57,20 @@ export function BoardScreen(): React.JSX.Element {
   const [params] = useSearchParams();
   const now = useNow(1000);
   const health = useDataHealth();
-  const leagues = useAsync(() => dataSource.listLeagues(), [], 30_000);
-  const inPlay = useAsync(() => dataSource.listMatches({ phases: ["LIVE", "HALFTIME"] }), [], 4000);
+  const leagues = useAsync(() => reads.listLeagues(), [], 30_000);
+  const inPlay = useAsync(() => reads.listMatches({ phases: ["LIVE", "HALFTIME"] }), [], 4000);
   const requested = params.get("league") ?? undefined;
   const leagueId = requested ?? [...(inPlay.data ?? [])].sort((a, b) => b.kickoffAt.localeCompare(a.kickoffAt))[0]?.leagueId ?? leagues.data?.[0]?.id;
   const league = leagues.data?.find((l) => l.id === leagueId);
 
-  const matches = useAsync(() => (leagueId === undefined ? Promise.resolve([] as readonly MatchSummary[]) : dataSource.listMatches({ leagueId: leagueId as LeagueId, phases: PHASES })), [leagueId], 2000);
+  const matches = useAsync(() => (leagueId === undefined ? Promise.resolve([] as readonly MatchSummary[]) : reads.listMatches({ leagueId: leagueId as LeagueId, phases: PHASES })), [leagueId], 2000);
   const weeks = useMemo(() => toWeeks(matches.data ?? []), [matches.data]);
   const week = weeks.find((w) => w.live) ?? weeks[0];
   const ids = (week?.matches ?? []).map((m) => m.id).join(",");
 
   const markets = useAsync(
     async () => {
-      const list = await Promise.all((week?.matches ?? []).map((m) => dataSource.getMatchMarkets(m.id).catch(() => undefined)));
+      const list = await Promise.all((week?.matches ?? []).map((m) => reads.getMatchMarkets(m.id).catch(() => undefined)));
 
       return new Map<string, MatchMarketsView>(list.flatMap((view) => (view === undefined ? [] : [[view.matchId, view] as const])));
     },

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { MatchEventView, MatchView } from "@betng/ui-core";
 import { cn } from "../lib/cn";
+import { isQuietWorthy } from "../lib/commentary";
 import { TeamMark } from "./TeamMark";
 
 interface Card {
@@ -67,9 +68,11 @@ function cardFor(event: MatchEventView, match: MatchView): Card | undefined {
 export function BroadcastOverlay({
   match,
   lastEvent,
+  quiet = false,
 }: {
   readonly match: MatchView;
   readonly lastEvent: MatchEventView | undefined;
+  readonly quiet?: boolean;
 }): React.JSX.Element | null {
   const [card, setCard] = useState<Card | undefined>(undefined);
   const seen = useRef<string | undefined>(undefined);
@@ -78,6 +81,8 @@ export function BroadcastOverlay({
     if (lastEvent === undefined || seen.current === lastEvent.id) return;
 
     seen.current = lastEvent.id;
+
+    if (quiet && !isQuietWorthy(lastEvent.kind)) return;
 
     const next = cardFor(lastEvent, match);
 
@@ -92,7 +97,7 @@ export function BroadcastOverlay({
     return () => {
       clearTimeout(timer);
     };
-  }, [lastEvent, match]);
+  }, [lastEvent, match, quiet]);
 
   if (card === undefined) return null;
 

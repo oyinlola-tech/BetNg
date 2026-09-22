@@ -4,7 +4,7 @@ import { formatMatchday, type MatchSummary } from "@betng/ui-core";
 import { ErrorPanel, Focusable, Skeleton, TeamMark } from "../components";
 import { useAsync } from "../hooks/useAsync";
 import { cn } from "../lib/cn";
-import { dataSource } from "../services/dataSource";
+import { reads } from "../lib/reads";
 
 function Board({ match }: { readonly match: MatchSummary }): React.JSX.Element {
   const hw = match.score.home > match.score.away;
@@ -12,10 +12,14 @@ function Board({ match }: { readonly match: MatchSummary }): React.JSX.Element {
 
   return (
     <Focusable
-      to={`/live/${match.id}`}
+      to={`/replay/${match.id}`}
+      aria-label={`${match.home.name} ${String(match.score.home)}, ${match.away.name} ${String(match.score.away)}. Replay`}
       className="w-full border border-border bg-surface px-[1.4rem] py-[1rem] text-left"
     >
-      <p className="caps-label mb-[0.5rem]">Final</p>
+      <p className="caps-label mb-[0.5rem] flex justify-between">
+        <span>Final</span>
+        <span>OK to replay</span>
+      </p>
       <div className="grid grid-cols-[auto_1fr_auto] items-center gap-x-[0.9rem] gap-y-[0.5rem]">
         <TeamMark team={match.home} size="md" />
         <span
@@ -58,13 +62,13 @@ function Board({ match }: { readonly match: MatchSummary }): React.JSX.Element {
 
 export function ResultsScreen(): React.JSX.Element {
   const [params, setParams] = useSearchParams();
-  const leagues = useAsync(() => dataSource.listLeagues(), [], 30_000);
+  const leagues = useAsync(() => reads.listLeagues(), [], 30_000);
   const leagueId = params.get("league") ?? leagues.data?.[0]?.id;
   const results = useAsync(
     () =>
       leagueId === undefined
         ? Promise.resolve([] as readonly MatchSummary[])
-        : dataSource.listMatches({
+        : reads.listMatches({
             leagueId: leagueId as LeagueId,
             phases: ["FINISHED", "SETTLED"],
             limit: 12,

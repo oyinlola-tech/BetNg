@@ -1,30 +1,55 @@
+import { useCallback, useState } from "react";
 import { LogoMark } from "../components/BrandMarks";
 import { NavLink, Outlet, useLocation } from "react-router";
-import { Radio } from "lucide-react";
-import { ConnectionPill, DevelopmentBanner, ScreenBoundary } from "../components";
+import { Radio, Settings } from "lucide-react";
+import { ConnectionPill, OddsTicker, ScreenBoundary } from "../components";
+import { AmbientScreensaver } from "../components/AmbientScreensaver";
+import { DimLayer } from "../components/DimLayer";
+import { RemoteToast, type Toast } from "../components/RemoteToast";
+import { ScheduleOverlay } from "../components/ScheduleOverlay";
 import { useIdleBroadcast } from "../hooks/useIdleBroadcast";
 import { useNow } from "../hooks/useNow";
+import { useRemoteCommands } from "../hooks/useRemoteCommands";
+import { useSoundSync } from "../hooks/useSoundSync";
 import { cn } from "../lib/cn";
 import { useRemote } from "../navigation/useRemote";
-import { getRuntimeInfo } from "../services/dataSource";
 
 const NAV = [
   { to: "/", label: "Home", end: true },
   { to: "/board", label: "Board" },
   { to: "/live", label: "Live" },
-  { to: "/matchday", label: "Matchday" },
+  { to: "/multi", label: "Multi" },
+  { to: "/feed", label: "Feed" },
+  { to: "/matchday", label: "Today" },
   { to: "/results", label: "Results" },
   { to: "/standings", label: "Table" },
   { to: "/upcoming", label: "Next" },
 ] as const;
 
+const NO_TICKER = new Set(["/settings"]);
+
 export function Shell(): React.JSX.Element {
+  const [toast, setToast] = useState<Toast | undefined>(undefined);
+  const [schedule, setSchedule] = useState(false);
+  const closeSchedule = useCallback(() => {
+    setSchedule(false);
+  }, []);
+
   useRemote();
   useIdleBroadcast();
+  useSoundSync();
+  useRemoteCommands({
+    onToast: (message) => {
+      setToast({ message, key: Date.now() });
+    },
+    onToggleSchedule: () => {
+      setSchedule((open) => !open);
+    },
+  });
 
   const now = useNow(1000);
   const location = useLocation();
-  const mock = getRuntimeInfo().mode === "mock";
+  const ticker = !NO_TICKER.has(location.pathname) && !location.pathname.startsWith("/replay/");
 
   return (
     <div className="flex h-dvh flex-col px-[3rem] py-[1.6rem]">
@@ -44,7 +69,7 @@ export function Shell(): React.JSX.Element {
               data-tv-focusable=""
               className={({ isActive }) =>
                 cn(
-                  "tv-focus rounded-md px-[1.1rem] py-[0.5rem] text-[1.05rem] font-semibold",
+                  "tv-focus rounded-md px-[0.8rem] py-[0.5rem] text-[1.05rem] font-semibold",
                   isActive
                     ? "bg-surface-sunken text-text-primary"
                     : "text-text-muted",
@@ -69,6 +94,19 @@ export function Shell(): React.JSX.Element {
             <Radio className="size-[1rem]" aria-hidden />
             Auto Broadcast
           </NavLink>
+          <NavLink
+            to="/settings"
+            aria-label="Settings"
+            data-tv-focusable=""
+            className={({ isActive }) =>
+              cn(
+                "tv-focus inline-flex items-center rounded-md p-[0.5rem]",
+                isActive ? "bg-surface-sunken text-text-primary" : "text-text-muted",
+              )
+            }
+          >
+            <Settings className="size-[1.3rem]" aria-hidden />
+          </NavLink>
           <span className="font-display text-[1.3rem] font-bold tabular text-text-secondary">
             {new Date(now).toLocaleTimeString(undefined, {
               hour: "2-digit",
@@ -84,16 +122,24 @@ export function Shell(): React.JSX.Element {
         </ScreenBoundary>
       </main>
 
-      <footer className="mt-[1rem] flex items-center gap-[2rem] text-[0.85rem] font-medium text-text-muted">
+      {ticker && <OddsTicker className="mt-[0.8rem]" />}
+
+      <footer className="mt-[0.8rem] flex items-center gap-[1.3rem] whitespace-nowrap text-[0.85rem] font-medium text-text-muted">
         <Hint keys="↑ ↓ ← →" label="Move" />
         <Hint keys="OK" label="Select" />
         <Hint keys="Back" label="Previous screen" />
-        {mock && <DevelopmentBanner />}
-        <span className="ml-auto">
+        <Hint keys="CH + −" label="League" />
+        <Hint keys="Vol + −" label="Volume" />
+        <Hint keys="Info" label="Next 24 hours" />
+        <span className="ml-auto min-w-0 truncate">
           Virtual football · simulated · no real money
         </span>
       </footer>
       <ConnectionPill />
+      <RemoteToast toast={toast} />
+      {schedule && <ScheduleOverlay onClose={closeSchedule} />}
+      <AmbientScreensaver />
+      <DimLayer />
     </div>
   );
 }

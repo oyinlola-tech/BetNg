@@ -15,7 +15,7 @@ import {
 import { useAsync } from "../hooks/useAsync";
 import { useNow } from "../hooks/useNow";
 import { cn } from "../lib/cn";
-import { dataSource } from "../services/dataSource";
+import { reads } from "../lib/reads";
 
 function Row({ match }: { readonly match: MatchSummary }): React.JSX.Element {
   const now = useNow(1000);
@@ -67,7 +67,7 @@ function Row({ match }: { readonly match: MatchSummary }): React.JSX.Element {
 export function MatchdayScreen(): React.JSX.Element {
   const matches = useAsync(
     () =>
-      dataSource.listMatches({
+      reads.listMatches({
         phases: [
           "LIVE",
           "HALFTIME",

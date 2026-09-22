@@ -2,14 +2,15 @@ import { useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router";
 import type { MatchSummary } from "@betng/ui-core";
 import { useAsync } from "./useAsync";
-import { dataSource } from "../services/dataSource";
+import { reads } from "../lib/reads";
 
 const RESULTS_HOLD_MS = 14_000;
 const TABLE_HOLD_MS = 14_000;
+const LIVE_SCENE_MS = 30_000;
 
 type Stage = "LIVE" | "RESULTS" | "TABLE" | "NEXT";
 
-export type BroadcastScene = "board" | "results" | "standings" | "upcoming";
+export type BroadcastScene = "board" | "feed" | "results" | "standings" | "upcoming";
 
 function scenePath(scene: BroadcastScene, leagueId?: string): string {
   return leagueId === undefined ? `/broadcast?scene=${scene}` : `/broadcast?scene=${scene}&league=${leagueId}`;
@@ -22,7 +23,7 @@ export function useBroadcastDirector(on: boolean): void {
   const live = useAsync(
     () =>
       on
-        ? dataSource.listMatches({ phases: ["LIVE", "HALFTIME"] })
+        ? reads.listMatches({ phases: ["LIVE", "HALFTIME"] })
         : Promise.resolve([] as readonly MatchSummary[]),
     [on],
     3000,
@@ -30,7 +31,7 @@ export function useBroadcastDirector(on: boolean): void {
   const finished = useAsync(
     () =>
       on
-        ? dataSource.listMatches({ phases: ["FINISHED", "SETTLED"], limit: 12 })
+        ? reads.listMatches({ phases: ["FINISHED", "SETTLED"], limit: 12 })
         : Promise.resolve([] as readonly MatchSummary[]),
     [on],
     5000,
@@ -40,6 +41,8 @@ export function useBroadcastDirector(on: boolean): void {
     since: number;
     matchId?: string;
     leagueId?: string;
+    scene?: "board" | "feed";
+    sceneSince?: number;
   }>({ stage: "LIVE", since: 0 });
 
   useEffect(() => {
@@ -59,13 +62,19 @@ export function useBroadcastDirector(on: boolean): void {
     switch (current.stage) {
       case "LIVE": {
         if (pick !== undefined) {
+          const sceneSince = current.sceneSince ?? now;
+          const rotate = now - sceneSince >= LIVE_SCENE_MS;
+          const scene = rotate ? (current.scene === "feed" ? "board" : "feed") : (current.scene ?? "board");
+
           stage.current = {
             stage: "LIVE",
             since: current.matchId === pick.id ? current.since : now,
             matchId: pick.id,
             leagueId: pick.leagueId,
+            scene,
+            sceneSince: rotate ? now : sceneSince,
           };
-          go(scenePath("board", pick.leagueId));
+          go(scene === "feed" ? scenePath("feed") : scenePath("board", pick.leagueId));
           return;
         }
 

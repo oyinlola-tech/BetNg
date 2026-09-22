@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router";
 
 const IDLE_MS = 60_000;
 const RESUME_KEY = "betng.tv.broadcast";
+const WATCHING = ["/broadcast", "/multi", "/feed", "/replay/"];
 
 function wasBroadcasting(): boolean {
   try {
@@ -12,7 +13,7 @@ function wasBroadcasting(): boolean {
   }
 }
 
-/** A display nobody is holding a remote for becomes the channel: after a minute without input, or at once if it was broadcasting when it last ran. */
+/** A display nobody is holding a remote for becomes the channel: after a minute without input, or at once if it was broadcasting when it last ran. Views chosen for watching are left alone. */
 export function useIdleBroadcast(): void {
   const navigate = useNavigate();
   const { pathname } = useLocation();
@@ -24,7 +25,7 @@ export function useIdleBroadcast(): void {
   }, []);
 
   useEffect(() => {
-    if (pathname === "/broadcast") return;
+    if (WATCHING.some((p) => (p.endsWith("/") ? pathname.startsWith(p) : pathname === p))) return;
 
     let timer = setTimeout(start, IDLE_MS);
 
