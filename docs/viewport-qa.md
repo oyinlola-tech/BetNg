@@ -49,7 +49,17 @@ an authenticated cashier session. Chromium, `deviceScaleFactor: 1`,
 
 ### Shop terminal, signed in
 
-The workspace with real data: 43 match rows, live matches, a bet slip.
+The hardest case first. At 1024 × 600 the shell resolves `ULTRA_COMPACT`: the
+sidebar collapses to icons, the header loses height, and the float, clock,
+cashier identity and function keys all stay on screen. The page does not
+scroll — the tickets table below scrolls inside its own panel.
+
+![Shop terminal at 1024 by 600, ultra compact density](images/qa/shop-auth-1024x600.webp)
+
+The same workspace at 1920 × 1080 resolves `NORMAL` and spends the extra room
+on breathing space rather than stretching the cards.
+
+![Shop terminal at 1920 by 1080, normal density](images/qa/shop-auth-1920x1080.webp)
 
 | Viewport | Density | Page scroll | Bet slip | Errors |
 | --- | --- | --- | --- | --- |
@@ -66,6 +76,13 @@ zoom changes the answer again on one machine. See
 
 ### TV
 
+TV scales by root font size (`clamp(16px, 1.25vw, 40px)` in
+`apps/tv/src/styles/app.css`) rather than by transform, so 4K is genuinely
+larger rather than the same layout shrunk into a corner. The remote hints sit
+along the bottom and the connection state is never allowed to cover the score.
+
+![TV at 1920 by 1080](images/qa/tv-1920x1080.webp)
+
 | Viewport | Root font | Page scroll | Errors |
 | --- | --- | --- | --- |
 | 1280 × 720 | 16px | 0 | 0 |
@@ -73,14 +90,17 @@ zoom changes the answer again on one machine. See
 | 2560 × 1440 | 32px | 0 | 0 |
 | 3840 × 2160 | 40px | 0 | 0 |
 
-TV scales by root font size (`clamp(16px, 1.25vw, 40px)` in
-`apps/tv/src/styles/app.css`) rather than by transform, so 4K is larger rather
-than the same layout shrunk into a corner.
-
 ### Public web
 
-Not viewport-locked, deliberately. The numbers below are the page scrolling
-as intended, with real fixtures loaded.
+Not viewport-locked, deliberately. The football page leads with what can be
+played now, and scrolls normally past it.
+
+![Football page at 1920 by 1080](images/qa/web-football-1920x1080.webp)
+
+At 390 × 844 the same collections stack, and the bet slip becomes a drawer
+rather than taking half the screen.
+
+![Football page at 390 by 844](images/qa/web-football-390x844.webp)
 
 | Viewport | Page scroll | Errors |
 | --- | --- | --- |
@@ -103,6 +123,8 @@ with a fixed `pb-16`, which at 600px tall pushed the document past the
 viewport. It is the first screen on a terminal, so it now uses `h-dvh
 overflow-hidden` with the centred area scrolling instead.
 
+![Cashier sign-in at 1024 by 600 after the fix](images/qa/shop-1024x600.webp)
+
 **The TV header overflowed its own safe area** at 720p, 1080p and 1440p — by
 46px, 68px and 90px. Every item in the header is `whitespace-nowrap`, and the
 nav had no `min-w-0`, so it could not shrink and instead pushed the clock and
@@ -113,17 +135,18 @@ inside the safe area at every size.
 Both were invisible to typecheck, lint and the unit suites, and invisible to
 reading the CSS. They only appear when something measures a real browser.
 
-## Screenshots
+## Screenshot index
 
-`docs/images/qa/` holds one PNG per viewport, plus the JSON for each pass:
+Every file in `docs/images/qa/`, with the JSON measurements beside them
+(`viewport-qa.json`, `shop-auth-qa.json`, `live-qa.json`).
 
-- `shop-auth-*.png` — the terminal workspace, signed in
-- `shop-*.png` — the sign-in screen
-- `tv-*.png`, `tv-live-*.png` — the TV shell and live screen
-- `web-football-*.png` — the football page across desktop and phone widths
-- `web-match-centre-*.png` — the Match Centre, in play and at full time
-- `web-match-centre-live-1920x1080.png` — the stadium mid-match, clock running
-- `web-match-markets-1920x1080.png` — the markets tab
+| Surface | Files |
+| --- | --- |
+| Shop, signed in | `shop-auth-1024x600` · `1280x720` · `1366x768` · `1920x1080` · `2560x1440` |
+| Shop sign-in | `shop-1024x600` · `1280x720` · `1366x768` · `1920x1080` · `2560x1440` |
+| TV | `tv-1280x720` · `1920x1080` · `2560x1440` · `3840x2160` · `tv-live-1920x1080` |
+| Football page | `web-football-1920x1080` · `1366x768` · `390x844` · `320x568` |
+| Live and Match Centre | `web-live-1920x1080` · `web-match-centre-1920x1080` · `390x844` · `web-match-centre-live-1920x1080` · `web-match-markets-1920x1080` · `web-match-lineups-1920x1080` |
 
 ## Not verified
 
@@ -140,7 +163,7 @@ worse than none.
   tested, not driven through a browser here.
 - **Light theme only**, at `deviceScaleFactor: 1`. No dark-mode or HiDPI
   capture.
-- **Lineups and match events show squad names from before the per-nationality
-  name pools land.** Stored `match_events` keep the names written to them, so
-  archived screenshots and replays will continue to show the old pool.
+- **Match events written before the per-nationality name pools landed keep
+  their stored names.** New squads use the new pools, but an archived replay of
+  an older run will still show the old ones.
 - **`pnpm test:e2e` has not been run** in this pass; it is a separate CI gate.
