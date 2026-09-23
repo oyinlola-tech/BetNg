@@ -78,7 +78,7 @@ export function WalletScreen(): React.JSX.Element {
       else await getDataSource().withdraw(amount);
 
       toast(
-        `${action === "DEPOSIT" ? "Simulated deposit added" : "Simulated withdrawal made"} · ${formatMoney(amount)}`,
+        `${action === "DEPOSIT" ? "Deposit added" : "Withdrawal made"} · ${formatMoney(amount)}`,
         "success",
       );
       setAction(undefined);
@@ -101,7 +101,7 @@ export function WalletScreen(): React.JSX.Element {
       ) : (
         <Card style={{ padding: 16 }}>
           <Text variant="caps" tone="muted">
-            {payments ? "Available" : "Available · simulated"}
+            {payments ? "Available" : "Available · payments not enabled"}
           </Text>
           <Text variant="display" tabular style={{ marginTop: 4 }}>
             {wallet.data === undefined
@@ -183,11 +183,11 @@ export function WalletScreen(): React.JSX.Element {
         }}
       >
         <Text variant="bodyStrong" tone="warning">
-          Play-money only
+          Payments not enabled
         </Text>
         <Text variant="caption" tone="secondary" style={{ marginTop: 2 }}>
-          Deposits and withdrawals move a number in a database. No payment
-          provider is connected.
+          No payment provider is connected on this deployment, so no card or
+          bank account is charged.
         </Text>
       </Card>
       )}
@@ -279,8 +279,8 @@ export function WalletScreen(): React.JSX.Element {
           >
             <Text variant="title">
               {action === "DEPOSIT"
-                ? "Simulated deposit"
-                : "Simulated withdrawal"}
+                ? "Deposit"
+                : "Withdrawal"}
             </Text>
             <View
               style={{
@@ -314,7 +314,7 @@ export function WalletScreen(): React.JSX.Element {
               />
             </View>
             <Text variant="caption" tone="muted" style={{ marginTop: 6 }}>
-              Play-money. No real payment takes place.
+              No payment provider is enabled on this deployment.
             </Text>
             <View style={{ flexDirection: "row", gap: 8, marginTop: 16 }}>
               <Button

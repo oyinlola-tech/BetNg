@@ -35,10 +35,24 @@ export function HomeScreen(): React.JSX.Element {
     [],
     3000,
   );
+  /*
+   * Play now means playable. A match the platform has closed cannot be acted
+   * on, so it moves to its own strip rather than sitting among the matches a
+   * tap can still add to a slip.
+   */
   const soon = useAsync(
     () =>
       getDataSource().listMatches({
-        phases: ["BETTING_OPEN", "BETTING_CLOSED"],
+        phases: ["BETTING_OPEN"],
+        limit: 6,
+      }),
+    [],
+    5000,
+  );
+  const starting = useAsync(
+    () =>
+      getDataSource().listMatches({
+        phases: ["BETTING_CLOSED", "DELAYED"],
         limit: 6,
       }),
     [],
@@ -82,7 +96,7 @@ export function HomeScreen(): React.JSX.Element {
       style={{ paddingTop: insets.top + 8 }}
       refreshing={live.refreshing}
       onRefresh={() =>
-        void Promise.all([live.refresh(), soon.refresh(), recent.refresh()])
+        void Promise.all([live.refresh(), soon.refresh(), starting.refresh(), recent.refresh()])
       }
     >
       <View
@@ -253,7 +267,7 @@ export function HomeScreen(): React.JSX.Element {
 
       <View style={{ paddingHorizontal: 16 }}>
         <SectionHeader
-          title="Starting soon"
+          title="Play now"
           onPress={() => {
             navigation.navigate("Tabs", { screen: "Virtuals" });
           }}
@@ -283,6 +297,28 @@ export function HomeScreen(): React.JSX.Element {
             />
           ))}
         </ScrollView>
+      )}
+
+      {(starting.data ?? []).length > 0 && (
+        <>
+          <View style={{ paddingHorizontal: 16 }}>
+            <SectionHeader title="Starting soon" />
+            <Text variant="caption" tone="muted" style={{ marginTop: -4, marginBottom: 8 }}>
+              Betting has closed. These matches kick off shortly.
+            </Text>
+          </View>
+          <View style={{ paddingHorizontal: 16, gap: 8 }}>
+            {(starting.data ?? []).map((m) => (
+              <MatchRow
+                key={m.id}
+                match={m}
+                onPress={() => {
+                  openMatch(m.id);
+                }}
+              />
+            ))}
+          </View>
+        </>
       )}
 
       <View style={{ paddingHorizontal: 16 }}>

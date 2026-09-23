@@ -363,7 +363,7 @@ export function BetSlipSheet({
                 </View>
                 <View>
                   <Text variant="caps" tone="muted">
-                    Stake (simulated)
+                    Stake
                   </Text>
                   <View
                     style={{
@@ -508,14 +508,14 @@ export function BetSlipSheet({
                   </Text>
                 )}
                 <Button
-                  label={isAuthenticated ? "Place simulated bet" : "Log in to place bet"}
+                  label={isAuthenticated ? "Place bet" : "Log in to place bet"}
                   size="lg"
                   loading={placing}
                   disabled={problem !== undefined || !online}
                   onPress={place}
                 />
                 <Text variant="caption" tone="muted" align="center">
-                  Play-money only. No real funds are involved.
+                  18+. Bet responsibly.
                 </Text>
               </View>
             )}

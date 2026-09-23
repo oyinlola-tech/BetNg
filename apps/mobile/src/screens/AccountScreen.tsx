@@ -119,7 +119,7 @@ export function AccountScreen(): React.JSX.Element {
           <Text variant="caption" tone="secondary">
             {status === "EXPIRED"
               ? "Log in again to pick up where you left off."
-              : "Browsing is open to everyone. An account is only needed to place simulated bets and use the wallet."}
+              : "Browsing is open to everyone. An account is only needed to place bets and use the wallet."}
           </Text>
           <View style={{ flexDirection: "row", gap: 8 }}>
             <Button
@@ -193,13 +193,13 @@ export function AccountScreen(): React.JSX.Element {
           )}
           <View style={{ marginTop: 14, paddingTop: 14, borderTopWidth: 1, borderTopColor: t.colors.border }}>
             <Text variant="caps" tone="muted">
-              Simulated balance
+              Available to bet
             </Text>
             <Text variant="display" tabular style={{ marginTop: 4 }}>
               {wallet.data === undefined ? "…" : formatMoney(wallet.data.available)}
             </Text>
             <Text variant="caption" tone="muted" style={{ marginTop: 4 }}>
-              Play-money. Nothing here has real-world value.
+              Available to bet
             </Text>
           </View>
         </Card>
@@ -248,7 +248,7 @@ export function AccountScreen(): React.JSX.Element {
             Help
           </Text>
           <Text variant="caption" tone="muted">
-            Every match is simulated
+            Every match is virtual football
           </Text>
         </View>
         <Divider />
@@ -263,8 +263,8 @@ export function AccountScreen(): React.JSX.Element {
         >
           <Info size={18} color={t.colors.textSecondary} />
           <Text variant="caption" tone="secondary" style={{ flex: 1 }}>
-            BetNG is a portfolio simulation of a virtual football platform. No
-            real money is involved.
+            BETNG takes bets on virtual football: match outcomes come from the
+            platform’s simulation. 18+. Bet responsibly.
           </Text>
         </View>
       </Card>

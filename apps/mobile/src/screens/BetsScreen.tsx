@@ -192,7 +192,7 @@ export function BetsScreen(): React.JSX.Element {
       >
         <View>
           <Text variant="caps" tone="muted">
-            Simulated
+            Virtual football
           </Text>
           <Text variant="heading">Bets</Text>
         </View>
@@ -216,7 +216,7 @@ export function BetsScreen(): React.JSX.Element {
           <EmptyState
             icon={<Receipt size={20} color={t.colors.textMuted} />}
             title="No bets yet"
-            description="Simulated bets you place appear here and settle automatically at full time."
+            description="Bets you place appear here and settle at full time."
             action={
               <Button
                 label="Open the lobby"

@@ -8,7 +8,7 @@ export function emailError(value: string): string | undefined {
 
 export function passwordError(value: string, mode: "login" | "new"): string | undefined {
   if (mode === "login") return value.length === 0 ? "Enter your password." : undefined;
-  if (value.length < 8) return "Use at least 8 characters.";
+  if (value.length < 12) return "Use at least 12 characters.";
 
   return value.length > 128 ? "Keep it under 128 characters." : undefined;
 }

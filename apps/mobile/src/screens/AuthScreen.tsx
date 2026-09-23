@@ -192,7 +192,7 @@ function RegisterView({ go }: ViewProps): React.JSX.Element {
       email: emailError(values.email),
       phone: phoneError(values.phone),
       password: passwordError(values.password, "new"),
-      accepted: accepted ? undefined : "Confirm you understand this is a simulation.",
+      accepted: accepted ? undefined : "Accept the terms to continue.",
     };
 
     setErrors(next);
@@ -277,7 +277,7 @@ function RegisterView({ go }: ViewProps): React.JSX.Element {
         value={values.password}
         onChangeText={set("password")}
         error={errors.password}
-        hint="At least 8 characters."
+        hint="At least 12 characters."
         editable={!busy}
         textContentType="newPassword"
         autoComplete="new-password"
@@ -287,7 +287,7 @@ function RegisterView({ go }: ViewProps): React.JSX.Element {
         <Pressable
           accessibilityRole="checkbox"
           accessibilityState={{ checked: accepted, disabled: busy }}
-          accessibilityLabel="I understand BetNG is a simulation with play-money only"
+          accessibilityLabel="I am 18 or over and accept the terms"
           disabled={busy}
           onPress={() => {
             setAccepted((v) => !v);
@@ -309,7 +309,7 @@ function RegisterView({ go }: ViewProps): React.JSX.Element {
             {accepted && <Check size={14} color={t.colors.textOnBrand} strokeWidth={3} />}
           </View>
           <Text variant="caption" tone="secondary" style={{ flex: 1 }}>
-            I understand BetNG is a simulation. Balances, stakes and returns are play-money.
+            I am 18 or over and accept the terms. BETNG takes bets on virtual football.
           </Text>
         </Pressable>
         {errors.accepted !== undefined && (

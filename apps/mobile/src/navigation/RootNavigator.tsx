@@ -51,12 +51,12 @@ const GatedBets = gated(BetsScreen, {
 });
 const GatedWallet = gated(WalletScreen, {
   title: "Log in to open your wallet",
-  description: "Your simulated balance, deposits and withdrawals belong to your account.",
+  description: "Your balance, deposits and withdrawals belong to your account.",
   reason: "Log in to open your wallet",
 });
 const GatedTransactions = gated(TransactionsScreen, {
   title: "Log in to see transactions",
-  description: "The ledger of your simulated wallet belongs to your account.",
+  description: "The ledger of your wallet belongs to your account.",
   reason: "Log in to see your transactions",
 });
 const GatedNotifications = gated(NotificationsScreen, {

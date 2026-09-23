@@ -163,7 +163,7 @@ export function SettingsScreen(): React.JSX.Element {
         {row(
           "betSettled",
           "Bet settled",
-          "When a simulated bet wins, loses or is voided",
+          "When a bet wins, loses or is voided",
         )}
         <Divider />
         {row("goals", "Goals", "Every goal in matches you are watching")}
@@ -220,8 +220,8 @@ export function SettingsScreen(): React.JSX.Element {
         </>
       )}
       <Text variant="caption" tone="muted" style={{ marginTop: 16 }}>
-        BetNG is a portfolio simulation. Balances, stakes and returns are
-        play-money.
+        BETNG takes bets on virtual football: match outcomes come from the
+        platform’s simulation. 18+. Bet responsibly.
       </Text>
     </Screen>
   );
