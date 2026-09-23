@@ -1,9 +1,5 @@
 import type { StateTone } from "@betng/design-tokens";
-import type {
-  MarketGroupKey,
-  MarketView,
-  SelectionView,
-} from "@betng/ui-core";
+import type { MarketView, SelectionView } from "@betng/ui-core";
 import type { OddsButtonState } from "./OddsButton";
 
 type Status = MarketView["status"];
@@ -24,21 +20,20 @@ export const MARKET_STATUS_TONE: Readonly<Record<Status, StateTone>> = {
   VOID: "void",
 };
 
-export const MARKET_GROUP_ORDER: readonly MarketGroupKey[] = [
-  "MAIN",
-  "GOALS",
-  "SCORE",
-  "HANDICAP",
-  "OTHER",
-];
-
-export const MARKET_GROUP_LABEL: Readonly<Record<MarketGroupKey, string>> = {
-  MAIN: "Main",
-  GOALS: "Goals",
-  SCORE: "Correct score",
-  HANDICAP: "Handicap",
-  OTHER: "More",
-};
+/*
+ * Grouping, ordering, naming and titles live in @betng/ui-core so that web,
+ * shop, mobile and TV present the same catalogue. Re-exported here because
+ * every market component already imports from this module.
+ */
+export {
+  MARKET_GROUP_LABEL,
+  MARKET_GROUP_ORDER,
+  groupMarkets,
+  marketShape,
+  marketTitle,
+  sortMarkets,
+} from "@betng/ui-core";
+export type { MarketGroupView } from "@betng/ui-core";
 
 export function selectionState(
   selection: Pick<SelectionView, "status">,
@@ -56,25 +51,7 @@ export function selectionState(
   return selected ? "selected" : "default";
 }
 
-/** A market the platform did not place in a group goes under "More". */
-export function groupMarkets(
-  markets: readonly MarketView[],
-): readonly {
-  readonly key: MarketGroupKey;
-  readonly label: string;
-  readonly markets: readonly MarketView[];
-}[] {
-  return MARKET_GROUP_ORDER.flatMap((key) => {
-    const members = markets.filter((m) => (m.group ?? "OTHER") === key);
-
-    return members.length === 0
-      ? []
-      : [{ key, label: MARKET_GROUP_LABEL[key], markets: members }];
-  });
-}
-
-export function marketTitle(market: Pick<MarketView, "name" | "line">): string {
-  return market.line === undefined || market.name.includes(String(market.line))
-    ? market.name
-    : `${market.name} ${String(market.line)}`;
+/** A market the user must not be able to add to a slip. */
+export function isMarketPlayable(market: Pick<MarketView, "status">): boolean {
+  return market.status === "OPEN";
 }

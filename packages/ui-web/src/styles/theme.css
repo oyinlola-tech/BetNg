@@ -40,6 +40,9 @@
   --color-void-subtle: var(--bn-void-subtle);
   --color-suspended: var(--bn-suspended);
   --color-suspended-subtle: var(--bn-suspended-subtle);
+  --color-pitch: var(--bn-pitch);
+  --color-pitch-stripe: var(--bn-pitch-stripe);
+  --color-pitch-line: var(--bn-pitch-line);
   --color-overlay: var(--bn-overlay);
   --color-skeleton: var(--bn-skeleton);
   --color-series-1: var(--bn-series1);
@@ -375,6 +378,9 @@
     --color-void-subtle: var(--bn-void-subtle);
     --color-suspended: var(--bn-suspended);
     --color-suspended-subtle: var(--bn-suspended-subtle);
+    --color-pitch: var(--bn-pitch);
+    --color-pitch-stripe: var(--bn-pitch-stripe);
+    --color-pitch-line: var(--bn-pitch-line);
     --color-overlay: var(--bn-overlay);
     --color-skeleton: var(--bn-skeleton);
     --color-series-1: var(--bn-series1);

@@ -21,7 +21,28 @@ export { MarketSuspendedState } from "./MarketSuspendedState";
 export { MarketsEmpty } from "./MarketsEmpty";
 export {
   MARKET_GROUP_LABEL,
+  MARKET_GROUP_ORDER,
+  MARKET_STATUS_TONE,
+  MARKET_STATUS_WORD,
   groupMarkets,
+  isMarketPlayable,
+  marketShape,
   marketTitle,
   selectionState,
+  sortMarkets,
 } from "./marketStatus";
+export { CorrectScoreMarket } from "./CorrectScoreMarket";
+export { MarketBoard } from "./MarketBoard";
+export type { MarketBoardProps } from "./MarketBoard";
+export {
+  GenericMarket,
+  Market,
+  hasMarketRenderer,
+  marketRenderer,
+  registerMarketRenderer,
+} from "./registry";
+export type {
+  MarketDensity,
+  MarketRenderer,
+  MarketRendererProps,
+} from "./registry";
