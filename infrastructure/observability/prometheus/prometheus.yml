@@ -27,6 +27,7 @@ scrape_configs:
       - { targets: ["event:3008"], labels: { service: event } }
       - { targets: ["analytics:3009"], labels: { service: analytics } }
       - { targets: ["identity:3010"], labels: { service: identity } }
+      - { targets: ["email:3012"], labels: { service: email } }
 
   - job_name: postgres
     static_configs:
