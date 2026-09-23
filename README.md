@@ -312,6 +312,8 @@ The numbers in the badges above come from these runs, recorded on 2026-09-21 and
 | [`docs/realtime.md`](docs/realtime.md) | Realtime client, ordering, resynchronisation, connection state |
 | [`docs/frontend-api.md`](docs/frontend-api.md) | Every route the clients call, with its status |
 | [`docs/frontend.md`](docs/frontend.md) | Every screen of every client, with screenshots |
+| [`docs/live-match-experience.md`](docs/live-match-experience.md) | Match lifecycle, the live stadium, the market catalogue, and what the platform must send |
+| [`docs/viewport-qa.md`](docs/viewport-qa.md) | Measured viewport behaviour for Shop, TV and web, with the screenshots it was measured from |
 | [`docs/testing.md`](docs/testing.md) | Test layers, how to run them, what each proves |
 | [`docs/frontend-backend-contracts.md`](docs/frontend-backend-contracts.md) | Shared contracts, who is authoritative for each value, error codes, routes pending on the backend |
 | [`docs/frontend-api-matrix.md`](docs/frontend-api-matrix.md) | Per-screen wiring: route, permission, realtime signal, cache key, invalidation, status |

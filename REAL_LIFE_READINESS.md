@@ -193,6 +193,37 @@ Still open as a product question, not a bug: a failed match in `results` is
 `{"error": ...}` with no `match_id`, so a caller can only tell *which* match
 failed by its position in the list.
 
+### 2.6 Every club in the game fielded one country's players
+
+The leagues are the Premier League, LaLiga, Serie A and Ligue 1, with real clubs
+— Arsenal, Real Madrid, Juventus, Lorient. `engine/players.py` drew every squad
+in the platform from a single Nigerian name pool, so Arsenal fielded eleven
+players with Nigerian names. The previous audit noticed the pool only as a
+collision-rate concern (§1.8) and missed that it was the wrong pool.
+
+Squads are now drawn from the country of the club's league plus a weighted
+foreign mix, because league football is cosmopolitan. 21 nationalities, 1228
+names. The domestic share is set per league to roughly what the real leagues
+field — England 40%, Spain 60%, Italy 55%, France 55% — and verified by
+measurement rather than assumed. Goalkeepers carry a +20 point domestic bias:
+clubs import outfielders far more readily than keepers, and a lone foreign keeper
+in an otherwise domestic side reads as a mistake even when drawn fairly. Nigeria
+stays in the foreign mix at a realistic weight alongside Senegal, Ivory Coast,
+Morocco, Brazil, Argentina and the rest.
+
+`country` is threaded from `match.fixture.league.country` through both
+`simulation.runMatch` and `simulation.getSquads`. It is **optional everywhere**:
+absent, the older single-pool behaviour stands, so no caller is forced to change.
+Both paths must send it or the lineup endpoint would name different people than
+the match timeline — there is a test pinning that.
+
+Safe by construction: `squad_for` is seeded from `_squad_prng(team_id)`, a
+different PRNG from the match seed, and the match RNG's draw sequence does not
+depend on names. Changing the pools cannot move a scoreline or an event. Stored
+`match_events` keep the names already written to them; only newly generated
+squads differ, so a replay of an old run shows new names against an identical
+scoreline. That was preferred to versioning the model for a cosmetic change.
+
 ---
 
 ## 3. Findings the previous audit got wrong
@@ -202,7 +233,7 @@ Recorded so nobody acts on them again.
 | Previous finding | Reality |
 |---|---|
 | 1.1/1.2/1.3, 7.2.1–7.2.6, 7.2.9, 7.2.10 — simulation pre-samples events; progressive model is opt-in | The progressive model **is the default** (`engine/models.py`: `MODEL_VERSION = PROGRESSIVE_MODEL_VERSION`). It already implements red-card attack *and* defence penalties, leading/trailing factors with late-game urgency, momentum and "rattled" decay, fatigue and substitution freshness. `conditions.py` is a full weather model. `calibration.py` has Brier score and log-loss. Nearly all of section 7 was obsolete when written. |
-| 1.8 — player pool too small | Already expanded (`EXPANDED_GIVEN_NAMES` / `EXPANDED_SURNAMES`). |
+| 1.8 — player pool too small | The pool had been expanded, but the audit missed the real defect: it was the *wrong* pool for these leagues. See §2.6. |
 | 1.10 — no unified health endpoint | Wrong. The gateway serves `/admin/health/services`, aggregating every client. |
 | 1.12 / 2.5 — no RPC rate limiting | Wrong. `RpcRateLimitMiddleware` is applied to every Python service in `betng_service_kit/app.py`. |
 | 1.13 / 2.6 — admin risk changes not audited | Wrong. `update_limits_handler.py` writes the audit entry inside the same transaction. |
