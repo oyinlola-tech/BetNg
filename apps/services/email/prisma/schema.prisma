@@ -1,0 +1,92 @@
+// The `email` schema. One row per message the platform asked for, the provider's delivery events, and
+// the suppression list. A rendered body is never stored: a template that carries a code or a one-time
+// credential declares it secret and the value is dropped before `variables` is written.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum MessageStatus {
+  QUEUED
+  SENT
+  DELIVERED
+  BOUNCED
+  COMPLAINED
+  FAILED
+
+  @@map("message_status")
+}
+
+enum SuppressionReason {
+  BOUNCE
+  COMPLAINT
+  MANUAL
+
+  @@map("suppression_reason")
+}
+
+/// `idempotencyKey` is the caller's key and is also sent to the provider, so a retried RPC and a retried
+/// HTTP call both collapse onto one message.
+model EmailMessage {
+  id             String        @id @default(uuid()) @db.Uuid
+  toAddress      String        @map("to_address") @db.VarChar(254)
+  toHash         String        @map("to_hash") @db.Char(64)
+  template       String        @db.VarChar(60)
+  /// Template variables with every value the template declared secret removed.
+  variables      Json?
+  subject        String        @db.VarChar(200)
+  status         MessageStatus @default(QUEUED)
+  providerId     String?       @map("provider_id") @db.VarChar(120)
+  providerStatus String?       @map("provider_status") @db.VarChar(40)
+  failureReason  String?       @map("failure_reason") @db.VarChar(200)
+  idempotencyKey String        @unique @map("idempotency_key") @db.VarChar(120)
+  tags           String[]      @default([])
+  attempts       Int           @default(0)
+  lastEventAt    DateTime?     @map("last_event_at") @db.Timestamptz(3)
+  createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  events EmailEvent[]
+
+  @@index([toHash, createdAt(sort: Desc)])
+  @@index([status, createdAt(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
+  @@map("email_messages")
+}
+
+/// Provider event ids already seen, for webhook idempotency. No payload is stored.
+model EmailEvent {
+  id          String    @id @default(uuid()) @db.Uuid
+  provider    String    @db.VarChar(40)
+  eventId     String    @map("event_id") @db.VarChar(200)
+  eventType   String    @map("event_type") @db.VarChar(60)
+  messageId   String?   @map("message_id") @db.Uuid
+  outcome     String?   @db.VarChar(40)
+  occurredAt  DateTime? @map("occurred_at") @db.Timestamptz(3)
+  receivedAt  DateTime  @default(now()) @map("received_at") @db.Timestamptz(3)
+  processedAt DateTime? @map("processed_at") @db.Timestamptz(3)
+
+  message EmailMessage? @relation(fields: [messageId], references: [id], onDelete: SetNull)
+
+  @@unique([provider, eventId])
+  @@index([messageId, receivedAt])
+  @@map("email_events")
+}
+
+/// Keyed by the hash of the address, so the list does not become a second copy of every address we ever
+/// bounced. `address` is kept for an operator to read back; both are removed together.
+model EmailSuppression {
+  addressHash String            @id @map("address_hash") @db.Char(64)
+  address     String            @db.VarChar(254)
+  reason      SuppressionReason
+  source      String            @db.VarChar(60)
+  createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([createdAt(sort: Desc)])
+  @@map("email_suppressions")
+}
