@@ -180,4 +180,14 @@ export {
 export { canonicalIp, createIpMatcher } from "./network/index.js";
 export type { IpMatcher } from "./network/index.js";
 
+export {
+  DEFAULT_TOLERANCE_SECONDS,
+  verifyWebhookSignature,
+  WebhookSignatureError,
+} from "./webhookSignature/index.js";
+export type {
+  SignatureFailure,
+  VerifyWebhookSignatureOptions,
+} from "./webhookSignature/index.js";
+
 export { loadSecretFiles } from "./secrets/secretFiles.js";

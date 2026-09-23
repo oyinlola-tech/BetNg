@@ -10,6 +10,8 @@ export const SERVICE_NAMES = Object.freeze([
   "event",
   "analytics",
   "identity",
+  "payments",
+  "email",
 ] as const);
 
 export type ServiceName = (typeof SERVICE_NAMES)[number];
@@ -56,6 +58,8 @@ export const DEFAULT_PORTS: Readonly<Record<ServiceName, number>> =
     event: 3008,
     analytics: 3009,
     identity: 3010,
+    payments: 3011,
+    email: 3012,
   });
 
 export const DEFAULT_SERVICE_TIMEOUT_MS = 5000;
