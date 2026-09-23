@@ -27,6 +27,9 @@
       "path": "./apps/services/event"
     },
     {
+      "path": "./apps/services/email"
+    },
+    {
       "path": "./packages/design-tokens"
     },
     {
