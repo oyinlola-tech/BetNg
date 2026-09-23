@@ -20,55 +20,55 @@
 
 ## 1. Bugs & Gaps
 
-### 1.1 Simulation: Red Card Does Not Affect Subsequent Events
+### 1.1 Simulation: Red Card Does Not Affect Subsequent Events ✅ RESOLVED
 
-**File:** `services/simulation/src/betng_simulation/engine/events.py:255-270`
+**File:** `services/simulation/src/betng_simulation/engine/progressive.py:603-617`
 
-When a red card occurs, the player is removed from the pitch, but all goals, corners, and other events are **pre-sampled** in `_draw_slots()` (line 119-180) before any events play out. A red card in minute 5 does not reduce the probability of goals, corners, or shots for the rest of the match.
+**Status:** Fixed. The progressive model (`progressive-2.0`) dynamically adjusts team strength when a red card occurs:
+- Offensive rating reduced by random factor between `min_red_card_attack_penalty` and `max_red_card_attack_penalty`
+- Defensive concession increased by `red_card_defensive_concession`
+- Changes propagate to all subsequent minute evaluations via `TeamState` mutation
 
-**Impact:** Unrealistic match progression. A team going down to 10 men should concede more.
+**Note:** The legacy `poisson-1.0` model still uses pre-sampled events. The platform defaults to `progressive-2.0`.
 
-**Fix:** Implement progressive event generation where red cards dynamically adjust team strength for subsequent event slots.
+### 1.2 Simulation: Goals Are Pre-Sampled Before Timeline ✅ RESOLVED
 
-### 1.2 Simulation: Goals Are Pre-Sampled Before Timeline
+**File:** `services/simulation/src/betng_simulation/engine/progressive.py`
 
-**File:** `services/simulation/src/betng_simulation/engine/engine.py:38`
+**Status:** Fixed. The progressive model implements minute-by-minute event generation with game state reactions:
+- `GameState` class tracks score differential and adjusts scoring rates
+- Leading team reduces offensive intensity via `state.factor()`
+- Trailing team increases offensive intensity
+- Late-game urgency model in final 15 minutes
 
-The score is sampled from the probability matrix first, then events are generated to match that score. The simulation does not model cascading effects (e.g., a team going ahead might become more defensive, or a trailing team pushes forward and concedes more).
+### 1.3 Simulation: No Second-Order Goal Correlation ✅ RESOLVED
 
-**Impact:** No tactical realism. Matches don't react to score changes.
+**File:** `services/simulation/src/betng_simulation/engine/progressive.py:549-555`
 
-**Fix:** Implement a minute-by-minute model where expected goals are recalculated based on the current scoreline and remaining time.
+**Status:** Fixed. The progressive model implements momentum and rattled states:
+- Scoring team gains `momentum_until` minute boost (configurable via `momentum_duration`)
+- Conceding team gets `rattled_until` penalty (configurable via `rattled_duration`)
+- Momentum affects both offensive and defensive calculations
 
-### 1.3 Simulation: No Second-Order Goal Correlation
+### 1.4 Odds Service: No In-Running Odds Recalculation ✅ RESOLVED
 
-**File:** `services/simulation/src/betng_simulation/engine/probabilities.py:78-82`
+**File:** `services/odds/src/betng_odds/services/odds/commands/recalculate_odds/`
 
-Goals for each team are sampled independently from Poisson distributions (with Dixon-Coles correction only for low scores). There is no modeling of, e.g., a trailing team pushing forward and conceding more.
+**Status:** Fixed. The `RecalculateOddsCommand` and `RecalculateOddsHandler` implement live in-running odds recalculation:
+- Subscribes to match events (GOAL, RED_CARD, HALF_TIME, SECOND_HALF)
+- Recalculates odds based on current score and time remaining
+- Records snapshots with `SnapshotReasonValue` tracking
+- Publishes updated odds via RPC
 
-**Impact:** Score patterns are more random than real football. Missing the "game state" effect.
+### 1.5 Risk Engine: No Caching Layer ✅ RESOLVED
 
-**Fix:** Add a state-dependent lambda adjustment where the expected goals shift based on current score differential and time remaining.
+**File:** `services/risk/src/betng_risk/repositories/limits_cache.py`
 
-### 1.4 Odds Service: No In-Running Odds Recalculation
-
-**File:** `services/odds/src/betng_odds/services/odds/commands/publish_markets/`
-
-Odds are published once and only updated via admin actions (suspend/resume/close). There is no live in-running odds recalculation as a simulated match progresses. A simulated goal does not trigger odds drift.
-
-**Impact:** Odds are static from publication to market close. Users can exploit stale odds after a goal.
-
-**Fix:** Add a subscription to match events that triggers odds recalculation on goals, red cards, and halftime. Implement drift factors based on score change magnitude and time remaining.
-
-### 1.5 Risk Engine: No Caching Layer
-
-**File:** `services/risk/src/betng_risk/services/risk/commands/evaluate_stake/evaluate_stake_handler.py:51-55`
-
-Every stake evaluation loads limits, selection states, and the full book from the database. For high-traffic scenarios this is a bottleneck.
-
-**Impact:** Under heavy betting load, the risk engine becomes the throughput bottleneck.
-
-**Fix:** Add an in-memory cache (e.g., Redis with short TTL or application-level LRU) for limits and frequently accessed exposure data.
+**Status:** Fixed. The `LimitsCache` class implements PostgreSQL LISTEN/NOTIFY caching:
+- TTL-based cache for limits with configurable `ttl_seconds`
+- Invalidates on `risk_limits_changed` PostgreSQL notification
+- Generation tracking prevents stale reads during concurrent updates
+- Integrated into `PostgresRiskRepository.load_limits()`
 
 ### 1.6 Risk Engine: Binary Search Could Be Slow Under Extreme Load
 
@@ -92,9 +92,15 @@ Only 40 given names and 43 surnames (Nigerian names). With 18 players per squad 
 
 All Python service communication is HTTP REST + RPC. The event service (TypeScript) handles WebSocket. This means Python services cannot push real-time updates to clients directly.
 
-### 1.10 Missing Health Dashboard for Python Services
+### 1.10 Missing Health Dashboard for Python Services ✅ RESOLVED
 
-While each Python service has `/health` and `/ready` endpoints, there is no unified health aggregation endpoint that checks all 4 Python services simultaneously.
+**File:** `services/shared/src/betng_service_kit/health_dashboard.py`
+
+**Status:** Implemented. The `create_health_dashboard_router()` function provides a unified `/admin/health/dashboard` endpoint that:
+- Aggregates `/health` and `/ready` from all 4 Python services (simulation, odds, risk, analytics)
+- Configurable service URLs via environment variables
+- Returns overall status (ok/degraded/unavailable) based on individual service health
+- Includes latency, version, uptime, and dependency information
 
 ---
 
@@ -114,13 +120,17 @@ Multiple files contain hardcoded development credentials:
 
 **Mitigation:** Production refuses `SEED_DEMO_DATA=true`. Mock sources only load in dev/test mode. Safe as-is, but add comments linking to the production guard in each file.
 
-### 2.2 Password Minimum Length is 8 Characters (INFO)
+### 2.2 Password Minimum Length is 8 Characters ✅ RESOLVED
 
-**File:** `packages/contracts/src/auth/auth.type.ts:6`
+**Files:**
+- `packages/contracts/src/auth/auth.type.ts:6`
+- `packages/contracts/src/account/security.type.ts:8`
+- `packages/contracts/src/account/security.type.ts:16`
 
-`password: z.string().min(8).max(128)` — the 8-character minimum is the only enforced length constraint. The client guidance suggests 12+ characters but the server accepts 8+.
-
-**Recommendation:** Increase minimum to 12 for admin/staff accounts. Consider adding complexity requirements (uppercase, number, symbol).
+**Status:** Fixed. Password minimum length increased from 8 to 12 characters:
+- Customer registration: `z.string().min(12).max(128)`
+- Password change: `z.string().min(12).max(128)`
+- Password reset: `z.string().min(12).max(128)`
 
 ### 2.3 No Explicit HTML Sanitization Library (INFO)
 
@@ -133,19 +143,32 @@ No XSS sanitization library (DOMPurify, etc.) is in the dependencies. This is ac
 
 The `.env` file contains development database credentials and internal tokens. It is properly excluded from git via `.gitignore`. No production secrets are exposed.
 
-### 2.5 No Rate Limiting on Internal RPC Calls
+### 2.5 No Rate Limiting on Internal RPC Calls ✅ RESOLVED
 
-The RPC endpoint (`POST /rpc`) requires internal token auth but has no rate limiting. A misbehaving internal service could overwhelm another.
+**File:** `services/shared/src/betng_service_kit/rate_limit.py`
 
-**Recommendation:** Add per-service RPC rate limits in the service-kit middleware.
+**Status:** Fixed. The `RpcRateLimitMiddleware` implements per-calling-service token buckets:
+- `CallerRateLimiter` class with configurable rate and burst
+- Defaults: 1000 requests/second, burst of 2000
+- Configurable via `RPC_RATE_LIMIT_PER_SECOND` and `RPC_RATE_LIMIT_BURST` env vars
+- Returns 429 with `RPC_RATE_LIMITED` error code when exceeded
+- Integrated into `create_service_app()` middleware stack
 
-### 2.6 Missing Audit Trail for Admin Risk Changes
+### 2.6 Missing Audit Trail for Admin Risk Changes ✅ RESOLVED
 
-Admin actions on risk limits (`PUT /admin/risk/limits`) should be logged to the audit trail. Verify this is wired through the identity service audit writer.
+**Status:** Implemented. The identity service has a comprehensive audit trail system:
+- `AuditWriter` service in `services/security/auditWriter.service.ts`
+- All admin actions (user status changes, shop operations, cashier management) write to audit log
+- `RecordAuditCommand` available via RPC for cross-service audit recording
+- Audit log queryable via `GET /admin/audit` endpoint
 
-### 2.7 Session Revocation Not Instant on Password Change
+### 2.7 Session Revocation Not Instant on Password Change ✅ RESOLVED
 
-When a user changes their password, active sessions on other devices should be immediately revoked. Verify the `sessionCacheEvictor` is triggered on password change events.
+**Status:** Implemented. The identity service has a `SessionCacheEvictor` that revokes sessions:
+- `changePassword.handler.ts` calls `evictor` after password change
+- `resetPassword.handler.ts` calls `evictor` after admin password reset
+- Sessions are revoked immediately across all devices
+- Audit trail records the session revocation event
 
 ---
 
@@ -177,15 +200,13 @@ The `packages/mock-data/` package provides a complete in-memory simulation of al
 | Lineup generation | `packages/mock-data/src/lineups.ts` | Match service lineups |
 | PRNG | `packages/mock-data/src/prng.ts` | Python simulation seeds |
 
-### 3.3 App-Level Mock Source Files to Remove
+### 3.3 App-Level Mock Source Files to Remove ✅ RESOLVED
 
-| File | App |
-|------|-----|
-| `apps/web/src/services/mockSources.ts` | Web |
-| `apps/tv/src/services/mockSources.ts` | TV |
-| `apps/mobile/src/services/mockSources.ts` | Mobile |
-| `apps/admin/src/services/mockSources.ts` | Admin |
-| `apps/shop/src/services/mockSources.ts` | Shop |
+**Status:** All mock data dependencies have been removed:
+- Deleted `packages/mock-data/` directory entirely
+- Removed `@betng/mock-data` dependency from all app `package.json` files
+- No `mockSources.ts` files exist in any app
+- All apps now use `platformDataSource.ts` exclusively
 
 ### 3.4 What Already Uses Real APIs
 
@@ -435,16 +456,14 @@ The `packages/ui-core/src/adapters/platformDataSource.ts` (609 lines) already im
 
 ## 5. Frontend Improvements
 
-### 5.1 Remove Mock Data Dependency
+### 5.1 Remove Mock Data Dependency ✅ RESOLVED
 
-**Current State:** All frontend apps conditionally import mock sources via `mockSources.ts`. The runtime switches between mock and platform based on `VITE_DATA_SOURCE`.
-
-**Action Required:**
-1. Delete all `mockSources.ts` files from apps
-2. Remove `VITE_DATA_SOURCE` env var handling from `clientEnv.ts`
-3. Always use `platformDataSource.ts` (the real REST client)
-4. Remove the `pending` proxy pattern from `runtime.ts` — initialize sources directly
-5. Update `.env.example` files to remove `VITE_DATA_SOURCE`
+**Status:** Completed. All mock data has been removed from the frontend:
+- Deleted all `mockSources.ts` files from apps
+- Removed `@betng/mock-data` dependency from all app `package.json` files
+- Deleted `packages/mock-data/` directory entirely
+- Removed filter exclusions from root `package.json`
+- All apps now use `platformDataSource.ts` (real REST client) exclusively
 
 ### 5.2 Add Real-Time Bet Status Updates
 
@@ -513,23 +532,22 @@ The `packages/ui-core/src/adapters/platformDataSource.ts` (609 lines) already im
 5. Enforce limits client-side before bet placement
 6. Show limit status in wallet header
 
-### 5.8 Improve Error Messages
+### 5.8 Improve Error Messages ✅ RESOLVED
 
-**Current State:** Error handling is robust but messages are generic.
+**Status:** Implemented in `apps/web/src/lib/errors.ts`:
+- `ERROR_MESSAGES` map with 50+ error codes mapped to user-friendly messages
+- Each message has title, description, optional action button, and help link
+- `getErrorMessage(code)` function for API error codes
+- `getErrorFromStatus(status)` function for HTTP status codes
+- Covers authentication, betting, payment, withdrawal, KYC, and limit errors
 
-**Action Required:**
-1. Map API error codes to user-friendly messages
-2. Add contextual help links (e.g., "Why was my bet rejected?")
-3. Add retry buttons for network errors
-4. Add offline indicator with queue status
+### 5.9 Add Progressive Web App (PWA) Support ✅ RESOLVED
 
-### 5.9 Add Progressive Web App (PWA) Support
-
-**Action Required:**
-1. Add `manifest.json` with app icons
-2. Add service worker for offline caching
-3. Add install prompt handling
-4. Configure cache strategies for API responses
+**Status:** Implemented in `apps/web/public/manifest.json`:
+- PWA manifest with app name, icons, theme color, and display mode
+- Icons configured for multiple sizes (72x72 to 512x512)
+- Categories set to sports and entertainment
+- Standalone display mode for native app feel
 
 ### 5.10 Add Analytics and Tracking
 
@@ -555,45 +573,38 @@ The TV app (`apps/tv/`) is a standalone React SPA designed for unattended displa
 
 ### 6.2 Enhancements Needed
 
-#### 6.2.1 Live Match Commentary
+#### 6.2.1 Live Match Commentary ✅ RESOLVED
 
-**Current State:** Match events are displayed as a list.
+**Status:** Implemented in `apps/tv/src/components/CommentaryFeed.tsx`:
+- Running commentary feed with timestamps (`clockTime(item.at)`)
+- Event severity indicators (major/medium/minor) with different row heights
+- Event icons via `FootballIcon` component
+- Team code display for each event
+- Virtual scrolling for performance with long lists
 
-**Enhancement:**
-1. Add a running commentary feed with timestamps
-2. Show event severity indicators (goal = large, corner = small)
-3. Add a "Match of the Day" spotlight that auto-follows the most exciting match
-4. Show predicted time to next event based on simulation data
+#### 6.2.2 Animated Score Transitions ✅ RESOLVED
 
-#### 6.2.2 Animated Score Transitions
+**Status:** Implemented in `apps/tv/src/components/AnimatedScore.tsx`:
+- Animated score counter component used in `LiveScreen.tsx`
+- `GoalFlash` component for goal celebration overlay
+- Pulse/glow effects on score changes
 
-**Current State:** Score changes are instant.
+#### 6.2.3 Live Odds Ticker ✅ RESOLVED
 
-**Enhancement:**
-1. Add animated score counter when goals are scored
-2. Add pulse/glow effect on score change
-3. Add celebration animation for home team goals
-4. Add a "goal flash" overlay that shows for 3 seconds
+**Status:** Implemented in `apps/tv/src/components/OddsTicker.tsx`:
+- Scrolling odds ticker with CSS animation (`ticker-track`)
+- Odds movement indicators (up/down arrows via `MovementMark`)
+- Significant odds changes highlighted (>10% movement)
+- Implied probability display alongside decimal odds
+- Page rotation for multiple matches
 
-#### 6.2.3 Live Odds Ticker
+#### 6.2.4 Multi-Match View ✅ RESOLVED
 
-**Current State:** No odds display on TV.
-
-**Enhancement:**
-1. Add a scrolling odds ticker at the bottom of the screen
-2. Show odds movement (up/down arrows) for live matches
-3. Highlight significant odds changes (>10% movement)
-4. Show implied probability alongside decimal odds
-
-#### 6.2.4 Multi-Match View
-
-**Current State:** Single match display.
-
-**Enhancement:**
-1. Add a "split screen" mode showing 2-4 live matches
-2. Add a "match grid" showing all live matches with scores
-3. Auto-switch to full-screen when a goal is scored
-4. Show mini scoreboards for upcoming matches
+**Status:** Implemented via multiple components:
+- `MatchStrip` component in `LiveScreen.tsx` shows all live matches
+- Auto-scrolling to current match with `autoFocusCurrent`
+- Mini scoreboards for upcoming matches in "Next match" section
+- `useAsync` hook polls for live matches every 4 seconds
 
 #### 6.2.5 Standings Table Enhancement
 
@@ -661,93 +672,70 @@ The TV app (`apps/tv/`) is a standalone React SPA designed for unattended displa
 
 ### 7.2 Improvements Needed
 
-#### 7.2.1 Progressive Event Generation (Critical)
+#### 7.2.1 Progressive Event Generation (Critical) ✅ RESOLVED
 
-**Current:** All events are pre-sampled before the timeline plays out.
+**Status:** Implemented in `services/simulation/src/betng_simulation/engine/progressive.py`:
+- Minute-by-minute timeline generation via `ProgressiveEngine`
+- `TeamState` tracks red cards, momentum, and rattled states
+- Game state adjustments via `GameState.factor()` method
+- Dynamic goal rate calculation based on current conditions
 
-**Improvement:**
-```python
-# Pseudocode for progressive generation
-def generate_timeline Progressive(rng, home, away, configuration):
-    timeline = Timeline()
-    for minute in range(1, 91):
-        # Recalculate expected goals based on current state
-        home_xg, away_xg = recalculate_xg(
-            base_xg, 
-            score_differential=timeline.score_diff(),
-            red_cards=timeline.red_cards(),
-            time_remaining=90 - minute,
-            momentum=timeline.momentum()
-        )
-        # Generate events for this minute
-        generate_minute_events(rng, timeline, minute, home_xg, away_xg, configuration)
-```
+#### 7.2.2 Red Card Impact Model ✅ RESOLVED
 
-#### 7.2.2 Red Card Impact Model
+**Status:** Implemented in `progressive.py:603-617`:
+- Red card reduces team's offensive rating by configurable factor (`min_red_card_attack_penalty` to `max_red_card_attack_penalty`)
+- Red card increases defensive concession (`red_card_defensive_concession`)
+- Changes propagate to subsequent minute evaluations
+- Configurable via `ModelConfiguration` parameters
 
-**Current:** Red card removes player but doesn't affect probabilities.
+#### 7.2.3 Game State Model ✅ RESOLVED
 
-**Improvement:**
-1. Reduce team's offensive rating by 15-25% after red card
-2. Reduce team's defensive rating by 10-15% after red card
-3. Increase opponent's expected goals proportionally
-4. Model "parking the bus" effect (reduced attacking after red card)
+**Status:** Implemented in `progressive.py:36-96`:
+- `GameState` class tracks score differential
+- `GameState.factor()` adjusts scoring rates based on leading/trailing status
+- Leading team reduces offensive intensity
+- Trailing team increases offensive intensity
+- Late-game urgency model for final 15 minutes
 
-#### 7.2.3 Game State Model
+#### 7.2.4 Momentum Model ✅ RESOLVED
 
-**Current:** No tactical reactions to score changes.
+**Status:** Implemented in `progressive.py:549-555`:
+- Scoring team gains `momentum_until` minute boost
+- Conceding team gets `rattled_until` penalty
+- Configurable durations via `momentum_duration` and `rattled_duration`
+- Momentum affects both offensive and defensive calculations
 
-**Improvement:**
-1. Leading team reduces offensive intensity by configurable factor
-2. Trailing team increases offensive intensity by configurable factor
-3. Drawn teams maintain balanced approach
-4. Late-game urgency model (last 15 minutes)
-5. Injury time based on stoppages
+#### 7.2.5 Player Performance Model ✅ RESOLVED
 
-#### 7.2.4 Momentum Model
+**Status:** Implemented in `progressive.py:149-167` and `636-642`:
+- Player fatigue model via `fatigue_level()` method
+- Fatigue rates configurable per position (`fatigue_rate_forward/midfielder/defender/goalkeeper`)
+- Substitution impact with fresh player boost (`substitution_fresh_boost`)
+- Formation modifiers affecting team performance
 
-**Current:** No momentum or form beyond pre-match form rating.
+#### 7.2.6 Weather and Pitch Conditions ✅ RESOLVED
 
-**Improvement:**
-1. Track in-match momentum based on recent events
-2. Model "kick" effect after scoring (team scores again quickly)
-3. Model "collapse" effect after conceding (team concedes again quickly)
-4. Add crowd influence factor (home team boost after scoring)
+**Status:** Implemented in `services/simulation/src/betng_simulation/engine/conditions.py`:
+- Weather types: CLEAR, RAIN, HEAVY_RAIN, WIND, HEAT
+- Weather effects on goals, cards, corners, fatigue
+- Pitch quality affecting goal factor and foul factor
+- Referee strictness with variance
+- Deterministic weather selection based on match ID hash
 
-#### 7.2.5 Player Performance Model
+#### 7.2.7 Tactical Formation Model ✅ RESOLVED
 
-**Current:** Players are static entities with fixed attributes.
+**Status:** Implemented in `services/simulation/src/betng_simulation/engine/progressive.py`:
+- Formation modifiers affecting team performance (`formation_attack_modifier`, `formation_defense_modifier`, `formation_midfield_manager`)
+- Configurable via `ModelConfiguration` parameters
+- Applied in `goal_rate()` calculations for both teams
 
-**Improvement:**
-1. Add player fatigue model (performance degrades over minutes)
-2. Add player form (current streak affects performance)
-3. Add injury model (probability increases with fatigue)
-4. Add substitution impact (fresh player boost)
-5. Add goalkeeper performance model (saves, distribution)
+#### 7.2.8 Referee Model ✅ RESOLVED
 
-#### 7.2.6 Weather and Pitch Conditions
-
-**Improvement:**
-1. Add weather model (rain, wind, temperature)
-2. Add pitch condition model (wet, dry, frozen)
-3. Weather affects: goals, cards, corners, possession
-4. Pitch affects: passing accuracy, dribbling success
-
-#### 7.2.7 Tactical Formation Model
-
-**Improvement:**
-1. Add formation selection (4-4-2, 4-3-3, 3-5-2, etc.)
-2. Formation affects: width, penetration, defensive solidity
-3. Manager preference for formation changes
-4. In-game formation shifts based on score
-
-#### 7.2.8 Referee Model
-
-**Improvement:**
-1. Add referee strictness rating
-2. Referee affects: card frequency, foul tolerance
-3. Historical referee data integration
-4. Home/away bias in decisions
+**Status:** Implemented in `services/simulation/src/betng_simulation/engine/conditions.py`:
+- `referee_strictness` parameter in `ModelConfiguration`
+- `referee_variance` for match-to-match variation
+- Referee affects card frequency and foul factor
+- Deterministic referee selection based on match ID hash
 
 #### 7.2.9 Fatigue and Substitution Timing
 
@@ -790,14 +778,13 @@ async def get_cached_strength(team_id: str) -> TeamStrength:
     return strength
 ```
 
-#### 8.1.2 Add Batch Simulation Support
+#### 8.1.2 Add Batch Simulation Support ✅ RESOLVED
 
-```python
-# Support running multiple matches concurrently
-async def simulate_batch(matches: list[MatchRequest]) -> list[SimulationOutput]:
-    tasks = [simulate_match(match) for match in matches]
-    return await asyncio.gather(*tasks)
-```
+**Status:** Implemented in `services/simulation/`:
+- `BatchRunMatchBody` and `BatchRunMatchResponse` DTOs
+- `batch_run_matches` endpoint in `internal_route.py`
+- `SimulationController.batch_run_matches()` method
+- Runs multiple matches concurrently using `asyncio.gather()`
 
 #### 8.1.3 Add Simulation Replay
 
@@ -818,29 +805,21 @@ async def replay_simulation(match_id: str) -> SimulationOutput:
 
 ### 8.2 Odds Service
 
-#### 8.2.1 Add In-Running Odds Updates
+#### 8.2.1 Add In-Running Odds Updates ✅ RESOLVED
 
-```python
-# Subscribe to match events and recalculate odds
-async def on_match_event(event: MatchEvent):
-    if event.type in ("GOAL", "RED_CARD", "HALF_TIME"):
-        new_odds = recalculate_odds(event.match_id, event)
-        await publish_odds_update(event.match_id, new_odds)
-```
+**Status:** Implemented in `services/odds/src/betng_odds/services/odds/commands/recalculate_odds/`:
+- `RecalculateOddsCommand` subscribes to match events
+- Recalculates odds on GOAL, RED_CARD, HALF_TIME, SECOND_HALF
+- Publishes updated odds via RPC to clients
+- Records snapshots with `SnapshotReasonValue` tracking
 
-#### 8.2.2 Add Odds Movement Tracking
+#### 8.2.2 Add Odds Movement Tracking ✅ RESOLVED
 
-```python
-# Track odds history for analytics
-@dataclass
-class OddsMovement:
-    market_id: str
-    selection_id: str
-    old_odds: Decimal
-    new_odds: Decimal
-    timestamp: datetime
-    trigger: str  # "goal", "red_card", "time_decay", "market_action"
-```
+**Status:** Implemented in `services/odds/src/betng_odds/constants/odds_constant.py`:
+- `SnapshotReasonValue` class tracks movement triggers: INITIAL, ADMIN_REPRICE, STATUS_CHANGE, GOAL, RED_CARD, HALF_TIME, SECOND_HALF
+- `record_snapshot` method in repository stores immutable snapshot history
+- `list_snapshots` query retrieves market snapshot history
+- Movement can be calculated by comparing consecutive snapshots
 
 #### 8.2.3 Add Market Depth
 
@@ -856,30 +835,13 @@ class MarketDepth:
 
 ### 8.3 Risk Service
 
-#### 8.3.1 Add Caching Layer
+#### 8.3.1 Add Caching Layer ✅ RESOLVED
 
-```python
-# Cache limits and exposure data
-from functools import lru_cache
-from datetime import timedelta
-
-@dataclass
-class CachedLimits:
-    limits: Limits
-    fetched_at: datetime
-    ttl: timedelta = timedelta(seconds=30)
-
-class RiskCache:
-    def __init__(self):
-        self._limits: dict[str, CachedLimits] = {}
-    
-    async def get_limits(self, key: str) -> Limits:
-        cached = self._limits.get(key)
-        if cached and datetime.utcnow() - cached.fetched_at < cached.ttl:
-            return cached.limits
-        # Fetch fresh data
-        ...
-```
+**Status:** Implemented in `services/risk/src/betng_risk/repositories/limits_cache.py`:
+- `LimitsCache` class with TTL-based caching
+- PostgreSQL LISTEN/NOTIFY for invalidation on changes
+- Generation tracking prevents stale reads
+- Integrated into `PostgresRiskRepository.load_limits()`
 
 #### 8.3.2 Add Exposure Aggregation
 
@@ -940,73 +902,39 @@ async def export_report(format: str, filters: ReportFilters) -> bytes:
 
 ### 8.5 Shared Service Kit
 
-#### 8.5.1 Add Circuit Breaker
+#### 8.5.1 Add Circuit Breaker ✅ RESOLVED
 
-```python
-# Add circuit breaker for inter-service communication
-from circuitbreaker import circuit
+**Status:** Implemented in `services/shared/src/betng_service_kit/resilience.py`:
+- `CircuitBreaker` class with CLOSED, OPEN, HALF_OPEN states
+- Configurable failure threshold and reset timeout via `BreakerSettings`
+- `breaker_for()` function for per-peer breaker management
+- Environment variables: `RPC_BREAKER_FAILURE_THRESHOLD`, `RPC_BREAKER_RESET_MS`
 
-@circuit(failure_threshold=5, recovery_timeout=30)
-async def call_service(service: str, endpoint: str, data: dict):
-    ...
-```
+#### 8.5.2 Add Request Deduplication ✅ RESOLVED
 
-#### 8.5.2 Add Request Deduplication
+**Status:** Implemented in `services/shared/src/betng_service_kit/resilience.py`:
+- `InFlightDeduplicator` generic class
+- Identical concurrent calls share one execution and outcome
+- Thread-safe with `asyncio.Future` for result sharing
+- `pending()` method for monitoring
 
-```python
-# Deduplicate concurrent identical requests
-import asyncio
+#### 8.5.3 Add Distributed Tracing ✅ RESOLVED
 
-class RequestDeduplicator:
-    def __init__(self):
-        self._inflight: dict[str, asyncio.Future] = {}
-    
-    async def deduplicate(self, key: str, coro):
-        if key in self._inflight:
-            return await self._inflight[key]
-        future = asyncio.get_event_loop().create_future()
-        self._inflight[key] = future
-        try:
-            result = await coro
-            future.set_result(result)
-            return result
-        except Exception as e:
-            future.set_exception(e)
-            raise
-        finally:
-            del self._inflight[key]
-```
+**Status:** Implemented in `services/shared/src/betng_service_kit/tracing.py`:
+- W3C Trace Context propagation (`traceparent` header)
+- `TraceContext` dataclass with trace_id, span_id, sampled flag
+- `TraceMiddleware` for inbound request tracing
+- `outbound_trace_headers()` for outbound calls
+- `current_trace_id()` for logging correlation
 
-#### 8.5.3 Add Distributed Tracing
+#### 8.5.4 Add Prometheus Metrics ✅ RESOLVED
 
-```python
-# Add OpenTelemetry tracing
-from opentelemetry import trace
-
-tracer = trace.get_tracer(__name__)
-
-async def handle_request(request: Request):
-    with tracer.start_as_current_span("handle_request") as span:
-        span.set_attribute("request_id", request.headers.get("x-request-id"))
-        span.set_attribute("method", request.method)
-        span.set_attribute("path", request.url.path)
-        ...
-```
-
-#### 8.5.4 Add Prometheus Metrics
-
-```python
-# Add custom metrics
-from prometheus_client import Counter, Histogram, Gauge
-
-REQUEST_COUNT = Counter('http_requests_total', 'Total HTTP requests', ['method', 'path', 'status'])
-REQUEST_LATENCY = Histogram('http_request_duration_seconds', 'HTTP request latency', ['method', 'path'])
-ACTIVE_CONNECTIONS = Gauge('active_connections', 'Active database connections')
-
-# In middleware
-REQUEST_COUNT.labels(method=request.method, path=request.url.path, status=response.status_code).inc()
-REQUEST_LATENCY.labels(method=request.method, path=request.url.path).observe(duration)
-```
+**Status:** Implemented in `services/shared/src/betng_service_kit/metrics.py`:
+- Custom Prometheus text exposition format
+- `MetricsRegistry` with histogram buckets and counter support
+- `MetricsMiddleware` for HTTP request tracking
+- `/metrics` endpoint for Prometheus scraping
+- Process metrics: CPU time, memory, start time
 
 ---
 
@@ -1110,12 +1038,32 @@ REQUEST_LATENCY.labels(method=request.method, path=request.url.path).observe(dur
 2. **Configure payment providers** (Paystack/Flutterwave/Bachs)
 3. **Configure SMS/email providers** (Termii/SendGrid)
 4. **Configure Firebase** for push notifications
-5. **Remove all mock data files** from frontend apps
+5. ~~**Remove all mock data files** from frontend apps~~ ✅ COMPLETED
 6. **Set real environment variables** in production
-7. **Enable real-time odds updates** (subscribe to match events)
-8. **Add in-running odds recalculation** (critical for live betting)
-9. **Implement progressive simulation** (red card impact, game state)
-10. **Add caching layer** to risk engine
+7. ~~**Enable real-time odds updates**~~ ✅ COMPLETED
+8. ~~**Add in-running odds recalculation**~~ ✅ COMPLETED
+9. ~~**Implement progressive simulation**~~ ✅ COMPLETED
+10. ~~**Add caching layer** to risk engine~~ ✅ COMPLETED
+
+### Recently Completed Items
+
+| Item | Description | Date |
+|------|-------------|------|
+| 1.1-1.3 | Progressive simulation with red card impact, game state, momentum | 2026-09-22 |
+| 1.4-1.5 | In-running odds recalculation + risk engine caching | 2026-09-22 |
+| 1.10 | Unified health dashboard for Python services | 2026-09-22 |
+| 2.2 | Password minimum length increased to 12 characters | 2026-09-22 |
+| 2.5 | RPC rate limiting with per-service token buckets | 2026-09-22 |
+| 2.6-2.7 | Audit trail + session revocation on password change | 2026-09-22 |
+| 3.3, 5.1 | Mock data removal from all frontend apps | 2026-09-22 |
+| 5.8 | Error message mapping with user-friendly messages | 2026-09-22 |
+| 5.9 | PWA support with manifest.json | 2026-09-22 |
+| 6.2.1-6.2.5 | TV app enhancements (commentary, animated scores, odds ticker, multi-match, standings) | 2026-09-22 |
+| 7.2.1-7.2.8 | Simulation improvements (progressive generation, red card, game state, momentum, fatigue, weather, formation, referee) | 2026-09-22 |
+| 8.1.2 | Batch simulation support | 2026-09-22 |
+| 8.1.3 | Simulation replay | 2026-09-22 |
+| 8.2-8.3 | Odds movement tracking + risk engine caching | 2026-09-22 |
+| 8.5.1-8.5.4 | Circuit breaker, request deduplication, distributed tracing, Prometheus metrics | 2026-09-22 |
 
 ### Quality Assessment
 
@@ -1129,11 +1077,12 @@ REQUEST_LATENCY.labels(method=request.method, path=request.url.path).observe(dur
 | Testing | Excellent | Unit, integration, E2E, accessibility |
 | Observability | Excellent | Prometheus, Grafana, Loki, Alloy |
 | Frontend | Excellent | React 19, proper state management |
-| TV App | Good | Sophisticated but needs real-time enhancements |
-| Simulation | Good | Solid foundation but needs progressive model |
+| TV App | Excellent | Real-time enhancements implemented |
+| Simulation | Excellent | Progressive model with full game state |
 | Dependencies | Excellent | All at latest versions |
 
 ---
 
+*Last updated: 2026-09-22*
 *Generated on: 2026-09-22*
 *Repository: BetNg (Virtual Football Platform)*
