@@ -1,3 +1,4 @@
+import { createHash, randomUUID } from "node:crypto";
 import type { NotificationKind, NotificationTopic } from "@betng/contracts";
 import { NOTIFICATION } from "../../constants/index.js";
 import type { Logger } from "@betng/service-kit";
@@ -119,7 +120,12 @@ export function createMessenger(options: MessengerOptions): Messenger {
   const deliver = async (
     customerId: string,
     topic: NotificationTopic,
-    message: { readonly subject: string; readonly text: string; readonly data: Record<string, string> },
+    message: {
+      readonly subject: string;
+      readonly text: string;
+      readonly data: Record<string, string>;
+      readonly idempotencyKey?: string;
+    },
   ): Promise<void> => {
     const customer = await store.customers.findById(customerId);
 
@@ -131,7 +137,17 @@ export function createMessenger(options: MessengerOptions): Messenger {
     const attempts: Promise<void>[] = [];
 
     if (channels.email[topic]) {
-      attempts.push(providers.email.send({ to: customer.email, subject: message.subject, text: message.text }).catch((error: unknown) => failed("email", error)));
+      // The email service owns the wording of the page; the copy composed here is its body.
+      attempts.push(
+        providers.email
+          .send({
+            to: customer.email,
+            template: "notice",
+            variables: { subject: message.subject, heading: message.subject, body: message.text },
+            idempotencyKey: message.idempotencyKey ?? `notice-${randomUUID()}`,
+          })
+          .catch((error: unknown) => failed("email", error)),
+      );
     }
 
     const phone = toInternationalNumber(customer.phone);
@@ -160,12 +176,17 @@ export function createMessenger(options: MessengerOptions): Messenger {
     return !duplicate;
   };
 
-  const fanOut = async (customerId: string, notice: CustomerNotice): Promise<void> => {
+  const fanOut = async (customerId: string, notice: CustomerNotice & { readonly dedupeKey?: string | undefined }): Promise<void> => {
     try {
       await deliver(customerId, KIND_TOPIC[notice.kind], {
         subject: notice.title,
         text: notice.body === "" ? notice.title : notice.body,
         data: { kind: notice.kind, ...stringData(notice.data) },
+        // A notice the caller made idempotent stays idempotent all the way to the provider.
+        idempotencyKey:
+          notice.dedupeKey === undefined
+            ? `notice-${randomUUID()}`
+            : `notice-${createHash("sha256").update(`${customerId}:${notice.dedupeKey}`).digest("hex").slice(0, 32)}`,
       });
     } catch (error) {
       failed("notification", error);
@@ -175,14 +196,19 @@ export function createMessenger(options: MessengerOptions): Messenger {
   return {
     sendCode: async (to, purpose, code, expiresAt) => {
       const minutes = Math.max(1, Math.round((expiresAt.getTime() - Date.now()) / 60_000));
-      const subject = purpose === "verification" ? "Your BetNG verification code" : "Your BetNG password reset code";
-      const intro = purpose === "verification" ? "Use this code to verify your email address:" : "Use this code to reset your password:";
 
       await providers.email.send({
         to,
-        subject,
-        text: `${intro}\n\n${code}\n\nIt expires in ${String(minutes)} minutes. BetNG will never ask you for this code.\nIf you did not ask for it, you can ignore this email.\n`,
+        template: purpose === "verification" ? "verification_code" : "password_reset_code",
+        variables: { code, expiresInMinutes: String(minutes) },
+        // Derived from the code, so re-sending the same code is one message and a new code is a new one.
+        // The code is not recoverable from the key: it is a hash, and the key is never sent anywhere else.
+        idempotencyKey: `code-${createHash("sha256").update(`${purpose}:${to.toLowerCase()}:${code}`).digest("hex").slice(0, 32)}`,
       });
+    },
+
+    sendTemplate: async (message) => {
+      await providers.email.send(message);
     },
 
     securityAlert: async (customerId, alert) => {
@@ -190,7 +216,12 @@ export function createMessenger(options: MessengerOptions): Messenger {
         const { subject, line, text } = alertText(alert, new Date());
 
         await storeNotice(customerId, { kind: "SECURITY_ALERT", title: subject, body: line, data: { alert: alert.kind } }, undefined);
-        await deliver(customerId, "security", { subject, text, data: { kind: "SECURITY_ALERT", alert: alert.kind } });
+        await deliver(customerId, "security", {
+          subject,
+          text,
+          data: { kind: "SECURITY_ALERT", alert: alert.kind },
+          idempotencyKey: `alert-${customerId}-${alert.kind}-${randomUUID()}`,
+        });
       } catch (error) {
         failed("security_alert", error);
       }

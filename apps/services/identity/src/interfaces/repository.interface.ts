@@ -12,6 +12,11 @@ import type {
   Session,
   SessionKind,
   Shop,
+  ShopApplication as ShopApplicationRow,
+  ShopApplicationDocument as ShopApplicationDocumentRow,
+  ShopApplicationDocumentType,
+  ShopApplicationStatus,
+  ShopApplicationVerification as ShopApplicationVerificationRow,
   ShopRole,
   ShopStatus,
 } from "../generated/prisma/client.js";
@@ -78,16 +83,44 @@ export interface NewAdminUser {
   readonly role: AdminRole;
   readonly passwordHash: string;
   readonly totpSecret: string | undefined;
+  /** Set together: a one-time password that stops working, and sign-in refused until it is replaced. */
+  readonly mustChangePassword?: boolean;
+  readonly credentialsExpireAt?: Date;
+  /** Only the bootstrap step sets this, and the database allows at most one row to carry it. */
+  readonly isBootstrap?: boolean;
+}
+
+export interface AdminUserChanges {
+  readonly name?: string;
+  readonly role?: AdminRole;
+  readonly status?: "ACTIVE" | "SUSPENDED";
 }
 
 export interface AdminUserRepository {
   count(): Promise<number>;
+  countSuperAdmins(): Promise<number>;
+  list(limit: number): Promise<readonly AdminUser[]>;
+  /** How many super administrators could still sign in if this one stopped being one. */
+  countOtherActiveSuperAdmins(excludingId: string): Promise<number>;
   findByEmail(email: string): Promise<AdminUser | undefined>;
   findById(id: string): Promise<AdminUser | undefined>;
   create(admin: NewAdminUser): Promise<AdminUser>;
+  update(id: string, changes: AdminUserChanges): Promise<AdminUser>;
+  /** Replaces the password and clears the one-time flags in one write. */
+  setPassword(id: string, passwordHash: string): Promise<AdminUser>;
+  /** Issues a fresh one-time password and clears the authenticator, sending the account back to activation. */
+  resetCredentials(id: string, passwordHash: string, expiresAt: Date): Promise<AdminUser>;
   recordLogin(id: string, at: Date): Promise<AdminUser>;
   /** Stores an already sealed TOTP secret and switches two-factor on. */
   enrolTotp(id: string, sealedSecret: string): Promise<AdminUser>;
+  /** Stores a sealed secret the account has not proven yet; two-factor stays off until it does. */
+  stagePendingTotp(id: string, sealedSecret: string): Promise<AdminUser>;
+  /**
+   * Ends activation: the chosen password replaces the issued one, the staged secret becomes the live one
+   * and the one-time flags are cleared. The used time step is deliberately left alone, so the code that
+   * activated cannot then open a second session.
+   */
+  completeActivation(id: string, passwordHash: string): Promise<AdminUser>;
   /** Marks a TOTP time step as used. `false` when that step, or a later one, was already used. */
   claimTotpStep(id: string, step: number): Promise<boolean>;
 }
@@ -99,6 +132,63 @@ export interface ShopDetails {
   readonly phone: string;
   readonly email: string;
   readonly ownerName: string;
+}
+
+export interface NewShopApplication {
+  readonly reference: string;
+  readonly applicantName: string;
+  readonly applicantEmail: string;
+  readonly applicantPhone: string;
+  readonly businessName: string;
+  readonly rcNumber: string | undefined;
+  readonly address: string;
+  readonly city: string;
+  readonly state: string;
+  readonly proposedShopName: string;
+  readonly note: string | undefined;
+}
+
+export interface ShopApplicationDecisionInput {
+  readonly status: "APPROVED" | "REJECTED" | "REQUIRES_ACTION";
+  readonly reason: string;
+  readonly decidedBy: string;
+  readonly decidedAt: Date;
+  /** Only ever set alongside APPROVED; the database refuses the pair any other way. */
+  readonly shopId?: string;
+}
+
+export interface NewShopApplicationDocument {
+  readonly applicationId: string;
+  readonly type: ShopApplicationDocumentType;
+  readonly fileName: string;
+  readonly contentType: string;
+  readonly sizeBytes: number;
+  readonly objectKey: string;
+}
+
+export interface ShopApplicationRepository {
+  findByReference(reference: string): Promise<ShopApplicationRow | undefined>;
+  findById(id: string): Promise<ShopApplicationRow | undefined>;
+  findLive(email: string): Promise<ShopApplicationRow | undefined>;
+  list(status: ShopApplicationStatus | undefined, limit: number): Promise<readonly ShopApplicationRow[]>;
+  create(application: NewShopApplication): Promise<ShopApplicationRow>;
+  markEmailVerified(id: string, at: Date): Promise<void>;
+  /**
+   * Decides an application only while it is still open, and answers false when it was not — so two
+   * reviewers racing cannot both decide, and neither can revisit a final one.
+   */
+  decideIfOpen(id: string, decision: ShopApplicationDecisionInput): Promise<boolean>;
+  listDocuments(applicationId: string): Promise<readonly ShopApplicationDocumentRow[]>;
+  addDocument(document: NewShopApplicationDocument): Promise<ShopApplicationDocumentRow>;
+}
+
+export interface ShopApplicationVerificationRepository {
+  invalidateOutstanding(applicationId: string, at: Date): Promise<void>;
+  create(verification: { readonly id: string; readonly applicationId: string; readonly codeHash: string; readonly expiresAt: Date }): Promise<void>;
+  findLatest(applicationId: string): Promise<ShopApplicationVerificationRow | undefined>;
+  /** Counts the guess before comparing it, in one conditional update, so parallel guesses cannot exceed the cap. */
+  claimAttempt(id: string, maxAttempts: number): Promise<ShopApplicationVerificationRow | undefined>;
+  consume(id: string, at: Date): Promise<void>;
 }
 
 export interface ShopRepository {
@@ -230,6 +320,8 @@ export interface IdentityRepositories {
   readonly passwordResets: PasswordResetRepository;
   readonly admins: AdminUserRepository;
   readonly shops: ShopRepository;
+  readonly shopApplications: ShopApplicationRepository;
+  readonly shopApplicationVerifications: ShopApplicationVerificationRepository;
   readonly cashiers: CashierRepository;
   readonly sessions: SessionRepository;
   readonly throttles: ThrottleRepository;

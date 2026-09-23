@@ -19,6 +19,28 @@ import {
 } from "./accountSecurity/index.js";
 import { LoginAdminHandler, GetAdminSessionHandler } from "./adminAuth/index.js";
 import {
+  GetShopApplicationHandler,
+  GetShopApplicationStatusHandler,
+  ListShopApplicationsHandler,
+  ReviewShopApplicationHandler,
+  SubmitShopApplicationHandler,
+  VerifyShopApplicationEmailHandler,
+} from "./shopApplications/index.js";
+import {
+  CreateShopCashierHandler,
+  ResetShopCashierCredentialsHandler,
+  SetShopCashierStatusHandler,
+} from "./shopStaff/index.js";
+import {
+  ActivateAdminHandler,
+  CreateAdminHandler,
+  ListAdminsHandler,
+  ResetAdminCredentialsHandler,
+  SetAdminStatusHandler,
+  StartAdminActivationHandler,
+  UpdateAdminHandler,
+} from "./adminAccounts/index.js";
+import {
   CreateCashierHandler,
   CreateShopHandler,
   GetShopHandler,
@@ -113,16 +135,28 @@ export function registerIdentityServices(config: IdentityServiceConfig): void {
   command(new LoginCashierHandler(deps));
   command(new VerifyCashierPinHandler(deps));
   command(new LoginAdminHandler(deps));
+  command(new CreateAdminHandler(deps));
+  command(new UpdateAdminHandler(deps));
+  command(new SetAdminStatusHandler(deps));
+  command(new ResetAdminCredentialsHandler(deps));
+  command(new StartAdminActivationHandler(deps));
+  command(new ActivateAdminHandler(deps));
   command(new AuthenticateHandler(deps));
   command(new LogoutHandler(deps));
   command(new SetCustomerStatusHandler(deps));
   command(new AdminUpdateCustomerHandler(deps));
   command(new AdminSendPasswordResetHandler(deps));
   command(new UpdateCustomerProfileHandler(deps));
+  command(new SubmitShopApplicationHandler(deps));
+  command(new VerifyShopApplicationEmailHandler(deps));
+  command(new ReviewShopApplicationHandler(deps));
   command(new CreateShopHandler(deps));
   command(new UpdateShopHandler(deps));
   command(new SetShopStatusHandler(deps));
   command(new CreateCashierHandler(deps));
+  command(new CreateShopCashierHandler(deps));
+  command(new SetShopCashierStatusHandler(deps));
+  command(new ResetShopCashierCredentialsHandler(deps));
   command(new SetCashierStatusHandler(deps));
   command(new ResetCashierCredentialsHandler(deps));
   command(new RecordAuditHandler(deps));
@@ -160,6 +194,10 @@ export function registerIdentityServices(config: IdentityServiceConfig): void {
   query(new GetShopSessionHandler(deps));
   query(new ListOwnShopCashiersHandler(deps));
   query(new GetAdminSessionHandler(deps));
+  query(new ListAdminsHandler(deps));
+  query(new ListShopApplicationsHandler(deps));
+  query(new GetShopApplicationHandler(deps));
+  query(new GetShopApplicationStatusHandler(deps));
   query(new ListCustomersHandler(deps));
   query(new ListShopsHandler(deps));
   query(new GetShopHandler(deps));
@@ -181,6 +219,9 @@ export function registerIdentityServices(config: IdentityServiceConfig): void {
   query(new ListResponsibleGamingHandler(deps));
 }
 
+export * from "./adminAccounts/index.js";
+export * from "./shopApplications/index.js";
+export * from "./shopStaff/index.js";
 export * from "./accountSecurity/index.js";
 export * from "./adminAuth/index.js";
 export * from "./adminShops/index.js";

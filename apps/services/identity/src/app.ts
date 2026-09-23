@@ -11,6 +11,7 @@ import {
   createKycController,
   createLimitsController,
   createNotificationController,
+  createShopApplicationController,
   createShopController,
 } from "./controllers/index.js";
 import { createIdentityDatabase } from "./databases/index.js";
@@ -28,10 +29,18 @@ import {
   registerKycRoutes,
   registerLimitRoutes,
   registerNotificationRoutes,
+  registerShopApplicationRoutes,
   registerShopRoutes,
 } from "./routes/index.js";
-import { runDemoSeed } from "./seeds/index.js";
-import { createEmailProvider, createMessenger, createPushProvider, createSmsProvider, createWebPushProvider } from "./services/delivery/index.js";
+import { bootstrapSuperAdmin, runDemoSeed } from "./seeds/index.js";
+import {
+  createEmailProvider,
+  createLoggingEmailProvider,
+  createMessenger,
+  createPushProvider,
+  createSmsProvider,
+  createWebPushProvider,
+} from "./services/delivery/index.js";
 import { createDocumentStorage, createIdentityVerificationProvider } from "./services/kyc/index.js";
 import {
   createAuditWriter,
@@ -69,10 +78,12 @@ export function createApp(config: IdentityConfig): IdentityApp {
   const protector = createDataProtector(config.dataKey);
   const { delivery } = config;
   const realtime = createRealtimeRevoker(config.service.services.event);
+  // Identity holds no provider key: email goes to the email service, which owns the templates.
+  const email = delivery.email === "log" ? createLoggingEmailProvider(logger) : createEmailProvider(config.service.services.email);
 
   const messenger = createMessenger({
     providers: {
-      email: createEmailProvider(delivery.email, delivery.timeoutMs, logger),
+      email,
       sms: createSmsProvider(delivery.sms, delivery.timeoutMs, logger),
       push: createPushProvider(delivery.push, delivery.timeoutMs, logger),
       webPush: delivery.webPush === undefined ? undefined : createWebPushProvider(delivery.webPush, delivery.timeoutMs, logger),
@@ -121,6 +132,7 @@ export function createApp(config: IdentityConfig): IdentityApp {
     routes: (router) => {
       registerCustomerAuthRoutes(router, createCustomerAuthController(buses));
       registerShopRoutes(router, createShopController(buses));
+      registerShopApplicationRoutes(router, createShopApplicationController(buses));
       registerNotificationRoutes(router, createNotificationController(buses));
       registerAdminRoutes(router, createAdminController(buses));
       registerAccountRoutes(router, createAccountController(buses));
@@ -147,6 +159,26 @@ export function createApp(config: IdentityConfig): IdentityApp {
     ],
     prepare: async () => {
       await store.settings.createIfMissing(DEFAULT_PLATFORM_SETTINGS, SYSTEM_ACTOR.id);
+
+      // Idempotent, and the same step `pnpm db:migrate` runs: one query when an administrator exists.
+      // A deploy that reaches production with no way in should fail here rather than look healthy.
+      const bootstrap = await bootstrapSuperAdmin({
+        store,
+        hasher,
+        production: config.service.environment === "production",
+        env: process.env,
+      });
+
+      if (bootstrap.kind === "created") {
+        // The address and the deadline only: the password came from the environment and the authenticator
+        // secret does not exist yet, so there is nothing here worth stealing from a log.
+        logger.warn("The first super administrator was created and is waiting to be activated", {
+          event: "super_admin_bootstrapped",
+          email: bootstrap.email,
+          expiresAt: bootstrap.expiresAt.toISOString(),
+        });
+      }
+
       await runDemoSeed({ config, store, hasher, protector, logger });
     },
   };

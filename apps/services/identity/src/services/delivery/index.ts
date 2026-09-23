@@ -1,5 +1,5 @@
 export { DeliveryError } from "./deliveryError.js";
-export { createEmailProvider } from "./email.provider.js";
+export { createEmailProvider, createLoggingEmailProvider } from "./email.provider.js";
 export { createMessenger } from "./messenger.service.js";
 export type { MessengerOptions } from "./messenger.service.js";
 export { createPushProvider } from "./push.provider.js";

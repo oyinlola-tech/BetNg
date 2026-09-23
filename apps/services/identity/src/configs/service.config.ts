@@ -30,9 +30,8 @@ export interface SecurityConfig {
   readonly deletionCoolingDays: number;
 }
 
-export type EmailProviderConfig =
-  | { readonly provider: "log" }
-  | { readonly provider: "sendgrid"; readonly apiKey: string; readonly from: string; readonly fromName: string };
+/** Identity sends no mail itself: `service` hands it to the email service, `log` is development only. */
+export type EmailProviderConfig = "service" | "log";
 
 export type SmsProviderConfig =
   | { readonly provider: "none" }
@@ -63,6 +62,13 @@ export interface DeliveryConfig {
   readonly timeoutMs: number;
 }
 
+/** Server-side encryption a stored document is written under. */
+export interface StorageEncryption {
+  readonly algorithm: "AES256" | "aws:kms";
+  /** The KMS key id or ARN; set only for `aws:kms`. */
+  readonly kmsKeyId: string | undefined;
+}
+
 export interface StorageConfig {
   readonly endpoint: string;
   readonly region: string;
@@ -70,6 +76,8 @@ export interface StorageConfig {
   readonly accessKeyId: string;
   readonly secretAccessKey: string;
   readonly forcePathStyle: boolean;
+  /** Undefined only outside production: documents are then written unencrypted. */
+  readonly encryption: StorageEncryption | undefined;
 }
 
 export interface KycConfig {
@@ -115,10 +123,7 @@ const securityEnvSchema = z.object({
   PASSWORD_BREACH_CHECK: flag("false"),
   ACCOUNT_DELETION_COOLING_DAYS: z.preprocess(blankAsUnset, z.coerce.number().int().min(1).max(90).default(14)),
   IDENTITY_DATA_KEY: optional(z.base64()),
-  EMAIL_PROVIDER: optional(z.enum(["log", "sendgrid"])),
-  SENDGRID_API_KEY: optional(z.string().min(20)),
-  EMAIL_FROM: optional(z.email()),
-  EMAIL_FROM_NAME: z.preprocess(blankAsUnset, z.string().min(1).max(60).default("BetNG")),
+  EMAIL_PROVIDER: optional(z.enum(["log", "service"])),
   SMS_PROVIDER: optional(z.enum(["none", "log", "termii"])),
   TERMII_API_KEY: optional(z.string().min(10)),
   TERMII_SENDER_ID: optional(z.string().regex(/^[A-Za-z0-9 ]{3,11}$/u, "must be 3-11 letters or digits")),
@@ -137,6 +142,8 @@ const securityEnvSchema = z.object({
   KYC_STORAGE_BUCKET: optional(z.string().regex(/^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/u)),
   KYC_STORAGE_ACCESS_KEY_ID: optional(z.string().min(8)),
   KYC_STORAGE_SECRET_ACCESS_KEY: optional(z.string().min(16)),
+  KYC_STORAGE_SSE: optional(z.enum(["AES256", "aws:kms"])),
+  KYC_STORAGE_SSE_KMS_KEY_ID: optional(z.string().min(1).max(2048)),
   KYC_STORAGE_FORCE_PATH_STYLE: flag("true"),
   KYC_IDENTITY_PROVIDER: optional(z.enum(["sandbox", "unconfigured"])),
 });
@@ -188,7 +195,7 @@ function readDataKey(env: SecurityEnv, production: boolean, problems: ConfigProb
 }
 
 function readDelivery(env: SecurityEnv, production: boolean, problems: ConfigProblems): DeliveryConfig {
-  const emailProvider = env.EMAIL_PROVIDER ?? (production ? undefined : "log");
+  const emailProvider = env.EMAIL_PROVIDER ?? (production ? "service" : "log");
   const smsProvider = env.SMS_PROVIDER ?? "none";
   const pushProvider = env.PUSH_PROVIDER ?? "none";
 
@@ -198,21 +205,9 @@ function readDelivery(env: SecurityEnv, production: boolean, problems: ConfigPro
         problems.add(`${key}=log is a development adapter and is refused in production`);
       }
     }
-
-    if (emailProvider === undefined) {
-      problems.add("EMAIL_PROVIDER must be set in production (sendgrid)");
-    }
   }
 
-  const email: EmailProviderConfig =
-    emailProvider === "sendgrid"
-      ? {
-          provider: "sendgrid",
-          apiKey: problems.require(env, "SENDGRID_API_KEY", "when EMAIL_PROVIDER=sendgrid"),
-          from: problems.require(env, "EMAIL_FROM", "when EMAIL_PROVIDER=sendgrid"),
-          fromName: env.EMAIL_FROM_NAME,
-        }
-      : { provider: "log" };
+  const email: EmailProviderConfig = emailProvider;
 
   const sms: SmsProviderConfig =
     smsProvider === "termii"
@@ -305,8 +300,41 @@ function readKyc(env: SecurityEnv, production: boolean, problems: ConfigProblems
       accessKeyId: env.KYC_STORAGE_ACCESS_KEY_ID ?? "",
       secretAccessKey: env.KYC_STORAGE_SECRET_ACCESS_KEY ?? "",
       forcePathStyle: env.KYC_STORAGE_FORCE_PATH_STYLE === "true",
+      encryption: readStorageEncryption(env, production, problems),
     },
   };
+}
+
+/**
+ * Identity documents are written under server-side encryption. The upload ticket
+ * signs the header, so a client that drops it is refused by storage rather than
+ * quietly storing a passport scan in the clear.
+ */
+function readStorageEncryption(
+  env: SecurityEnv,
+  production: boolean,
+  problems: ConfigProblems,
+): StorageEncryption | undefined {
+  const algorithm = env.KYC_STORAGE_SSE;
+  const kmsKeyId = env.KYC_STORAGE_SSE_KMS_KEY_ID;
+
+  if (algorithm === undefined) {
+    if (production) {
+      problems.add("KYC_STORAGE_SSE is required in production once KYC storage is configured");
+    }
+
+    return undefined;
+  }
+
+  if (algorithm === "aws:kms" && kmsKeyId === undefined) {
+    problems.add("KYC_STORAGE_SSE_KMS_KEY_ID is required when KYC_STORAGE_SSE=aws:kms");
+  }
+
+  if (algorithm === "AES256" && kmsKeyId !== undefined) {
+    problems.add("KYC_STORAGE_SSE_KMS_KEY_ID is only used when KYC_STORAGE_SSE=aws:kms");
+  }
+
+  return { algorithm, kmsKeyId: algorithm === "aws:kms" ? kmsKeyId : undefined };
 }
 
 export async function loadIdentityConfig(

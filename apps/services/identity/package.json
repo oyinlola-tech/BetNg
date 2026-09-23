@@ -10,16 +10,18 @@
     ]
   },
   "scripts": {
+    "bootstrap:super-admin": "tsx src/seeds/bootstrapSuperAdmin.cli.ts",
     "build": "tsc -p tsconfig.json",
     "clean": "rm -rf dist *.tsbuildinfo",
     "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate deploy",
+    "db:migrate": "prisma migrate deploy && tsx src/seeds/bootstrapSuperAdmin.cli.ts",
     "db:migrate:dev": "prisma migrate dev",
+    "db:migrate:only": "prisma migrate deploy",
     "db:studio": "prisma studio",
     "dev": "tsx watch src/server.ts",
     "start": "node dist/server.js",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
-    "totp:dev": "tsx src/seeds/seedTotp.cli.ts"
+    "totp:dev": "tsx src/seeds/seedTotp.cli.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "@betng/contracts": "workspace:*",

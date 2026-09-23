@@ -115,11 +115,28 @@ export function createDocumentStorage(config: StorageConfig): DocumentStorage {
     }
   };
 
+  // Signed, not merely requested: storage refuses a PUT whose encryption headers
+  // do not match the signature, so a client cannot opt out of encryption at rest.
+  const encryptionHeaders: Readonly<Record<string, string>> =
+    config.encryption === undefined
+      ? {}
+      : {
+          "x-amz-server-side-encryption": config.encryption.algorithm,
+          ...(config.encryption.kmsKeyId === undefined
+            ? {}
+            : { "x-amz-server-side-encryption-aws-kms-key-id": config.encryption.kmsKeyId }),
+        };
+
   return {
     presignPut: (key, contentType, sizeBytes, expiresSeconds): PresignedUpload => {
-      const { url, expiresAt } = presign("PUT", key, { "content-length": String(sizeBytes), "content-type": contentType }, expiresSeconds);
+      const { url, expiresAt } = presign(
+        "PUT",
+        key,
+        { "content-length": String(sizeBytes), "content-type": contentType, ...encryptionHeaders },
+        expiresSeconds,
+      );
 
-      return { url, expiresAt, headers: { "Content-Type": contentType } };
+      return { url, expiresAt, headers: { "Content-Type": contentType, ...encryptionHeaders } };
     },
 
     presignGet: (key, expiresSeconds): PresignedDownload => presign("GET", key, {}, expiresSeconds),

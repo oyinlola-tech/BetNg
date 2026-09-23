@@ -9,6 +9,16 @@ export function registerAdminRoutes(router: HttpRouter, controller: AdminControl
   router.post(`${admin}/auth/login`, ok(controller.login));
   router.post(`${admin}/auth/logout`, noContent(controller.logout));
   router.get(`${admin}/auth/session`, ok(controller.session));
+  // Public, both steps. One proves the one-time password and hands back an authenticator to enrol; the
+  // other proves a code from it, takes a chosen password and signs the caller in.
+  router.post(`${admin}/auth/activate/start`, ok(controller.startActivation));
+  router.post(`${admin}/auth/activate`, ok(controller.activate));
+
+  router.get(`${admin}/admins`, ok(controller.listAdmins));
+  router.post(`${admin}/admins`, made(controller.createAdmin));
+  router.patch(`${admin}/admins/:id`, ok(controller.updateAdmin));
+  router.post(`${admin}/admins/:id/status`, ok(controller.setAdminStatus));
+  router.post(`${admin}/admins/:id/reset-credentials`, ok(controller.resetAdminCredentials));
 
   router.get(`${admin}/users`, ok(controller.listCustomers));
   router.patch(`${admin}/users/:id`, ok(controller.updateCustomer));

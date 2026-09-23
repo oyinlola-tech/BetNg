@@ -4,6 +4,7 @@ export {
   toAdminCustomer,
   toAdminShopSummary,
   toAdminUser,
+  toAdminUserSummary,
   toAuditLogEntry,
   toCashier,
   toCustomerProfile,

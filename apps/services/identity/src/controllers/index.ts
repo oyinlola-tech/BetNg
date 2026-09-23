@@ -14,5 +14,7 @@ export { createLimitsController } from "./limits.controller.js";
 export type { LimitsController } from "./limits.controller.js";
 export { createNotificationController } from "./notification.controller.js";
 export type { NotificationController } from "./notification.controller.js";
+export { createShopApplicationController } from "./shopApplication.controller.js";
+export type { ShopApplicationController } from "./shopApplication.controller.js";
 export { createShopController } from "./shop.controller.js";
 export type { ShopController } from "./shop.controller.js";

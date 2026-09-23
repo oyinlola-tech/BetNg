@@ -6,6 +6,7 @@ import type {
   AdminCustomer,
   AdminShopSummary,
   AdminUser,
+  AdminUserSummary,
   AuditLogEntry,
   Cashier,
   CustomerProfile,
@@ -182,6 +183,16 @@ export function toAdminCashierSummary(
     ...toCashier(row),
     todayTransactions: figures?.todayTransactions ?? 0,
     todaySales: figures?.todaySales ?? 0,
+  };
+}
+
+/** The list view a super administrator sees. No hash, no sealed secret and no expiry time cross this. */
+export function toAdminUserSummary(row: AdminUserRow): AdminUserSummary {
+  return {
+    ...toAdminUser(row),
+    status: row.status,
+    mustChangePassword: row.mustChangePassword,
+    createdAt: row.createdAt.toISOString(),
   };
 }
 

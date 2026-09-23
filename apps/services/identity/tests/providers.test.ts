@@ -3,7 +3,14 @@ import type { Logger } from "@betng/service-kit";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { DEVELOPMENT_DATA_KEY, loadIdentityConfig } from "../src/configs/index.js";
 import type { IdentityStore } from "../src/interfaces/index.js";
-import { createEmailProvider, createMessenger, createPushProvider, createSmsProvider, toInternationalNumber } from "../src/services/delivery/index.js";
+import {
+  createEmailProvider,
+  createLoggingEmailProvider,
+  createMessenger,
+  createPushProvider,
+  createSmsProvider,
+  toInternationalNumber,
+} from "../src/services/delivery/index.js";
 import { createDocumentStorage, matchesFileSignature } from "../src/services/kyc/index.js";
 import { createBreachChecker } from "../src/services/security/index.js";
 import { createDataProtector, describeClient } from "../src/utils/index.js";
@@ -50,7 +57,7 @@ describe("provider selection", () => {
   it("defaults to development adapters outside production", async () => {
     const config = await loadIdentityConfig({ ...DATABASE, NODE_ENV: "development" });
 
-    expect(config.delivery.email.provider).toBe("log");
+    expect(config.delivery.email).toBe("log");
     expect(config.delivery.sms.provider).toBe("none");
     expect(config.kyc.identityProvider).toBe("sandbox");
     expect(config.kyc.storage).toBeUndefined();
@@ -61,7 +68,7 @@ describe("provider selection", () => {
   it("starts in production only with real providers, and requires admin TOTP there by default", async () => {
     const config = await loadIdentityConfig(PRODUCTION);
 
-    expect(config.delivery.email.provider).toBe("sendgrid");
+    expect(config.delivery.email).toBe("service");
     expect(config.kyc.identityProvider).toBe("unconfigured");
     expect(config.security.adminTotpRequired).toBe(true);
   });
@@ -138,27 +145,41 @@ describe("S3 SigV4 (AWS documentation vectors)", () => {
 });
 
 describe("delivery providers", () => {
-  it("sends SendGrid mail as one attempt and reports a refusal without the body", async () => {
-    const calls = stubFetch(() => new Response(null, { status: 202 }));
-    const { logger } = recordingLogger();
-    const email = createEmailProvider({ provider: "sendgrid", apiKey: "SG.key", from: "no-reply@betng.example", fromName: "BetNG" }, 1000, logger);
+  it("asks the email service for a template and never carries the code into a failure", async () => {
+    const endpoint = { name: "email" as const, url: "http://email.internal:3012", timeoutMs: 1000 };
+    const calls = stubFetch((_url, init: RequestInit) =>
+      Response.json({
+        id: (JSON.parse(String(init?.body as string)) as { id: string }).id,
+        success: true,
+        result: { id: "em_1", duplicate: false },
+      }),
+    );
+    const email = createEmailProvider(endpoint);
 
-    await email.send({ to: "ada@example.test", subject: "Code", text: "Your code is 482913" });
+    await email.send({
+      to: "ada@example.test",
+      template: "verification_code",
+      variables: { code: "482913", expiresInMinutes: "15" },
+      idempotencyKey: "code-abcdef0123456789",
+    });
 
-    const body = JSON.parse(String(calls[0]?.init.body as string)) as { personalizations: { to: { email: string }[] }[]; from: { email: string } };
+    const body = JSON.parse(String(calls[0]?.init.body as string)) as { procedure: string; payload: Record<string, unknown> };
 
-    expect(calls[0]?.url).toBe("https://api.sendgrid.com/v3/mail/send");
-    expect((calls[0]?.init.headers as Record<string, string>)["authorization"]).toBe("Bearer SG.key");
-    expect(body.personalizations[0]?.to[0]?.email).toBe("ada@example.test");
-    expect(body.from.email).toBe("no-reply@betng.example");
+    expect(calls[0]?.url).toBe("http://email.internal:3012/rpc");
+    expect(body.procedure).toBe("email.send");
+    expect(body.payload).toMatchObject({ to: "ada@example.test", template: "verification_code", idempotencyKey: "code-abcdef0123456789" });
 
-    stubFetch(() => new Response("bad request: Your code is 482913", { status: 400 }));
+    stubFetch(() => new Response("rejected: the code 482913 for ada@example.test", { status: 500 }));
 
-    const failure = await email.send({ to: "ada@example.test", subject: "Code", text: "Your code is 482913" }).catch((error: unknown) => error as Error);
+    const failure = await email
+      .send({ to: "ada@example.test", template: "verification_code", variables: { code: "482913" }, idempotencyKey: "code-abcdef0123456789" })
+      .catch((error: unknown) => error as Error);
 
     expect(failure).toBeInstanceOf(Error);
     expect((failure as Error).message).not.toContain("482913");
-    expect(calls).toHaveLength(1);
+    expect((failure as Error).message).not.toContain("ada@example.test");
+
+    await email.close();
   });
 
   it("sends Termii SMS to the dashboard base URL", async () => {
@@ -221,7 +242,7 @@ describe("delivery providers", () => {
   it("never lets the log adapter print a code", async () => {
     const { logger, lines } = recordingLogger();
     const messenger = createMessenger({
-      providers: { email: createEmailProvider({ provider: "log" }, 1000, logger), sms: undefined, push: undefined },
+      providers: { email: createLoggingEmailProvider(logger), sms: undefined, push: undefined },
       store: {} as IdentityStore,
       protector: createDataProtector(DEVELOPMENT_DATA_KEY),
       logger,

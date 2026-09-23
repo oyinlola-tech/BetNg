@@ -1,9 +1,16 @@
 import type { NotificationKind } from "@betng/contracts";
 
+/**
+ * Email is composed by the email service from a template it owns; identity passes the name and the
+ * values. A value listed as secret by that template — a code, a temporary password — is rendered and
+ * dropped, never stored.
+ */
 export interface EmailMessage {
   readonly to: string;
-  readonly subject: string;
-  readonly text: string;
+  readonly template: string;
+  readonly variables: Readonly<Record<string, string>>;
+  /** Makes a retry, here or inside the email service, collapse onto one message. */
+  readonly idempotencyKey: string;
 }
 
 export interface SmsMessage {
@@ -21,7 +28,7 @@ export interface PushMessage {
 
 export type PushOutcome = "delivered" | "unregistered";
 
-/** One attempt each, bounded by a timeout: none of these providers takes an idempotency key, so a retry could send twice. */
+/** One attempt each, bounded by a timeout. Only email takes an idempotency key; an SMS retry could send twice. */
 export interface EmailProvider {
   readonly name: string;
   send(message: EmailMessage): Promise<void>;
@@ -66,6 +73,11 @@ export interface CustomerNotice {
 export interface Messenger {
   /** Sends a one-time code by email. Throws when the provider did not accept it. */
   sendCode(to: string, purpose: "verification" | "password_reset", code: string, expiresAt: Date): Promise<void>;
+  /**
+   * Sends one template to an address that is not a customer — an operator being given credentials, an
+   * applicant being told a decision. Throws when the provider did not accept it.
+   */
+  sendTemplate(message: EmailMessage): Promise<void>;
   /** Best effort and never throws: the change it reports has already happened. */
   securityAlert(customerId: string, alert: SecurityAlert): Promise<void>;
   /** Best effort and never throws: delivers an in-app notification over the channels the customer switched on. */

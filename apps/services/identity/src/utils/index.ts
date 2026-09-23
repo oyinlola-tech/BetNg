@@ -9,6 +9,7 @@ export {
   encodeBase32,
   generateTotp,
   hotp,
+  otpauthUri,
   TOTP_DIGITS,
   TOTP_STEP_SECONDS,
   TOTP_WINDOW,

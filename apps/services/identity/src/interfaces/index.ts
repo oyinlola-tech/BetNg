@@ -29,6 +29,11 @@ export type {
   SettingsRepository,
   ShopActivity,
   ShopDetails,
+  NewShopApplication,
+  NewShopApplicationDocument,
+  ShopApplicationDecisionInput,
+  ShopApplicationRepository,
+  ShopApplicationVerificationRepository,
   ShopRepository,
   StoredSettings,
   ThrottleRepository,
@@ -36,6 +41,7 @@ export type {
 } from "./repository.interface.js";
 export type {
   AdminActor,
+  ShopActor,
   AuditEntryInput,
   AuditWriter,
   HandlerDependencies,

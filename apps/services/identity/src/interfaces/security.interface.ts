@@ -7,6 +7,7 @@ import type {
   Session,
   SessionKind,
   Shop,
+  ShopRole,
 } from "../generated/prisma/client.js";
 import type { DataProtector } from "../utils/index.js";
 import type { ClientLabels } from "./account.interface.js";
@@ -55,6 +56,15 @@ export interface AuditWriter {
 export interface AdminActor {
   readonly id: string;
   readonly role: string;
+  readonly name: string;
+  readonly requestId: string;
+}
+
+/** A cashier acting on their own shop. `shopId` comes from the session, never from the request. */
+export interface ShopActor {
+  readonly id: string;
+  readonly shopId: string;
+  readonly role: ShopRole;
   readonly name: string;
   readonly requestId: string;
 }

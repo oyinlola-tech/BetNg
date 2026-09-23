@@ -3,7 +3,7 @@ import type { Logger } from "@betng/service-kit";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { DEVELOPMENT_DATA_KEY, loadIdentityConfig } from "../src/configs/index.js";
 import type { IdentityStore } from "../src/interfaces/index.js";
-import { createEmailProvider, createMessenger, createWebPushProvider, parseSubscription } from "../src/services/delivery/index.js";
+import { createLoggingEmailProvider, createMessenger, createWebPushProvider, parseSubscription } from "../src/services/delivery/index.js";
 import { encryptPayload, readVapidKeys, vapidAuthorization, vapidSigningKey } from "../src/services/delivery/webPush.crypto.js";
 import { webPushNotice } from "../src/services/delivery/webPush.provider.js";
 import { createDataProtector } from "../src/utils/index.js";
@@ -262,7 +262,7 @@ describe("web push delivery", () => {
 
     const messenger = createMessenger({
       providers: {
-        email: createEmailProvider({ provider: "log" }, 1000, logger),
+        email: createLoggingEmailProvider(logger),
         sms: undefined,
         push: {
           name: "fake-fcm",

@@ -145,6 +145,13 @@ model AdminUser {
   createdAt        DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt        DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
 
+  /// Set on a one-time password. Sign-in is refused until it is exchanged for a chosen one.
+  mustChangePassword  Boolean   @default(false) @map("must_change_password")
+  /// When the one-time password stops working; cleared once the account is activated.
+  credentialsExpireAt DateTime? @map("credentials_expire_at") @db.Timestamptz(3)
+  /// True for the account the migration bootstrap created. At most one row may carry it.
+  isBootstrap         Boolean   @default(false) @map("is_bootstrap")
+
   @@map("admin_users")
 }
 
@@ -270,6 +277,91 @@ model PlatformSettings {
   updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(3)
 
   @@map("platform_settings")
+}
+
+enum ShopApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  REQUIRES_ACTION
+
+  @@map("shop_application_status")
+}
+
+enum ShopApplicationDocumentType {
+  CAC_CERTIFICATE
+  OWNER_ID
+  PROOF_OF_ADDRESS
+  PREMISES_PHOTO
+
+  @@map("shop_application_document_type")
+}
+
+/// A public submission from someone who wants to run a shop. `reference` is high-entropy and is the only
+/// handle the applicant has; a status lookup needs it *and* the verified address, so the table cannot be
+/// enumerated. Approval turns one of these into a `Shop` and its `OWNER` cashier, in one transaction.
+model ShopApplication {
+  id               String                @id @default(uuid()) @db.Uuid
+  reference        String                @unique @db.VarChar(40)
+  status           ShopApplicationStatus @default(PENDING)
+  applicantName    String                @map("applicant_name") @db.VarChar(80)
+  applicantEmail   String                @map("applicant_email") @db.VarChar(254)
+  applicantPhone   String                @map("applicant_phone") @db.VarChar(20)
+  businessName     String                @map("business_name") @db.VarChar(80)
+  rcNumber         String?               @map("rc_number") @db.VarChar(20)
+  address          String                @db.VarChar(160)
+  city             String                @db.VarChar(60)
+  state            String                @db.VarChar(20)
+  proposedShopName String                @map("proposed_shop_name") @db.VarChar(80)
+  note             String?               @db.VarChar(500)
+  emailVerifiedAt  DateTime?             @map("email_verified_at") @db.Timestamptz(3)
+  decidedAt        DateTime?             @map("decided_at") @db.Timestamptz(3)
+  decidedBy        String?               @map("decided_by") @db.VarChar(80)
+  reason           String?               @db.VarChar(300)
+  /// Set on approval; the shop lives in this schema, so this is a real reference.
+  shopId           String?               @unique @map("shop_id") @db.Uuid
+  createdAt        DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime              @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  documents     ShopApplicationDocument[]
+  verifications ShopApplicationVerification[]
+
+  @@index([status, createdAt(sort: Desc)])
+  @@index([applicantEmail])
+  @@map("shop_applications")
+}
+
+model ShopApplicationDocument {
+  id            String                      @id @default(uuid()) @db.Uuid
+  applicationId String                      @map("application_id") @db.Uuid
+  type          ShopApplicationDocumentType
+  fileName      String                      @map("file_name") @db.VarChar(200)
+  contentType   String                      @map("content_type") @db.VarChar(40)
+  sizeBytes     Int                         @map("size_bytes")
+  objectKey     String                      @unique @map("object_key") @db.VarChar(200)
+  uploadedAt    DateTime                    @default(now()) @map("uploaded_at") @db.Timestamptz(3)
+
+  application ShopApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId, uploadedAt])
+  @@map("shop_application_documents")
+}
+
+/// The applicant is not a customer, so their address is proven here rather than by `EmailVerification`.
+/// Same shape: the code is stored hashed and `attempts` caps guesses.
+model ShopApplicationVerification {
+  id            String    @id @default(uuid()) @db.Uuid
+  applicationId String    @map("application_id") @db.Uuid
+  codeHash      String    @map("code_hash")
+  expiresAt     DateTime  @map("expires_at") @db.Timestamptz(3)
+  attempts      Int       @default(0)
+  consumedAt    DateTime? @map("consumed_at") @db.Timestamptz(3)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  application ShopApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId, createdAt])
+  @@map("shop_application_verifications")
 }
 
 enum KycStatus {

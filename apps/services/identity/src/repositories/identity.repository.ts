@@ -3,7 +3,7 @@
 import type { PlatformSettings } from "@betng/contracts";
 import { SETTINGS_ROW_ID } from "../constants/index.js";
 import { Prisma } from "../generated/prisma/client.js";
-import type { PrismaClient } from "../generated/prisma/client.js";
+import type { PrismaClient, ShopApplicationStatus } from "../generated/prisma/client.js";
 import type {
   AdminUserRepository,
   AuditLogRepository,
@@ -15,6 +15,8 @@ import type {
   PasswordResetRepository,
   SessionRepository,
   SettingsRepository,
+  ShopApplicationRepository,
+  ShopApplicationVerificationRepository,
   ShopRepository,
   ThrottleRepository,
   VerificationRepository,
@@ -119,6 +121,10 @@ function passwordResets(db: Db): PasswordResetRepository {
 function admins(db: Db): AdminUserRepository {
   return {
     count: async () => db.adminUser.count(),
+    countSuperAdmins: async () => db.adminUser.count({ where: { role: "SUPER_ADMIN" } }),
+    list: async (limit) => db.adminUser.findMany({ orderBy: [{ createdAt: "desc" }], take: limit }),
+    countOtherActiveSuperAdmins: async (excludingId) =>
+      db.adminUser.count({ where: { role: "SUPER_ADMIN", status: "ACTIVE", id: { not: excludingId } } }),
     findByEmail: async (email) => orUndefined(await db.adminUser.findUnique({ where: { email } })),
     findById: async (id) => orUndefined(await db.adminUser.findUnique({ where: { id } })),
     create: async (admin) =>
@@ -130,11 +136,47 @@ function admins(db: Db): AdminUserRepository {
           passwordHash: admin.passwordHash,
           totpSecret: admin.totpSecret ?? null,
           twoFactorEnabled: admin.totpSecret !== undefined,
+          mustChangePassword: admin.mustChangePassword ?? false,
+          credentialsExpireAt: admin.credentialsExpireAt ?? null,
+          isBootstrap: admin.isBootstrap ?? false,
+        },
+      }),
+    update: async (id, changes) =>
+      db.adminUser.update({
+        where: { id },
+        data: {
+          ...(changes.name === undefined ? {} : { name: changes.name }),
+          ...(changes.role === undefined ? {} : { role: changes.role }),
+          ...(changes.status === undefined ? {} : { status: changes.status }),
+        },
+      }),
+    setPassword: async (id, passwordHash) =>
+      db.adminUser.update({
+        where: { id },
+        data: { passwordHash, mustChangePassword: false, credentialsExpireAt: null },
+      }),
+    resetCredentials: async (id, passwordHash, expiresAt) =>
+      db.adminUser.update({
+        where: { id },
+        data: {
+          passwordHash,
+          totpSecret: null,
+          twoFactorEnabled: false,
+          totpLastStep: null,
+          mustChangePassword: true,
+          credentialsExpireAt: expiresAt,
         },
       }),
     recordLogin: async (id, at) => db.adminUser.update({ where: { id }, data: { lastLoginAt: at } }),
     enrolTotp: async (id, sealedSecret) =>
       db.adminUser.update({ where: { id }, data: { totpSecret: sealedSecret, twoFactorEnabled: true, totpLastStep: null } }),
+    stagePendingTotp: async (id, sealedSecret) =>
+      db.adminUser.update({ where: { id }, data: { totpSecret: sealedSecret, twoFactorEnabled: false, totpLastStep: null } }),
+    completeActivation: async (id, passwordHash) =>
+      db.adminUser.update({
+        where: { id },
+        data: { passwordHash, twoFactorEnabled: true, mustChangePassword: false, credentialsExpireAt: null },
+      }),
     claimTotpStep: async (id, step) => {
       const { count } = await db.adminUser.updateMany({
         where: { id, OR: [{ totpLastStep: null }, { totpLastStep: { lt: BigInt(step) } }] },
@@ -142,6 +184,97 @@ function admins(db: Db): AdminUserRepository {
       });
 
       return count === 1;
+    },
+  };
+}
+
+function shopApplications(db: Db): ShopApplicationRepository {
+  const OPEN: readonly ShopApplicationStatus[] = ["PENDING", "REQUIRES_ACTION"];
+
+  return {
+    findByReference: async (reference) =>
+      orUndefined(await db.shopApplication.findUnique({ where: { reference } })),
+    findById: async (id) => orUndefined(await db.shopApplication.findUnique({ where: { id } })),
+    findLive: async (applicantEmail) =>
+      orUndefined(
+        await db.shopApplication.findFirst({
+          where: { applicantEmail, status: { in: ["PENDING", "REQUIRES_ACTION", "APPROVED"] } },
+          orderBy: { createdAt: "desc" },
+        }),
+      ),
+    list: async (status, limit) =>
+      db.shopApplication.findMany({
+        ...(status === undefined ? {} : { where: { status } }),
+        orderBy: [{ createdAt: "desc" }],
+        take: limit,
+      }),
+    create: async (application) =>
+      db.shopApplication.create({
+        data: {
+          reference: application.reference,
+          applicantName: application.applicantName,
+          applicantEmail: application.applicantEmail,
+          applicantPhone: application.applicantPhone,
+          businessName: application.businessName,
+          rcNumber: application.rcNumber ?? null,
+          address: application.address,
+          city: application.city,
+          state: application.state,
+          proposedShopName: application.proposedShopName,
+          note: application.note ?? null,
+        },
+      }),
+    markEmailVerified: async (id, at) => {
+      await db.shopApplication.update({ where: { id }, data: { emailVerifiedAt: at } });
+    },
+    decideIfOpen: async (id, decision) => {
+      // Conditional on the application still being open, so two reviewers cannot both decide it.
+      const { count } = await db.shopApplication.updateMany({
+        where: { id, status: { in: [...OPEN] } },
+        data: {
+          status: decision.status,
+          reason: decision.reason,
+          decidedBy: decision.decidedBy,
+          decidedAt: decision.decidedAt,
+          ...(decision.shopId === undefined ? {} : { shopId: decision.shopId }),
+        },
+      });
+
+      return count === 1;
+    },
+    listDocuments: async (applicationId) =>
+      db.shopApplicationDocument.findMany({ where: { applicationId }, orderBy: { uploadedAt: "asc" } }),
+    addDocument: async (document) => db.shopApplicationDocument.create({ data: { ...document } }),
+  };
+}
+
+function shopApplicationVerifications(db: Db): ShopApplicationVerificationRepository {
+  return {
+    invalidateOutstanding: async (applicationId, at) => {
+      await db.shopApplicationVerification.updateMany({
+        where: { applicationId, consumedAt: null },
+        data: { consumedAt: at },
+      });
+    },
+    create: async (verification) => {
+      await db.shopApplicationVerification.create({ data: { ...verification } });
+    },
+    findLatest: async (applicationId) =>
+      orUndefined(
+        await db.shopApplicationVerification.findFirst({ where: { applicationId }, orderBy: { createdAt: "desc" } }),
+      ),
+    claimAttempt: async (id, maxAttempts) => {
+      const { count } = await db.shopApplicationVerification.updateMany({
+        where: { id, consumedAt: null, attempts: { lt: maxAttempts } },
+        data: { attempts: { increment: 1 } },
+      });
+
+      return count === 1
+        ? orUndefined(await db.shopApplicationVerification.findUnique({ where: { id } }))
+        : undefined;
+    },
+    consume: async (id, at) => {
+      await db.shopApplicationVerification.update({ where: { id }, data: { consumedAt: at } });
     },
   };
 }
@@ -418,6 +551,8 @@ function bind(db: Db): IdentityRepositories {
     passwordResets: passwordResets(db),
     admins: admins(db),
     shops: shops(db),
+    shopApplications: shopApplications(db),
+    shopApplicationVerifications: shopApplicationVerifications(db),
     cashiers: cashiers(db),
     sessions: sessions(db),
     throttles: throttles(db),

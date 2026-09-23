@@ -1,7 +1,11 @@
 import type {
   AdminCashierSummary,
+  AdminActivationSecret,
+  AdminCredentials,
   AdminCustomer,
   AdminSession,
+  AdminUser,
+  AdminUserSummary,
   AdminShopSummary,
   AuditLogEntry,
   CashierCredentials,
@@ -14,36 +18,47 @@ import { ADMIN_PERMISSION, LIST_LIMIT } from "../constants/index.js";
 import type { ListDto } from "../dtos/index.js";
 import type { IdentityBuses } from "../loaders/index.js";
 import {
+  ActivateAdminCommand,
+  StartAdminActivationCommand,
   AdminSendPasswordResetCommand,
   AdminUpdateCustomerCommand,
+  CreateAdminCommand,
   CreateCashierCommand,
   CreateShopCommand,
   GetAdminSessionQuery,
   GetSettingsQuery,
   GetShopQuery,
+  ListAdminsQuery,
   ListAuditLogsQuery,
   ListCustomersQuery,
   ListShopCashiersQuery,
   ListShopsQuery,
   LoginAdminCommand,
   LogoutCommand,
+  ResetAdminCredentialsCommand,
   ResetCashierCredentialsCommand,
+  SetAdminStatusCommand,
   SetCashierStatusCommand,
   SetCustomerStatusCommand,
   SetShopStatusCommand,
+  UpdateAdminCommand,
   UpdateSettingsCommand,
   UpdateShopCommand,
 } from "../services/index.js";
 import { readBearerToken } from "../utils/index.js";
 import {
+  adminActivateValidator,
+  adminActivationStartValidator,
   adminPasswordResetValidator,
   adminUpdateCustomerValidator,
   auditLogQueryValidator,
+  createAdminValidator,
   createCashierValidator,
   createShopValidator,
   listCustomersQueryValidator,
   loginAdminValidator,
   statusChangeValidator,
+  updateAdminValidator,
   updateSettingsValidator,
   updateShopValidator,
 } from "../validators/index.js";
@@ -53,6 +68,13 @@ export interface AdminController {
   readonly login: (context: HttpRouterContext) => Promise<AdminSession>;
   readonly logout: (context: HttpRouterContext) => Promise<void>;
   readonly session: (context: HttpRouterContext) => Promise<AdminSession>;
+  readonly startActivation: (context: HttpRouterContext) => Promise<AdminActivationSecret>;
+  readonly activate: (context: HttpRouterContext) => Promise<AdminSession>;
+  readonly listAdmins: (context: HttpRouterContext) => Promise<ListDto<AdminUserSummary>>;
+  readonly createAdmin: (context: HttpRouterContext) => Promise<AdminCredentials>;
+  readonly updateAdmin: (context: HttpRouterContext) => Promise<AdminUser>;
+  readonly setAdminStatus: (context: HttpRouterContext) => Promise<AdminUser>;
+  readonly resetAdminCredentials: (context: HttpRouterContext) => Promise<AdminCredentials>;
   readonly listCustomers: (context: HttpRouterContext) => Promise<ListDto<AdminCustomer>>;
   readonly setCustomerStatus: (context: HttpRouterContext) => Promise<AdminCustomer>;
   readonly updateCustomer: (context: HttpRouterContext) => Promise<AdminCustomer>;
@@ -91,6 +113,64 @@ export function createAdminController(buses: IdentityBuses): AdminController {
     session: async (context) =>
       queryBus.execute<GetAdminSessionQuery, AdminSession>(
         new GetAdminSessionQuery(readBearerToken(context.request)),
+      ),
+
+    startActivation: async (context) =>
+      commandBus.execute<StartAdminActivationCommand, AdminActivationSecret>(
+        new StartAdminActivationCommand({
+          request: parseBody(context.request, adminActivationStartValidator),
+          requestId: getRequestId(context.request),
+        }),
+      ),
+
+    activate: async (context) =>
+      commandBus.execute<ActivateAdminCommand, AdminSession>(
+        new ActivateAdminCommand({
+          request: parseBody(context.request, adminActivateValidator),
+          requestId: getRequestId(context.request),
+        }),
+      ),
+
+    listAdmins: async (context) => {
+      requireAdmin(context, ADMIN_PERMISSION.ADMINS_READ);
+
+      return {
+        items: await queryBus.execute<ListAdminsQuery, readonly AdminUserSummary[]>(new ListAdminsQuery()),
+      };
+    },
+
+    createAdmin: async (context) =>
+      commandBus.execute<CreateAdminCommand, AdminCredentials>(
+        new CreateAdminCommand({
+          actor: requireAdmin(context, ADMIN_PERMISSION.ADMINS_WRITE),
+          request: parseBody(context.request, createAdminValidator),
+        }),
+      ),
+
+    updateAdmin: async (context) =>
+      commandBus.execute<UpdateAdminCommand, AdminUser>(
+        new UpdateAdminCommand({
+          actor: requireAdmin(context, ADMIN_PERMISSION.ADMINS_WRITE),
+          adminId: uuidParam(context, "id"),
+          request: parseBody(context.request, updateAdminValidator),
+        }),
+      ),
+
+    setAdminStatus: async (context) => {
+      const actor = requireAdmin(context, ADMIN_PERMISSION.ADMINS_WRITE);
+      const { status, reason } = parseBody(context.request, statusChangeValidator);
+
+      return commandBus.execute<SetAdminStatusCommand, AdminUser>(
+        new SetAdminStatusCommand({ actor, adminId: uuidParam(context, "id"), status, reason }),
+      );
+    },
+
+    resetAdminCredentials: async (context) =>
+      commandBus.execute<ResetAdminCredentialsCommand, AdminCredentials>(
+        new ResetAdminCredentialsCommand({
+          actor: requireAdmin(context, ADMIN_PERMISSION.ADMINS_WRITE),
+          adminId: uuidParam(context, "id"),
+        }),
       ),
 
     listCustomers: async (context) => {

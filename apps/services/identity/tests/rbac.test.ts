@@ -10,15 +10,15 @@ describe("role → permission maps", () => {
 
   it("matches the maps the admin app was built against", () => {
     expect(ADMIN_ROLE_PERMISSIONS.OPERATIONS).toEqual([
-      "shops:read", "catalogue:read", "fixtures:read", "fixtures:operate", "odds:read", "risk:read",
-      "simulation:read", "simulation:operate", "settlement:read", "settlement:operate", "reports:read",
-      "audit:read", "health:read", "settings:read", "payments:read",
+      "shops:read", "shop-applications:read", "shop-applications:write", "catalogue:read", "fixtures:read",
+      "fixtures:operate", "odds:read", "risk:read", "simulation:read", "simulation:operate", "settlement:read",
+      "settlement:operate", "reports:read", "audit:read", "health:read", "settings:read", "payments:read",
     ]);
     expect(ADMIN_ROLE_PERMISSIONS.RISK_ANALYST).toEqual([
       "catalogue:read", "fixtures:read", "odds:read", "odds:write", "risk:read", "settlement:read",
       "reports:read", "health:read", "kyc:read", "payments:read",
     ]);
-    expect(ADMIN_ROLE_PERMISSIONS.SUPPORT).toEqual(["users:read", "shops:read", "audit:read", "health:read", "kyc:read", "payments:read"]);
+    expect(ADMIN_ROLE_PERMISSIONS.SUPPORT).toEqual(["users:read", "shops:read", "shop-applications:read", "audit:read", "health:read", "kyc:read", "payments:read"]);
   });
 
   it("reserves KYC decisions for SUPER_ADMIN", () => {
@@ -27,6 +27,17 @@ describe("role → permission maps", () => {
     }
 
     expect(ADMIN_ROLE_PERMISSIONS.SUPER_ADMIN).toContain("kyc:write");
+  });
+
+  it("reserves administrator management for SUPER_ADMIN", () => {
+    // Creating an administrator hands out every permission that role carries, so no other role may.
+    for (const role of ["OPERATIONS", "RISK_ANALYST", "SUPPORT"] as const) {
+      expect(ADMIN_ROLE_PERMISSIONS[role]).not.toContain("admins:read");
+      expect(ADMIN_ROLE_PERMISSIONS[role]).not.toContain("admins:write");
+    }
+
+    expect(ADMIN_ROLE_PERMISSIONS.SUPER_ADMIN).toContain("admins:read");
+    expect(ADMIN_ROLE_PERMISSIONS.SUPER_ADMIN).toContain("admins:write");
   });
 
   it("keeps write permissions away from SUPPORT and only valid values everywhere", () => {
@@ -42,9 +53,15 @@ describe("role → permission maps", () => {
   it("resolves shop roles", () => {
     expect(SHOP_ROLE_PERMISSIONS.CASHIER).toEqual(["tickets:sell", "tickets:check", "tickets:payout", "shifts:operate"]);
     expect(SHOP_ROLE_PERMISSIONS.MANAGER).toEqual([
-      "tickets:sell", "tickets:check", "tickets:payout", "shifts:operate", "tickets:cancel", "transactions:read", "reports:read", "cash:move",
+      "tickets:sell", "tickets:check", "tickets:payout", "shifts:operate", "tickets:cancel", "transactions:read",
+      "reports:read", "cash:move", "cashiers:read", "cash:transfer",
     ]);
     expect([...SHOP_ROLE_PERMISSIONS.OWNER].sort()).toEqual([...shopPermissionSchema.options].sort());
+
+    // A manager moves float between drawers but does not decide who works in the shop.
+    expect(SHOP_ROLE_PERMISSIONS.MANAGER).not.toContain("cashiers:write");
+    expect(SHOP_ROLE_PERMISSIONS.CASHIER).not.toContain("cash:transfer");
+    expect(SHOP_ROLE_PERMISSIONS.CASHIER).not.toContain("cashiers:read");
   });
 });
 

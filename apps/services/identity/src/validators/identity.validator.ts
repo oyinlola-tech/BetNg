@@ -1,19 +1,27 @@
 // `.strict()` makes an unknown key a validation failure instead of silently dropping it.
 
 import {
+  adminActivateRequestSchema,
+  adminActivationStartSchema,
   adminLoginRequestSchema,
   adminPasswordResetRequestSchema,
   adminUpdateCustomerRequestSchema,
   auditLogQuerySchema,
   auditSeveritySchema,
+  createAdminRequestSchema,
   createCashierRequestSchema,
   createShopRequestSchema,
+  shopApplicationDecisionSchema,
+  shopApplicationRequestSchema,
+  shopApplicationStatusSchema,
+  shopApplicationVerifyRequestSchema,
   customerLoginRequestSchema,
   customerRegisterRequestSchema,
   notificationKindSchema,
   passwordResetRequestSchema,
   platformSettingsSchema,
   shopLoginRequestSchema,
+  updateAdminRequestSchema,
   verifyEmailRequestSchema,
 } from "@betng/contracts";
 import { z } from "@zudojs/validation";
@@ -42,6 +50,36 @@ export const statusChangeValidator = z.strictObject({
 export const adminUpdateCustomerValidator = adminUpdateCustomerRequestSchema.strict();
 
 export const adminPasswordResetValidator = adminPasswordResetRequestSchema.strict();
+
+export const createAdminValidator = createAdminRequestSchema.strict();
+
+export const updateAdminValidator = updateAdminRequestSchema
+  .strict()
+  .refine((value) => value.name !== undefined || value.role !== undefined, {
+    message: "Send at least one field to change.",
+  });
+
+export const adminActivationStartValidator = adminActivationStartSchema.strict();
+
+export const adminActivateValidator = adminActivateRequestSchema.strict();
+
+export const shopApplicationValidator = shopApplicationRequestSchema.strict();
+
+export const shopApplicationVerifyValidator = shopApplicationVerifyRequestSchema.strict();
+
+export const shopApplicationStatusQueryValidator = z.object({ email: z.email().max(254) }).strict();
+
+export const shopApplicationQueueQueryValidator = z
+  .object({ status: shopApplicationStatusSchema.optional() })
+  .strict();
+
+export const shopApplicationDecisionValidator = shopApplicationDecisionSchema
+  .strict()
+  .refine((value) => value.decision === "APPROVE" || (value.shopCode === undefined && value.shopName === undefined), {
+    message: "A shop code or name can only be set when approving.",
+  });
+
+export const applicationReferenceValidator = z.string().trim().regex(/^BNGA-[0-9A-HJ-NP-Z]{16,}$/u);
 
 export const createShopValidator = createShopRequestSchema.strict();
 

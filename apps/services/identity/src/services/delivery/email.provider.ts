@@ -1,49 +1,58 @@
-import type { Logger } from "@betng/service-kit";
-import type { EmailProviderConfig } from "../../configs/index.js";
+import { createRpcClient } from "@betng/service-kit";
+import type { Logger, ServiceEndpoint } from "@betng/service-kit";
 import type { EmailProvider } from "../../interfaces/index.js";
 import { maskEmail } from "../../utils/index.js";
-import { DeliveryError, postJson } from "./deliveryError.js";
+import { DeliveryError } from "./deliveryError.js";
 
-const SENDGRID_URL = "https://api.sendgrid.com/v3/mail/send";
+const SEND = "email.send";
 
-/** SendGrid v3 mail send; 202 means accepted for delivery. */
-function sendGrid(config: Extract<EmailProviderConfig, { provider: "sendgrid" }>, timeoutMs: number): EmailProvider {
+interface SendPayload {
+  readonly to: string;
+  readonly template: string;
+  readonly variables: Readonly<Record<string, string>>;
+  readonly idempotencyKey: string;
+}
+
+/**
+ * Identity composes nothing and holds no provider key: it names a template the email service owns and
+ * hands over the values. Codes and one-time credentials cross this call and are never written down.
+ */
+export function createEmailProvider(endpoint: ServiceEndpoint): EmailProvider & { close(): Promise<void> } {
+  const client = createRpcClient(endpoint);
+
   return {
-    name: "sendgrid",
+    name: "email-service",
     send: async (message) => {
-      const response = await postJson("sendgrid", SENDGRID_URL, {
-        timeoutMs,
-        headers: { authorization: `Bearer ${config.apiKey}`, "content-type": "application/json" },
-        body: JSON.stringify({
-          personalizations: [{ to: [{ email: message.to }] }],
-          from: { email: config.from, name: config.fromName },
-          subject: message.subject,
-          content: [{ type: "text/plain", value: message.text }],
-          tracking_settings: { click_tracking: { enable: false }, open_tracking: { enable: false } },
-        }),
-      });
-
-      await response.body?.cancel();
-
-      if (response.status !== 202) {
-        throw new DeliveryError("sendgrid", response.status, "rejected");
+      try {
+        await client.call<SendPayload, { id: string; duplicate: boolean }>(SEND, {
+          to: message.to,
+          template: message.template,
+          variables: message.variables,
+          idempotencyKey: message.idempotencyKey,
+        });
+      } catch (error) {
+        // The address never reaches the error, only the template that failed.
+        throw new DeliveryError("email-service", 0, `${message.template}: ${error instanceof Error ? error.name : "unknown"}`);
       }
+    },
+    close: async () => {
+      await client.close();
     },
   };
 }
 
 /** Development only (refused in production by the config loader): records that a message was sent, never its body. */
-function logEmail(logger: Logger): EmailProvider {
+export function createLoggingEmailProvider(logger: Logger): EmailProvider {
   return {
     name: "log",
     send: (message) => {
-      logger.info("Email handed to the log adapter", { event: "email_logged", to: maskEmail(message.to), subject: message.subject });
+      logger.info("Email handed to the log adapter", {
+        event: "email_logged",
+        to: maskEmail(message.to),
+        template: message.template,
+      });
 
       return Promise.resolve();
     },
   };
-}
-
-export function createEmailProvider(config: EmailProviderConfig, timeoutMs: number, logger: Logger): EmailProvider {
-  return config.provider === "sendgrid" ? sendGrid(config, timeoutMs) : logEmail(logger);
 }

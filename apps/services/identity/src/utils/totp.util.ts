@@ -106,3 +106,20 @@ export function verifyTotp(check: TotpCheck): number | undefined {
 
   return matched;
 }
+
+/**
+ * The `otpauth://` URI an authenticator scans. Built in one place so the CLI, the create route and the
+ * credential reset all label an account the same way.
+ */
+export function otpauthUri(email: string, secretBase32: string, issuer = "BetNG Admin"): string {
+  const label = encodeURIComponent(`${issuer}:${email}`);
+  const query = new URLSearchParams({
+    secret: secretBase32,
+    issuer,
+    algorithm: "SHA1",
+    digits: String(TOTP_DIGITS),
+    period: String(TOTP_STEP_SECONDS),
+  });
+
+  return `otpauth://totp/${label}?${query.toString()}`;
+}

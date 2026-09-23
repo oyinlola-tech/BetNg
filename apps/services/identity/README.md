@@ -58,11 +58,11 @@ Sessions are stored by `sha256(token)` hex. Every revocation (sign-out, revoke o
 
 | Variable | Adapters |
 | --- | --- |
-| `EMAIL_PROVIDER` | `sendgrid` (v3 mail send, 202 = accepted) or `log` (development: logs the masked recipient and subject, never a body) |
+| `EMAIL_PROVIDER` | `service` (hands the message to the email service over RPC, naming a template it owns) or `log` (development: logs the masked recipient and template, never a body) |
 | `SMS_PROVIDER` | `termii` (`POST {TERMII_BASE_URL}/api/sms/send`), `log`, `none` |
 | `PUSH_PROVIDER` | `fcm` (HTTP v1; OAuth token from an RS256 service-account assertion signed with node:crypto, cached until 2 minutes before expiry; `404` removes the device), `log`, `none` |
 
-One attempt per message with `DELIVERY_TIMEOUT_MS`: none of these providers takes an idempotency key, so a retry could send twice. Failures are logged with provider and status only. Verification and reset codes go by email only; security alerts (new sign-in from an unseen device, password change/reset, 2FA changes, deletion request) are stored as `SECURITY_ALERT` notifications and sent on every channel whose `security` topic is on. Identity also emits `KYC_UPDATED` after a review and at most one `LIMIT_WARNING` per limit per day. Production refuses to start with a `log` adapter or an incompletely configured provider.
+Identity composes no email and holds no provider key: it names a template the email service owns and passes the values, and a value that template declares secret — a code, a one-time password — is rendered there and never stored. One attempt per message with `DELIVERY_TIMEOUT_MS`. Only email carries an idempotency key, so only an SMS retry could send twice. Failures are logged with provider and status only. Verification and reset codes go by email only; security alerts (new sign-in from an unseen device, password change/reset, 2FA changes, deletion request) are stored as `SECURITY_ALERT` notifications and sent on every channel whose `security` topic is on. Identity also emits `KYC_UPDATED` after a review and at most one `LIMIT_WARNING` per limit per day. Production refuses to start with a `log` adapter or an incompletely configured provider.
 
 ## KYC providers
 
@@ -76,7 +76,7 @@ Every minute the compliance job completes deletions whose cooling-off has ended 
 
 ## Admin two-factor authentication
 
-With `ADMIN_TOTP_REQUIRED=true` (the production default) an admin without TOTP cannot sign in (403, audited). Enrol or re-enrol an admin with the operator CLI, which stores the secret encrypted with `IDENTITY_DATA_KEY`, signs out the admin's sessions, audits `admin_totp_enrolled` and prints the `otpauth://` URI once:
+With `ADMIN_TOTP_REQUIRED=true` (the production default) an admin without TOTP cannot sign in (403, audited). An admin normally enrols their own authenticator during activation (see **Administrators**). To re-enrol one on their behalf — a lost device — use the operator CLI, which stores the secret encrypted with `IDENTITY_DATA_KEY`, signs out the admin's sessions, audits `admin_totp_enrolled` and prints the `otpauth://` URI once:
 
 ```
 pnpm --filter @betng/identity-service exec tsx src/seeds/enrolAdminTotp.cli.ts admin@example.com
@@ -91,9 +91,97 @@ The development seed (`SEED_DEMO_DATA=true`, refused in production) gives its tw
 ## Development
 
 ```
-pnpm --filter @betng/identity-service db:migrate        # prisma migrate deploy
+pnpm --filter @betng/identity-service db:migrate        # prisma migrate deploy, then the super-admin bootstrap
+pnpm --filter @betng/identity-service db:migrate:only   # migrations alone
 pnpm --filter @betng/identity-service dev
 pnpm exec vitest run --project unit apps/services/identity
 ```
 
 Tests run against the `betng_test_identity` database (apply migrations there with `IDENTITY_DATABASE_URL=…/betng_test_identity?schema=identity pnpm --filter @betng/identity-service db:migrate`) and the local Redis (`REDIS_URL`). They rebuild the `wallet`/`betting` tables identity reads in that database only.
+## Shop applications
+
+Anyone may apply to run a shop. `POST /shop-applications` is public and rate-limited; it writes a
+`shop_applications` row and emails a six-digit code and the application's **reference**, which is 16
+characters of `randomBytes` in Crockford base32 — the applicant's only handle.
+
+```
+POST /shop-applications                     submit
+POST /shop-applications/:reference/verify   prove the address with the code
+GET  /shop-applications/:reference/status   needs ?email= as well as the reference
+```
+
+A status lookup needs the reference **and** the address, and an unknown reference is reported exactly as a
+mismatched address, so neither can be used to find the other. The applicant's view carries no internal id,
+no reviewer and no reviewer's note on an approval. A partial unique index allows one live application per
+address — someone turned down may apply again, someone waiting or already running a shop may not.
+
+Reviewers hold `shop-applications:read` / `:write` (`SUPER_ADMIN` and `OPERATIONS`):
+
+```
+GET  /admin/shop-applications[?status=]     GET  /admin/shop-applications/:id
+POST /admin/shop-applications/:id/review    { decision, reason, shopCode?, shopName? }
+```
+
+The decision body is `kycReviewDecisionSchema`'s shape, because it is the same kind of decision.
+Approving is not a status change: in one transaction it creates the `Shop` (code generated `BNG-<STATE>-NNN`
+from the applicant's state, overridable), creates the owner `Cashier` with one-time credentials, flips the
+application and writes a `CRITICAL` audit row. It is conditional on the application still being open, so
+two reviewers racing cannot both decide it, and an approval is refused until the address is proved.
+`APPROVED` and `REJECTED` are final at the database level; `REQUIRES_ACTION` can be revisited.
+
+## Shop staff
+
+An owner staffs their own shop. The shop comes from the session's `x-betng-shop-id` on every route — never
+from a path or a body — so no request can reach another shop:
+
+```
+GET    /shop/cashiers                        cashiers:read
+POST   /shop/cashiers                        cashiers:write
+POST   /shop/cashiers/:id/status             cashiers:write
+POST   /shop/cashiers/:id/reset-credentials  cashiers:write
+```
+
+`cashiers:write` belongs to `OWNER` alone. An owner may not create another owner, act on their own account,
+or act on a cashier at their own level, and a cashier in another shop is reported as absent rather than
+forbidden. The existing `/admin/shops/:id/cashiers` routes stay for platform support.
+
+## Administrators
+
+There is no way to create the first administrator through the API, and no seeded account outside
+development. `bootstrapSuperAdmin` (`src/seeds/bootstrapSuperAdmin.ts`) creates exactly one super
+administrator from `SUPER_ADMIN_EMAIL` and `SUPER_ADMIN_PASSWORD`. It runs at service startup and from
+`pnpm --filter @betng/identity-service run bootstrap:super-admin`, and it is idempotent: with any super
+administrator present it changes nothing and never overwrites a live account. Missing credentials refuse
+to start in production, where the platform would otherwise have no way in, and are skipped everywhere
+else.
+
+This cannot be a SQL migration: the password hash comes from scrypt. It issues **no** authenticator
+secret, so nothing secret reaches a log, a console or a backup of either.
+
+**Activation** is the only way an account holding a one-time password can sign in, and it is two steps:
+
+| | |
+| --- | --- |
+| `POST /admin/auth/activate/start` | Proves the one-time password and returns an `otpauth://` URI to enrol. A fresh secret each call, stored sealed with two-factor still **off**, so a secret handed out and never used leaves the account as it was. |
+| `POST /admin/auth/activate` | Proves a code from it, takes a chosen password, switches two-factor on and issues the session. It leaves the used time step in place, so the code that activated cannot also open a sign-in. |
+
+`LoginAdminHandler` refuses an ordinary sign-in while `must_change_password` stands — said only after the
+password is proven — so a one-time password can never become a lasting one.
+
+A super administrator manages the rest through `admins:read` / `admins:write`, which no other role holds:
+
+```
+GET    /admin/admins                        POST   /admin/admins
+PATCH  /admin/admins/:id                    POST   /admin/admins/:id/status
+POST   /admin/admins/:id/reset-credentials
+```
+
+Creating an administrator returns the one-time password once and nothing else — the creator never learns
+the new administrator's authenticator secret, so the account has one holder from the start. A credential
+reset clears the authenticator too, sending the account back through activation, and drops every session.
+
+Guards, in the service and again in the database (`admin_management_invariants`): at most one bootstrap
+account, the flag can never be granted to an existing one, at least one active super administrator must
+remain (a deferred constraint trigger, so promoting one and demoting another in one transaction is fine),
+and nobody may change their own role or status.
+

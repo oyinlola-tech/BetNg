@@ -65,6 +65,14 @@ export class LoginAdminHandler extends CommandHandler<LoginAdminCommand, AdminSe
       throw new AccountSuspendedError();
     }
 
+    // A one-time password never becomes a lasting one: it can only be spent on `POST /admin/auth/activate`,
+    // which takes a chosen password in the same call. Said only after the password is proven.
+    if (admin.mustChangePassword) {
+      throw new ForbiddenError(
+        "This account still has the password it was issued. Activate it with a new password and a code from your authenticator.",
+      );
+    }
+
     if (!admin.twoFactorEnabled && this.deps.security.adminTotpRequired) {
       await this.auditFailure(command, email, admin, "two_factor_not_enrolled");
       throw new ForbiddenError(

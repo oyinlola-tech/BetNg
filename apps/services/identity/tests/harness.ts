@@ -25,9 +25,7 @@ export const PASSWORD = "correct-horse-battery";
 export const PRODUCTION_REQUIREMENTS: Readonly<Record<string, string>> = {
   REDIS_URL: "redis://:placeholder-redis-password@localhost:6379",
   IDENTITY_DATA_KEY: Buffer.alloc(32, 7).toString("base64"),
-  EMAIL_PROVIDER: "sendgrid",
-  SENDGRID_API_KEY: "SG.placeholder-key-for-config-tests",
-  EMAIL_FROM: "no-reply@betng.example",
+  EMAIL_PROVIDER: "service",
 };
 
 const BASE = `http://127.0.0.1:${String(TEST_PORT)}`;
