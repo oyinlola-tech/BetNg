@@ -112,6 +112,61 @@ export type {
   LiveMatchSnapshot,
 } from "./live/watchMatch.js";
 
+export {
+  headlineOf,
+  isGoal,
+  routeMatchEvent,
+  routeMatchEvents,
+  severityOf,
+} from "./live/matchEventRouter.js";
+export type {
+  AnimationKind,
+  AnimationPriority,
+  EventSeverity,
+  PresentationEvent,
+} from "./live/matchEventRouter.js";
+export { ANIMATION_MS, createAnimationQueue } from "./live/animationQueue.js";
+export type {
+  AnimationQueue,
+  AnimationQueueOptions,
+} from "./live/animationQueue.js";
+export {
+  PITCH,
+  PITCH_CENTRE,
+  attackingGoal,
+  clampToPitch,
+  cornerFlag,
+  distance,
+  interpolate,
+  penaltySpot,
+  readPoint,
+} from "./live/pitchGeometry.js";
+export type { PitchPoint } from "./live/pitchGeometry.js";
+export {
+  STALE_AFTER_MS,
+  connectionStatus,
+  toPresentationState,
+} from "./live/presentationState.js";
+export type {
+  BallView,
+  LiveConnectionStatus,
+  LiveMatchPresentationState,
+  PlayerMarkerView,
+  PresentationStateInput,
+} from "./live/presentationState.js";
+
+export {
+  COLLECTION_LABEL,
+  COLLECTION_PHASES,
+  isInCollection,
+  selectCollection,
+  selectCollections,
+} from "./matches/collections.js";
+export type {
+  MatchCollection,
+  MatchCollectionKey,
+} from "./matches/collections.js";
+
 export { createPlatformDataSource } from "./adapters/platformDataSource.js";
 export type {
   KeyValueStorage,

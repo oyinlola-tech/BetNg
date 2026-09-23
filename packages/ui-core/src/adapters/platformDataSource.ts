@@ -575,14 +575,14 @@ export function createPlatformDataSource(
         } catch {
         }
 
-        const marketKind = (leg.marketType ?? "MATCH_RESULT") as MarketKind;
+        const marketKind: MarketKind = leg.marketType ?? "MATCH_RESULT";
 
         return {
           selectionId: leg.selectionId,
           marketId: leg.marketId,
           matchId: leg.matchId,
           marketKind,
-          marketName: leg.marketLabel ?? MARKET_NAMES[marketKind] ?? "Market",
+          marketName: leg.marketLabel ?? marketShape(marketKind).name,
           selectionLabel: leg.selectionLabel ?? leg.selectionId.slice(0, 8),
           odds: leg.odds,
           matchLabel,
@@ -1189,7 +1189,9 @@ export function createPlatformDataSource(
 
       if (id !== undefined && options.accountChannel === true) {
         const unsubscribe = ensureLive().subscribe(accountChannel(id), notifyAccount);
-        // Not every service signals yet (settlement doesn't), so a slow re-read stays as a backstop.
+        // Settlement does signal, but publishing is fire-and-forget on its side:
+        // a dropped signal is logged there and never retried, so a slow re-read
+        // stays as a backstop against an account view that silently stops moving.
         const timer = setInterval(listener, options.accountRefreshMs ?? 60_000);
 
         release = () => {
