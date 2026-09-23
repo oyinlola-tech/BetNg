@@ -73,7 +73,7 @@ export function DashboardPage(): React.JSX.Element {
 
   return (
     <div className="mx-auto max-w-[88rem] p-4 lg:p-5">
-      <PageHeader title={`Good ${new Date().getHours() < 12 ? "morning" : new Date().getHours() < 17 ? "afternoon" : "evening"}, ${session?.cashier.displayName.split(" ")[0] ?? ""}`} description="Today at the counter. Figures are simulated." />
+      <PageHeader title={`Good ${new Date().getHours() < 12 ? "morning" : new Date().getHours() < 17 ? "afternoon" : "evening"}, ${session?.cashier.displayName.split(" ")[0] ?? ""}`} description="Today at the counter." />
 
       <section aria-label="Quick actions" className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
         {ACTIONS.filter((a) => a.permission === undefined || can(a.permission)).map((action) => (

@@ -43,7 +43,7 @@ function header(title: string): ReceiptLine[] {
 }
 
 const FOOTER: readonly ReceiptLine[] = [
-  { kind: "text", text: "Simulated platform: play money only, no cash value.", align: "center" },
+  { kind: "text", text: "18+. Bet responsibly.", align: "center" },
   { kind: "feed", lines: 3 },
   { kind: "cut" },
 ];

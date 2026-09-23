@@ -108,7 +108,7 @@ export function TicketReceipt({ ticket, className }: { readonly ticket: Ticket; 
       <footer className="px-5 pb-5">
         <Barcode reference={ticket.code} />
         <p className="mt-2 text-center text-xs text-text-muted">
-          Collect by {formatDateTime(ticket.expiresAt)}. Simulated ticket: play money only, no cash value.
+          Collect by {formatDateTime(ticket.expiresAt)}. 18+. Bet responsibly.
         </p>
       </footer>
     </article>

@@ -42,7 +42,7 @@ export function ResultsPage(): React.JSX.Element {
 
   return (
     <div className="mx-auto max-w-4xl p-4 lg:p-5">
-      <PageHeader title="Results" description="Finished simulated matches, for settling questions at the counter." />
+      <PageHeader title="Results" description="Finished matches, for settling questions at the counter." />
 
       <div className="mb-3 flex flex-wrap gap-1" role="group" aria-label="Competition">
         {leagues.data?.map((l) => (

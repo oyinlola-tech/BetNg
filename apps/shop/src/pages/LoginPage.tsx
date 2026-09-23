@@ -7,13 +7,19 @@ export function LoginPage(): React.JSX.Element {
   const connection = useConnection();
 
   return (
-    <div className="flex min-h-dvh flex-col bg-background">
+    /*
+     * Sign-in is the first screen on a terminal that may be 1024x600, so it
+     * obeys the same rule as the workspace behind it: the page itself never
+     * scrolls. If the card genuinely cannot fit, the centred area scrolls and
+     * the header stays put, rather than the whole document growing.
+     */
+    <div className="flex h-dvh flex-col overflow-hidden bg-background">
       <ConnectionStrip state={connection === "CONNECTING" ? "CONNECTED" : connection} />
       <header className="flex items-center justify-between px-6 py-4">
         <BrandLogo product="Shop" />
         <ThemeSwitcher />
       </header>
-      <main className="flex flex-1 items-center justify-center px-4 pb-16">
+      <main className="flex min-h-0 flex-1 items-center justify-center overflow-y-auto px-4 py-4 scrollbar-thin">
         <div className="w-full max-w-md">
           <div className="rounded-md border border-border bg-surface p-6 shadow-sm sm:p-7">
             <h1 className="font-display text-2xl font-semibold tracking-tight">Cashier sign-in</h1>

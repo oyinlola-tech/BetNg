@@ -9,14 +9,18 @@ export interface MatchOddsRowProps {
   readonly markets: MatchMarketsView | undefined;
   readonly expanded: boolean;
   readonly showLeague?: boolean;
+  /** Under the keyboard cursor: Enter opens this match's workspace. */
+  readonly active?: boolean;
   readonly onExpand: (matchId: string) => void;
+  /** Opens the full market workspace for this match. */
+  readonly onOpen: (matchId: string) => void;
   readonly isSelected: (selectionId: string) => boolean;
   readonly onToggle: (match: MatchSummary, market: MarketView, selection: SelectionView) => void;
 }
 
 const WIDE: ReadonlySet<MarketKind> = new Set(["DOUBLE_CHANCE", "GOAL_SPREAD", "CORRECT_SCORE"]);
 
-export const MatchOddsRow = memo(function MatchOddsRow({ match, markets, expanded, showLeague = false, onExpand, isSelected, onToggle }: MatchOddsRowProps): React.JSX.Element {
+export const MatchOddsRow = memo(function MatchOddsRow({ match, markets, expanded, showLeague = false, active = false, onExpand, onOpen, isSelected, onToggle }: MatchOddsRowProps): React.JSX.Element {
   const bettable = canBet(match.phase);
   const live = isInPlay(match.phase);
   const result = markets?.markets.find((m) => m.kind === "MATCH_RESULT");
@@ -24,7 +28,14 @@ export const MatchOddsRow = memo(function MatchOddsRow({ match, markets, expande
   const label = `${match.home.name} v ${match.away.name}`;
 
   return (
-    <li className={cn("border-b border-border last:border-b-0", expanded && "bg-surface-sunken/40")}>
+    <li
+      aria-current={active ? "true" : undefined}
+      className={cn(
+        "border-b border-border last:border-b-0",
+        expanded && "bg-surface-sunken/40",
+        active && "bg-brand-subtle/40 outline outline-1 -outline-offset-1 outline-brand",
+      )}
+    >
       <div className="grid grid-cols-[4.25rem_minmax(0,1fr)_auto] items-center gap-x-3 px-3 py-1.5 lg:grid-cols-[4.25rem_minmax(0,1fr)_minmax(15rem,19rem)_2.25rem]">
         <div className="text-sm leading-tight">
           {live ? (
@@ -46,7 +57,14 @@ export const MatchOddsRow = memo(function MatchOddsRow({ match, markets, expande
           )}
         </div>
 
-        <div className="min-w-0 space-y-0.5">
+        <button
+          type="button"
+          onClick={() => {
+            onOpen(match.id);
+          }}
+          aria-label={`Open all markets for ${label}`}
+          className="min-w-0 space-y-0.5 rounded-sm text-left transition-colors hover:bg-surface-hover focus-ring"
+        >
           {([match.home, match.away] as const).map((team, index) => (
             <p key={team.id} className="flex items-center gap-2">
               <TeamBadge team={team} size="xs" />
@@ -54,7 +72,7 @@ export const MatchOddsRow = memo(function MatchOddsRow({ match, markets, expande
               {(live || match.phase === "FINISHED" || match.phase === "SETTLED") && <span className="ml-auto font-display text-md font-semibold tabular">{index === 0 ? match.score.home : match.score.away}</span>}
             </p>
           ))}
-        </div>
+        </button>
 
         <div className="col-span-3 mt-1.5 grid grid-cols-3 gap-1 lg:col-span-1 lg:mt-0" role="group" aria-label={`Match result, ${label}`}>
           {result !== undefined ? (

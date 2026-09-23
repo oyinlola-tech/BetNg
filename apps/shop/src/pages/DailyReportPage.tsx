@@ -32,7 +32,7 @@ function DailyReport(): React.JSX.Element {
     <div className="mx-auto max-w-[88rem] p-4 lg:p-5">
       <PageHeader
         title="Daily Report"
-        description="One day of trading at this shop. All amounts are simulated."
+        description="One day of trading at this shop."
         actions={
           <>
             <Select label="Day" size="sm" value={date} onChange={setDate} options={DAYS} />

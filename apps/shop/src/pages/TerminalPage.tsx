@@ -3,6 +3,7 @@ import { ReceiptText } from "lucide-react";
 import { canBet, formatKickoffTime, formatMoney, formatOdds, isSelected as isSlipSelected, slipTotals, type LeagueView, type MarketView, type MatchPhase, type MatchSummary, type SelectionView } from "@betng/ui-core";
 import { Button, EmptyState, ErrorState, LeagueMark, SearchInput, Sheet, SkeletonRows, Tabs, cn, useMediaQuery } from "@betng/ui-web";
 import { Guard } from "../components/Guard";
+import { MatchWorkspace } from "../components/MatchWorkspace";
 import { Kbd } from "../components/Kbd";
 import { MatchOddsRow } from "../components/MatchOddsRow";
 import { SlipPanel } from "../components/SlipPanel";
@@ -38,27 +39,21 @@ function Terminal({ mode }: { readonly mode: TerminalMode }): React.JSX.Element 
   const [status, setStatus] = useState<StatusFilter>(mode === "live" ? "LIVE" : "OPEN");
   const [query, setQuery] = useState("");
   const [expandedId, setExpandedId] = useState<string | undefined>();
+  const [openMatchId, setOpenMatchId] = useState<string | undefined>();
+  const [cursor, setCursor] = useState(0);
   const searchRef = useRef<HTMLInputElement>(null);
   const { selections, stake, toggle, open, setOpen } = useSlip();
 
   useEffect(() => {
     setStatus(mode === "live" ? "LIVE" : "OPEN");
     setExpandedId(undefined);
+    setOpenMatchId(undefined);
+    setCursor(0);
   }, [mode]);
 
   const leagues = useLeagues();
   const matches = useMatches({ phases: PHASES[status] }, { refetchMs: 3000 });
 
-  const bindings = useMemo(
-    () => ({
-      "/": () => {
-        searchRef.current?.focus();
-      },
-    }),
-    [],
-  );
-
-  useShortcuts(bindings);
 
   const counts = useMemo(() => {
     const map = new Map<string, number>();
@@ -76,6 +71,48 @@ function Terminal({ mode }: { readonly mode: TerminalMode }): React.JSX.Element 
       .filter((m) => q === "" || m.home.name.toLowerCase().includes(q) || m.away.name.toLowerCase().includes(q) || m.home.code.toLowerCase() === q || m.away.code.toLowerCase() === q)
       .sort((a, b) => a.kickoffAt.localeCompare(b.kickoffAt) || a.leagueName.localeCompare(b.leagueName));
   }, [matches.data, leagueId, query]);
+
+  const openMatch = useMemo(
+    () => visible.find((m) => m.id === openMatchId),
+    [visible, openMatchId],
+  );
+
+  /*
+   * The cashier works from the keyboard: the arrows move a cursor down the
+   * visible matches, Enter opens the one under it, and Escape steps back out
+   * to the list. Nothing here overrides ordinary browser keys — the shortcut
+   * hook already refuses to fire printable keys while a field has focus.
+   */
+  const bindings = useMemo(
+    () => ({
+      "/": () => {
+        searchRef.current?.focus();
+      },
+      ArrowDown: () => {
+        if (openMatchId !== undefined) return;
+        setCursor((index) => Math.min(index + 1, Math.max(visible.length - 1, 0)));
+      },
+      ArrowUp: () => {
+        if (openMatchId !== undefined) return;
+        setCursor((index) => Math.max(index - 1, 0));
+      },
+      Enter: () => {
+        if (openMatchId !== undefined) return;
+
+        const match = visible[cursor];
+
+        if (match !== undefined) setOpenMatchId(match.id);
+      },
+      Escape: () => {
+        if (openMatchId !== undefined) setOpenMatchId(undefined);
+        else if (expandedId !== undefined) setExpandedId(undefined);
+        else setQuery("");
+      },
+    }),
+    [openMatchId, expandedId, cursor, visible],
+  );
+
+  useShortcuts(bindings);
 
   const groups = useMemo((): readonly Group[] => {
     const byKey = new Map<string, Group & { matches: MatchSummary[] }>();
@@ -98,6 +135,7 @@ function Terminal({ mode }: { readonly mode: TerminalMode }): React.JSX.Element 
   const marketsById = useMemo(() => new Map(bettableIds.map((id, index) => [id, marketResults[index]?.data])), [bettableIds, marketResults]);
 
   const isSelected = useCallback((id: string) => isSlipSelected(selections, id), [selections]);
+  const selectedIds = useMemo(() => new Set(selections.map((s) => s.selectionId as string)), [selections]);
   const onToggle = useCallback(
     (match: MatchSummary, market: MarketView, selection: SelectionView) => {
       toggle({
@@ -170,12 +208,26 @@ function Terminal({ mode }: { readonly mode: TerminalMode }): React.JSX.Element 
         <div className="hidden space-y-1.5 border-t border-border p-3 text-sm text-text-muted xl:block">
           <p className="caps-label mb-1">Keys</p>
           <p className="flex items-center justify-between">Search teams <Kbd>/</Kbd></p>
+          <p className="flex items-center justify-between gap-2">Move <span className="flex gap-1"><Kbd>↑</Kbd><Kbd>↓</Kbd></span></p>
+          <p className="flex items-center justify-between">Open markets <Kbd>Enter</Kbd></p>
+          <p className="flex items-center justify-between">Back <Kbd>Esc</Kbd></p>
           <p className="flex items-center justify-between">Stake <Kbd>F8</Kbd></p>
           <p className="flex items-center justify-between">Review ticket <Kbd>F9</Kbd></p>
         </div>
       </aside>
 
       <section aria-label="Matches" className="flex min-h-0 min-w-0 flex-col">
+        {openMatch !== undefined ? (
+          <MatchWorkspace
+            match={openMatch}
+            selectedIds={selectedIds}
+            onToggle={onToggle}
+            onBack={() => {
+              setOpenMatchId(undefined);
+            }}
+          />
+        ) : (
+          <>
         <div className="flex shrink-0 flex-wrap items-center gap-3 border-b border-border bg-surface px-3 py-2">
           <div className="flex items-baseline gap-2">
             <h1 className="font-display text-lg font-semibold tracking-tight">{TITLES[mode].title}</h1>
@@ -224,13 +276,26 @@ function Terminal({ mode }: { readonly mode: TerminalMode }): React.JSX.Element 
                 </h2>
                 <ul className="bg-surface">
                   {group.matches.map((match) => (
-                    <MatchOddsRow key={match.id} match={match} markets={marketsById.get(match.id)} expanded={expandedId === match.id} showLeague={mode === "virtual"} onExpand={onExpand} isSelected={isSelected} onToggle={onToggle} />
+                    <MatchOddsRow
+                      key={match.id}
+                      match={match}
+                      markets={marketsById.get(match.id)}
+                      expanded={expandedId === match.id}
+                      active={visible[cursor]?.id === match.id}
+                      showLeague={mode === "virtual"}
+                      onExpand={onExpand}
+                      onOpen={setOpenMatchId}
+                      isSelected={isSelected}
+                      onToggle={onToggle}
+                    />
                   ))}
                 </ul>
               </section>
             ))
           )}
         </div>
+          </>
+        )}
       </section>
 
       {desktop ? (

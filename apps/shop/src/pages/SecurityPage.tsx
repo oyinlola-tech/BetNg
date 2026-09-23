@@ -37,7 +37,7 @@ export function SecurityPage(): React.JSX.Element {
             }}
           >
             <PasswordInput label="Current password" autoComplete="current-password" />
-            <PasswordInput label="New password" autoComplete="new-password" hint="At least 8 characters." />
+            <PasswordInput label="New password" autoComplete="new-password" hint="At least 12 characters." />
             <PasswordInput label="Repeat new password" autoComplete="new-password" />
             <Unavailable />
             <Tooltip content="Not served by the platform yet">

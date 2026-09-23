@@ -7,6 +7,7 @@ import { Kbd } from "../components/Kbd";
 import { SessionExpiredOverlay } from "../components/SessionExpiredOverlay";
 import { useConnection } from "../hooks/useConnection";
 import { useShopSync } from "../hooks/queries";
+import { useTerminalDensity } from "../hooks/useTerminalDensity";
 import { useShopSession } from "../hooks/useShopSession";
 import { useShortcuts } from "../hooks/useShortcuts";
 import { NAVIGATION } from "../lib/navigation";
@@ -38,6 +39,14 @@ export function TerminalShell(): React.JSX.Element {
   const slipCount = useSlip((s) => s.selections.length);
   const clearSlip = useSlip((s) => s.clear);
   const expanded = pinned ?? wide;
+  const density = useTerminalDensity();
+  /*
+   * The header and sidebar give up height and width first, because the match
+   * list and the slip are what the cashier is actually working in. Nothing is
+   * removed — a 1024x600 terminal keeps every control, tighter.
+   */
+  const compact = density !== "NORMAL";
+  const barHeight = density === "ULTRA_COMPACT" ? "h-10" : compact ? "h-12" : "h-14";
   const flags = useFeatureFlags();
   const monitor = useMemo(() => createSessionMonitor(shopSource.session), []);
 
@@ -74,13 +83,13 @@ export function TerminalShell(): React.JSX.Element {
   };
 
   return (
-    <div className="flex h-dvh overflow-hidden bg-background">
+    <div data-density={density} className="flex h-dvh overflow-hidden bg-background">
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-toast focus:rounded-sm focus:bg-brand focus:px-3 focus:py-2 focus:text-text-on-brand">
         Skip to content
       </a>
 
-      <nav aria-label="Terminal" className={cn("flex shrink-0 print:hidden flex-col border-r border-border bg-surface transition-[width] duration-[var(--bn-duration-base)]", expanded ? "w-56" : "w-14")}>
-        <div className={cn("flex h-14 shrink-0 items-center border-b border-border", expanded ? "justify-between pl-4 pr-2" : "justify-center")}>
+      <nav aria-label="Terminal" className={cn("flex shrink-0 print:hidden flex-col border-r border-border bg-surface transition-[width] duration-[var(--bn-duration-base)]", expanded ? (compact ? "w-48" : "w-56") : "w-14")}>
+        <div className={cn("flex shrink-0 items-center border-b border-border", barHeight, expanded ? "justify-between pl-4 pr-2" : "justify-center")}>
           {expanded && <BrandLogo size={24} product="Shop" />}
           <IconButton
             label={expanded ? "Collapse navigation" : "Expand navigation"}
@@ -141,13 +150,13 @@ export function TerminalShell(): React.JSX.Element {
       </nav>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-border bg-surface px-4 print:hidden">
+        <header className={cn("flex shrink-0 items-center justify-between gap-4 border-b border-border bg-surface print:hidden", barHeight, compact ? "px-3" : "px-4")}>
           <div className="min-w-0 leading-tight">
             <p className="truncate text-base font-semibold text-text-primary">{session.shop.name}</p>
             <p className="truncate font-mono text-xs text-text-muted">{session.shop.code}</p>
           </div>
           <div className="flex items-center gap-4">
-            <Tooltip content="Cash float held for payouts (simulated)" side="bottom">
+            <Tooltip content="Cash float held for payouts" side="bottom">
               <div className="flex items-center gap-2 rounded-sm bg-surface-sunken px-2.5 py-1.5" tabIndex={0}>
                 <Wallet className="size-4 text-text-muted" aria-hidden />
                 <div className="leading-tight">

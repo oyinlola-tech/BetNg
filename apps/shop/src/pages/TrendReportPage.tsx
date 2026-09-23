@@ -30,7 +30,7 @@ function Trend({ measure }: { readonly measure: "sales" | "payouts" }): React.JS
 
   return (
     <div className="mx-auto max-w-[88rem] p-4 lg:p-5">
-      <PageHeader title={sales ? "Sales" : "Payouts"} description={`The last ${String(DAYS)} days at this shop. All amounts are simulated.`} />
+      <PageHeader title={sales ? "Sales" : "Payouts"} description={`The last ${String(DAYS)} days at this shop.`} />
       {range.isError && days === undefined ? (
         <ErrorState error={range.error} onRetry={() => void range.refetch()} />
       ) : (
