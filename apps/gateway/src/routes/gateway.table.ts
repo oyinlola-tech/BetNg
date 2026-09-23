@@ -34,6 +34,7 @@ const WEBHOOK_SIGNATURES: Readonly<Record<string, readonly string[]>> = {
   paystack: ["x-paystack-signature"],
   flutterwave: ["verif-hash"],
   bachs: ["x-bachs-signature"],
+  sendbyte: ["sendbyte-signature"],
 };
 
 export function buildRouteTable(limits: GatewayRateLimits): readonly GatewayRoute[] {
@@ -61,6 +62,12 @@ export function buildRouteTable(limits: GatewayRateLimits): readonly GatewayRout
       limits: [limit("webhooks", "ip", false)],
       webhook: { signatureHeaders: WEBHOOK_SIGNATURES[provider] ?? [] },
     });
+  // The signature is over the raw body, so this route is forwarded byte for byte like a payment one.
+  const deliveryWebhook = (provider: string): GatewayRoute =>
+    route("POST", `/email/webhook/${provider}`, "email", PUBLIC, {
+      limits: [limit("webhooks", "ip", false)],
+      webhook: { signatureHeaders: WEBHOOK_SIGNATURES[provider] ?? [] },
+    });
 
   return [
     route("GET", "/leagues", "match", PUBLIC),
@@ -79,6 +86,12 @@ export function buildRouteTable(limits: GatewayRateLimits): readonly GatewayRout
     route("GET", "/results", "match", PUBLIC),
     route("GET", "/matches/:id/odds", "odds", PUBLIC),
     route("GET", "/odds", "odds", PUBLIC),
+
+    // Anyone may apply to run a shop. Rate-limited per IP, and a status lookup needs the reference and
+    // the verified address together, so the table cannot be walked.
+    credential("/shop-applications"),
+    credential("/shop-applications/:reference/verify"),
+    route("GET", "/shop-applications/:reference/status", "identity", PUBLIC, credentialLimit),
 
     credential("/auth/register"),
     signIn("/auth/verify"),
@@ -144,6 +157,7 @@ export function buildRouteTable(limits: GatewayRateLimits): readonly GatewayRout
     webhook("paystack"),
     webhook("flutterwave"),
     webhook("bachs"),
+    deliveryWebhook("sendbyte"),
 
     route("POST", "/bets", "betting", CUSTOMER, money("bets")),
     route("GET", "/bets", "betting", CUSTOMER_OR_ADMIN),
@@ -161,6 +175,9 @@ export function buildRouteTable(limits: GatewayRateLimits): readonly GatewayRout
     signOut("/shop/auth/logout"),
     route("GET", "/shop/auth/session", "identity", TOKEN),
     route("GET", "/shop/cashiers", "identity", cashier("cashiers:read")),
+    route("POST", "/shop/cashiers", "identity", cashier("cashiers:write")),
+    route("POST", "/shop/cashiers/:id/status", "identity", cashier("cashiers:write")),
+    route("POST", "/shop/cashiers/:id/reset-credentials", "identity", cashier("cashiers:write")),
     route("POST", "/shop/tickets", "betting", cashier("tickets:sell")),
     route("GET", "/shop/tickets", "betting", cashier("tickets:check")),
     route("GET", "/shop/tickets/:code", "betting", cashier("tickets:check")),
@@ -174,6 +191,9 @@ export function buildRouteTable(limits: GatewayRateLimits): readonly GatewayRout
     route("POST", "/shop/shifts", "wallet", cashier("shifts:operate")),
     route("POST", "/shop/shifts/current/cash", "wallet", cashier("cash:move")),
     route("POST", "/shop/shifts/:id/close", "wallet", cashier("shifts:operate")),
+    // Float between two drawers in one shop; the shop's balance does not move.
+    route("POST", "/shop/transfers", "wallet", cashier("cash:transfer")),
+    route("GET", "/shop/transfers", "wallet", cashier("reports:read")),
 
     staffSignIn("/admin/auth/login"),
     signOut("/admin/auth/logout"),
@@ -183,6 +203,17 @@ export function buildRouteTable(limits: GatewayRateLimits): readonly GatewayRout
     route("PATCH", "/admin/users/:id", "identity", admin("users:write")),
     route("POST", "/admin/users/:id/status", "identity", admin("users:write")),
     route("POST", "/admin/users/:id/password-reset", "identity", admin("users:write"), verification),
+    // Public and rate-limited: the caller has only the one-time password, not a session yet.
+    credential("/admin/auth/activate/start"),
+    staffSignIn("/admin/auth/activate"),
+    route("GET", "/admin/admins", "identity", admin("admins:read")),
+    route("POST", "/admin/admins", "identity", admin("admins:write")),
+    route("PATCH", "/admin/admins/:id", "identity", admin("admins:write")),
+    route("POST", "/admin/admins/:id/status", "identity", admin("admins:write")),
+    route("POST", "/admin/admins/:id/reset-credentials", "identity", admin("admins:write")),
+    route("GET", "/admin/shop-applications", "identity", admin("shop-applications:read")),
+    route("GET", "/admin/shop-applications/:id", "identity", admin("shop-applications:read")),
+    route("POST", "/admin/shop-applications/:id/review", "identity", admin("shop-applications:write")),
     route("GET", "/admin/shops", "identity", admin("shops:read")),
     route("POST", "/admin/shops", "identity", admin("shops:write")),
     route("GET", "/admin/shops/:id", "identity", admin("shops:read")),

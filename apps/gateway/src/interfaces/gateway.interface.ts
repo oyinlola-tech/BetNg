@@ -11,6 +11,8 @@ export interface UpstreamClients {
   readonly analytics: ServiceClient;
   readonly identity: ServiceClient;
   readonly event: ServiceClient;
+  readonly payments: ServiceClient;
+  readonly email: ServiceClient;
 }
 
 export type UpstreamName = keyof UpstreamClients;

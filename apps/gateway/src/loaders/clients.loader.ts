@@ -14,5 +14,7 @@ export function loadClients(config: ServiceConfig): UpstreamClients {
     analytics: createServiceClient(config.services.analytics),
     identity: createServiceClient(config.services.identity),
     event: createServiceClient(config.services.event),
+    payments: createServiceClient(config.services.payments),
+    email: createServiceClient(config.services.email),
   };
 }
