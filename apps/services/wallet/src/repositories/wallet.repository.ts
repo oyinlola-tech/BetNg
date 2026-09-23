@@ -6,11 +6,14 @@ import type { WalletSettings } from "../configs/index.js";
 import { OPENING_IDEMPOTENCY_KEY } from "../constants/index.js";
 import { WalletDatabaseError, WalletOwnerNotFoundError } from "../errors/index.js";
 import { postWithinTransaction, toAccount, toEntry } from "./ledger.js";
+import { isUniqueViolation } from "./payments.repository.js";
 import { pageWindow } from "../utils/page.util.js";
 import { join, sql } from "../databases/index.js";
 import type { Sql } from "../databases/index.js";
 import type { Prisma, PrismaClient } from "../generated/prisma/client.js";
 import type {
+  FloatTransferInput,
+  FloatTransferResult,
   AccountRecord,
   EntryPage,
   EntryPageFilter,
@@ -290,6 +293,78 @@ export function createWalletRepository(
     );
   }
 
+  /**
+   * The two halves and the record in one transaction. `postEntry` opens its own, so this calls
+   * `postWithinTransaction` twice inside a single one instead: the shop's balance is the same before and
+   * after, and a deferred trigger proves the pair sums to zero before the commit lands.
+   */
+  async function postFloatTransfer(input: FloatTransferInput): Promise<FloatTransferResult> {
+    if (input.amount <= 0n) {
+      throw new Error("A float transfer must be for a positive amount.");
+    }
+
+    const account = await getOrOpenAccount("SHOP", input.shopId);
+    const reference = `transfer:${input.id}`;
+
+    try {
+      await prisma.$transaction(async (tx) => {
+        // Out first: if the sender's drawer cannot cover it, nothing else is written.
+        await postWithinTransaction(tx, {
+          accountId: account.id,
+          type: "CASH_OUT",
+          amount: -input.amount,
+          idempotencyKey: `${input.idempotencyKey}:out`,
+          reference,
+          note: input.note,
+          actorId: input.fromCashierId,
+        });
+
+        await postWithinTransaction(tx, {
+          accountId: account.id,
+          type: "CASH_IN",
+          amount: input.amount,
+          idempotencyKey: `${input.idempotencyKey}:in`,
+          reference,
+          note: input.note,
+          actorId: input.toCashierId,
+        });
+
+        await tx.shopFloatTransfer.create({
+          data: {
+            id: input.id,
+            shopId: input.shopId,
+            fromShiftId: input.fromShiftId,
+            fromCashierId: input.fromCashierId,
+            toShiftId: input.toShiftId,
+            toCashierId: input.toCashierId,
+            amount: input.amount,
+            note: input.note,
+            authorisedBy: input.authorisedBy,
+            idempotencyKey: input.idempotencyKey,
+          },
+        });
+      }, TRANSACTION_OPTIONS);
+    } catch (error) {
+      if (!isUniqueViolation(error)) {
+        throw error;
+      }
+
+      // A retry with the same key. The first transfer is the answer for both.
+      const existing = await prisma.shopFloatTransfer.findUnique({
+        where: { idempotencyKey: input.idempotencyKey },
+        select: { id: true },
+      });
+
+      if (existing === null) {
+        throw error;
+      }
+
+      return { id: existing.id, duplicate: true };
+    }
+
+    return { id: input.id, duplicate: false };
+  }
+
   async function listEntries(
     accountId: string,
     limit: number,
@@ -446,6 +521,7 @@ export function createWalletRepository(
         getOrOpenAccount(ownerType, ownerId),
       ),
     postEntry: async (input) => guarded("postEntry", async () => postEntry(input)),
+    postFloatTransfer: async (input) => guarded("postFloatTransfer", async () => postFloatTransfer(input)),
     listEntries: async (accountId, limit) =>
       guarded("listEntries", async () => listEntries(accountId, limit)),
     pageEntries: async (accountId, filter) =>

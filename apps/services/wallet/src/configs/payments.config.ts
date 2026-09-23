@@ -2,6 +2,12 @@ import { Buffer } from "node:buffer";
 import type { ProviderId } from "../constants/payments.constant.js";
 import { Secret } from "./secret.js";
 
+/** One key of the encryption ring: `version` is the `v<n>` tag its ciphertext carries. */
+export interface VersionedKey {
+  readonly version: number;
+  readonly secret: Secret;
+}
+
 export type WalletEnvironment = "development" | "test" | "production";
 
 type Env = Readonly<Record<string, string | undefined>>;
@@ -49,6 +55,10 @@ export interface PaymentSettings {
   readonly withdrawalFee: WithdrawalFeeSettings;
   readonly withdrawalReviewThresholdKobo: number;
   readonly encryptionKey: Secret | undefined;
+  /** The version new ciphertext is written under; defaults to 1. */
+  readonly encryptionKeyVersion: number;
+  /** Decrypt-only keys a rotation has retired, so their rows still open. */
+  readonly retiredEncryptionKeys: readonly VersionedKey[];
   readonly storage: StorageSettings | undefined;
   readonly jobsEnabled: boolean;
   readonly jobsIntervalMs: number;
@@ -218,18 +228,59 @@ function flutterwaveOf(env: Env, environment: WalletEnvironment): FlutterwaveSet
   };
 }
 
-function encryptionKeyOf(env: Env): Secret | undefined {
-  const raw = text(env, "WALLET_ENCRYPTION_KEY");
-
-  if (raw === undefined) {
-    return undefined;
-  }
-
+function checkedKey(raw: string, key: string): Secret {
   if (Buffer.from(raw, "base64").length !== 32 || !/^[A-Za-z0-9+/]{43}=$/u.test(raw)) {
-    fail("WALLET_ENCRYPTION_KEY must be 32 random bytes, base64 encoded (openssl rand -base64 32).");
+    fail(`${key} must be 32 random bytes, base64 encoded (openssl rand -base64 32).`);
   }
 
   return new Secret(raw);
+}
+
+function encryptionKeyOf(env: Env): Secret | undefined {
+  const raw = text(env, "WALLET_ENCRYPTION_KEY");
+
+  return raw === undefined ? undefined : checkedKey(raw, "WALLET_ENCRYPTION_KEY");
+}
+
+/**
+ * Keys a rotation has retired: decrypt-only, so rows written under them still
+ * open while every new write uses the active key. Format: `version:base64key`,
+ * comma separated. A key stays listed until the re-encryption pass has moved
+ * every row off it; dropping it early makes those rows unreadable.
+ */
+function retiredKeysOf(env: Env, activeVersion: number): VersionedKey[] {
+  const raw = text(env, "WALLET_ENCRYPTION_KEYS_RETIRED");
+
+  if (raw === undefined) {
+    return [];
+  }
+
+  const keys = raw
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter((entry) => entry !== "")
+    .map((entry) => {
+      const separator = entry.indexOf(":");
+      const version = Number(entry.slice(0, separator));
+
+      if (separator < 1 || !Number.isInteger(version) || version < 1) {
+        fail("WALLET_ENCRYPTION_KEYS_RETIRED entries must be version:base64key, with version a positive integer.");
+      }
+
+      if (version === activeVersion) {
+        fail(`WALLET_ENCRYPTION_KEYS_RETIRED lists version ${String(version)}, which is the active key version.`);
+      }
+
+      return { version, secret: checkedKey(entry.slice(separator + 1), "WALLET_ENCRYPTION_KEYS_RETIRED") };
+    });
+
+  const versions = new Set(keys.map((key) => key.version));
+
+  if (versions.size !== keys.length) {
+    fail("WALLET_ENCRYPTION_KEYS_RETIRED lists the same version twice.");
+  }
+
+  return keys;
 }
 
 function storageOf(env: Env): StorageSettings | undefined {
@@ -288,6 +339,8 @@ export function loadPaymentSettings(env: Env): PaymentSettings {
   const paystack = paystackOf(env, environment);
   const flutterwave = flutterwaveOf(env, environment);
   const encryptionKey = encryptionKeyOf(env);
+  const encryptionKeyVersion = integer(env, "WALLET_ENCRYPTION_KEY_VERSION", 1, 1);
+  const retiredEncryptionKeys = retiredKeysOf(env, encryptionKeyVersion);
   const production = environment === "production";
   const realProvider = activeProvider !== undefined && REAL_PROVIDERS.includes(activeProvider);
 
@@ -364,6 +417,8 @@ export function loadPaymentSettings(env: Env): PaymentSettings {
     withdrawalFee,
     withdrawalReviewThresholdKobo: integer(env, "WITHDRAWAL_REVIEW_THRESHOLD_KOBO", 50_000_000, 1),
     encryptionKey,
+    encryptionKeyVersion,
+    retiredEncryptionKeys,
     storage: storageOf(env),
     jobsEnabled: flag(env, "WALLET_JOBS_ENABLED", environment !== "test"),
     jobsIntervalMs: integer(env, "WALLET_JOBS_INTERVAL_MS", 30_000, 1_000),

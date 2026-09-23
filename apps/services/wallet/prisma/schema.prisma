@@ -188,7 +188,10 @@ model BankAccountVerification {
   @@map("bank_account_verifications")
 }
 
-/// Provider event ids already seen, for webhook idempotency. No payload is stored.
+/// Provider event ids already seen, for webhook idempotency, and the dead-letter
+/// queue for the ones that failed to apply. The body is held encrypted and only
+/// until the event succeeds or is abandoned: a webhook that cannot be replayed is
+/// a payment silently lost.
 model PaymentWebhookEvent {
   id               String    @id @db.Uuid
   provider         String
@@ -198,8 +201,20 @@ model PaymentWebhookEvent {
   outcome          String?   @db.VarChar(40)
   receivedAt       DateTime  @default(now()) @map("received_at") @db.Timestamptz(3)
   processedAt      DateTime? @map("processed_at") @db.Timestamptz(3)
+  /// The raw body, AES-256-GCM under the wallet key; cleared once the event is done.
+  payloadEncrypted String?   @map("payload_encrypted")
+  /// Whether the provider signature verified at receipt. Always true today: an
+  /// unverified body is refused before a row exists. Recorded so that stays auditable.
+  signatureVerified Boolean  @default(true) @map("signature_verified")
+  attempts         Int       @default(0)
+  lastError        String?   @map("last_error") @db.VarChar(200)
+  /// When the retry job may next pick this event up; null once it is done or abandoned.
+  nextAttemptAt    DateTime? @map("next_attempt_at") @db.Timestamptz(3)
+  /// Set when the retries ran out. These rows are the queue an operator must work.
+  abandonedAt      DateTime? @map("abandoned_at") @db.Timestamptz(3)
 
   @@unique([provider, eventId])
+  @@index([nextAttemptAt])
   @@map("payment_webhook_events")
 }
 
@@ -248,4 +263,27 @@ model CashierShift {
   @@unique([cashierId, openIdempotencyKey], map: "cashier_shifts_open_key")
   @@index([shopId, openedAt], map: "cashier_shifts_shop_opened_idx")
   @@map("cashier_shifts")
+}
+
+/// One cashier handing float to another inside a shop. The shop's balance does not move: the two ledger
+/// rows are a `CASH_OUT` attributed to the sender and a matching `CASH_IN` attributed to the receiver, so
+/// each drawer's expected cash changes and the shop's does not. Both shifts must be open.
+model ShopFloatTransfer {
+  id             String   @id @db.Uuid
+  shopId         String   @map("shop_id") @db.Uuid
+  fromShiftId    String   @map("from_shift_id") @db.Uuid
+  fromCashierId  String   @map("from_cashier_id") @db.Uuid
+  toShiftId      String   @map("to_shift_id") @db.Uuid
+  toCashierId    String   @map("to_cashier_id") @db.Uuid
+  amount         BigInt
+  note           String   @db.VarChar(160)
+  /// The cashier who authorised it: the sender, or an owner or manager moving float on their behalf.
+  authorisedBy   String   @map("authorised_by") @db.Uuid
+  idempotencyKey String   @unique @map("idempotency_key") @db.VarChar(120)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([shopId, createdAt(sort: Desc)])
+  @@index([fromShiftId])
+  @@index([toShiftId])
+  @@map("shop_float_transfers")
 }

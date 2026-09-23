@@ -272,6 +272,80 @@ describe("deposits", () => {
     expect(await depositEntries(customerId)).toHaveLength(1);
   });
 
+  it("keeps a webhook it could not apply, replays it when the provider returns, and holds no plaintext meanwhile", async () => {
+    const customerId = await fixtures.customer();
+    const ref = reference(await initiate(customerId, 500_000));
+
+    paystack.charges.set(ref, { status: "success", amount: 500_000, currency: "NGN" });
+    paystack.down = true;
+
+    const refused = await webhook("paystack", chargeEvent(ref, 500_000));
+
+    expect(refused.status).toBeGreaterThanOrEqual(500);
+    expect(await depositEntries(customerId)).toHaveLength(0);
+
+    const queued = await direct.prisma.paymentWebhookEvent.findFirstOrThrow({ where: { paymentReference: ref } });
+
+    expect(queued).toMatchObject({ attempts: 1, processedAt: null, abandonedAt: null, signatureVerified: true });
+    expect(queued.nextAttemptAt).not.toBeNull();
+    expect(queued.lastError).not.toBeNull();
+    // The body is kept so it can be replayed, but never in the clear.
+    expect(queued.payloadEncrypted).not.toBeNull();
+    expect(queued.payloadEncrypted).not.toContain(ref);
+
+    // Still inside its backoff: the job leaves this event alone.
+    await running.app.payments.retryWebhooks(new Date(Date.now() - 60_000), "test");
+    expect(
+      (await direct.prisma.paymentWebhookEvent.findFirstOrThrow({ where: { paymentReference: ref } })).attempts,
+    ).toBe(1);
+
+    paystack.down = false;
+
+    await running.app.payments.retryWebhooks(new Date(Date.now() + 60_000), "test");
+    expect(await depositEntries(customerId)).toHaveLength(1);
+
+    const settled = await direct.prisma.paymentWebhookEvent.findFirstOrThrow({ where: { paymentReference: ref } });
+
+    expect(settled.processedAt).not.toBeNull();
+    expect(settled.nextAttemptAt).toBeNull();
+    // Nothing sensitive is retained once the event is done.
+    expect(settled.payloadEncrypted).toBeNull();
+    expect(settled.abandonedAt).toBeNull();
+  });
+
+  it("abandons a webhook once its retries run out, and counts it for an operator", async () => {
+    const customerId = await fixtures.customer();
+    const ref = reference(await initiate(customerId, 500_000));
+
+    paystack.charges.set(ref, { status: "success", amount: 500_000, currency: "NGN" });
+    paystack.down = true;
+
+    const delivery = chargeEvent(ref, 500_000);
+
+    await webhook("paystack", delivery);
+
+    const before = await running.app.payments.abandonedWebhooks();
+
+    // Five scheduled retries, each still failing, then the queue gives up on it.
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      await running.app.payments.retryWebhooks(new Date(Date.now() + 24 * 60 * 60_000), "test");
+    }
+
+    const dead = await direct.prisma.paymentWebhookEvent.findFirstOrThrow({ where: { paymentReference: ref } });
+
+    expect(dead.attempts).toBe(6);
+    expect(dead.abandonedAt).not.toBeNull();
+    expect(dead.processedAt).toBeNull();
+    // Abandoned means an operator owns it now; the body is not kept indefinitely.
+    expect(dead.payloadEncrypted).toBeNull();
+    expect(await running.app.payments.abandonedWebhooks()).toBe(before + 1);
+    expect(await depositEntries(customerId)).toHaveLength(0);
+
+    // A re-delivery of the same abandoned event must not quietly restart it.
+    paystack.down = false;
+    expect(((await webhook("paystack", delivery)).body as { outcome: string }).outcome).toBe("duplicate");
+  });
+
   it("expires a stale deposit only after the provider says it was not paid", async () => {
     const customerId = await fixtures.customer();
     const unpaid = reference(await initiate(customerId, 500_000));

@@ -65,6 +65,25 @@ export interface PostEntryInput {
   readonly actorId?: string | undefined;
 }
 
+export interface FloatTransferInput {
+  readonly id: string;
+  readonly shopId: string;
+  readonly fromShiftId: string;
+  readonly fromCashierId: string;
+  readonly toShiftId: string;
+  readonly toCashierId: string;
+  /** Unsigned kobo; the halves are signed for each side. */
+  readonly amount: bigint;
+  readonly note: string;
+  readonly authorisedBy: string;
+  readonly idempotencyKey: string;
+}
+
+export interface FloatTransferResult {
+  readonly id: string;
+  readonly duplicate: boolean;
+}
+
 export interface PostEntryResult {
   readonly account: AccountRecord;
   readonly entry: EntryRecord;
@@ -140,6 +159,11 @@ export interface EntryPage {
 export interface WalletRepository {
   getOrOpenAccount(ownerType: OwnerType, ownerId: string): Promise<AccountRecord>;
   postEntry(input: PostEntryInput): Promise<PostEntryResult>;
+  /**
+   * Moves float between two cashiers of one shop. Both ledger rows and the transfer record commit
+   * together, so the shop's balance never moves and neither half can exist alone.
+   */
+  postFloatTransfer(input: FloatTransferInput): Promise<FloatTransferResult>;
   listEntries(accountId: string, limit: number): Promise<readonly EntryRecord[]>;
   pageEntries(accountId: string, filter: EntryPageFilter): Promise<EntryPage>;
   listShopEntries(

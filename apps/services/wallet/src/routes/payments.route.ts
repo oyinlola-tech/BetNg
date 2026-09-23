@@ -34,6 +34,8 @@ export function registerPaymentRoutes(router: HttpRouter, controller: PaymentsCo
   router.post(`${API_PREFIX}/shop/shifts/current/cash`, json(controller.moveCash), describe("Cashier (cash:move). Cash in or out of the drawer."));
   router.post(`${API_PREFIX}/shop/shifts/:id/close`, json(controller.closeShift), describe("Cashier (shifts:operate). Closes a shift with a PIN and a counted drawer."));
   router.get(`${API_PREFIX}/shop/shifts`, json(controller.listShifts), describe("Cashier. Own shifts for a day; every shop shift with reports:read."));
+  router.post(`${API_PREFIX}/shop/transfers`, created(controller.transferFloat), describe("Cashier (cash:transfer). Float from one open drawer to another in the shop; PIN and Idempotency-Key required."));
+  router.get(`${API_PREFIX}/shop/transfers`, json(controller.listTransfers), describe("Cashier (reports:read). The shop's float transfers for a day."));
 
   router.get(`${API_PREFIX}/admin/payments/overview`, json(controller.adminOverview), describe("Admin (payments:read). Today's payment figures and provider health."));
   router.get(`${API_PREFIX}/admin/payments`, json(controller.adminPayments), describe("Admin (payments:read). Every payment, filtered and paged."));

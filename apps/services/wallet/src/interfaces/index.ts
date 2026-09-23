@@ -12,6 +12,8 @@ export type {
   OwnerType,
   PlatformEntryRecord,
   PostableEntryType,
+  FloatTransferInput,
+  FloatTransferResult,
   PostEntryInput,
   PostEntryResult,
   ShopEntryRecord,

@@ -20,6 +20,7 @@ export {
   bankAccountVerifySchema,
   cashMovementSchema,
   closeShiftSchema,
+  floatTransferSchema,
   depositInitiateSchema,
   depositVerifySchema,
   historyQuerySchema,

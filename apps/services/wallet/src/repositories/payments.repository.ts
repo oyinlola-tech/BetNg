@@ -111,8 +111,26 @@ export interface PaymentsRepository {
   adminOne(reference: string): Promise<AdminPaymentRow | undefined>;
   overview(since: Date): Promise<OverviewFigures>;
   customerContact(userId: string): Promise<{ readonly email: string; readonly status: string } | undefined>;
-  recordWebhookEvent(provider: ProviderId, eventId: string, eventType: string, reference: string | undefined): Promise<"NEW" | "PENDING" | "DONE">;
+  recordWebhookEvent(
+    provider: ProviderId,
+    eventId: string,
+    eventType: string,
+    reference: string | undefined,
+    payloadEncrypted: string | undefined,
+  ): Promise<"NEW" | "PENDING" | "DONE">;
   completeWebhookEvent(provider: ProviderId, eventId: string, outcome: string): Promise<void>;
+  /** Records a failed attempt and when it may be retried; abandons it once the retries run out. */
+  failWebhookEvent(provider: ProviderId, eventId: string, error: string, retryAt: Date | undefined): Promise<void>;
+  /** Failed events whose backoff has elapsed, oldest first. */
+  dueWebhookEvents(now: Date, limit: number): Promise<readonly DeadLetterWebhook[]>;
+  countAbandonedWebhooks(): Promise<number>;
+}
+
+export interface DeadLetterWebhook {
+  readonly provider: ProviderId;
+  readonly eventId: string;
+  readonly payloadEncrypted: string;
+  readonly attempts: number;
 }
 
 function isTerminal(status: string): boolean {
@@ -727,10 +745,12 @@ export function createPaymentsRepository(prisma: PrismaClient, logger: Logger): 
       return rows[0];
     },
 
-    recordWebhookEvent: async (provider, eventId, eventType, reference) => {
+    recordWebhookEvent: async (provider, eventId, eventType, reference, payloadEncrypted) => {
       const inserted = await prisma.$queryRaw<{ id: string }[]>`
-        INSERT INTO "wallet"."payment_webhook_events" ("id", "provider", "event_id", "event_type", "payment_reference")
-        VALUES (${randomUUID()}::uuid, ${provider}, ${eventId}, ${eventType}, ${reference ?? null})
+        INSERT INTO "wallet"."payment_webhook_events"
+          ("id", "provider", "event_id", "event_type", "payment_reference", "payload_encrypted")
+        VALUES (${randomUUID()}::uuid, ${provider}, ${eventId}, ${eventType}, ${reference ?? null},
+                ${payloadEncrypted ?? null})
         ON CONFLICT ("provider", "event_id") DO NOTHING
         RETURNING "id"`;
 
@@ -740,15 +760,56 @@ export function createPaymentsRepository(prisma: PrismaClient, logger: Logger): 
 
       const existing = await prisma.paymentWebhookEvent.findUnique({ where: { provider_eventId: { provider, eventId } } });
 
-      return existing?.processedAt === null ? "PENDING" : "DONE";
+      // An abandoned event is done as far as the provider is concerned: only an
+      // operator moves it on, and re-delivering it must not start a fresh attempt.
+      return existing?.processedAt === null && existing.abandonedAt === null ? "PENDING" : "DONE";
     },
 
     completeWebhookEvent: async (provider, eventId, outcome) => {
       await prisma.paymentWebhookEvent.update({
         where: { provider_eventId: { provider, eventId } },
-        data: { processedAt: new Date(), outcome: outcome.slice(0, 40) },
+        data: {
+          processedAt: new Date(),
+          outcome: outcome.slice(0, 40),
+          nextAttemptAt: null,
+          payloadEncrypted: null,
+        },
       });
     },
+
+    failWebhookEvent: async (provider, eventId, error, retryAt) => {
+      await prisma.paymentWebhookEvent.update({
+        where: { provider_eventId: { provider, eventId } },
+        data: {
+          attempts: { increment: 1 },
+          lastError: error.slice(0, 200),
+          nextAttemptAt: retryAt ?? null,
+          ...(retryAt === undefined ? { abandonedAt: new Date(), payloadEncrypted: null } : {}),
+        },
+      });
+    },
+
+    dueWebhookEvents: async (now, limit) => {
+      const rows = await prisma.paymentWebhookEvent.findMany({
+        where: {
+          processedAt: null,
+          abandonedAt: null,
+          nextAttemptAt: { not: null, lte: now },
+          payloadEncrypted: { not: null },
+        },
+        orderBy: { nextAttemptAt: "asc" },
+        take: limit,
+      });
+
+      return rows.map((row) => ({
+        provider: row.provider as ProviderId,
+        eventId: row.eventId,
+        payloadEncrypted: row.payloadEncrypted ?? "",
+        attempts: row.attempts,
+      }));
+    },
+
+    countAbandonedWebhooks: async () => prisma.paymentWebhookEvent.count({ where: { abandonedAt: { not: null } } }),
   };
 
   const wrapped = {} as Record<string, unknown>;

@@ -23,6 +23,7 @@ import {
   adminPaymentsQuerySchema,
   bankAccountVerifySchema,
   cashMovementSchema,
+  floatTransferSchema,
   closeShiftSchema,
   depositInitiateSchema,
   depositVerifySchema,
@@ -68,6 +69,8 @@ export interface PaymentsController {
   readonly moveCash: Handler<unknown>;
   readonly closeShift: Handler<unknown>;
   readonly listShifts: Handler<unknown>;
+  readonly transferFloat: Handler<unknown>;
+  readonly listTransfers: Handler<unknown>;
   readonly adminOverview: Handler<unknown>;
   readonly adminPayments: Handler<unknown>;
   readonly reviewWithdrawal: Handler<unknown>;
@@ -226,6 +229,30 @@ export function createPaymentsController(options: PaymentsControllerOptions): Pa
       const key = idempotencyKey(context);
 
       return shifts.close(cashierContext, id, parseBody(context.request, closeShiftSchema), key, getRequestId(context.request));
+    },
+
+    transferFloat: async (context) => {
+      const cashierContext = cashier(context, SHOP_PERMISSION.CASH_TRANSFER);
+      const key = idempotencyKey(context);
+
+      return shifts.transferFloat(
+        cashierContext,
+        parseBody(context.request, floatTransferSchema),
+        key,
+        getRequestId(context.request),
+      );
+    },
+
+    listTransfers: async (context) => {
+      const cashierContext = cashier(context, SHOP_PERMISSION.REPORTS_READ);
+      const { date } = parseQuery(context.query, shiftListQuerySchema);
+      const range = date === undefined ? utcToday() : utcDayRange(date);
+
+      if (range === undefined) {
+        throw paymentErrors.invalid("That is not a calendar date.");
+      }
+
+      return { items: await shifts.listTransfers(cashierContext, range) };
     },
 
     listShifts: async (context) => {

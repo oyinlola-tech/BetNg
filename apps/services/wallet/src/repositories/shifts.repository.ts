@@ -37,6 +37,17 @@ export type CloseOutcome =
   | { readonly kind: "NOT_OPEN"; readonly shift: ShiftRow }
   | { readonly kind: "MISSING" };
 
+export interface FloatTransferRow {
+  readonly id: string;
+  readonly fromCashierId: string;
+  readonly fromCashierName: string;
+  readonly toCashierId: string;
+  readonly toCashierName: string;
+  readonly amount: bigint;
+  readonly note: string;
+  readonly createdAt: Date;
+}
+
 export interface ShiftsRepository {
   /** The cashier's display name when identity has them as an active cashier of that shop. */
   cashierOfShop(cashierId: string, shopId: string): Promise<string | undefined>;
@@ -47,6 +58,7 @@ export interface ShiftsRepository {
   ledgerTotals(shopId: string, cashierId: string, from: Date, to: Date): Promise<LedgerTotals>;
   close(id: string, cashierId: string, closure: (shift: ShiftRow) => Promise<ShiftClosure>): Promise<CloseOutcome>;
   list(shopId: string, cashierId: string | undefined, range: TimeRange): Promise<readonly ShiftRow[]>;
+  listTransfers(shopId: string, range: TimeRange, limit: number): Promise<readonly FloatTransferRow[]>;
 }
 
 export function createShiftsRepository(prisma: PrismaClient): ShiftsRepository {
@@ -61,6 +73,44 @@ export function createShiftsRepository(prisma: PrismaClient): ShiftsRepository {
     },
 
     findOwned: async (id, cashierId) => (await prisma.cashierShift.findFirst({ where: { id, cashierId } })) ?? undefined,
+
+    listTransfers: async (shopId, range, limit) => {
+      // The cashier names come from the shifts, which already carry them, so identity is not asked.
+      const rows = await prisma.$queryRaw<
+        {
+          id: string;
+          from_cashier_id: string;
+          from_name: string;
+          to_cashier_id: string;
+          to_name: string;
+          amount: bigint;
+          note: string;
+          created_at: Date;
+        }[]
+      >`
+        SELECT t."id",
+               t."from_cashier_id", COALESCE(f."cashier_name", '') AS "from_name",
+               t."to_cashier_id",   COALESCE(r."cashier_name", '') AS "to_name",
+               t."amount", t."note", t."created_at"
+          FROM "wallet"."shop_float_transfers" t
+          LEFT JOIN "wallet"."cashier_shifts" f ON f."id" = t."from_shift_id"
+          LEFT JOIN "wallet"."cashier_shifts" r ON r."id" = t."to_shift_id"
+         WHERE t."shop_id" = ${shopId}::uuid
+           AND t."created_at" >= ${range.from} AND t."created_at" <= ${range.to}
+         ORDER BY t."created_at" DESC
+         LIMIT ${limit}`;
+
+      return rows.map((row) => ({
+        id: row.id,
+        fromCashierId: row.from_cashier_id,
+        fromCashierName: row.from_name,
+        toCashierId: row.to_cashier_id,
+        toCashierName: row.to_name,
+        amount: row.amount,
+        note: row.note,
+        createdAt: row.created_at,
+      }));
+    },
 
     findOpen: async (cashierId) =>
       (await prisma.cashierShift.findFirst({ where: { cashierId, status: { in: ["OPEN", "CLOSING"] } } })) ?? undefined,

@@ -1,6 +1,7 @@
 import {
   bankAccountVerifyRequestSchema,
   cashMovementRequestSchema,
+  floatTransferRequestSchema,
   closeShiftRequestSchema,
   depositInitiateRequestSchema,
   openShiftRequestSchema,
@@ -48,6 +49,10 @@ export const statementSchema = statementRequestSchema
 export const openShiftSchema = openShiftRequestSchema.extend({ openingFloat: z.int().min(0).max(1_000_000_000) }).strict();
 
 export const cashMovementSchema = cashMovementRequestSchema.extend({ amount: z.int().min(1).max(1_000_000_000) }).strict();
+
+export const floatTransferSchema = floatTransferRequestSchema
+  .extend({ amount: z.int().min(1).max(1_000_000_000), toCashierId: z.uuid() })
+  .strict();
 
 export const closeShiftSchema = closeShiftRequestSchema
   .extend({ counted: closeShiftRequestSchema.shape.counted.max(20) })

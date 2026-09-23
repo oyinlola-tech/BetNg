@@ -34,6 +34,7 @@ export const PAYMENT_PERMISSION = Object.freeze({
 export const SHOP_PERMISSION = Object.freeze({
   SHIFTS_OPERATE: "shifts:operate",
   CASH_MOVE: "cash:move",
+  CASH_TRANSFER: "cash:transfer",
   REPORTS_READ: "reports:read",
 });
 

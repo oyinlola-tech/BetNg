@@ -26,7 +26,7 @@ import {
   ProviderUnavailableError,
   WebhookRejectedError,
 } from "../../providers/index.js";
-import type { HeaderReader, PaymentProvider, ProviderOutcome, ProviderRegistry } from "../../providers/index.js";
+import type { HeaderReader, PaymentProvider, ProviderOutcome, ProviderRegistry, WebhookEvent } from "../../providers/index.js";
 import type { BankAccountsRepository } from "../../repositories/bankAccounts.repository.js";
 import { isUniqueViolation } from "../../repositories/payments.repository.js";
 import type { AdminFilter, HistoryFilter, PaymentRow, PaymentsRepository, Settled } from "../../repositories/payments.repository.js";
@@ -56,6 +56,11 @@ const ROUTE_PROVIDER: Readonly<Record<WebhookRoute, ProviderId>> = Object.freeze
 });
 
 const OPEN_STATUSES: ReadonlySet<string> = new Set(["INITIATED", "PENDING", "PROCESSING"]);
+
+/** Retry schedule for a webhook that verified but could not be applied. */
+const WEBHOOK_RETRY_DELAYS_MS: readonly number[] = [30_000, 120_000, 600_000, 3_600_000, 21_600_000];
+const WEBHOOK_PAYLOAD_CONTEXT = "payment-webhook";
+const WEBHOOK_RETRY_BATCH = 20;
 
 function newReference(kind: "d" | "w"): string {
   return `bng${kind}-${randomBytes(12).toString("hex")}`;
@@ -634,9 +639,21 @@ export class PaymentsService {
     }
 
     let event;
+    // Records the headers the provider actually reads, and only those, so a replay
+    // can re-verify the signature rather than trust a row in our own database.
+    const seen = new Map<string, string>();
+    const recording: HeaderReader = (name) => {
+      const value = header(name);
+
+      if (value !== undefined) {
+        seen.set(name, value);
+      }
+
+      return value;
+    };
 
     try {
-      event = provider.parseWebhook(rawBody, header);
+      event = provider.parseWebhook(rawBody, recording);
     } catch (error) {
       if (error instanceof WebhookRejectedError) {
         this.deps.logger.warn("Webhook rejected", { requestId, event: "webhook_rejected", provider: provider.id });
@@ -646,17 +663,117 @@ export class PaymentsService {
       throw error;
     }
 
-    const state = await this.deps.payments.recordWebhookEvent(provider.id, event.eventId, event.eventType, event.reference);
+    // The verified body is kept, encrypted, only until the event is applied. Without
+    // it a failure leaves nothing to replay and the payment is lost silently.
+    const state = await this.deps.payments.recordWebhookEvent(
+      provider.id,
+      event.eventId,
+      event.eventType,
+      event.reference,
+      this.sealWebhookPayload(rawBody, seen),
+    );
 
     if (state === "DONE") {
       return "duplicate";
     }
 
-    const outcome = await this.applyWebhook(provider.id, event, requestId);
+    return this.applyAndSettle(provider.id, event, 0, requestId);
+  }
 
-    await this.deps.payments.completeWebhookEvent(provider.id, event.eventId, outcome);
+  /** Applies a recorded webhook and books the result, leaving it replayable if it throws. */
+  private async applyAndSettle(
+    provider: ProviderId,
+    event: WebhookEvent,
+    attempts: number,
+    requestId: string,
+  ): Promise<string> {
+    let outcome: string;
+
+    try {
+      outcome = await this.applyWebhook(provider, event, requestId);
+    } catch (error) {
+      const retryAt = this.nextWebhookAttempt(attempts);
+
+      await this.deps.payments.failWebhookEvent(
+        provider,
+        event.eventId,
+        error instanceof Error ? error.message : "unknown",
+        retryAt,
+      );
+      this.deps.logger.error(retryAt === undefined ? "Webhook abandoned after its last retry" : "Webhook failed and is queued for retry", {
+        requestId,
+        event: retryAt === undefined ? "webhook_abandoned" : "webhook_retry_queued",
+        provider,
+        eventId: event.eventId,
+        attempts: attempts + 1,
+        error: error instanceof Error ? error.name : "unknown",
+      });
+
+      throw error;
+    }
+
+    await this.deps.payments.completeWebhookEvent(provider, event.eventId, outcome);
 
     return outcome;
+  }
+
+  private sealWebhookPayload(rawBody: Uint8Array, headers: ReadonlyMap<string, string>): string | undefined {
+    const envelope = JSON.stringify({
+      body: Buffer.from(rawBody).toString("base64"),
+      headers: Object.fromEntries(headers),
+    });
+
+    return this.deps.cipher?.encrypt(envelope, WEBHOOK_PAYLOAD_CONTEXT);
+  }
+
+  private nextWebhookAttempt(attempts: number): Date | undefined {
+    const delay = WEBHOOK_RETRY_DELAYS_MS[attempts];
+
+    return delay === undefined ? undefined : new Date(Date.now() + delay);
+  }
+
+  /**
+   * Replays webhooks that verified but could not be applied. A provider stops
+   * re-delivering long before an outage is over; without this the queue is a
+   * record of lost payments rather than a way to recover them.
+   */
+  public async retryWebhooks(now: Date, requestId: string): Promise<number> {
+    const cipher = this.deps.cipher;
+
+    if (cipher === undefined) {
+      return 0;
+    }
+
+    let replayed = 0;
+
+    for (const row of await this.deps.payments.dueWebhookEvents(now, WEBHOOK_RETRY_BATCH)) {
+      const provider = this.deps.registry.get(row.provider);
+
+      if (provider === undefined) {
+        continue;
+      }
+
+      try {
+        const envelope = JSON.parse(cipher.decrypt(row.payloadEncrypted, WEBHOOK_PAYLOAD_CONTEXT)) as {
+          readonly body: string;
+          readonly headers: Readonly<Record<string, string>>;
+        };
+        // Re-verified, not trusted from the row: a tampered payload column is refused.
+        const event = provider.parseWebhook(Buffer.from(envelope.body, "base64"), (name) => envelope.headers[name]);
+
+        await this.applyAndSettle(row.provider, event, row.attempts, requestId);
+        replayed += 1;
+      } catch {
+        // applyAndSettle has already recorded the attempt and its backoff.
+      }
+    }
+
+    return replayed;
+  }
+
+  /** How many webhooks have run out of retries and need an operator. */
+  public async abandonedWebhooks(): Promise<number> {
+    return this.deps.payments.countAbandonedWebhooks();
   }
 
   private async applyWebhook(

@@ -13,6 +13,7 @@ export type {
   PaymentSettings,
   PaystackSettings,
   StorageSettings,
+  VersionedKey,
   WalletEnvironment,
   WithdrawalFeeSettings,
 } from "./payments.config.js";

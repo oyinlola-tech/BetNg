@@ -66,7 +66,13 @@ export function createApp(
   const identity = overrides.identity ?? createIdentityPeer(identityRpc ?? createRpcClient(config.services.identity), logger);
   const eventRpc = overrides.signals === undefined ? createRpcClient(config.services.event, { timeoutMs: 2_000 }) : undefined;
   const signals = overrides.signals ?? createSignalPublisher(eventRpc ?? createRpcClient(config.services.event), logger);
-  const cipher = settings.payments.encryptionKey === undefined ? undefined : createFieldCipher(settings.payments.encryptionKey);
+  const cipher =
+    settings.payments.encryptionKey === undefined
+      ? undefined
+      : createFieldCipher(
+          { version: settings.payments.encryptionKeyVersion, secret: settings.payments.encryptionKey },
+          settings.payments.retiredEncryptionKeys,
+        );
   const registry = createProviderRegistry(settings.payments);
   const bankAccounts = createBankAccountsRepository(prisma);
 

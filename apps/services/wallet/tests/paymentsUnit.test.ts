@@ -54,7 +54,7 @@ describe("payment configuration", () => {
 
 describe("field encryption", () => {
   it("round-trips, binds the ciphertext to its owner and never repeats a ciphertext", () => {
-    const cipher = createFieldCipher(new Secret(KEY));
+    const cipher = createFieldCipher({ version: 1, secret: new Secret(KEY) });
     const first = cipher.encrypt("0123456789", "user-a");
     const second = cipher.encrypt("0123456789", "user-a");
 
@@ -63,6 +63,48 @@ describe("field encryption", () => {
     expect(cipher.decrypt(first, "user-a")).toBe("0123456789");
     expect(() => cipher.decrypt(first, "user-b")).toThrow();
     expect(cipher.lookupHash("058:0123456789")).toMatch(/^[0-9a-f]{64}$/u);
+  });
+
+  it("opens a retired key's rows while writing every new one under the active key", () => {
+    const retiredKey = new Secret(randomBytes(32).toString("base64"));
+    const before = createFieldCipher({ version: 1, secret: retiredKey });
+    const written = before.encrypt("0123456789", "user-a");
+
+    expect(written.startsWith("v1:")).toBe(true);
+
+    const after = createFieldCipher({ version: 2, secret: new Secret(KEY) }, [{ version: 1, secret: retiredKey }]);
+
+    expect(after.activeVersion).toBe(2);
+    expect(after.decrypt(written, "user-a")).toBe("0123456789");
+    expect(after.encrypt("0123456789", "user-a").startsWith("v2:")).toBe(true);
+    expect(after.decrypt(after.encrypt("55", "user-a"), "user-a")).toBe("55");
+  });
+
+  it("refuses a ciphertext whose key the ring no longer holds rather than reading it wrong", () => {
+    const retiredKey = new Secret(randomBytes(32).toString("base64"));
+    const written = createFieldCipher({ version: 1, secret: retiredKey }).encrypt("0123456789", "user-a");
+    const withoutIt = createFieldCipher({ version: 2, secret: new Secret(KEY) });
+
+    expect(() => withoutIt.decrypt(written, "user-a")).toThrow(/no longer holds/iu);
+  });
+
+  it("refuses a retired key list that collides with the active version or repeats one", () => {
+    const retired = randomBytes(32).toString("base64");
+
+    expect(() =>
+      loadPaymentSettings({ ...production, WALLET_ENCRYPTION_KEY_VERSION: "2", WALLET_ENCRYPTION_KEYS_RETIRED: `2:${retired}` }),
+    ).toThrow();
+    expect(() =>
+      loadPaymentSettings({
+        ...production,
+        WALLET_ENCRYPTION_KEY_VERSION: "3",
+        WALLET_ENCRYPTION_KEYS_RETIRED: `1:${retired},1:${retired}`,
+      }),
+    ).toThrow();
+    expect(
+      loadPaymentSettings({ ...production, WALLET_ENCRYPTION_KEY_VERSION: "2", WALLET_ENCRYPTION_KEYS_RETIRED: `1:${retired}` })
+        .retiredEncryptionKeys,
+    ).toHaveLength(1);
   });
 });
 

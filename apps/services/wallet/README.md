@@ -12,8 +12,29 @@ Customer wallets, shop floats and the append-only ledger, plus payments (deposit
 | Withdrawal requested | `WITHDRAWAL` −amount | `withdrawal:<paymentId>` |
 | Transfer failed / reversed, or review rejected | `WITHDRAWAL_REVERSAL` +amount | `withdrawal-reversal:<paymentId>` |
 | Shift cash in / out | `CASH_IN` / `CASH_OUT` on the shop float, `actor_id` = cashier | `cash:<shiftId>:<client key>` |
+| Float from one drawer to another | `CASH_OUT` (sender) **and** `CASH_IN` (receiver), both on the shop float | `transfer:<shiftId>:<client key>:{out,in}` |
 
 Withdrawals are held by debiting at request time rather than through `reserved`: `reserved` means stakes on open bets, and the ledger records only what happened. While the provider has the transfer, the amount is reported as `pending` on `GET /wallets/:userId`.
+
+## Cashier float transfers
+
+`POST /shop/transfers` moves float from one open drawer to another in the same shop. A cashier does not
+hold a wallet — they hold a drawer, and the drawer is `cashier_shifts` — so the shop keeps its one
+`SHOP` account and invariant 9 is untouched. A transfer is two rows on that account: a `CASH_OUT`
+attributed to the sender and a matching `CASH_IN` attributed to the receiver, sharing
+`reference = transfer:<id>`. **The shop's balance is the same before and after**; each drawer's
+`expectedCash` is what changes, which `ledgerTotals` already derives from `actor_id`.
+
+`postFloatTransfer` writes both halves and the `shop_float_transfers` record in one transaction, calling
+`postWithinTransaction` twice rather than `postEntry` (which opens its own). The debit goes first, so a
+drawer that cannot cover it stops everything. A deferred constraint trigger proves the pair exists and
+sums to zero before the commit lands, and the table is append-only.
+
+Refused: sending to yourself, to a cashier who is not an active cashier of the shop, to or from a drawer
+with no open shift, more than the sending drawer's `expectedCash`, a note under three characters, or a
+wrong PIN. The sender re-enters their PIN through `identity.verifyCashierPin`, as they do to pay out a
+ticket or close a shift. `cash:transfer` belongs to `OWNER` and `MANAGER`; a plain cashier does not have
+it. `GET /shop/transfers` lists a day's transfers with both cashiers' names, under `reports:read`.
 
 ## Payments
 
