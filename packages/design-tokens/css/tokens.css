@@ -110,6 +110,9 @@
   --bn-void-subtle: #ECE9E2;
   --bn-suspended: #A4480F;
   --bn-suspended-subtle: #FBEDE3;
+  --bn-pitch: #1B6B43;
+  --bn-pitch-stripe: rgba(255, 255, 255, 0.045);
+  --bn-pitch-line: rgba(255, 255, 255, 0.62);
   --bn-overlay: rgba(20, 19, 15, 0.5);
   --bn-skeleton: #E9E5DD;
   --bn-series1: #2457F5;
@@ -153,6 +156,9 @@
   --bn-void-subtle: #1D1E21;
   --bn-suspended: #F08A4B;
   --bn-suspended-subtle: #33200F;
+  --bn-pitch: #12492E;
+  --bn-pitch-stripe: rgba(255, 255, 255, 0.035);
+  --bn-pitch-line: rgba(255, 255, 255, 0.48);
   --bn-overlay: rgba(0, 0, 0, 0.62);
   --bn-skeleton: #1E232C;
   --bn-series1: #4C7DFF;
@@ -197,6 +203,9 @@
     --bn-void-subtle: #1D1E21;
     --bn-suspended: #F08A4B;
     --bn-suspended-subtle: #33200F;
+    --bn-pitch: #12492E;
+    --bn-pitch-stripe: rgba(255, 255, 255, 0.035);
+    --bn-pitch-line: rgba(255, 255, 255, 0.48);
     --bn-overlay: rgba(0, 0, 0, 0.62);
     --bn-skeleton: #1E232C;
     --bn-series1: #4C7DFF;
@@ -241,6 +250,9 @@
   --bn-void-subtle: #1D1E21;
   --bn-suspended: #F08A4B;
   --bn-suspended-subtle: #33200F;
+  --bn-pitch: #12492E;
+  --bn-pitch-stripe: rgba(255, 255, 255, 0.035);
+  --bn-pitch-line: rgba(255, 255, 255, 0.48);
   --bn-overlay: rgba(0, 0, 0, 0.62);
   --bn-skeleton: #1E232C;
   --bn-series1: #4C7DFF;

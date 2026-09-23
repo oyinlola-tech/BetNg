@@ -39,6 +39,11 @@ export interface ColorTheme {
   readonly suspended: string;
   readonly suspendedSubtle: string;
 
+  /** The live pitch: turf, the mown stripe over it, and the painted markings. */
+  readonly pitch: string;
+  readonly pitchStripe: string;
+  readonly pitchLine: string;
+
   readonly overlay: string;
   readonly skeleton: string;
 
@@ -88,6 +93,10 @@ export const lightTheme: ColorTheme = Object.freeze({
   suspended: "#A4480F",
   suspendedSubtle: "#FBEDE3",
 
+  pitch: "#1B6B43",
+  pitchStripe: "rgba(255, 255, 255, 0.045)",
+  pitchLine: "rgba(255, 255, 255, 0.62)",
+
   overlay: "rgba(20, 19, 15, 0.5)",
   skeleton: "#E9E5DD",
 
@@ -135,6 +144,10 @@ export const darkTheme: ColorTheme = Object.freeze({
   voidSubtle: "#1D1E21",
   suspended: "#F08A4B",
   suspendedSubtle: "#33200F",
+
+  pitch: "#12492E",
+  pitchStripe: "rgba(255, 255, 255, 0.035)",
+  pitchLine: "rgba(255, 255, 255, 0.48)",
 
   overlay: "rgba(0, 0, 0, 0.62)",
   skeleton: "#1E232C",
