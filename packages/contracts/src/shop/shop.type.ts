@@ -100,7 +100,8 @@ export const shopSessionSchema = z.object({
   permissions: z.array(z.string().max(40)).optional(),
 });
 
-export const shopPermissionSchema = z.enum(["tickets:sell", "tickets:check", "tickets:payout", "tickets:cancel", "transactions:read", "reports:read", "cashiers:read", "shifts:operate", "cash:move"]);
+// `cashiers:write` and `cash:transfer` belong to a shop OWNER, who staffs and funds their own shop.
+export const shopPermissionSchema = z.enum(["tickets:sell", "tickets:check", "tickets:payout", "tickets:cancel", "transactions:read", "reports:read", "cashiers:read", "cashiers:write", "shifts:operate", "cash:move", "cash:transfer"]);
 
 export type ShopPermission = z.infer<typeof shopPermissionSchema>;
 

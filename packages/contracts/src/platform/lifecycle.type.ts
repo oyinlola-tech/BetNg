@@ -92,6 +92,8 @@ export const simulationTeamInputSchema = z.object({
   name: z.string().min(1).max(120),
   shortName: z.string().min(2).max(12),
   strength: teamStrengthSchema,
+  /** The club's league country, which decides where its squad is drawn from. */
+  country: z.string().min(2).max(60).optional(),
 });
 
 /** `simulation.runMatch`. Carries no bet, bettor, shop or exposure field, by design. */

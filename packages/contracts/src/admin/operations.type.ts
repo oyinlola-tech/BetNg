@@ -5,14 +5,26 @@ import { brandedIdSchema, decimalOddsSchema, isoTimestampSchema, minorUnitsSchem
 import { marketStatusSchema } from "../odds/index.js";
 import { matchStatusSchema } from "../match/index.js";
 import { cashierSchema, shopSchema } from "../shop/index.js";
+import {
+  nigerianStateSchema,
+  shopApplicationDocumentSchema,
+  shopApplicationStatusSchema,
+} from "../shop/application.type.js";
 import { customerProfileSchema } from "../auth/index.js";
-import { simulationRunSchema } from "./admin.type.js";
+import { adminRoleSchema, adminUserSchema, simulationRunSchema } from "./admin.type.js";
+import type { AdminUser } from "./admin.type.js";
 
 export const adminPermissionSchema = z.enum([
   "users:read",
   "users:write",
+  // Granted to SUPER_ADMIN alone: creating administrators is how every other permission is handed out.
+  "admins:read",
+  "admins:write",
   "shops:read",
   "shops:write",
+  // Deciding an application creates a shop and its first owner, so it is its own permission.
+  "shop-applications:read",
+  "shop-applications:write",
   "cashiers:write",
   "catalogue:read",
   "catalogue:write",
@@ -94,6 +106,125 @@ export const cashierCredentialsSchema = z.object({
 });
 
 export type CashierCredentials = z.infer<typeof cashierCredentialsSchema>;
+
+export const adminUserSummarySchema = adminUserSchema.extend({
+  status: z.enum(["ACTIVE", "SUSPENDED"]),
+  /** True until the administrator has replaced the one-time password they were issued. */
+  mustChangePassword: z.boolean(),
+  createdAt: isoTimestampSchema,
+});
+
+/** Declared rather than inferred, so it stays assignable from `AdminUser` and its readonly arrays. */
+export interface AdminUserSummary extends AdminUser {
+  readonly status: "ACTIVE" | "SUSPENDED";
+  readonly mustChangePassword: boolean;
+  readonly createdAt: string;
+}
+
+export const createAdminRequestSchema = z.object({
+  email: z.email().max(254),
+  name: z.string().trim().min(2).max(60),
+  role: adminRoleSchema,
+});
+
+export type CreateAdminRequest = z.infer<typeof createAdminRequestSchema>;
+
+export const updateAdminRequestSchema = z.object({
+  name: z.string().trim().min(2).max(60).optional(),
+  role: adminRoleSchema.optional(),
+  reason: z.string().trim().min(4).max(240).optional(),
+});
+
+export type UpdateAdminRequest = z.infer<typeof updateAdminRequestSchema>;
+
+/**
+ * Shown once, when an administrator is created or their credentials are reset. The platform stores only a
+ * hash. The authenticator secret is deliberately absent: it is issued to the administrator themselves when
+ * they activate, so whoever creates the account never learns it.
+ */
+export const adminCredentialsSchema = z.object({
+  email: z.email(),
+  temporaryPassword: z.string(),
+  expiresAt: isoTimestampSchema,
+});
+
+export type AdminCredentials = z.infer<typeof adminCredentialsSchema>;
+
+/** Step one of activation: proves the one-time password and hands back an authenticator to enrol. */
+export const adminActivationStartSchema = z.object({
+  email: z.email(),
+  temporaryPassword: z.string().min(1).max(128),
+});
+
+export type AdminActivationStart = z.infer<typeof adminActivationStartSchema>;
+
+export const adminActivationSecretSchema = z.object({
+  otpauthUri: z.string(),
+  /** The key, for an authenticator that cannot scan. */
+  manualKey: z.string(),
+  expiresAt: isoTimestampSchema,
+});
+
+export type AdminActivationSecret = z.infer<typeof adminActivationSecretSchema>;
+
+/** Step two: the one-time password is exchanged for a chosen one, with a code from the enrolled app. */
+export const adminActivateRequestSchema = z.object({
+  email: z.email(),
+  temporaryPassword: z.string().min(1).max(128),
+  newPassword: z.string().min(12).max(128),
+  code: z.string().regex(/^\d{6}$/),
+});
+
+export type AdminActivateRequest = z.infer<typeof adminActivateRequestSchema>;
+
+export const adminShopApplicationSchema = z.object({
+  id: brandedIdSchema<"ShopApplicationId">(),
+  reference: z.string(),
+  status: shopApplicationStatusSchema,
+  applicantName: z.string(),
+  applicantEmail: z.email(),
+  applicantPhone: z.string(),
+  businessName: z.string(),
+  rcNumber: z.string().optional(),
+  address: z.string(),
+  city: z.string(),
+  state: nigerianStateSchema,
+  proposedShopName: z.string(),
+  note: z.string().optional(),
+  emailVerifiedAt: isoTimestampSchema.optional(),
+  submittedAt: isoTimestampSchema,
+  decidedAt: isoTimestampSchema.optional(),
+  decidedBy: z.string().optional(),
+  reason: z.string().optional(),
+  documents: z.array(shopApplicationDocumentSchema).default([]),
+  /** Set once approved: the shop that was created from it. */
+  shopId: brandedIdSchema<"ShopId">().optional(),
+});
+
+export type AdminShopApplication = z.infer<typeof adminShopApplicationSchema>;
+
+/** Same shape as a KYC decision, because it is the same kind of decision. */
+export const shopApplicationDecisionSchema = z.object({
+  decision: z.enum(["APPROVE", "REJECT", "REQUEST_ACTION"]),
+  reason: z.string().trim().min(4).max(300),
+  /** On approval only: overrides the code generated from the applicant's state. */
+  shopCode: z.string().trim().min(3).max(20).optional(),
+  /** On approval only: overrides the proposed name. */
+  shopName: z.string().trim().min(2).max(80).optional(),
+});
+
+export type ShopApplicationDecision = z.infer<typeof shopApplicationDecisionSchema>;
+
+/** Returned once when an application is approved: the owner's first sign-in. */
+export const shopOwnerCredentialsSchema = z.object({
+  shopCode: z.string(),
+  username: z.string(),
+  temporaryPassword: z.string(),
+  temporaryPin: z.string(),
+  expiresAt: isoTimestampSchema,
+});
+
+export type ShopOwnerCredentials = z.infer<typeof shopOwnerCredentialsSchema>;
 
 const rating = z.int().min(1).max(99);
 

@@ -69,6 +69,32 @@ export const cashMovementRequestSchema = z.object({
 
 export type CashMovementRequest = z.infer<typeof cashMovementRequestSchema>;
 
+/**
+ * One cashier handing float to another in the same shop. The shop's balance does not move; each drawer's
+ * expected cash does. The sender re-enters their PIN, as they do to pay out a ticket.
+ */
+export const floatTransferRequestSchema = z.object({
+  toCashierId: z.string().min(1),
+  amount: minorUnitsSchema.min(1),
+  note: z.string().trim().min(3).max(160),
+  pin: z.string().regex(/^\d{4,6}$/),
+});
+
+export type FloatTransferRequest = z.infer<typeof floatTransferRequestSchema>;
+
+export const floatTransferSchema = z.object({
+  id: z.string().min(1),
+  fromCashierId: z.string().min(1),
+  fromCashierName: z.string().max(60),
+  toCashierId: z.string().min(1),
+  toCashierName: z.string().max(60),
+  amount: minorUnitsSchema.min(1),
+  note: z.string().max(160),
+  createdAt: isoTimestampSchema,
+});
+
+export type FloatTransfer = z.infer<typeof floatTransferSchema>;
+
 /** Denominations counted in the drawer; the platform totals them. */
 export const closeShiftRequestSchema = z.object({
   counted: z.array(z.object({ denomination: minorUnitsSchema.min(1), count: z.int().min(0).max(100_000) })).min(1),

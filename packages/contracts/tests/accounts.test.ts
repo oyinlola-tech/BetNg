@@ -39,9 +39,13 @@ describe("account and operations contracts", () => {
     expect(ticketStatusSchema.options).toEqual(expect.arrayContaining(["OPEN", "WON", "LOST", "VOID", "CANCELLED", "PAID", "EXPIRED"]));
   });
 
-  it("enforces an eight character password and a six digit verification code", () => {
-    expect(customerRegisterRequestSchema.safeParse({ email: "a@b.ng", password: "short", displayName: "Ada" }).success).toBe(false);
-    expect(customerRegisterRequestSchema.safeParse({ email: "a@b.ng", password: "longenough", displayName: "Ada" }).success).toBe(true);
+  it("enforces a twelve character password and a six digit verification code", () => {
+    const register = (password: string) => customerRegisterRequestSchema.safeParse({ email: "a@b.ng", password, displayName: "Ada" }).success;
+
+    expect(register("short")).toBe(false);
+    // Exactly on the boundary either side, so raising the minimum again fails here first.
+    expect(register("elevenchars")).toBe(false);
+    expect(register("twelvecharss")).toBe(true);
     expect(verifyEmailRequestSchema.safeParse({ email: "a@b.ng", code: "12345" }).success).toBe(false);
   });
 
