@@ -7,13 +7,23 @@ import { resetClientState } from "../helpers/account";
 import { renderApp } from "../helpers/runtime";
 import { renderSecurity } from "../helpers/security";
 
+/* The commercial documents, which the footer's Legal run carries. */
 const LEGAL = [
   ["Terms", "/legal/terms", "Terms of use"],
+  ["Betting rules", "/legal/betting-rules", "Betting rules"],
   ["Privacy", "/legal/privacy", "Privacy notice"],
-  ["Responsible Gaming", "/legal/responsible-gaming", "Responsible gaming"],
-  ["AML/KYC", "/legal/aml-kyc", "AML and KYC policy"],
   ["Cookies", "/legal/cookies", "Cookie policy"],
+  ["Payments", "/legal/payments", "Payments, withdrawals and refunds"],
+  ["AML/KYC", "/legal/aml-kyc", "AML and KYC policy"],
   ["Complaints", "/legal/complaints", "Complaints"],
+] as const;
+
+/* The responsible-play documents, which have their own footer group. */
+const RESPONSIBLE = [
+  ["Responsible gaming", "/legal/responsible-gaming", "Responsible gaming"],
+  ["Self-exclusion", "/legal/self-exclusion", "Self-exclusion"],
+  ["18+ age policy", "/legal/age-policy", "Age policy"],
+  ["Closing your account", "/legal/account-closure", "Closing your account"],
 ] as const;
 
 beforeEach(() => {
@@ -25,18 +35,24 @@ describe("Footer", () => {
   it("groups links and carries every legal link with the age note", () => {
     renderApp(<Footer />);
 
-    for (const title of ["Football", "Platform", "Company", "Support"]) expect(screen.getByRole("navigation", { name: title })).toBeInTheDocument();
+    for (const title of ["Football", "Your account", "Responsible play", "BETNG"]) expect(screen.getByRole("navigation", { name: title })).toBeInTheDocument();
 
     const legal = screen.getByRole("navigation", { name: "Legal" });
 
     for (const [label, href] of LEGAL) expect(within(legal).getByRole("link", { name: label })).toHaveAttribute("href", href);
+
+    // Limits, a break and closure are findable in their own group, not buried
+    // in the legal run-on, because that is the moment they matter most.
+    const play = screen.getByRole("navigation", { name: "Responsible play" });
+
+    for (const [label, href] of RESPONSIBLE) expect(within(play).getByRole("link", { name: label })).toHaveAttribute("href", href);
     expect(screen.getByLabelText("Adults only, 18 and over")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Home" })).not.toBeInTheDocument();
   });
 });
 
 describe("legal pages", () => {
-  for (const [, href, title] of LEGAL) {
+  for (const [, href, title] of [...LEGAL, ...RESPONSIBLE]) {
     it(`${href} shows the placeholder notice and is not indexed`, async () => {
       renderSecurity({ route: href });
 

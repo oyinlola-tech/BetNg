@@ -8,6 +8,7 @@ import { legalRoutes } from "./legal.routes";
 import { moneyRoutes } from "./money.routes";
 
 const HomePage = lazy(() => import("../pages/HomePage").then((m) => ({ default: m.HomePage })));
+const FootballPage = lazy(() => import("../pages/FootballPage").then((m) => ({ default: m.FootballPage })));
 const LivePage = lazy(() => import("../pages/LivePage").then((m) => ({ default: m.LivePage })));
 const LobbyPage = lazy(() => import("../pages/LobbyPage").then((m) => ({ default: m.LobbyPage })));
 const LeaguesPage = lazy(() => import("../pages/LeaguesPage").then((m) => ({ default: m.LeaguesPage })));
@@ -41,6 +42,7 @@ export const appRoutes: RouteObject[] = [
     errorElement: <RouteError />,
     children: [
       { index: true, Component: HomePage },
+      { path: "football", Component: FootballPage },
       { path: "live", Component: LivePage },
       { path: "virtuals", Component: LobbyPage },
       { path: "leagues", Component: LeaguesPage },

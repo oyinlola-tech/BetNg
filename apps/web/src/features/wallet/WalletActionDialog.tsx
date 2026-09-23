@@ -18,18 +18,23 @@ export interface WalletActionDialogProps {
   readonly onClose: () => void;
 }
 
+/*
+ * This dialog is the no-payment-provider path, reached only when the payments
+ * feature is off. It says so plainly: the alternative is a balance that moves
+ * while the customer believes a bank transfer took place.
+ */
 const COPY: Record<WalletAction, { readonly title: string; readonly submit: string; readonly done: string; readonly hint: string }> = {
   DEPOSIT: {
-    title: "Add simulated funds",
+    title: "Adjust balance",
     submit: "Add funds",
-    done: "Funds added",
-    hint: "Simulated funds. No payment is taken and nothing here has real-world value.",
+    done: "Balance updated",
+    hint: "No payment provider is enabled on this deployment, so no card or bank account is charged.",
   },
   WITHDRAW: {
-    title: "Withdraw simulated funds",
+    title: "Adjust balance",
     submit: "Withdraw",
-    done: "Withdrawal made",
-    hint: "Simulated funds. Nothing is paid out to a bank or card.",
+    done: "Balance updated",
+    hint: "No payment provider is enabled on this deployment, so nothing is paid out to a bank or card.",
   },
 };
 
@@ -74,7 +79,7 @@ function ActionForm({ action, available, onClose }: { readonly action: WalletAct
 
     try {
       await (action === "DEPOSIT" ? deposit : withdraw).mutateAsync(amount);
-      toast({ kind: "wallet", tone: "success", title: copy.done, message: `${formatMoney(amount)} in simulated funds. Your balance is being refreshed.` });
+      toast({ kind: "wallet", tone: "success", title: copy.done, message: `${formatMoney(amount)}. Your balance is being refreshed.` });
       onClose();
     } catch (cause) {
       logger.warn("flow", `Wallet ${action.toLowerCase()} failed`, { code: cause instanceof DataSourceError ? cause.code : "UNKNOWN" });

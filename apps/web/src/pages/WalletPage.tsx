@@ -40,7 +40,7 @@ function Balances({ wallet, payments, onAction }: { readonly wallet: WalletView;
           <p className="type-financial mt-1 text-left text-4xl leading-none text-text-primary md:text-5xl" data-testid="wallet-available">
             {formatMoney(wallet.available)}
           </p>
-          <p className="type-small mt-2 text-text-muted">{payments ? wallet.currency : `${wallet.currency} · simulated funds`}</p>
+          <p className="type-small mt-2 text-text-muted">{payments ? wallet.currency : `${wallet.currency} · payments not enabled`}</p>
         </div>
         <div className="flex w-full gap-2 sm:w-auto">
           {payments ? (
@@ -177,7 +177,7 @@ export function WalletPage(): React.JSX.Element {
 
   return (
     <div className="space-y-6">
-      <SectionHeader as="h1" eyebrow={payments ? "Account" : "Simulated funds"} title="Wallet" />
+      <SectionHeader as="h1" eyebrow="Account" title="Wallet" />
 
       <ResponsibleGamingBanner />
 
@@ -202,7 +202,7 @@ export function WalletPage(): React.JSX.Element {
         <p className="type-small flex items-start gap-2 rounded-sm border border-border bg-surface px-3 py-2.5 text-text-secondary">
           <Info className="mt-0.5 size-4 shrink-0 text-info" aria-hidden />
           <span>
-            BETNG runs on simulated funds. Deposits and withdrawals change a play-money balance on the platform; no payment provider is connected and no real money is involved.
+            Matches are virtual football: outcomes come from the platform’s simulation. Deposits and withdrawals move funds through the platform’s payment provider when one is enabled.
           </span>
         </p>
       )}

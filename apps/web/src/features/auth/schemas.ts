@@ -20,8 +20,8 @@ export const registerSchema = z.object({
     .regex(/^[+\d][\d\s-]*$/, "Use digits only, with an optional +.")
     .optional()
     .or(z.literal("")),
-  password: z.string().min(8, "Use at least 8 characters.").max(128),
-  acceptTerms: z.boolean().refine((v) => v, "Confirm you understand this is a simulation."),
+  password: z.string().min(12, "Use at least 12 characters.").max(128),
+  acceptTerms: z.boolean().refine((v) => v, "Accept the terms to continue."),
 });
 
 export type RegisterValues = z.infer<typeof registerSchema>;
@@ -42,7 +42,7 @@ export const verifySchema = z.object({
 
 export const forgotSchema = z.object({ email }) satisfies z.ZodType<PasswordResetRequest>;
 
-const newPassword = z.string().min(8, "Use at least 8 characters.").max(128, "Keep it under 128 characters.");
+const newPassword = z.string().min(12, "Use at least 12 characters.").max(128, "Keep it under 128 characters.");
 
 function matching<T extends { readonly newPassword: string; readonly confirmPassword: string }>(values: T): boolean {
   return values.newPassword === values.confirmPassword;

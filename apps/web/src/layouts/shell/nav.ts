@@ -9,7 +9,7 @@ export interface NavEntry {
 }
 
 export const PRIMARY_NAV: readonly NavEntry[] = [
-  { to: paths.leagues, label: "Football" },
+  { to: paths.football, label: "Football" },
   { to: paths.live, label: "Live", flag: "liveEnabled" },
   { to: paths.virtuals, label: "Virtuals", flag: "virtualFootballEnabled" },
   { to: paths.results, label: "Results" },

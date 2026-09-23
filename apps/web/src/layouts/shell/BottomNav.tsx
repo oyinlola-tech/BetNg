@@ -24,16 +24,14 @@ export function BottomNav({ onMore, moreOpen }: { readonly onMore: () => void; r
           <Home className="size-5" aria-hidden />
           Home
         </NavLink>
+        <NavLink to={paths.football} className={itemClass}>
+          <Football size={20} aria-hidden />
+          Football
+        </NavLink>
         {flags.liveEnabled && (
           <NavLink to={paths.live} className={itemClass}>
             <Radio className="size-5" aria-hidden />
             Live
-          </NavLink>
-        )}
-        {flags.virtualFootballEnabled && (
-          <NavLink to={paths.virtuals} className={itemClass}>
-            <Football size={20} aria-hidden />
-            Virtuals
           </NavLink>
         )}
         <NavLink to={paths.tickets} className={itemClass} aria-label={slipCount > 0 ? `Bets, ${String(slipCount)} on the slip` : "Bets"}>

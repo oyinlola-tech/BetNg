@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { dataSource, logger } from "../services/runtime";
 
 export interface BetSettlementNotification {

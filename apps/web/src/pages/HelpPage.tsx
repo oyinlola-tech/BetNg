@@ -204,7 +204,7 @@ export function HelpPage(): React.JSX.Element {
       </Section>
 
       <Section id="responsible-use" title="Responsible use">
-        <p>BETNG is a simulation. Balances, stakes and returns are play money and can never be withdrawn or exchanged for anything of value.</p>
+        <p>BETNG takes bets on virtual football. Match outcomes are produced by the platform’s simulation rather than real-world fixtures, and every market is settled against that result.</p>
         <p>It is built to demonstrate a football platform, not to encourage gambling. If betting is causing you harm, speak to a local support service.</p>
       </Section>
 
@@ -229,7 +229,7 @@ export function HelpPage(): React.JSX.Element {
       <Section id="terms" title="Terms">
         <p>Use BETNG for evaluation and demonstration. Do not rely on it for real wagering, financial decisions or as a record of real sporting events.</p>
         <p>Teams, competitions, players and results are fictional. Any resemblance to real clubs or people is unintended.</p>
-        <p>The service may be reset, changed or taken offline at any time, and simulated balances may be cleared.</p>
+        <p>The service may be changed or taken offline for maintenance. Any planned interruption is announced in advance.</p>
       </Section>
 
       <Section id="privacy" title="Privacy">

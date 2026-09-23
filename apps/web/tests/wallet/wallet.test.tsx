@@ -17,7 +17,7 @@ describe("wallet", () => {
     expect(screen.getByText("Balance").nextElementSibling).toHaveTextContent(formatMoney(900_000));
     expect(screen.getByText("Reserved").nextElementSibling).toHaveTextContent(formatMoney(150_000));
     expect(screen.queryByText("Pending")).not.toBeInTheDocument();
-    expect(screen.getByText(/no real money is involved/i)).toBeInTheDocument();
+    expect(screen.getByText(/payment provider/i)).toBeInTheDocument();
   });
 
   it("labels client-side sums as belonging to this page", async () => {
@@ -40,7 +40,7 @@ describe("wallet", () => {
 
     await user.click(await screen.findByRole("button", { name: "Deposit" }));
 
-    const dialog = await screen.findByRole("dialog", { name: "Add simulated funds" });
+    const dialog = await screen.findByRole("dialog", { name: "Adjust balance" });
 
     await user.click(within(dialog).getByRole("button", { name: "Add funds" }));
 
@@ -60,7 +60,7 @@ describe("wallet", () => {
       expect(deposit).toHaveBeenCalledWith(250_050);
     });
     await waitFor(() => {
-      expect(screen.queryByRole("dialog", { name: "Add simulated funds" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("dialog", { name: "Adjust balance" })).not.toBeInTheDocument();
     });
   });
 
@@ -75,7 +75,7 @@ describe("wallet", () => {
 
     await user.click(await screen.findByRole("button", { name: "Deposit" }));
 
-    const dialog = await screen.findByRole("dialog", { name: "Add simulated funds" });
+    const dialog = await screen.findByRole("dialog", { name: "Adjust balance" });
 
     await user.type(within(dialog).getByLabelText("Amount"), "5000");
     await user.click(within(dialog).getByRole("button", { name: "Add funds" }));
@@ -95,7 +95,7 @@ describe("wallet", () => {
 
     await user.click(await screen.findByRole("button", { name: "Withdraw" }));
 
-    const dialog = await screen.findByRole("dialog", { name: "Withdraw simulated funds" });
+    const dialog = await screen.findByRole("dialog", { name: "Adjust balance" });
 
     await user.type(within(dialog).getByLabelText("Amount"), "5000");
     await user.click(within(dialog).getByRole("button", { name: "Withdraw" }));

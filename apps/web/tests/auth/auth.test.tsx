@@ -127,7 +127,7 @@ describe("sign-in form", () => {
     await user.type(await screen.findByLabelText("Display name"), "Ada Obi");
     await user.type(screen.getByLabelText("Email"), "ada@example.test");
     await user.type(screen.getByLabelText("Password"), "long-enough-pass");
-    await user.click(screen.getByRole("checkbox", { name: /simulation/ }));
+    await user.click(screen.getByRole("checkbox", { name: /18 or over/ }));
     await user.click(screen.getByRole("button", { name: "Create account" }));
 
     expect(await screen.findByText("This address cannot be used.")).toBeInTheDocument();

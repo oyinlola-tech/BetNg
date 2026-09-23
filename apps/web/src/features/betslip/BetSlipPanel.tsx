@@ -501,7 +501,7 @@ function SlipBody({ variant = "plain", heading = true, onDone, className }: BetS
             {failure !== undefined ? "Try again" : isAuthenticated ? "Place bet" : "Sign in to place bet"}
           </Button>
         )}
-        <p className="type-small text-center text-text-muted">Simulated funds. No real money is involved.</p>
+        <p className="type-small text-center text-text-muted">18+. Bet responsibly.</p>
       </footer>
     </section>
   );

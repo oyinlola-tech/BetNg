@@ -1,4 +1,4 @@
-import { useEffect, useId } from "react";
+import { useEffect, useId, useMemo } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, CheckCircle2, ChevronRight, Clock, Info, MapPin } from "lucide-react";
@@ -12,6 +12,8 @@ import {
   isInterrupted,
   isUpcoming,
   phaseDescription,
+  routeMatchEvents,
+  type ConnectionState,
   type MatchView,
 } from "@betng/ui-core";
 import {
@@ -24,9 +26,10 @@ import {
   LeagueTable,
   MatchLineups,
   MatchSkeleton,
+  CommentaryPanel,
+  MatchStadium,
   MatchTimeline,
   NotFoundState,
-  PitchView,
   Scoreboard,
   SectionHeading,
   StaleBadge,
@@ -81,6 +84,44 @@ function PhaseNotice({ match }: { readonly match: MatchView }): React.JSX.Elemen
   return null;
 }
 
+/*
+ * The pitch and the commentary beside it: the broadcast half of the Match
+ * Centre. Both read the same routed event stream, so what the overlay shows
+ * and what the commentary says can never disagree.
+ */
+function LiveStage({
+  match,
+  connection,
+  syncedAt,
+}: {
+  readonly match: MatchView;
+  readonly connection: ConnectionState;
+  readonly syncedAt: number | undefined;
+}): React.JSX.Element {
+  const events = useMemo(() => routeMatchEvents(match.events, match), [match]);
+
+  return (
+    <div className="grid gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(16rem,1fr)]">
+      <MatchStadium match={match} connection={connection} syncedAt={syncedAt} />
+      <section
+        aria-label="Live commentary"
+        className="flex max-h-[28rem] min-h-0 flex-col overflow-hidden rounded-md border border-border bg-surface"
+      >
+        <h3 className="caps-label shrink-0 border-b border-border px-4 py-3">
+          Live commentary
+        </h3>
+        <CommentaryPanel
+          events={events}
+          latestId={events[events.length - 1]?.id}
+          limit={40}
+          emptyMessage="Commentary appears as the platform reports events."
+          className="min-h-0 flex-1"
+        />
+      </section>
+    </div>
+  );
+}
+
 function KickoffPanel({ match }: { readonly match: MatchView }): React.JSX.Element {
   return (
     <dl className="grid gap-px overflow-hidden rounded-md border border-border bg-border sm:grid-cols-3">
@@ -114,13 +155,13 @@ function KickoffPanel({ match }: { readonly match: MatchView }): React.JSX.Eleme
 
 function Overview({
   match,
-  lastEvent,
   connection,
+  syncedAt,
   onOpenTab,
 }: {
   readonly match: MatchView;
-  readonly lastEvent: ReturnType<typeof useLiveMatch>["lastEvent"];
   readonly connection: ReturnType<typeof useLiveMatch>["connection"];
+  readonly syncedAt: number | undefined;
   readonly onOpenTab: (tab: MatchTab) => void;
 }): React.JSX.Element {
   const upcoming = isUpcoming(match.phase);
@@ -141,9 +182,9 @@ function Overview({
     <div className="space-y-6">
       <PhaseNotice match={match} />
       {upcoming && <KickoffPanel match={match} />}
-      {isInPlay(match.phase) && (
+      {(isInPlay(match.phase) || isFinished(match.phase)) && (
         <ErrorBoundary scope="feature">
-          <PitchView match={match} lastEvent={lastEvent} connection={connection === "FAILED" ? "OFFLINE" : connection} />
+          <LiveStage match={match} connection={connection} syncedAt={syncedAt} />
         </ErrorBoundary>
       )}
       {upcoming ? (
@@ -211,7 +252,7 @@ export function MatchPage(): React.JSX.Element {
   const tabsId = useId();
   const client = useQueryClient();
   const live = useLiveMatch(matchId);
-  const { match, connection, lastEvent, resyncing, syncedAt } = live;
+  const { match, connection, resyncing, syncedAt } = live;
   const failed = live.error !== undefined && match === undefined;
   const probe = useMatchProbe(matchId, failed);
   const [tab, setTab] = useTabParam(TABS, "overview");
@@ -343,7 +384,7 @@ export function MatchPage(): React.JSX.Element {
       />
 
       <TabPanel tabsId={tabsId} value="overview" active={tab}>
-        <Overview match={match} lastEvent={lastEvent} connection={connection} onOpenTab={setTab} />
+        <Overview match={match} connection={connection} syncedAt={syncedAt} onOpenTab={setTab} />
       </TabPanel>
 
       <TabPanel tabsId={tabsId} value="timeline" active={tab}>

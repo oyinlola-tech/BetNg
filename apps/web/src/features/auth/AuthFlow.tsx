@@ -231,9 +231,9 @@ function RegisterView({ onView, onPendingEmail }: AuthFlowProps): React.JSX.Elem
       <Input label="Display name" autoComplete="name" disabled={busy} error={errors.displayName?.message} {...form.register("displayName")} />
       <Input label="Email" type="email" autoComplete="email" inputMode="email" disabled={busy} error={errors.email?.message} {...form.register("email")} />
       <Input label="Phone (optional)" type="tel" autoComplete="tel" inputMode="tel" placeholder="+234 …" disabled={busy} error={errors.phone?.message} {...form.register("phone")} />
-      <PasswordInput label="Password" autoComplete="new-password" hint="At least 8 characters." disabled={busy} error={errors.password?.message} {...form.register("password")} />
+      <PasswordInput label="Password" autoComplete="new-password" hint="At least 12 characters." disabled={busy} error={errors.password?.message} {...form.register("password")} />
       <div>
-        <Checkbox label="I understand BETNG is a simulation" description="Balances, stakes and returns are play-money with no real-world value." disabled={busy} aria-invalid={errors.acceptTerms !== undefined} {...form.register("acceptTerms")} />
+        <Checkbox label="I am 18 or over and accept the terms" description="BETNG takes bets on virtual football. Read the Terms of use, Privacy notice and Responsible gaming policy." disabled={busy} aria-invalid={errors.acceptTerms !== undefined} {...form.register("acceptTerms")} />
         {errors.acceptTerms !== undefined && <p className="mt-1 text-sm text-danger">{errors.acceptTerms.message}</p>}
       </div>
       <Button type="submit" fullWidth size="lg" loading={busy}>

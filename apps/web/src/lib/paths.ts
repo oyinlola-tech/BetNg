@@ -2,6 +2,7 @@ import type { SearchHit } from "@betng/ui-core";
 
 export const paths = {
   home: "/",
+  football: "/football",
   live: "/live",
   virtuals: "/virtuals",
   results: "/results",

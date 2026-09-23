@@ -3,7 +3,7 @@ import { ArrowUp, ArrowUpRight, LifeBuoy, Radio, ShieldCheck } from "lucide-reac
 import { WORDMARK } from "@betng/brand";
 import { BrandLogo, useFeatureFlags } from "@betng/ui-web";
 import { paths } from "../../lib/paths";
-import { LEGAL_LINKS, legalPath } from "../../pages/legal/content";
+import { LEGAL_LINKS, RESPONSIBLE_LINKS, legalPath } from "../../pages/legal/content";
 
 interface FooterLink {
   readonly to: string;
@@ -67,13 +67,18 @@ export function Footer(): React.JSX.Element {
   ];
   const company: readonly FooterLink[] = [
     { to: paths.help("how-it-works"), label: "How BETNG works" },
-    { to: legalPath("responsible-gaming"), label: "Responsible gaming" },
-    { to: paths.help("system-status"), label: "System status" },
-  ];
-  const support: readonly FooterLink[] = [
     { to: paths.help(), label: "Help centre" },
     { to: paths.help("support"), label: "Contact support" },
-    { to: legalPath("complaints"), label: "Complaints" },
+    { to: paths.help("system-status"), label: "System status" },
+  ];
+  /*
+   * Responsible play is its own group rather than a line in the legal run-on:
+   * a limit or a break has to be findable by someone who is looking for it
+   * quickly, which is the moment it matters most.
+   */
+  const responsible: readonly FooterLink[] = [
+    ...(flags.responsibleGamingEnabled ? [{ to: "/responsible-gaming", label: "Limits and breaks" }] : []),
+    ...RESPONSIBLE_LINKS.map((link) => ({ to: legalPath(link.slug), label: link.label })),
   ];
 
   return (
@@ -102,9 +107,9 @@ export function Footer(): React.JSX.Element {
           </div>
           <div className="grid grid-cols-1 gap-6 min-[420px]:grid-cols-2 sm:gap-y-8 lg:grid-cols-4">
             <Group index={1} title="Football" links={football} />
-            <Group index={2} title="Platform" links={platform} />
-            <Group index={3} title="Company" links={company} />
-            <Group index={4} title="Support" links={support} />
+            <Group index={2} title="Your account" links={platform} />
+            <Group index={3} title="Responsible play" links={responsible} />
+            <Group index={4} title="BETNG" links={company} />
           </div>
         </div>
 
@@ -153,7 +158,7 @@ export function Footer(): React.JSX.Element {
           </div>
           <div className="max-w-3xl space-y-1.5 text-sm text-text-muted">
             <p>For adults aged 18 and over. Bet only what you can afford to lose, set limits, and take a break if it stops being fun.</p>
-            <p>BETNG is a simulated platform. Matches are virtual, and balances, stakes and returns are play money with no real-world value.</p>
+            <p>Matches on BETNG are virtual football: outcomes are produced by the platform&apos;s simulation, not by real-world teams or fixtures.</p>
           </div>
         </div>
       </div>

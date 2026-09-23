@@ -81,7 +81,7 @@ export function TransactionDetailDialog({ transaction, onClose }: { readonly tra
               </Row>
             )}
           </dl>
-          <p className="type-small mt-3 text-text-muted">Simulated funds. No real money moved.</p>
+          <p className="type-small mt-3 text-text-muted">Every entry is a record of an authoritative platform transaction.</p>
         </div>
       )}
     </Dialog>

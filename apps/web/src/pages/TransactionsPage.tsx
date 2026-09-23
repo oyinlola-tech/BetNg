@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ChevronDown, X } from "lucide-react";
 import { formatDateTime, formatMoney, type TransactionView } from "@betng/ui-core";
-import { Button, Card, Checkbox, DataTable, Dropdown, SearchInput, SectionHeader, StatusBadge, statusTone, useDebouncedValue, useFlag, useIsCompact, type Column } from "@betng/ui-web";
+import { Button, Card, Checkbox, DataTable, Dropdown, SearchInput, SectionHeader, StatusBadge, statusTone, useDebouncedValue, useIsCompact, type Column } from "@betng/ui-web";
 import { AccountErrorState } from "../features/auth";
 import { usePageMeta } from "../features/seo";
 import { SignedAmount, TransactionCard, TransactionDetailDialog, TransactionTypeLabel } from "../features/wallet/TransactionParts";
@@ -46,7 +46,6 @@ export function TransactionsPage(): React.JSX.Element {
   const [searchText, setSearchText] = useState(filters.search);
   const debouncedSearch = useDebouncedValue(searchText, 350);
   const compact = useIsCompact();
-  const payments = useFlag("paymentsEnabled");
 
   useEffect(() => {
     if (debouncedSearch.trim() !== filters.search.trim()) update({ search: debouncedSearch });
@@ -128,7 +127,7 @@ export function TransactionsPage(): React.JSX.Element {
 
   return (
     <div className="space-y-5">
-      <SectionHeader as="h1" eyebrow={payments ? "Wallet" : "Simulated funds"} title="Transactions" to="/wallet" linkLabel="Wallet" />
+      <SectionHeader as="h1" eyebrow="Wallet" title="Transactions" to="/wallet" linkLabel="Wallet" />
       <Card padding="none">
         {transactions.isError && transactions.data === undefined ? (
           <AccountErrorState error={transactions.error} onRetry={() => void transactions.refetch()} />

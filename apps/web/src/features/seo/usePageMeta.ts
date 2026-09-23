@@ -11,7 +11,7 @@ export interface PageMeta {
 
 export const SITE_NAME = "BETNG";
 export const DEFAULT_DESCRIPTION =
-  "Virtual football on BETNG: live matches, markets, results and standings. A simulated platform with play money only.";
+  "Virtual football betting on BETNG: live matches, markets, results and standings. For adults aged 18 and over. Bet responsibly.";
 
 function canonicalFor(path: string): string | undefined {
   if (env.siteUrl === undefined) return undefined;

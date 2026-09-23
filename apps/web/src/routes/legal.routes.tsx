@@ -5,9 +5,21 @@ import type { LegalSlug } from "../pages/legal/content";
 
 const LegalPage = lazy(() => import("../pages/legal/LegalPage").then((m) => ({ default: m.LegalPage })));
 
-const SLUGS: readonly LegalSlug[] = ["terms", "privacy", "responsible-gaming", "aml-kyc", "cookies", "complaints"];
+const SLUGS: readonly LegalSlug[] = [
+  "terms",
+  "betting-rules",
+  "privacy",
+  "responsible-gaming",
+  "self-exclusion",
+  "age-policy",
+  "aml-kyc",
+  "payments",
+  "account-closure",
+  "cookies",
+  "complaints",
+];
 
-/** Terms, privacy, responsible gaming, AML/KYC, cookies and complaints. Public. */
+/** The public legal documents. Each renders from configurable content and is noindexed until its text is approved. */
 export const legalRoutes: RouteObject[] = [
   { path: "legal", element: <Navigate to="/legal/terms" replace /> },
   ...SLUGS.map((slug) => ({

@@ -11,7 +11,7 @@ const LINKS: readonly { readonly to: string; readonly label: string; readonly de
   { to: "/account/preferences", label: "Display preferences", description: "Theme and date format on this device", icon: SlidersHorizontal },
   { to: "/account/notifications", label: "Notification preferences", description: "Which alerts your account receives", icon: Bell },
   { to: "/account/security", label: "Security", description: "Password and sign-in protection", icon: KeyRound },
-  { to: "/wallet", label: "Wallet", description: "Simulated balance, deposits and withdrawals", icon: Wallet },
+  { to: "/wallet", label: "Wallet", description: "Balance, deposits and withdrawals", icon: Wallet },
 ];
 
 export function SettingsPage(): React.JSX.Element {
@@ -88,7 +88,7 @@ export function SettingsPage(): React.JSX.Element {
 
       <Card>
         <SectionHeading as="h2">About</SectionHeading>
-        <p className="type-small mt-2 text-text-secondary">BETNG is a simulated virtual football platform. Every balance, stake and payout is play money and nothing here has real-world value.</p>
+        <p className="type-small mt-2 text-text-secondary">BETNG offers betting on virtual football: match outcomes are produced by the platform’s simulation rather than real-world fixtures. For adults aged 18 and over.</p>
       </Card>
       {logout.dialog}
     </div>

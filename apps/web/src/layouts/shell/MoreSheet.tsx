@@ -1,7 +1,7 @@
 import { Link } from "react-router";
 import { ChevronRight, CircleHelp, ListOrdered, LogIn, LogOut, Settings, Trophy, UserRound, Wallet } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { BottomSheet, ThemeSwitcher, useFlag } from "@betng/ui-web";
+import { BottomSheet, Football, ThemeSwitcher, useFlag } from "@betng/ui-web";
 import { useAuth, useLogoutFlow } from "../../features/auth";
 import { paths } from "../../lib/paths";
 import { InstallAppButton } from "./InstallApp";
@@ -9,18 +9,20 @@ import { InstallAppButton } from "./InstallApp";
 interface MoreLink {
   readonly to: string;
   readonly label: string;
-  readonly icon: LucideIcon;
+  readonly icon: LucideIcon | typeof Football;
 }
 
 const ROW = "flex min-h-12 w-full items-center gap-3 rounded-sm px-2 text-md font-medium text-text-primary hover:bg-surface-hover focus-ring";
 
 export function MoreSheet({ open, onClose }: { readonly open: boolean; readonly onClose: () => void }): React.JSX.Element {
   const walletEnabled = useFlag("walletEnabled");
+  const virtualsEnabled = useFlag("virtualFootballEnabled");
   const { status, requireAuth } = useAuth();
   const logout = useLogoutFlow();
   const signedIn = status === "AUTHENTICATED";
 
   const links: readonly MoreLink[] = [
+    ...(virtualsEnabled ? [{ to: paths.virtuals, label: "Virtual football", icon: Football }] : []),
     { to: paths.results, label: "Results", icon: ListOrdered },
     { to: paths.standings, label: "Standings", icon: Trophy },
     ...(walletEnabled ? [{ to: paths.wallet, label: "Wallet", icon: Wallet }] : []),

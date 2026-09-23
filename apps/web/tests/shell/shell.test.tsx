@@ -76,12 +76,14 @@ describe("LeagueBar", () => {
 });
 
 describe("BottomNav", () => {
-  it("renders Home, Live, Virtuals, Bets and More", () => {
+  it("renders Home, Football, Live, Bets and More", () => {
     renderApp(<BottomNav moreOpen={false} onMore={() => undefined} />);
 
     const nav = screen.getByRole("navigation", { name: "Main" });
 
-    for (const name of ["Home", "Live", "Virtuals", "Bets"]) expect(within(nav).getByRole("link", { name })).toBeInTheDocument();
+    for (const name of ["Home", "Football", "Live", "Bets"]) expect(within(nav).getByRole("link", { name })).toBeInTheDocument();
+    // Virtual football moved under More so the primary play surface takes a slot.
+    expect(within(nav).queryByRole("link", { name: "Virtuals" })).not.toBeInTheDocument();
     expect(within(nav).getByRole("button", { name: "More" })).toHaveAttribute("aria-haspopup", "dialog");
   });
 });

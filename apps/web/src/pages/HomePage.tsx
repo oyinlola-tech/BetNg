@@ -27,7 +27,9 @@ import { useLeagues, useMatches, useStandings } from "../hooks/queries";
 import { paths } from "../lib/paths";
 
 const LIVE_PHASES = ["LIVE", "HALFTIME"] as const;
-const OPEN_PHASES = ["BETTING_OPEN", "BETTING_CLOSED"] as const;
+/* Open for play means open: a match the platform has closed cannot be acted on, so it belongs under "starting soon", never here. */
+const OPEN_PHASES = ["BETTING_OPEN"] as const;
+const STARTING_PHASES = ["BETTING_CLOSED", "DELAYED"] as const;
 const FINISHED_PHASES = ["FINISHED", "SETTLED"] as const;
 
 function More({ to, children }: { readonly to: string; readonly children: React.ReactNode }): React.JSX.Element {
@@ -41,7 +43,7 @@ function More({ to, children }: { readonly to: string; readonly children: React.
 
 function ContextHero({ live }: { readonly live: ReturnType<typeof useMatches> }): React.JSX.Element {
   const stale = useIsStale();
-  const next = useMatches({ phases: [...OPEN_PHASES, "SCHEDULED"], limit: 1 });
+  const next = useMatches({ phases: [...OPEN_PHASES, ...STARTING_PHASES, "SCHEDULED"], limit: 1 });
   const liveMatch = live.data?.[0];
   const match = liveMatch ?? next.data?.[0];
 
@@ -72,7 +74,7 @@ function ContextHero({ live }: { readonly live: ReturnType<typeof useMatches> })
 
 function CompetitionCard({ league }: { readonly league: LeagueView }): React.JSX.Element {
   const live = useMatches({ leagueId: league.id, phases: LIVE_PHASES }, { pace: "slow" });
-  const next = useMatches({ leagueId: league.id, phases: [...OPEN_PHASES, "SCHEDULED"], limit: 1 }, { pace: "slow" });
+  const next = useMatches({ leagueId: league.id, phases: [...OPEN_PHASES, ...STARTING_PHASES, "SCHEDULED"], limit: 1 }, { pace: "slow" });
   const liveCount = live.data?.length ?? 0;
   const upcoming = next.data?.[0];
 
@@ -239,6 +241,7 @@ export function HomePage(): React.JSX.Element {
   const flags = useFeatureFlags();
   const live = useMatches({ phases: LIVE_PHASES, limit: 5 }, { enabled: flags.liveEnabled });
   const soon = useMatches({ phases: OPEN_PHASES, limit: 4 });
+  const starting = useMatches({ phases: STARTING_PHASES, limit: 4 });
   const upcoming = useMatches({ phases: ["SCHEDULED"], limit: 6 }, { pace: "slow" });
   const results = useMatches({ phases: FINISHED_PHASES, limit: 6 }, { pace: "slow" });
 
@@ -271,11 +274,19 @@ export function HomePage(): React.JSX.Element {
           </FeatureGate>
 
           <section aria-labelledby="home-soon">
-            <SectionHeading id="home-soon" action={<More to={paths.virtuals}>All fixtures</More>}>
-              Starting soon
+            <SectionHeading id="home-soon" action={<More to={paths.football}>All football</More>}>
+              Open for play
             </SectionHeading>
-            <MatchList query={soon} variant="standard" layout="grid" withMarkets empty="noUpcomingMatches" label="Matches starting soon" className="mt-3" />
+            <MatchList query={soon} variant="standard" layout="grid" withMarkets empty="noUpcomingMatches" label="Matches open for play" className="mt-3" />
           </section>
+
+          {(starting.data?.length ?? 0) > 0 && (
+            <section aria-labelledby="home-starting">
+              <SectionHeading id="home-starting">Starting soon</SectionHeading>
+              <p className="type-small mt-1 text-text-muted">Betting has closed. These matches kick off shortly.</p>
+              <MatchList query={starting} variant="compact" empty="noUpcomingMatches" label="Matches starting soon" className="mt-3" />
+            </section>
+          )}
 
           <FeatureGate flag="virtualFootballEnabled">
             <section aria-labelledby="home-competitions">
