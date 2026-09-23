@@ -60,7 +60,14 @@ export function Shell(): React.JSX.Element {
             BETNG <span className="text-live">LIVE</span>
           </span>
         </div>
-        <nav aria-label="Sections" className="flex gap-[0.2rem]">
+        {/*
+          * The nav yields space before anything else: the clock and the
+          * connection status sit in the right group and must stay inside the
+          * safe area, where an overscanning panel can still show them. Without
+          * min-w-0 the nowrap items refuse to shrink and push that group off
+          * the edge, where overflow:hidden simply cuts it off.
+          */}
+        <nav aria-label="Sections" className="flex min-w-0 flex-1 gap-[0.2rem] overflow-hidden">
           {NAV.map((item) => (
             <NavLink
               key={item.to}
@@ -80,7 +87,7 @@ export function Shell(): React.JSX.Element {
             </NavLink>
           ))}
         </nav>
-        <div className="ml-auto flex shrink-0 items-center gap-[0.8rem]">
+        <div className="flex shrink-0 items-center gap-[0.8rem]">
           <NavLink
             to="/broadcast"
             data-tv-focusable=""
@@ -132,7 +139,7 @@ export function Shell(): React.JSX.Element {
         <Hint keys="Vol + −" label="Volume" />
         <Hint keys="Info" label="Next 24 hours" />
         <span className="ml-auto min-w-0 truncate">
-          Virtual football · simulated · no real money
+          Virtual football · 18+ · bet responsibly
         </span>
       </footer>
       <ConnectionPill />

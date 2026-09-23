@@ -1,48 +1,19 @@
-import { isInPlay, type MatchEventKind, type MatchEventView, type MatchView, type Score } from "@betng/ui-core";
+import { headlineOf, isGoal, isInPlay, severityOf, type EventSeverity, type MatchEventKind, type MatchEventView, type MatchView, type Score } from "@betng/ui-core";
 
-export type Severity = "major" | "medium" | "minor";
+/*
+ * Headlines and severity come from the shared event router in @betng/ui-core,
+ * so a goal weighs the same on TV as it does on web, shop and mobile. What
+ * stays here is only what TV does with that weight.
+ */
+export type Severity = EventSeverity;
 
-const GOAL_KINDS = new Set<MatchEventKind>(["GOAL", "OWN_GOAL", "PENALTY_GOAL"]);
-const MEDIUM_KINDS = new Set<MatchEventKind>(["YELLOW_CARD", "RED_CARD", "PENALTY_MISSED", "VAR", "KICK_OFF", "HALF_TIME", "SECOND_HALF", "FULL_TIME"]);
-const QUIET_KINDS = new Set<MatchEventKind>([...GOAL_KINDS, "RED_CARD", "FULL_TIME"]);
+const QUIET_KINDS = new Set<MatchEventKind>(["GOAL", "OWN_GOAL", "PENALTY_GOAL", "RED_CARD", "FULL_TIME"]);
 
-const HEADLINES: Readonly<Record<MatchEventKind, string>> = {
-  KICK_OFF: "Kick-off",
-  GOAL: "Goal",
-  OWN_GOAL: "Own goal",
-  PENALTY_GOAL: "Penalty goal",
-  PENALTY_MISSED: "Penalty missed",
-  VAR: "VAR check",
-  OFFSIDE: "Offside",
-  FOUL: "Foul",
-  FREE_KICK: "Free kick",
-  YELLOW_CARD: "Yellow card",
-  RED_CARD: "Red card",
-  SUBSTITUTION: "Substitution",
-  CORNER: "Corner",
-  SHOT: "Shot",
-  HALF_TIME: "Half time",
-  SECOND_HALF: "Second half",
-  FULL_TIME: "Full time",
-};
+export { headlineOf, isGoal, severityOf };
 
-export function isGoal(kind: MatchEventKind): boolean {
-  return GOAL_KINDS.has(kind);
-}
-
-export function severityOf(kind: MatchEventKind): Severity {
-  if (GOAL_KINDS.has(kind)) return "major";
-  if (MEDIUM_KINDS.has(kind)) return "medium";
-
-  return "minor";
-}
-
+/** Worth breaking an idle screen for. */
 export function isQuietWorthy(kind: MatchEventKind): boolean {
   return QUIET_KINDS.has(kind);
-}
-
-export function headlineOf(kind: MatchEventKind): string {
-  return HEADLINES[kind];
 }
 
 export interface FeedItem {

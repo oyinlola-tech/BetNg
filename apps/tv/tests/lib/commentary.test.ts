@@ -3,11 +3,14 @@ import { buildFeed, pickSpotlight, severityOf, spotlightScore } from "../../src/
 import { event, match } from "../fakes/platform";
 
 describe("TV commentary feed", () => {
-  it("grades goals large, cards medium and corners small", () => {
+  // Grading now comes from the shared event router, so TV weighs an event
+  // exactly as web, shop and mobile do. A sending-off is decisive, which is
+  // why it sits with the goals rather than with the bookings.
+  it("grades goals and red cards large, bookings medium and corners small", () => {
     expect(severityOf("GOAL")).toBe("major");
     expect(severityOf("PENALTY_GOAL")).toBe("major");
+    expect(severityOf("RED_CARD")).toBe("major");
     expect(severityOf("YELLOW_CARD")).toBe("medium");
-    expect(severityOf("RED_CARD")).toBe("medium");
     expect(severityOf("CORNER")).toBe("minor");
   });
 
