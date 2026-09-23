@@ -674,16 +674,25 @@ describe("GET /matches/:id/lineups", () => {
     const nameOf = async (id: string): Promise<string> =>
       (await harness.prisma.team.findUniqueOrThrow({ where: { id } })).name;
 
-    // Team ids and names only: nothing about the match, its result or its bets reaches the simulation.
+    // Team ids, names and the league's country, which decides where the squad is
+    // drawn from. Nothing about the match, its result or its bets reaches the simulation.
+    const country = (
+      await harness.prisma.league.findFirstOrThrow({
+        where: { teams: { some: { id: fixture.homeTeamId } } },
+      })
+    ).country;
+
     expect(harness.peers.calls.getSquads.slice(before)).toEqual([
       {
         home: {
           teamId: fixture.homeTeamId,
           name: await nameOf(fixture.homeTeamId),
+          country,
         },
         away: {
           teamId: fixture.awayTeamId,
           name: await nameOf(fixture.awayTeamId),
+          country,
         },
       },
     ]);
