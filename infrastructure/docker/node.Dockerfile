@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 # TypeScript services. Build context is the repository root.
-#   runtime (default): --build-arg SERVICE=gateway|match|betting|wallet|settlement|event|identity --build-arg PORT=<port>
+#   runtime (default): --build-arg SERVICE=gateway|match|betting|wallet|settlement|event|identity|email --build-arg PORT=<port>
 #   migrate:           --target migrate, applies every Prisma migration and exits
 ARG NODE_IMAGE=node:24.21.0-alpine@sha256:ebfe2f90462722a7a4de65e91990e97fe0d401c70e0e762c5b53302f905ec1c1
 
@@ -27,7 +27,7 @@ SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 ARG SERVICE
 RUN case "${SERVICE}" in \
       gateway) dir=apps/gateway; pkg=@betng/gateway ;; \
-      match|betting|wallet|settlement|event|identity) dir="apps/services/${SERVICE}"; pkg="@betng/${SERVICE}-service" ;; \
+      match|betting|wallet|settlement|event|identity|email) dir="apps/services/${SERVICE}"; pkg="@betng/${SERVICE}-service" ;; \
       *) echo "SERVICE must be gateway, match, betting, wallet, settlement, event or identity" >&2; exit 1 ;; \
     esac \
  && printf '%s\n' "${dir}" > /tmp/service-dir && printf '%s\n' "${pkg}" > /tmp/service-pkg
@@ -76,10 +76,10 @@ RUN --mount=type=cache,id=betng-pnpm-store,target=/pnpm/store \
     rm -rf node_modules \
  && pnpm install --frozen-lockfile --offline --store-dir /pnpm/store \
       --filter @betng/match-service --filter @betng/betting-service --filter @betng/wallet-service \
-      --filter @betng/settlement-service --filter @betng/identity-service \
+      --filter @betng/settlement-service --filter @betng/identity-service --filter @betng/email-service \
  && mkdir -p /out/apps/services \
  && cp -a node_modules package.json /out/ \
- && for s in match betting wallet settlement identity; do \
+ && for s in match betting wallet settlement identity email; do \
       mkdir -p "/out/apps/services/${s}" \
       && cp -a "apps/services/${s}/package.json" "apps/services/${s}/prisma.config.ts" "apps/services/${s}/prisma" \
          "apps/services/${s}/node_modules" "/out/apps/services/${s}/"; \
@@ -94,7 +94,7 @@ ENV NODE_ENV=production \
 COPY --from=migrate-build /out /repo
 WORKDIR /repo
 USER 1000:1000
-CMD ["sh", "-c", "set -e; for s in match betting wallet settlement identity; do (cd \"apps/services/$s\" && ./node_modules/.bin/prisma migrate deploy); done"]
+CMD ["sh", "-c", "set -e; for s in match betting wallet settlement identity email; do (cd \"apps/services/$s\" && ./node_modules/.bin/prisma migrate deploy); done"]
 
 FROM ${NODE_IMAGE} AS runtime
 ARG PORT=3000

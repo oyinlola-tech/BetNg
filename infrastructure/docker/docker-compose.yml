@@ -117,6 +117,8 @@ x-platform-env: &platform-env
   EVENT_SERVICE_URL: http://event:3008
   ANALYTICS_SERVICE_URL: http://analytics:3009
   IDENTITY_SERVICE_URL: http://identity:3010
+  PAYMENTS_SERVICE_URL: http://payments:3011
+  EMAIL_SERVICE_URL: http://email:3012
 
 x-node-build: &node-build
   context: ../..
@@ -241,6 +243,11 @@ services:
       WALLET_DATABASE_URL: postgresql://betng_wallet:${WALLET_DB_PASSWORD:-betng_wallet_local}@postgres:5432/betng?schema=wallet
       SETTLEMENT_DATABASE_URL: postgresql://betng_settlement:${SETTLEMENT_DB_PASSWORD:-betng_settlement_local}@postgres:5432/betng?schema=settlement
       IDENTITY_DATABASE_URL: postgresql://betng_identity:${IDENTITY_DB_PASSWORD:-betng_identity_local}@postgres:5432/betng?schema=identity
+      EMAIL_DATABASE_URL: postgresql://betng_email:${EMAIL_DB_PASSWORD:-betng_email_local}@postgres:5432/betng?schema=email
+      # The first administrator, created once when the identity service first starts.
+      SUPER_ADMIN_EMAIL: ${SUPER_ADMIN_EMAIL:-}
+      SUPER_ADMIN_PASSWORD: ${SUPER_ADMIN_PASSWORD:-}
+      SUPER_ADMIN_NAME: ${SUPER_ADMIN_NAME:-}
     networks: [backend]
     deploy:
       resources:
@@ -347,6 +354,24 @@ services:
     environment:
       <<: *platform-env
       SETTLEMENT_DATABASE_URL: postgresql://betng_settlement:${SETTLEMENT_DB_PASSWORD:-betng_settlement_local}@postgres:5432/betng?schema=settlement
+    networks: [backend]
+    deploy: *service-limits
+    healthcheck: *node-health
+    depends_on: *after-migrate
+
+  email:
+    profiles: ["platform"]
+    <<: *hardened
+    build:
+      <<: *node-build
+      args: { SERVICE: email, PORT: "3012" }
+    image: betng-email
+    env_file:
+      - { path: "${BETNG_ENV_DIR:-/etc/betng/env}/common.env", required: false }
+      - { path: "${BETNG_ENV_DIR:-/etc/betng/env}/email.env", required: false }
+    environment:
+      <<: *platform-env
+      EMAIL_DATABASE_URL: postgresql://betng_email:${EMAIL_DB_PASSWORD:-betng_email_local}@postgres:5432/betng?schema=email
     networks: [backend]
     deploy: *service-limits
     healthcheck: *node-health
