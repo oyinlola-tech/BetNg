@@ -38,10 +38,15 @@ def _views(
     ]
 
 
-def to_team_squad(team_id: UUID, name_pool: int = EXPANDED_NAME_POOL) -> TeamSquadView:
-    # The timeline keys its squads by `str(team_id)` too, so both name the same people.
+def to_team_squad(
+    team_id: UUID,
+    name_pool: int = EXPANDED_NAME_POOL,
+    country: str | None = None,
+) -> TeamSquadView:
+    # The timeline keys its squads by `str(team_id)` and the same country, so both
+    # name the same people; passing one and not the other would split them.
     key = str(team_id)
-    squad = squad_for(key, name_pool)
+    squad = squad_for(key, name_pool, country)
 
     return TeamSquadView(
         team_id=team_id,

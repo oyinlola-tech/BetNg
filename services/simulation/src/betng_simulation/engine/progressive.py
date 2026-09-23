@@ -49,6 +49,17 @@ def state_class(difference: int) -> int:
     return TRAILING_BY_MORE
 
 
+@dataclass(frozen=True)
+class LiveState:
+    """What a match in play has already settled; the rest is still to be drawn."""
+
+    minute: int
+    home_goals: int
+    away_goals: int
+    home_reds: int = 0
+    away_reds: int = 0
+
+
 @dataclass(slots=True)
 class TeamState:
     goal_scale: float
@@ -341,11 +352,14 @@ class _Match:
         self.step = 0
         self.counts = _HalfCounts()
 
-    def play(self) -> CoreOutcome:
+    def play(self, resume: LiveState | None = None) -> CoreOutcome:
         configuration = self.configuration
         narrator = self.narrator
+        if resume is not None:
+            self._resume(resume)
         self.model.refresh_cards(self.home, self.away)
         added_by_half: list[int] = []
+        from_minute = 1 if resume is None else resume.minute + 1
 
         for half, first, last, base, cap in (
             (
@@ -364,9 +378,15 @@ class _Match:
             ),
         ):
             self.counts = _HalfCounts()
+            # A half already played out before the resume point adds nothing more.
+            if last < from_minute:
+                added_by_half.append(0)
+                continue
+
+            start = max(first, from_minute)
             if narrator is not None:
                 narrator.begin_half(half)
-            self._steps(first, last - first + 1, stoppage=False)
+            self._steps(start, last - start + 1, stoppage=False)
             counts = self.counts
             added = stoppage_minutes(
                 counts.goals,
@@ -389,6 +409,29 @@ class _Match:
             first_half_added=added_by_half[0],
             second_half_added=added_by_half[1],
         )
+
+    def _resume(self, state: LiveState) -> None:
+        """Seed the core with what a match in play has already settled."""
+        configuration = self.configuration
+        self.home.goals = max(0, state.home_goals)
+        self.away.goals = max(0, state.away_goals)
+        self.step = max(0, min(state.minute, FULL_TIME_MINUTE))
+
+        for team, reds in (
+            (self.home, state.home_reds),
+            (self.away, state.away_reds),
+        ):
+            # The severity of each dismissal is redrawn per run: how much a red
+            # card cost this side is not known, only that it was shown.
+            for slot in OUTFIELD_SLOTS[
+                : max(0, min(reds, configuration.max_red_cards_per_team))
+            ]:
+                self._send_off(team, slot)
+
+        for team in (self.home, self.away):
+            team.substitution_minutes = [
+                minute for minute in team.substitution_minutes if minute > state.minute
+            ]
 
     def _state(self) -> _Cached:
         home, away, model = self.home, self.away, self.model
@@ -636,7 +679,9 @@ class _Match:
 
             # Apply freshness boost: reduce fatigue for the substituted player
             if self.configuration.fatigue_enabled:
-                team.fatigue_scale *= 1.0 - self.configuration.substitution_fresh_boost / SLOTS
+                team.fatigue_scale *= (
+                    1.0 - self.configuration.substitution_fresh_boost / SLOTS
+                )
 
             if self.narrator is not None:
                 self.narrator.substitution(side, slot, minute)
@@ -661,3 +706,24 @@ def play_core(
     away.substitution_minutes = _draw_substitutions(rng, configuration)
 
     return _Match(rng, model, home, away, narrator).play()
+
+
+def play_core_from(
+    rng: random.Random,
+    home_strength: TeamStrength,
+    away_strength: TeamStrength,
+    model: RateModel,
+    state: LiveState,
+    expected: tuple[float, float] | None = None,
+) -> CoreOutcome:
+    """Play out the rest of a match in play; the score returned is the full-time one."""
+    configuration = model.configuration
+    home_xg, away_xg = expected or expected_goals(
+        home_strength, away_strength, configuration
+    )
+    home = model.new_team(home_xg, home_strength)
+    away = model.new_team(away_xg, away_strength)
+    home.substitution_minutes = _draw_substitutions(rng, configuration)
+    away.substitution_minutes = _draw_substitutions(rng, configuration)
+
+    return _Match(rng, model, home, away, None).play(state)

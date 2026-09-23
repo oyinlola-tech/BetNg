@@ -11,6 +11,10 @@ from .admin_dto import (
 from .base_dto import ContractModel, IsoTimestamp
 from .configuration_dto import NULLABLE_PARAMETERS, ModelParametersDto
 from .simulation_dto import (
+    BatchMatchItem,
+    BatchRunMatchBody,
+    BatchRunMatchRequest,
+    BatchRunMatchResponse,
     CalculateProbabilitiesRequest,
     EventScore,
     MatchEventList,
@@ -18,6 +22,7 @@ from .simulation_dto import (
     MatchResultView,
     MatchRunDetail,
     MatchScoreResult,
+    MatchStateDto,
     ProbabilityMatrixResponse,
     ReplayMatchRequest,
     ReplayMatchResponse,
@@ -42,6 +47,10 @@ __all__ = [
     "AdminRunStatus",
     "AdminSimulationRun",
     "AdminSimulationRunList",
+    "BatchMatchItem",
+    "BatchRunMatchBody",
+    "BatchRunMatchRequest",
+    "BatchRunMatchResponse",
     "CalculateProbabilitiesRequest",
     "ContractModel",
     "EventScore",
@@ -53,6 +62,7 @@ __all__ = [
     "MatchResultView",
     "MatchRunDetail",
     "MatchScoreResult",
+    "MatchStateDto",
     "ModelConfigurationUpdate",
     "ModelConfigurationView",
     "ModelParametersDto",

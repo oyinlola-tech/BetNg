@@ -401,8 +401,8 @@ def generate_timeline(
     configuration: ModelConfiguration,
 ) -> tuple[tuple[MatchEventDraft, ...], MatchStats]:
     home_goals, away_goals = score
-    home_squad = squad_for(home.team_id, LEGACY_NAME_POOL)
-    away_squad = squad_for(away.team_id, LEGACY_NAME_POOL)
+    home_squad = squad_for(home.team_id, LEGACY_NAME_POOL, home.country)
+    away_squad = squad_for(away.team_id, LEGACY_NAME_POOL, away.country)
     timeline = _Timeline(
         home=_Lineup(home, list(home_squad.starters), list(home_squad.bench)),
         away=_Lineup(away, list(away_squad.starters), list(away_squad.bench)),

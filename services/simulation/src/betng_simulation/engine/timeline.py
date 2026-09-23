@@ -102,7 +102,7 @@ class TimelineNarrator(Narrator):
             ("AWAY", away, home, expected[1]),
         )
         for side, team, opponent, xg in sides:
-            squad = squad_for(team.team_id, EXPANDED_NAME_POOL)
+            squad = squad_for(team.team_id, EXPANDED_NAME_POOL, team.country)
             self.lineups[side] = _Lineup(
                 side=side,
                 team=team,

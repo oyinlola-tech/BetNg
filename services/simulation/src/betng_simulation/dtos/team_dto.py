@@ -42,6 +42,8 @@ class SimulationTeamDto(ContractModel):
     name: Annotated[str, Field(min_length=1, max_length=120)]
     short_name: Annotated[str, Field(min_length=2, max_length=12)]
     strength: TeamStrengthDto
+    #: The club's league country. Absent leaves the squad on the older pool.
+    country: Annotated[str, Field(min_length=2, max_length=60)] | None = None
 
     def to_engine(self) -> SimulationTeam:
         return SimulationTeam(
@@ -49,4 +51,5 @@ class SimulationTeamDto(ContractModel):
             name=self.name,
             short_name=self.short_name,
             strength=self.strength.to_engine(),
+            country=self.country,
         )

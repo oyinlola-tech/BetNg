@@ -6,6 +6,15 @@ import random
 from dataclasses import dataclass
 from typing import Final, Literal
 
+from .names import (
+    DEFAULT_DOMESTIC_SHARE,
+    DOMESTIC_SHARE,
+    FOREIGN_MIX,
+    GOALKEEPER_DOMESTIC_BONUS,
+    POOLS,
+    NamePool,
+    resolve_country,
+)
 from .sampling import sample_index
 
 Position = Literal["GOALKEEPER", "DEFENDER", "MIDFIELDER", "FORWARD"]
@@ -130,10 +139,66 @@ def _fill(
     rng: random.Random,
     formation: tuple[tuple[Position, int], ...],
     taken: set[str],
-    pool: tuple[tuple[str, ...], tuple[str, ...]],
+    pool: NamePool,
 ) -> tuple[Player, ...]:
     return tuple(
         Player(name=_draw_name(rng, taken, *pool), position=position)
+        for position, count in formation
+        for _ in range(count)
+    )
+
+
+def _weighted_choice(rng: random.Random, weighted: tuple[tuple[str, int], ...]) -> str:
+    roll = sample_index(rng, sum(weight for _, weight in weighted))
+    seen = 0
+
+    for key, weight in weighted:
+        seen += weight
+        if roll < seen:
+            return key
+
+    return weighted[-1][0]
+
+
+@functools.lru_cache(maxsize=32)
+def _foreign_mix(domestic: str | None) -> tuple[tuple[str, int], ...]:
+    """Return the foreign mix without the club's own country.
+
+    Leaving it in would let a "foreign" draw land back home, so the domestic
+    share would quietly run above the figure it is set to.
+    """
+    return tuple((name, weight) for name, weight in FOREIGN_MIX if name != domestic)
+
+
+def _nationality(
+    rng: random.Random, domestic: str | None, position: Position
+) -> str:
+    """Pick where one player is from: the club's country, or the foreign mix."""
+    if domestic is None:
+        return _weighted_choice(rng, FOREIGN_MIX)
+
+    share = DOMESTIC_SHARE.get(domestic, DEFAULT_DOMESTIC_SHARE)
+
+    if position == "GOALKEEPER":
+        share = min(100, share + GOALKEEPER_DOMESTIC_BONUS)
+
+    if sample_index(rng, 100) < share:
+        return domestic
+
+    return _weighted_choice(rng, _foreign_mix(domestic))
+
+
+def _fill_national(
+    rng: random.Random,
+    formation: tuple[tuple[Position, int], ...],
+    taken: set[str],
+    domestic: str | None,
+) -> tuple[Player, ...]:
+    return tuple(
+        Player(
+            name=_draw_name(rng, taken, *POOLS[_nationality(rng, domestic, position)]),
+            position=position,
+        )
         for position, count in formation
         for _ in range(count)
     )
@@ -151,13 +216,35 @@ def name_pool_size(name_pool: int) -> int:
 
 
 @functools.lru_cache(maxsize=1024)
-def squad_for(team_id: str, name_pool: int = EXPANDED_NAME_POOL) -> Squad:
-    """Return the team's squad; each model version pins its own name pool."""
+def squad_for(
+    team_id: str,
+    name_pool: int = EXPANDED_NAME_POOL,
+    country: str | None = None,
+) -> Squad:
+    """Return the team's squad, seeded from the team id alone.
+
+    Given the club's country the squad is drawn mostly from that country and the
+    rest from the foreign mix, because league football is cosmopolitan. Without
+    one the older single-pool behaviour stands, so a caller that does not know
+    the country still gets a squad.
+
+    The PRNG here is the team's own, never the match seed, so which names are
+    drawn cannot move a scoreline.
+    """
     rng = _squad_prng(team_id)
     taken: set[str] = set()
-    pool = _NAME_POOLS[name_pool]
+
+    if country is None:
+        pool = _NAME_POOLS[name_pool]
+
+        return Squad(
+            starters=_fill(rng, STARTING_FORMATION, taken, pool),
+            bench=_fill(rng, BENCH_FORMATION, taken, pool),
+        )
+
+    domestic = resolve_country(country)
 
     return Squad(
-        starters=_fill(rng, STARTING_FORMATION, taken, pool),
-        bench=_fill(rng, BENCH_FORMATION, taken, pool),
+        starters=_fill_national(rng, STARTING_FORMATION, taken, domestic),
+        bench=_fill_national(rng, BENCH_FORMATION, taken, domestic),
     )

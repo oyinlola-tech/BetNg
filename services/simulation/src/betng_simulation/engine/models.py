@@ -51,6 +51,8 @@ class SimulationTeam:
     name: str
     short_name: str
     strength: TeamStrength
+    #: The club's league country, which decides where its squad is drawn from.
+    country: str | None = None
 
 
 @dataclass(frozen=True)

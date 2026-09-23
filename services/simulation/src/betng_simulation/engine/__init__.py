@@ -30,6 +30,8 @@ from .models import (
     Winner,
     derive_winner,
 )
+from .names import POOLS as NAME_POOLS_BY_COUNTRY
+from .names import resolve_country
 from .players import (
     EXPANDED_NAME_POOL,
     LEGACY_NAME_POOL,
@@ -40,14 +42,20 @@ from .players import (
     name_pool_for,
     squad_for,
 )
-from .pricing import monte_carlo_matrix, price_match, pricing_seed, sample_scores
+from .pricing import (
+    monte_carlo_matrix,
+    price_match,
+    price_match_in_running,
+    pricing_seed,
+    sample_scores,
+)
 from .probabilities import (
     calculate_probabilities,
     expected_goals,
     outcome_probabilities,
     score_matrix,
 )
-from .progressive import RateModel, TeamState, play_core
+from .progressive import LiveState, RateModel, TeamState, play_core
 from .seeds import create_prng, derive_seed, seed_material
 
 __all__ = [
@@ -56,10 +64,12 @@ __all__ = [
     "LEGACY_NAME_POOL",
     "MODEL_VERSION",
     "MODEL_VERSIONS",
+    "NAME_POOLS_BY_COUNTRY",
     "NEUTRAL_CONDITIONS",
     "PROGRESSIVE_MODEL_VERSION",
     "STARTING_FORMATION",
     "EventType",
+    "LiveState",
     "MatchConditions",
     "MatchEventDraft",
     "MatchResult",
@@ -95,7 +105,9 @@ __all__ = [
     "outcome_probabilities",
     "play_core",
     "price_match",
+    "price_match_in_running",
     "pricing_seed",
+    "resolve_country",
     "result_index",
     "sample_score",
     "sample_scores",

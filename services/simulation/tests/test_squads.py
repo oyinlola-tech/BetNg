@@ -13,9 +13,11 @@ from betng_simulation.engine import (
     LEGACY_NAME_POOL,
     MODEL_VERSION,
     ModelConfiguration,
+    SimulationTeam,
     simulate,
     squad_for,
 )
+from betng_simulation.engine.names import POOLS
 from betng_simulation.engine.players import name_pool_size
 
 from .conftest import AWAY_TEAM, HOME_TEAM
@@ -172,3 +174,123 @@ class TestNamePools:
         )
         assert shared_names(EXPANDED_NAME_POOL) < 0.03
         assert shared_names(EXPANDED_NAME_POOL) < shared_names(LEGACY_NAME_POOL) / 5
+
+
+def nationality_of(name: str) -> set[str]:
+    """Every pool a full name could have come from."""
+    given, _, surname = name.partition(" ")
+
+    return {
+        country
+        for country, (given_names, surnames) in POOLS.items()
+        if given in given_names and surname in surnames
+    }
+
+
+def domestic_count(squad_names: list[str], country: str) -> int:
+    return sum(1 for name in squad_names if country in nationality_of(name))
+
+
+class TestSquadsFollowTheClubsCountry:
+    """The bug this guards: every club in the game fielded one country's names."""
+
+    def test_a_squad_is_mostly_its_own_country_and_never_one_pool(self) -> None:
+        for country, team_id in (
+            ("England", "33333333-3333-4333-8333-000000000001"),
+            ("Spain", "33333333-3333-4333-8333-000000000002"),
+            ("Italy", "33333333-3333-4333-8333-000000000003"),
+            ("France", "33333333-3333-4333-8333-000000000004"),
+        ):
+            squad = squad_for(team_id, EXPANDED_NAME_POOL, country)
+            roster = [player.name for player in squad.starters + squad.bench]
+            key = country.upper()
+            domestic = domestic_count(roster, key)
+
+            assert 0 < domestic < len(roster), (
+                f"{country} squad is all-or-nothing domestic: {roster}"
+            )
+            # Every name resolves to some pool: none are left over from the old one.
+            assert all(nationality_of(name) for name in roster)
+
+    def test_the_country_decides_the_squad(self) -> None:
+        team_id = "33333333-3333-4333-8333-000000000010"
+        english = squad_for(team_id, EXPANDED_NAME_POOL, "England")
+        spanish = squad_for(team_id, EXPANDED_NAME_POOL, "Spain")
+
+        assert {player.name for player in english.starters} != {
+            player.name for player in spanish.starters
+        }
+
+    def test_an_unknown_country_still_fields_a_full_squad(self) -> None:
+        squad = squad_for(
+            "33333333-3333-4333-8333-000000000011", EXPANDED_NAME_POOL, "Narnia"
+        )
+        roster = [player.name for player in squad.starters + squad.bench]
+
+        assert len(set(roster)) == len(roster)
+        assert all(nationality_of(name) for name in roster)
+
+    def test_without_a_country_the_older_pool_is_unchanged(self) -> None:
+        team_id = "33333333-3333-4333-8333-000000000012"
+
+        assert squad_for(team_id, EXPANDED_NAME_POOL) == squad_for(
+            team_id, EXPANDED_NAME_POOL, None
+        )
+
+    def test_keepers_lean_domestic(self) -> None:
+        keepers = [
+            squad_for(
+                f"44444444-4444-4444-8444-{index:012d}", EXPANDED_NAME_POOL, "Spain"
+            )
+            .starters[0]
+            .name
+            for index in range(120)
+        ]
+
+        assert all(player for player in keepers)
+        assert domestic_count(keepers, "SPAIN") > len(keepers) // 2
+
+
+class TestLineupsAndTimelineAgreeOnNames:
+    def test_the_squad_endpoint_and_the_timeline_name_the_same_people(
+        self, client: TestClient
+    ) -> None:
+        home = SimulationTeam(
+            HOME_TEAM.team_id,
+            HOME_TEAM.name,
+            HOME_TEAM.short_name,
+            HOME_TEAM.strength,
+            "Spain",
+        )
+        away = SimulationTeam(
+            AWAY_TEAM.team_id,
+            AWAY_TEAM.name,
+            AWAY_TEAM.short_name,
+            AWAY_TEAM.strength,
+            "Spain",
+        )
+        result = squads(
+            client,
+            {
+                "home": {"teamId": home.team_id, "name": home.name, "country": "Spain"},
+                "away": {"teamId": away.team_id, "name": away.name, "country": "Spain"},
+            },
+        )
+        squad_names = {"HOME": names(result["home"]), "AWAY": names(result["away"])}
+        named = 0
+
+        for match_id in MATCH_IDS[:40]:
+            output = simulate(match_id, home, away, CONFIGURATION)
+
+            for event in output.events:
+                for name in (event.player, event.secondary_player):
+                    if name is None:
+                        continue
+
+                    assert event.side is not None
+                    assert name in squad_names[event.side], (
+                        f"{name} is in the timeline but not in the {event.side} squad"
+                    )
+                    named += 1
+
+        assert named > 0

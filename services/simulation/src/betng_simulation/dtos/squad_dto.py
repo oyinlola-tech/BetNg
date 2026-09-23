@@ -13,6 +13,9 @@ LineupPositionDto = Literal["GK", "DF", "MF", "FW"]
 class SquadTeamRef(ContractModel):
     team_id: UUID
     name: Annotated[str, Field(min_length=1, max_length=120)]
+    #: The club's league country; must match what `runMatch` was given or the
+    #: lineup would name different people than the timeline.
+    country: Annotated[str, Field(min_length=2, max_length=60)] | None = None
 
 
 class GetSquadsRequest(ContractModel):

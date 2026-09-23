@@ -9,6 +9,7 @@ from pydantic import ValidationError
 from betng_simulation.dtos import (
     CalculateProbabilitiesRequest,
     GetSquadsRequest,
+    MatchStateDto,
     ReplayMatchRequest,
     RunMatchBody,
     RunMatchRequest,
@@ -116,12 +117,25 @@ class TestNoInputForBets:
             "match_id",
             "home",
             "away",
+            "state",
         }
+        # In-running pricing is told what the match has settled and nothing else:
+        # no stake, no exposure, no bettor.
+        assert set(MatchStateDto.model_fields) == {
+            "minute",
+            "home_goals",
+            "away_goals",
+            "home_reds",
+            "away_reds",
+        }
+        # `country` is a property of the club, never of a bettor: it only decides
+        # which name pool the squad is drawn from.
         assert set(SimulationTeamDto.model_fields) == {
             "team_id",
             "name",
             "short_name",
             "strength",
+            "country",
         }
         assert set(TeamStrengthDto.model_fields) == {
             "attack",

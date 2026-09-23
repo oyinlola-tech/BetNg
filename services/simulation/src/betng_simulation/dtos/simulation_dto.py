@@ -5,6 +5,7 @@ from uuid import UUID
 
 from pydantic import Field
 
+from ..engine import LiveState
 from .base_dto import ContractModel, IsoTimestamp
 from .team_dto import SimulationTeamDto, TeamStrengthDto
 
@@ -48,7 +49,7 @@ class BatchRunMatchRequest(ContractModel):
 
 
 class BatchRunMatchResponse(ContractModel):
-    results: list[RunMatchResponse | dict]
+    results: list[RunMatchResponse | dict[str, str]]
 
 
 class MatchScoreResult(ContractModel):
@@ -70,11 +71,32 @@ class RunMatchResponse(ContractModel):
     event_count: Annotated[int, Field(ge=0)]
 
 
+class MatchStateDto(ContractModel):
+    """What a match in play has already settled, for in-running pricing."""
+
+    minute: Annotated[int, Field(ge=0, le=120)]
+    home_goals: Annotated[int, Field(ge=0)] = 0
+    away_goals: Annotated[int, Field(ge=0)] = 0
+    home_reds: Annotated[int, Field(ge=0, le=11)] = 0
+    away_reds: Annotated[int, Field(ge=0, le=11)] = 0
+
+    def to_engine(self) -> LiveState:
+        return LiveState(
+            minute=self.minute,
+            home_goals=self.home_goals,
+            away_goals=self.away_goals,
+            home_reds=self.home_reds,
+            away_reds=self.away_reds,
+        )
+
+
 class CalculateProbabilitiesRequest(ContractModel):
     #: Seeds the Monte Carlo pricing stream and the match's conditions.
     match_id: UUID | None = None
     home: TeamStrengthDto
     away: TeamStrengthDto
+    #: Absent before kick-off; present prices the rest of a match in play.
+    state: MatchStateDto | None = None
 
 
 class ProbabilityMatrixResponse(ContractModel):

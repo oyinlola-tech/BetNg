@@ -7,19 +7,38 @@ from typing import Final
 from betng_service_kit import QueryHandler
 
 from .....constants import SimulationQuery
-from .....dtos import ProbabilityMatrixResponse, TeamStrengthDto
-from .....engine import ModelConfiguration, ProbabilityMatrix, price_match
+from .....dtos import MatchStateDto, ProbabilityMatrixResponse, TeamStrengthDto
+from .....engine import (
+    ModelConfiguration,
+    ProbabilityMatrix,
+    price_match,
+    price_match_in_running,
+)
 from .....repositories import SimulationRepository
 from .calculate_probabilities_query import CalculateProbabilitiesQuery
 
 CACHE_SIZE: Final = 512
 
 _Strength = tuple[float, ...]
-_CacheKey = tuple[str | None, str, int, _Strength, _Strength]
+_Live = tuple[int, int, int, int, int] | None
+_CacheKey = tuple[str | None, str, int, _Strength, _Strength, _Live]
 
 
 def _strength_key(strength: TeamStrengthDto) -> _Strength:
     return tuple(strength.model_dump().values())
+
+
+def _state_key(state: MatchStateDto | None) -> _Live:
+    if state is None:
+        return None
+
+    return (
+        state.minute,
+        state.home_goals,
+        state.away_goals,
+        state.home_reds,
+        state.away_reds,
+    )
 
 
 class CalculateProbabilitiesHandler(
@@ -50,13 +69,19 @@ class CalculateProbabilitiesHandler(
             configuration.version,
             _strength_key(request.home),
             _strength_key(request.away),
+            _state_key(request.state),
         )
 
         async with self._lock:
             matrix = self._cache.get(key)
             if matrix is None:
                 matrix = await asyncio.to_thread(
-                    self._price, match_id, request.home, request.away, configuration
+                    self._price,
+                    match_id,
+                    request.home,
+                    request.away,
+                    configuration,
+                    request.state,
                 )
                 self._remember(key, matrix)
             else:
@@ -77,8 +102,20 @@ class CalculateProbabilitiesHandler(
         home: TeamStrengthDto,
         away: TeamStrengthDto,
         configuration: ModelConfiguration,
+        state: MatchStateDto | None,
     ) -> ProbabilityMatrix:
-        return price_match(match_id, home.to_engine(), away.to_engine(), configuration)
+        if state is None:
+            return price_match(
+                match_id, home.to_engine(), away.to_engine(), configuration
+            )
+
+        return price_match_in_running(
+            match_id,
+            home.to_engine(),
+            away.to_engine(),
+            configuration,
+            state.to_engine(),
+        )
 
     def _remember(self, key: _CacheKey, matrix: ProbabilityMatrix) -> None:
         self._cache[key] = matrix
