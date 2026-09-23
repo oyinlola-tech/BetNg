@@ -254,6 +254,15 @@ export interface FakePeers extends Peers {
   readonly calls: {
     readonly publishMarkets: string[];
     readonly marketsStatus: { matchId: string; status: MarketsStatus }[];
+    readonly reprices: {
+      matchId: string;
+      eventType: string;
+      minute: number;
+      homeGoals: number;
+      awayGoals: number;
+      homeReds: number;
+      awayReds: number;
+    }[];
     readonly freezeExposure: string[];
     readonly runMatch: RunMatchRequest[];
     readonly getSquads: { home: SquadTeamRef; away: SquadTeamRef }[];
@@ -277,6 +286,7 @@ export function createFakePeers(superuser: PrismaClient): FakePeers {
   const calls: FakePeers["calls"] = {
     publishMarkets: [],
     marketsStatus: [],
+    reprices: [],
     freezeExposure: [],
     runMatch: [],
     getSquads: [],
@@ -313,6 +323,21 @@ export function createFakePeers(superuser: PrismaClient): FakePeers {
         calls.publishMarkets.push(input.matchId);
 
         return { matchId: input.matchId, markets: 8, oddsVersion: 1 };
+      },
+      recalculate: async (input) => {
+        if (fail.odds) throw new Error("odds is down");
+        calls.reprices.push({
+          matchId: input.matchId,
+          eventType: input.eventType,
+          ...input.state,
+        });
+
+        return {
+          matchId: input.matchId,
+          markets: 8,
+          oddsVersion: 2,
+          recalculated: true,
+        };
       },
       setMatchMarketsStatus: async (matchId, status) => {
         if (fail.odds) throw new Error("odds is down");

@@ -116,6 +116,19 @@ export function createSimulationReader(prisma: PrismaClient): SimulationReader {
         return rows[0]?.total ?? 0;
       }, 0),
 
+    countDismissals: async (matchId, upTo) =>
+      orWhenTableMissing(async () => {
+        const rows = await prisma.$queryRaw<{ home: number; away: number }[]>`
+          SELECT count(*) FILTER (WHERE side = 'HOME')::int AS home,
+                 count(*) FILTER (WHERE side = 'AWAY')::int AS away
+          FROM simulation.match_events
+          WHERE match_id = ${matchId}::uuid
+            AND sequence <= ${upTo}
+            AND type = 'RED_CARD'`;
+
+        return { home: rows[0]?.home ?? 0, away: rows[0]?.away ?? 0 };
+      }, { home: 0, away: 0 }),
+
     listScorers: async (leagueId, season, limit) =>
       orWhenTableMissing(async () => {
         // Result secrecy: `e.sequence <= m.revealed_sequence` counts a goal only once it has been shown.

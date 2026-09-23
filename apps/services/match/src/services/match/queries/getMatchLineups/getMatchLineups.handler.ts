@@ -111,16 +111,19 @@ export class GetMatchLineupsHandler extends QueryHandler<
     match: MatchRecord,
     requestId: string,
   ): Promise<Squads> {
-    const { homeTeam, awayTeam } = match.fixture;
+    const { homeTeam, awayTeam, league } = match.fixture;
+    // The squad is drawn from the club's country, so it is part of the identity
+    // of what is cached here as much as the teams and the model are.
+    const country = league.country;
 
     try {
       const modelVersion = await this.deps.simulation.findModelVersion(match.id);
 
-      return await this.cache.get(`${homeTeam.id}:${awayTeam.id}:${modelVersion ?? "current"}`, async () => {
+      return await this.cache.get(`${homeTeam.id}:${awayTeam.id}:${modelVersion ?? "current"}:${country}`, async () => {
         const squads = await this.deps.squads.getSquads(
           {
-            home: { teamId: homeTeam.id, name: homeTeam.name },
-            away: { teamId: awayTeam.id, name: awayTeam.name },
+            home: { teamId: homeTeam.id, name: homeTeam.name, country },
+            away: { teamId: awayTeam.id, name: awayTeam.name, country },
             ...(modelVersion === undefined ? {} : { modelVersion }),
           },
           requestId,

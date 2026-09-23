@@ -393,6 +393,96 @@ describe("match lifecycle", () => {
     expect(await lifecycleOf(harness, fixture.matchId)).toBe("BETTING_OPEN");
   });
 
+  it("reprices a match in play on the events that move a price, and not on the others", async () => {
+    const fixture = await createFixture(harness);
+    const { lifecycle } = harness.app;
+
+    await Promise.all([lifecycle.tick(), lifecycle.tick(), lifecycle.tick()]);
+    harness.clock.set(fixture.kickoffAt);
+    await Promise.all([lifecycle.tick(), lifecycle.tick(), lifecycle.tick()]);
+    await lifecycle.tick();
+
+    const repricesFor = (): typeof harness.peers.calls.reprices =>
+      harness.peers.calls.reprices.filter(
+        (call) => call.matchId === fixture.matchId,
+      );
+
+    // Kick-off is revealed but never repriced: the price it opened on still stands.
+    expect(repricesFor()).toEqual([]);
+
+    harness.clock.set(atMinute(fixture, 10));
+    await lifecycle.tick();
+    expect(repricesFor()).toEqual([
+      {
+        matchId: fixture.matchId,
+        eventType: "GOAL",
+        minute: 10,
+        homeGoals: 1,
+        awayGoals: 0,
+        homeReds: 0,
+        awayReds: 0,
+      },
+    ]);
+
+    // A corner is revealed between the goal and half-time; it must not reprice.
+    harness.clock.set(atMinute(fixture, 30));
+    await lifecycle.tick();
+    expect(repricesFor()).toHaveLength(1);
+
+    harness.clock.set(atMinute(fixture, 46));
+    await lifecycle.tick();
+
+    // Half-time and the second-half whistle arrive in one batch: one price move,
+    // carrying the state the batch ended on.
+    expect(repricesFor().slice(1)).toEqual([
+      {
+        matchId: fixture.matchId,
+        eventType: "SECOND_HALF",
+        minute: 46,
+        homeGoals: 1,
+        awayGoals: 0,
+        homeReds: 0,
+        awayReds: 0,
+      },
+    ]);
+
+    harness.clock.set(atMinute(fixture, 70));
+    await lifecycle.tick();
+    expect(repricesFor().at(-1)).toMatchObject({
+      eventType: "GOAL",
+      minute: 70,
+      homeGoals: 1,
+      awayGoals: 1,
+    });
+  });
+
+  it("keeps playing a match when the odds service cannot reprice it", async () => {
+    const fixture = await createFixture(harness);
+    const { lifecycle } = harness.app;
+
+    await Promise.all([lifecycle.tick(), lifecycle.tick(), lifecycle.tick()]);
+    harness.clock.set(fixture.kickoffAt);
+    await Promise.all([lifecycle.tick(), lifecycle.tick(), lifecycle.tick()]);
+    await lifecycle.tick();
+
+    harness.peers.fail.odds = true;
+    harness.clock.set(atMinute(fixture, 10));
+    await lifecycle.tick();
+    harness.peers.fail.odds = false;
+
+    // The goal is revealed and banked even though its reprice was refused.
+    expect(
+      await harness.prisma.match.findUniqueOrThrow({
+        where: { id: fixture.matchId },
+      }),
+    ).toMatchObject({
+      lifecycle: "EVENTS_PUBLISHED",
+      homeScore: 1,
+      awayScore: 0,
+      revealedSequence: 2,
+    });
+  });
+
   it("keeps three upcoming rounds of ten fixtures for an active league", async () => {
     const tag = crypto.randomUUID().slice(0, 8);
     const league = await harness.prisma.league.create({

@@ -23,10 +23,12 @@ import type {
   CatalogueRepository,
   Clock,
   LifecycleRepository,
+  LiveRepriceEvent,
   MatchRecord,
   MatchRepository,
   MatchSettlementResult,
   Peers,
+  SimulationEventRow,
   SimulationReader,
 } from "../../interfaces/index.js";
 import {
@@ -81,6 +83,14 @@ const LIVE_EVENT_TYPE: Readonly<Record<string, LiveEventType>> = Object.freeze({
   KICK_OFF: "KICKOFF",
   FULL_TIME: "MATCH_FINISHED",
 });
+
+/** The events that move a price enough to be worth repricing a match in play for. */
+const REPRICE_EVENTS: ReadonlySet<string> = new Set([
+  "GOAL",
+  "RED_CARD",
+  "HALF_TIME",
+  "SECOND_HALF",
+]);
 
 /** A rating change applies to matches not yet priced: a priced match is simulated on the ratings its odds used. */
 function pricedStrength(stored: unknown): TeamStrength | undefined {
@@ -708,6 +718,7 @@ export function createLifecycleService(
             shortName: homeTeam.shortName.slice(0, 8),
             strength:
               pricedStrength(match.homeStrength) ?? toTeamStrength(homeTeam),
+            country: match.fixture.league.country,
           },
           away: {
             teamId: asId<"TeamId">(awayTeam.id),
@@ -715,6 +726,7 @@ export function createLifecycleService(
             shortName: awayTeam.shortName.slice(0, 8),
             strength:
               pricedStrength(match.awayStrength) ?? toTeamStrength(awayTeam),
+            country: match.fixture.league.country,
           },
         },
         context.requestId,
@@ -886,6 +898,8 @@ export function createLifecycleService(
     });
     let last: (typeof pending)[number] | undefined;
 
+    let reprice: (typeof pending)[number] | undefined;
+
     for (const event of pending) {
       if (revealInstantMs(kickoffMs, event, timing) > now.getTime()) break;
 
@@ -902,6 +916,8 @@ export function createLifecycleService(
         context.requestId,
       );
       last = event;
+
+      if (REPRICE_EVENTS.has(event.type)) reprice = event;
     }
 
     if (last === undefined) return match.revealedSequence;
@@ -912,7 +928,59 @@ export function createLifecycleService(
       awayScore: last.scoreAway,
     });
 
+    // Once per batch, against the state the batch ended on: two goals revealed
+    // together are one price move, and the intermediate price was never offered.
+    if (reprice !== undefined) await repriceLive(match, last, reprice, context);
+
     return last.sequence;
+  }
+
+  /**
+   * Reprices a match in play. The odds service is not on the reveal path: a
+   * match keeps playing whether or not its markets could be moved, and a failure
+   * here leaves the last published price standing rather than stalling the tick.
+   */
+  async function repriceLive(
+    match: MatchRecord,
+    last: SimulationEventRow,
+    trigger: SimulationEventRow,
+    context: StepContext,
+  ): Promise<void> {
+    try {
+      const reds = await simulation.countDismissals(match.id, last.sequence);
+      const result = await peers.odds.recalculate(
+        {
+          matchId: match.id,
+          eventType: trigger.type as LiveRepriceEvent,
+          state: {
+            minute: Math.min(120, Math.max(0, last.minute)),
+            homeGoals: last.scoreHome,
+            awayGoals: last.scoreAway,
+            homeReds: reds.home,
+            awayReds: reds.away,
+          },
+        },
+        context.requestId,
+      );
+
+      if (!result.recalculated) {
+        logger.info("Live reprice declined by odds", {
+          event: "match.repriceDeclined",
+          matchId: match.id,
+          type: trigger.type,
+          requestId: context.requestId,
+        });
+      }
+    } catch (error) {
+      logger.warn("Live reprice failed; the last published price stands", {
+        event: "match.repriceFailed",
+        matchId: match.id,
+        type: trigger.type,
+        minute: last.minute,
+        requestId: context.requestId,
+        error: errorMessage(error),
+      });
+    }
   }
 
   async function finishOne(

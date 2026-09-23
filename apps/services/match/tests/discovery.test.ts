@@ -572,7 +572,10 @@ describe("GET /search", () => {
       );
 
     expect(await titles(`Per%cent ${tag}`)).toEqual([`Per%cent ${tag}`]);
-    expect(await titles(`r%c`)).toContain(`Per%cent ${tag}`);
+    // Scoped to this run's tag: a bare "r%c" is a literal substring of the
+    // Per%cent team of every previous run too, so once the table has enough of
+    // them the search limit truncates this run's row out of the result.
+    expect(await titles(`r%cent ${tag}`)).toContain(`Per%cent ${tag}`);
     expect(await titles(`Per%${tag}`)).toEqual([]);
     expect(await titles(`Under_score ${tag}`)).toEqual([`Under_score ${tag}`]);
     expect(await titles(`Unde__score ${tag}`)).toEqual([]);

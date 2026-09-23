@@ -230,6 +230,11 @@ export interface SimulationReader {
     },
   ): Promise<readonly SimulationEventRow[]>;
   countEventsAfter(matchId: string, sequence: number): Promise<number>;
+  /** Red cards shown on each side up to `upTo`, which in-running pricing needs. */
+  countDismissals(
+    matchId: string,
+    upTo: number,
+  ): Promise<{ readonly home: number; readonly away: number }>;
   listScorers(
     leagueId: string,
     season: number,

@@ -15,6 +15,15 @@ export interface PublishMarketsResult {
   readonly oddsVersion: number;
 }
 
+export type LiveRepriceEvent = "GOAL" | "RED_CARD" | "HALF_TIME" | "SECOND_HALF";
+
+export interface RecalculateOddsResult {
+  readonly matchId: string;
+  readonly markets: number;
+  readonly oddsVersion: number;
+  readonly recalculated: boolean;
+}
+
 export interface OddsPeer {
   publishMarkets(
     input: {
@@ -24,6 +33,21 @@ export interface OddsPeer {
     },
     requestId: string,
   ): Promise<PublishMarketsResult>;
+  /** Reprices a match in play; the state is what the odds are being moved for. */
+  recalculate(
+    input: {
+      readonly matchId: string;
+      readonly eventType: LiveRepriceEvent;
+      readonly state: {
+        readonly minute: number;
+        readonly homeGoals: number;
+        readonly awayGoals: number;
+        readonly homeReds: number;
+        readonly awayReds: number;
+      };
+    },
+    requestId: string,
+  ): Promise<RecalculateOddsResult>;
   setMatchMarketsStatus(
     matchId: string,
     status: MarketsStatus,
@@ -53,6 +77,8 @@ export interface Squads {
 export interface SquadTeamRef {
   readonly teamId: string;
   readonly name: string;
+  /** Must match what `runMatch` was sent, or the lineup names other people than the timeline. */
+  readonly country?: string;
 }
 
 export interface SimulationPeer {
