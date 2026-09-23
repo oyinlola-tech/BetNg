@@ -16,7 +16,7 @@ DO $$
 DECLARE
   service text;
 BEGIN
-  FOREACH service IN ARRAY ARRAY['match','odds','simulation','risk','betting','wallet','settlement','identity','analytics'] LOOP
+  FOREACH service IN ARRAY ARRAY['match','odds','simulation','risk','betting','wallet','settlement','identity','analytics','payments','email'] LOOP
     IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'betng_' || service) THEN
       EXECUTE format('CREATE ROLE %I LOGIN PASSWORD %L', 'betng_' || service, 'betng_' || service || '_local');
     END IF;
@@ -41,7 +41,7 @@ GRANT pg_monitor TO betng_monitor;
 
 -- Shadow databases for `prisma migrate dev`.
 SELECT format('CREATE DATABASE %I OWNER %I', 'betng_' || s || '_shadow', 'betng_' || s)
-FROM unnest(ARRAY['match','betting','wallet','settlement','identity']) AS s
+FROM unnest(ARRAY['match','betting','wallet','settlement','identity','payments','email']) AS s
 WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'betng_' || s || '_shadow')\gexec
 
 \connect :dbname
@@ -53,7 +53,7 @@ DO $$
 DECLARE
   service text;
 BEGIN
-  FOREACH service IN ARRAY ARRAY['match','odds','simulation','risk','betting','wallet','settlement','identity'] LOOP
+  FOREACH service IN ARRAY ARRAY['match','odds','simulation','risk','betting','wallet','settlement','identity','payments','email'] LOOP
     EXECUTE format('CREATE SCHEMA IF NOT EXISTS %I AUTHORIZATION %I', service, 'betng_' || service);
     EXECUTE format('GRANT USAGE ON SCHEMA %I TO betng_reader', service);
     EXECUTE format('GRANT SELECT ON ALL TABLES IN SCHEMA %I TO betng_reader', service);
@@ -61,7 +61,7 @@ BEGIN
     EXECUTE format('ALTER ROLE %I IN DATABASE %I SET search_path = %I', 'betng_' || service, current_database(), service);
   END LOOP;
 
-  FOREACH service IN ARRAY ARRAY['match','odds','simulation','risk','betting','wallet','settlement','identity','analytics'] LOOP
+  FOREACH service IN ARRAY ARRAY['match','odds','simulation','risk','betting','wallet','settlement','identity','analytics','payments','email'] LOOP
     EXECUTE format('GRANT CONNECT ON DATABASE %I TO %I', current_database(), 'betng_' || service);
     EXECUTE format('GRANT betng_reader TO %I', 'betng_' || service);
   END LOOP;
@@ -75,7 +75,7 @@ DECLARE
   setting text;
   value text;
 BEGIN
-  FOREACH service IN ARRAY ARRAY['match','odds','simulation','risk','betting','wallet','settlement','identity','analytics'] LOOP
+  FOREACH service IN ARRAY ARRAY['match','odds','simulation','risk','betting','wallet','settlement','identity','analytics','payments','email'] LOOP
     FOREACH setting IN ARRAY ARRAY['statement_timeout','idle_in_transaction_session_timeout'] LOOP
       value := CASE
         WHEN setting = 'idle_in_transaction_session_timeout' THEN '60s'
