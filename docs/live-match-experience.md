@@ -45,6 +45,8 @@ one canonical match entity:
 | `UPCOMING` | `SCHEDULED` | What is later? |
 | `FINISHED` | `FINISHED`, `SETTLED` | What happened? |
 
+![The football page, led by Open for play](images/qa/web-football-1920x1080.webp)
+
 A match is in at most one playable collection at a time. When the platform
 closes betting, the match leaves Open for play on the next read or realtime
 signal and appears under Starting soon; when the platform starts it, it appears
@@ -65,6 +67,21 @@ realtime    ─┘   (dedupe,       (authoritative)                  │
                                     ▼
                              Pitch · Ball · EventOverlay
 ```
+
+Rendered, mid-match: the stadium on the left, the same routed event stream as
+commentary on the right, and the clock running from the platform's own
+reported minute.
+
+![Match Centre during a live match](images/qa/web-match-centre-live-1920x1080.webp)
+
+The ball is at the away corner flag because the last event that fixes a
+position was a corner. Nothing moves it again until the platform says so —
+see *What the platform would need to send for more* below.
+
+At full time the pitch subdues, the ball is hidden, and the commentary keeps
+the record of how the match got there.
+
+![Match Centre at full time](images/qa/web-match-centre-1920x1080.webp)
 
 - **Deduplication** is in `watchMatch`: events are applied by the platform's
   `sequence`, a gap triggers a resync rather than a guess, and `routeMatchEvents`
@@ -132,6 +149,12 @@ event; adding the kinds is a contracts change plus a producer change in the
 simulation service. **Until they exist, no frontend fabricates them.** There is
 deliberately no interval-driven ball movement anywhere in the codebase.
 
+Lineups render the platform's squads, formation and substitutions. Squad names
+are drawn per club from the league's country with a realistic foreign mix, so a
+Ligue 1 side reads as one:
+
+![Match lineups with formation and substitutions](images/qa/web-match-lineups-1920x1080.webp)
+
 ### 3. Player positions and formation
 
 `PlayerMarkerView` in `presentationState.ts` is the shape the pitch draws:
@@ -194,6 +217,11 @@ slip. The platform remains the final authority on every submission.
 | Mobile | Play now, grouped market tabs | Compact, touch |
 | TV | Large pitch, no betting | Large |
 
+The Shop at its tightest supported viewport, 1024 x 600, with every control
+still present:
+
+![Shop terminal at 1024 by 600](images/qa/shop-auth-1024x600.webp)
+
 All of them render the same `MarketBoard`, the same routed event stream and the
 same pitch geometry. TV draws its own pitch markings because it does not depend
 on the web component library, but takes ball position and event grading from
@@ -212,3 +240,6 @@ on the web component library, but takes ball position and event grading from
 
 Function keys fire from inside a field so a cashier's hands stay on the
 keyboard; printable keys never fire while typing.
+
+Measured viewport behaviour for every surface above, with the screenshots it
+was measured from, is in [viewport-qa.md](viewport-qa.md).
