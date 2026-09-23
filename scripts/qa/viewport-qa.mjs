@@ -13,11 +13,35 @@
  * Usage: node scripts/qa/viewport-qa.mjs [--out docs/images/qa]
  */
 
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, renameSync, writeFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import { join } from "node:path";
 import { chromium } from "@playwright/test";
 
 const SYSTEM_CHROMIUM = "/usr/bin/chromium";
+
+/*
+ * Playwright writes PNG; docs/images is webp. Converted through Pillow, which
+ * the Python services already depend on, so this adds no new tooling.
+ */
+function toWebp(file) {
+  const png = `${file}.tmp.png`;
+
+  renameSync(file, png);
+  execFileSync("python3", [
+    "-c",
+    [
+      "import sys",
+      "from PIL import Image",
+      "im = Image.open(sys.argv[1]).convert('RGB')",
+      "im = im.resize((2200, round(im.height * 2200 / im.width))) if im.width > 2200 else im",
+      "im.save(sys.argv[2], 'WEBP', quality=82, method=6)",
+    ].join("\n"),
+    png,
+    file,
+  ]);
+  execFileSync("rm", ["-f", png]);
+}
 
 const APPS = {
   web: "http://127.0.0.1:4200",
@@ -123,9 +147,14 @@ async function main() {
     await page.waitForTimeout(1200);
 
     const measured = await page.evaluate(MEASURE);
-    const file = join(dir, `${testCase.label}.png`);
+    /*
+     * webp to match the rest of docs/images, and because a 4K PNG is several
+     * megabytes of repository for a picture nobody zooms into.
+     */
+    const file = join(dir, `${testCase.label}.webp`);
 
-    await page.screenshot({ path: file });
+    await page.screenshot({ path: file, type: "png" });
+    await toWebp(file);
 
     results.push({
       ...testCase,
