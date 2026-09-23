@@ -30,6 +30,7 @@ const TS_SERVICES = [
   ["settlement", "apps/services/settlement"],
   ["event", "apps/services/event"],
   ["identity", "apps/services/identity"],
+  ["email", "apps/services/email"],
 ];
 
 const PY_SERVICES = ["simulation", "odds", "risk", "analytics"];

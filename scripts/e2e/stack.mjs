@@ -14,6 +14,7 @@ const BASE_PORT = Number(process.env.E2E_BASE_PORT ?? 4600);
 
 export const SERVICES = [
   { name: "identity", kind: "ts", dir: "apps/services/identity", offset: 10 },
+  { name: "email", kind: "ts", dir: "apps/services/email", offset: 12 },
   { name: "wallet", kind: "ts", dir: "apps/services/wallet", offset: 3 },
   { name: "event", kind: "ts", dir: "apps/services/event", offset: 8 },
   { name: "simulation", kind: "py", dir: "services/simulation", offset: 5 },
@@ -26,7 +27,7 @@ export const SERVICES = [
   { name: "gateway", kind: "ts", dir: "apps/gateway", offset: 0 },
 ];
 
-const PRISMA_SERVICES = ["match", "betting", "wallet", "settlement", "identity"];
+const PRISMA_SERVICES = ["match", "betting", "wallet", "settlement", "identity", "email"];
 const PYTHON_SCHEMAS = ["simulation", "odds", "risk", "analytics"];
 
 // A fresh admin TOTP secret per run: identity seeds it (encrypted) and the scenario signs in with it.

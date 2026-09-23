@@ -5,7 +5,7 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-SERVICES=(apps/gateway apps/services/match apps/services/betting apps/services/wallet apps/services/settlement apps/services/identity apps/services/event)
+SERVICES=(apps/gateway apps/services/match apps/services/betting apps/services/wallet apps/services/settlement apps/services/identity apps/services/event apps/services/email)
 
 step() { printf '\n\033[1m== %s\033[0m\n' "$1"; }
 
