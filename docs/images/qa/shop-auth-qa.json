@@ -1,0 +1,65 @@
+{
+  "capturedAt": "2026-09-23T08:51:45.231Z",
+  "results": [
+    {
+      "label": "shop-auth-1024x600",
+      "w": 1024,
+      "h": 600,
+      "pageScrollY": 0,
+      "pageScrollX": 0,
+      "density": "ULTRA_COMPACT",
+      "hasSlip": true,
+      "matchRows": 43,
+      "signedIn": true,
+      "errs": []
+    },
+    {
+      "label": "shop-auth-1280x720",
+      "w": 1280,
+      "h": 720,
+      "pageScrollY": 0,
+      "pageScrollX": 0,
+      "density": "COMPACT",
+      "hasSlip": true,
+      "matchRows": 43,
+      "signedIn": true,
+      "errs": []
+    },
+    {
+      "label": "shop-auth-1366x768",
+      "w": 1366,
+      "h": 768,
+      "pageScrollY": 0,
+      "pageScrollX": 0,
+      "density": "COMPACT",
+      "hasSlip": true,
+      "matchRows": 43,
+      "signedIn": true,
+      "errs": []
+    },
+    {
+      "label": "shop-auth-1920x1080",
+      "w": 1920,
+      "h": 1080,
+      "pageScrollY": 0,
+      "pageScrollX": 0,
+      "density": "NORMAL",
+      "hasSlip": true,
+      "matchRows": 43,
+      "signedIn": true,
+      "errs": []
+    },
+    {
+      "label": "shop-auth-2560x1440",
+      "w": 2560,
+      "h": 1440,
+      "pageScrollY": 0,
+      "pageScrollX": 0,
+      "density": "NORMAL",
+      "hasSlip": true,
+      "matchRows": 43,
+      "signedIn": true,
+      "errs": []
+    }
+  ]
+}

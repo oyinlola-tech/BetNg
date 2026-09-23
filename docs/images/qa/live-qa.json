@@ -1,0 +1,61 @@
+{
+  "matchId": "080d44ee-f9cf-4525-a9e9-46036b0eaa49",
+  "capturedAt": "2026-09-23T08:46:46.722Z",
+  "results": [
+    {
+      "label": "web-live-1920x1080",
+      "url": "http://127.0.0.1:4200/live",
+      "w": 1920,
+      "h": 1080,
+      "scrollY": 2954,
+      "hasPitch": false,
+      "commentary": 0,
+      "heading": "Live",
+      "errs": []
+    },
+    {
+      "label": "web-match-centre-1920x1080",
+      "url": "http://127.0.0.1:4200/matches/080d44ee-f9cf-4525-a9e9-46036b0eaa49",
+      "w": 1920,
+      "h": 1080,
+      "scrollY": 1531,
+      "hasPitch": true,
+      "commentary": 25,
+      "heading": "Rennes v Monaco",
+      "errs": []
+    },
+    {
+      "label": "web-match-centre-390x844",
+      "url": "http://127.0.0.1:4200/matches/080d44ee-f9cf-4525-a9e9-46036b0eaa49",
+      "w": 390,
+      "h": 844,
+      "scrollY": 3663,
+      "hasPitch": true,
+      "commentary": 25,
+      "heading": "Rennes v Monaco",
+      "errs": []
+    },
+    {
+      "label": "web-match-markets-1920x1080",
+      "url": "http://127.0.0.1:4200/matches/080d44ee-f9cf-4525-a9e9-46036b0eaa49?tab=markets",
+      "w": 1920,
+      "h": 1080,
+      "scrollY": 1468,
+      "hasPitch": false,
+      "commentary": 0,
+      "heading": "Rennes v Monaco",
+      "errs": []
+    },
+    {
+      "label": "tv-live-1920x1080",
+      "url": "http://127.0.0.1:4300/live",
+      "w": 1920,
+      "h": 1080,
+      "scrollY": 0,
+      "hasPitch": true,
+      "commentary": 0,
+      "heading": null,
+      "errs": []
+    }
+  ]
+}

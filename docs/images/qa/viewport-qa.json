@@ -1,0 +1,349 @@
+{
+  "capturedAt": "2026-09-23T08:44:47.887Z",
+  "note": "Layout QA only: the platform backend was not running, so pages render their empty and error states.",
+  "results": [
+    {
+      "app": "shop",
+      "path": "/",
+      "label": "shop-1024x600",
+      "width": 1024,
+      "height": 600,
+      "locked": true,
+      "url": "http://127.0.0.1:4400/",
+      "viewport": {
+        "w": 1024,
+        "h": 600
+      },
+      "pageScrollY": 0,
+      "pageScrollX": 0,
+      "bodyOverflowY": "visible",
+      "density": null,
+      "rootFontPx": 16,
+      "innerScrollers": [],
+      "pageScrollOk": true,
+      "consoleErrors": [],
+      "screenshot": "docs/images/qa/shop-1024x600.png"
+    },
+    {
+      "app": "shop",
+      "path": "/",
+      "label": "shop-1280x720",
+      "width": 1280,
+      "height": 720,
+      "locked": true,
+      "url": "http://127.0.0.1:4400/",
+      "viewport": {
+        "w": 1280,
+        "h": 720
+      },
+      "pageScrollY": 0,
+      "pageScrollX": 0,
+      "bodyOverflowY": "visible",
+      "density": null,
+      "rootFontPx": 16,
+      "innerScrollers": [],
+      "pageScrollOk": true,
+      "consoleErrors": [],
+      "screenshot": "docs/images/qa/shop-1280x720.png"
+    },
+    {
+      "app": "shop",
+      "path": "/",
+      "label": "shop-1366x768",
+      "width": 1366,
+      "height": 768,
+      "locked": true,
+      "url": "http://127.0.0.1:4400/",
+      "viewport": {
+        "w": 1366,
+        "h": 768
+      },
+      "pageScrollY": 0,
+      "pageScrollX": 0,
+      "bodyOverflowY": "visible",
+      "density": null,
+      "rootFontPx": 16,
+      "innerScrollers": [],
+      "pageScrollOk": true,
+      "consoleErrors": [],
+      "screenshot": "docs/images/qa/shop-1366x768.png"
+    },
+    {
+      "app": "shop",
+      "path": "/",
+      "label": "shop-1920x1080",
+      "width": 1920,
+      "height": 1080,
+      "locked": true,
+      "url": "http://127.0.0.1:4400/",
+      "viewport": {
+        "w": 1920,
+        "h": 1080
+      },
+      "pageScrollY": 0,
+      "pageScrollX": 0,
+      "bodyOverflowY": "visible",
+      "density": null,
+      "rootFontPx": 16,
+      "innerScrollers": [],
+      "pageScrollOk": true,
+      "consoleErrors": [],
+      "screenshot": "docs/images/qa/shop-1920x1080.png"
+    },
+    {
+      "app": "shop",
+      "path": "/",
+      "label": "shop-2560x1440",
+      "width": 2560,
+      "height": 1440,
+      "locked": true,
+      "url": "http://127.0.0.1:4400/",
+      "viewport": {
+        "w": 2560,
+        "h": 1440
+      },
+      "pageScrollY": 0,
+      "pageScrollX": 0,
+      "bodyOverflowY": "visible",
+      "density": null,
+      "rootFontPx": 16,
+      "innerScrollers": [],
+      "pageScrollOk": true,
+      "consoleErrors": [],
+      "screenshot": "docs/images/qa/shop-2560x1440.png"
+    },
+    {
+      "app": "tv",
+      "path": "/",
+      "label": "tv-1280x720",
+      "width": 1280,
+      "height": 720,
+      "locked": true,
+      "url": "http://127.0.0.1:4300/",
+      "viewport": {
+        "w": 1280,
+        "h": 720
+      },
+      "pageScrollY": 0,
+      "pageScrollX": 0,
+      "bodyOverflowY": "hidden",
+      "density": null,
+      "rootFontPx": 16,
+      "innerScrollers": [
+        {
+          "tag": "div",
+          "label": "",
+          "overflowY": 159
+        },
+        {
+          "tag": "div",
+          "label": "",
+          "overflowY": 200
+        }
+      ],
+      "pageScrollOk": true,
+      "consoleErrors": [],
+      "screenshot": "docs/images/qa/tv-1280x720.png"
+    },
+    {
+      "app": "tv",
+      "path": "/",
+      "label": "tv-1920x1080",
+      "width": 1920,
+      "height": 1080,
+      "locked": true,
+      "url": "http://127.0.0.1:4300/",
+      "viewport": {
+        "w": 1920,
+        "h": 1080
+      },
+      "pageScrollY": 0,
+      "pageScrollX": 0,
+      "bodyOverflowY": "hidden",
+      "density": null,
+      "rootFontPx": 24,
+      "innerScrollers": [
+        {
+          "tag": "div",
+          "label": "",
+          "overflowY": 232
+        },
+        {
+          "tag": "div",
+          "label": "",
+          "overflowY": 289
+        }
+      ],
+      "pageScrollOk": true,
+      "consoleErrors": [],
+      "screenshot": "docs/images/qa/tv-1920x1080.png"
+    },
+    {
+      "app": "tv",
+      "path": "/",
+      "label": "tv-2560x1440",
+      "width": 2560,
+      "height": 1440,
+      "locked": true,
+      "url": "http://127.0.0.1:4300/",
+      "viewport": {
+        "w": 2560,
+        "h": 1440
+      },
+      "pageScrollY": 0,
+      "pageScrollX": 0,
+      "bodyOverflowY": "hidden",
+      "density": null,
+      "rootFontPx": 32,
+      "innerScrollers": [
+        {
+          "tag": "div",
+          "label": "",
+          "overflowY": 306
+        },
+        {
+          "tag": "div",
+          "label": "",
+          "overflowY": 380
+        }
+      ],
+      "pageScrollOk": true,
+      "consoleErrors": [],
+      "screenshot": "docs/images/qa/tv-2560x1440.png"
+    },
+    {
+      "app": "tv",
+      "path": "/",
+      "label": "tv-3840x2160",
+      "width": 3840,
+      "height": 2160,
+      "locked": true,
+      "url": "http://127.0.0.1:4300/",
+      "viewport": {
+        "w": 3840,
+        "h": 2160
+      },
+      "pageScrollY": 0,
+      "pageScrollX": 0,
+      "bodyOverflowY": "hidden",
+      "density": null,
+      "rootFontPx": 40,
+      "innerScrollers": [
+        {
+          "tag": "div",
+          "label": "",
+          "overflowY": 111
+        }
+      ],
+      "pageScrollOk": true,
+      "consoleErrors": [],
+      "screenshot": "docs/images/qa/tv-3840x2160.png"
+    },
+    {
+      "app": "web",
+      "path": "/football",
+      "label": "web-football-1920x1080",
+      "width": 1920,
+      "height": 1080,
+      "locked": false,
+      "url": "http://127.0.0.1:4200/football",
+      "viewport": {
+        "w": 1920,
+        "h": 1080
+      },
+      "pageScrollY": 5769,
+      "pageScrollX": 0,
+      "bodyOverflowY": "visible",
+      "density": null,
+      "rootFontPx": 16,
+      "innerScrollers": [],
+      "pageScrollOk": true,
+      "consoleErrors": [],
+      "screenshot": "docs/images/qa/web-football-1920x1080.png"
+    },
+    {
+      "app": "web",
+      "path": "/football",
+      "label": "web-football-1366x768",
+      "width": 1366,
+      "height": 768,
+      "locked": false,
+      "url": "http://127.0.0.1:4200/football",
+      "viewport": {
+        "w": 1366,
+        "h": 768
+      },
+      "pageScrollY": 5789,
+      "pageScrollX": 0,
+      "bodyOverflowY": "visible",
+      "density": null,
+      "rootFontPx": 16,
+      "innerScrollers": [],
+      "pageScrollOk": true,
+      "consoleErrors": [],
+      "screenshot": "docs/images/qa/web-football-1366x768.png"
+    },
+    {
+      "app": "web",
+      "path": "/football",
+      "label": "web-football-390x844",
+      "width": 390,
+      "height": 844,
+      "locked": false,
+      "url": "http://127.0.0.1:4200/football",
+      "viewport": {
+        "w": 390,
+        "h": 844
+      },
+      "pageScrollY": 12653,
+      "pageScrollX": 0,
+      "bodyOverflowY": "visible",
+      "density": null,
+      "rootFontPx": 16,
+      "innerScrollers": [
+        {
+          "tag": "div",
+          "label": "",
+          "overflowY": 0
+        }
+      ],
+      "pageScrollOk": true,
+      "consoleErrors": [],
+      "screenshot": "docs/images/qa/web-football-390x844.png"
+    },
+    {
+      "app": "web",
+      "path": "/football",
+      "label": "web-football-320x568",
+      "width": 320,
+      "height": 568,
+      "locked": false,
+      "url": "http://127.0.0.1:4200/football",
+      "viewport": {
+        "w": 320,
+        "h": 568
+      },
+      "pageScrollY": 12969,
+      "pageScrollX": 0,
+      "bodyOverflowY": "visible",
+      "density": null,
+      "rootFontPx": 16,
+      "innerScrollers": [
+        {
+          "tag": "div",
+          "label": "",
+          "overflowY": 0
+        }
+      ],
+      "pageScrollOk": true,
+      "consoleErrors": [
+        "[api] GET /api/v1/matches/f08f2dec-5581-4d34-bb76-4f408fce55f7/odds failed {method: GET, path: /api/v1/matches/f08f2dec-5581-4d34-bb76-4f408fce55f7/odds, status",
+        "[api] GET /api/v1/matches/f5935a42-3b7d-4199-ac6e-dd140482a742/odds failed {method: GET, path: /api/v1/matches/f5935a42-3b7d-4199-ac6e-dd140482a742/odds, status",
+        "[api] GET /api/v1/matches/070a9c48-b338-4f70-bebc-52a3fcf44326 failed {method: GET, path: /api/v1/matches/070a9c48-b338-4f70-bebc-52a3fcf44326, status: 0, code:",
+        "[api] GET /api/v1/matches/09757054-edd7-42d0-a805-41499288d9d7 failed {method: GET, path: /api/v1/matches/09757054-edd7-42d0-a805-41499288d9d7, status: 0, code:",
+        "[api] GET /api/v1/matches/30e8bf74-37bc-4aac-b0af-03eb2afac619 failed {method: GET, path: /api/v1/matches/30e8bf74-37bc-4aac-b0af-03eb2afac619, status: 0, code:"
+      ],
+      "screenshot": "docs/images/qa/web-football-320x568.png"
+    }
+  ]
+}
