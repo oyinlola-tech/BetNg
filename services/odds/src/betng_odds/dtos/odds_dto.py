@@ -19,7 +19,15 @@ MarketType = Literal[
 ]
 MarketStatus = Literal["OPEN", "SUSPENDED", "CLOSED", "SETTLED", "VOID"]
 MatchMarketsStatus = Literal["OPEN", "CLOSED", "SETTLED", "VOID"]
-SnapshotReason = Literal["INITIAL", "ADMIN_REPRICE", "STATUS_CHANGE"]
+SnapshotReason = Literal[
+    "INITIAL",
+    "ADMIN_REPRICE",
+    "STATUS_CHANGE",
+    "GOAL",
+    "RED_CARD",
+    "HALF_TIME",
+    "SECOND_HALF",
+]
 MarketAdminAction = Literal["SUSPEND", "RESUME"]
 
 Rating = Annotated[float, Field(ge=0, le=100)]
@@ -52,6 +60,24 @@ class TeamStrength(RequestModel):
     possession: Rating
     form: Annotated[float, Field(ge=-10, le=10)]
     home_advantage: Rating
+
+
+class MatchState(RequestModel):
+    """What a match in play has already settled; absent before kick-off."""
+
+    minute: Annotated[int, Field(ge=0, le=120)]
+    home_goals: Annotated[int, Field(ge=0)] = 0
+    away_goals: Annotated[int, Field(ge=0)] = 0
+    home_reds: Annotated[int, Field(ge=0, le=11)] = 0
+    away_reds: Annotated[int, Field(ge=0, le=11)] = 0
+
+
+class RecalculateOddsRequest(RequestModel):
+    """The live event the match service is repricing for."""
+
+    match_id: UUID
+    event_type: Literal["GOAL", "RED_CARD", "HALF_TIME", "SECOND_HALF"]
+    state: MatchState
 
 
 class ProbabilityMatrix(WireModel):

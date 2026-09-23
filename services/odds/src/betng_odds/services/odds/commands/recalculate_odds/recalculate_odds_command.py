@@ -18,6 +18,8 @@ class RecalculateOddsCommand(Command[RecalculateOddsResult]):
     minute: int
     score_home: int
     score_away: int
+    home_reds: int = 0
+    away_reds: int = 0
     request_id: str | None = None
 
     type: str = OddsCommand.RECALCULATE_ODDS

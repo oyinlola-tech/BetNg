@@ -7,7 +7,7 @@ from betng_service_kit import CommandBus, RpcProcedure, RpcServer
 from ..constants import OddsProcedure
 from ..dtos import (
     PublishMarketsRequest,
-    RecalculateOddsResult,
+    RecalculateOddsRequest,
     SetMatchMarketsStatusRequest,
 )
 from ..middlewares import current_request_id
@@ -16,18 +16,6 @@ from ..services.odds.commands import (
     RecalculateOddsCommand,
     SetMatchMarketsStatusCommand,
 )
-
-
-class RecalculateOddsRequest:
-    """Inline request model for odds recalculation."""
-
-    def __init__(self, match_id: str, event_type: str, minute: int,
-                 score_home: int, score_away: int) -> None:
-        self.match_id = match_id
-        self.event_type = event_type
-        self.minute = minute
-        self.score_home = score_home
-        self.score_away = score_away
 
 
 def create_odds_rpc_server(command_bus: CommandBus) -> RpcServer:
@@ -47,16 +35,20 @@ def create_odds_rpc_server(command_bus: CommandBus) -> RpcServer:
         )
         return result.model_dump(by_alias=True)
 
-    async def recalculate_odds(payload: dict[str, Any]) -> dict[str, Any]:
-        command = RecalculateOddsCommand(
-            match_id=payload["matchId"],
-            event_type=payload["eventType"],
-            minute=payload.get("minute", 0),
-            score_home=payload.get("scoreHome", 0),
-            score_away=payload.get("scoreAway", 0),
-            request_id=current_request_id(),
+    async def recalculate_odds(payload: RecalculateOddsRequest) -> dict[str, Any]:
+        result = await command_bus.execute(
+            RecalculateOddsCommand(
+                match_id=str(payload.match_id),
+                event_type=payload.event_type,
+                minute=payload.state.minute,
+                score_home=payload.state.home_goals,
+                score_away=payload.state.away_goals,
+                home_reds=payload.state.home_reds,
+                away_reds=payload.state.away_reds,
+                request_id=current_request_id(),
+            )
         )
-        result = await command_bus.execute(command)
+
         return result.model_dump(by_alias=True)
 
     server.register(
@@ -77,6 +69,7 @@ def create_odds_rpc_server(command_bus: CommandBus) -> RpcServer:
         RpcProcedure(
             name=OddsProcedure.RECALCULATE_ODDS,
             handler=recalculate_odds,
+            payload_model=RecalculateOddsRequest,
         )
     )
 

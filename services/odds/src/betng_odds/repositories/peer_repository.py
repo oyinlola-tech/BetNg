@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+from typing import Any
 
 import httpx
 from betng_service_kit import RpcClient, RpcError
 from pydantic import ValidationError
 
 from ..constants import ODDS_UPDATED_EVENT, PeerProcedure
-from ..dtos import ProbabilityMatrix, TeamStrength
+from ..dtos import MatchState, ProbabilityMatrix, TeamStrength
 from ..errors import AuditUnavailableError, OddsUnavailableError
 from ..interfaces import AuditRecorder, EventPublisher, ProbabilityModel
 from ..types import AuditEntry
@@ -27,13 +28,18 @@ class RpcProbabilityModel(ProbabilityModel):
         home: TeamStrength,
         away: TeamStrength,
         request_id: str | None,
+        state: MatchState | None = None,
     ) -> ProbabilityMatrix:
         # The match id seeds the model's pricing stream; it carries no bet data.
-        payload = {
+        payload: dict[str, Any] = {
             "matchId": match_id,
             "home": home.model_dump(by_alias=True),
             "away": away.model_dump(by_alias=True),
         }
+
+        # Absent before kick-off; present prices the rest of a match in play.
+        if state is not None:
+            payload["state"] = state.model_dump(by_alias=True)
 
         try:
             result = await self.client.call(

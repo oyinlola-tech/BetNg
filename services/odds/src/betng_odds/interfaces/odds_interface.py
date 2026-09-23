@@ -4,7 +4,7 @@ from collections.abc import Awaitable, Callable
 from decimal import Decimal
 from typing import Protocol
 
-from ..dtos import ProbabilityMatrix, TeamStrength
+from ..dtos import MatchState, ProbabilityMatrix, TeamStrength
 from ..pricing import PricedMarket
 from ..types import (
     AuditEntry,
@@ -87,6 +87,7 @@ class ProbabilityModel(Protocol):
         home: TeamStrength,
         away: TeamStrength,
         request_id: str | None,
+        state: MatchState | None = None,
     ) -> ProbabilityMatrix: ...
 
     async def ping(self) -> None: ...

@@ -7,12 +7,17 @@ from betng_service_kit import CommandHandler
 
 from .....constants import (
     BETTABLE_LIFECYCLES,
-    MarketStatusValue,
     OddsCommand,
+    SnapshotReasonValue,
 )
-from .....dtos import RecalculateOddsResult, TeamStrength
+from .....dtos import MatchState, RecalculateOddsResult, TeamStrength
 from .....errors import OddsUnavailableError
-from .....interfaces import EventPublisher, MatchDirectory, OddsRepository, ProbabilityModel
+from .....interfaces import (
+    EventPublisher,
+    MatchDirectory,
+    OddsRepository,
+    ProbabilityModel,
+)
 from .....pricing import derive_market_probabilities, price_markets
 from .recalculate_odds_command import RecalculateOddsCommand
 
@@ -99,9 +104,19 @@ class RecalculateOddsHandler(
         home = TeamStrength(**match.home_strength)
         away = TeamStrength(**match.away_strength)
 
+        # Without the live state the model would answer the pre-match matrix and
+        # the "recalculation" would republish the price the goal just invalidated.
+        state = MatchState(
+            minute=message.minute,
+            home_goals=message.score_home,
+            away_goals=message.score_away,
+            home_reds=message.home_reds,
+            away_reds=message.away_reds,
+        )
+
         try:
             matrix = await self.probability_model.calculate(
-                match_id, home, away, message.request_id
+                match_id, home, away, message.request_id, state
             )
         except Exception as error:
             self.logger.error(
@@ -136,8 +151,6 @@ class RecalculateOddsHandler(
             matrix.configuration_version,
         )
 
-        from .....constants import SnapshotReasonValue
-
         reason = self._snapshot_reason(message.event_type)
         await self.repository.record_snapshot(
             match_id, existing.odds_version + 1, reason
@@ -159,7 +172,8 @@ class RecalculateOddsHandler(
         try:
             await self.event_publisher.publish_odds_updated(
                 match_id,
-                f"Odds updated after {message.event_type.lower()} at minute {message.minute}",
+                f"Odds updated after {message.event_type.lower()} "
+                f"at minute {message.minute}",
                 message.request_id,
             )
         except Exception:
@@ -176,9 +190,8 @@ class RecalculateOddsHandler(
             recalculated=True,
         )
 
-    def _snapshot_reason(self, event_type: str) -> str:
-        from .....constants import SnapshotReasonValue
-
+    @staticmethod
+    def _snapshot_reason(event_type: str) -> str:
         mapping = {
             "GOAL": SnapshotReasonValue.GOAL,
             "RED_CARD": SnapshotReasonValue.RED_CARD,
