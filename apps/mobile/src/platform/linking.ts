@@ -58,8 +58,8 @@ export function listenForDeepLinks(
 ): () => void {
   let active = true;
 
-  const handle = (url: string | null): void => {
-    if (!active || url === null) return;
+  const handle = (url: string | null | undefined): void => {
+    if (!active || url === null || url === undefined) return;
 
     const parsed = parseDeepLink(url, options);
 

@@ -1,12 +1,12 @@
 import type { Logger } from "@betng/service-kit";
 import type { SmsProviderConfig } from "../../configs/index.js";
 import type { SmsProvider } from "../../interfaces/index.js";
-import { maskPhone } from "../../utils/index.js";
+import { maskPhone, withoutTrailingSlashes } from "../../utils/index.js";
 import { DeliveryError, postJson } from "./deliveryError.js";
 
 /** Termii "Send message" (POST {base}/api/sms/send). The base URL is the one shown on the account's dashboard. */
 function termii(config: Extract<SmsProviderConfig, { provider: "termii" }>, timeoutMs: number): SmsProvider {
-  const url = `${config.baseUrl.replace(/\/+$/u, "")}/api/sms/send`;
+  const url = `${withoutTrailingSlashes(config.baseUrl)}/api/sms/send`;
 
   return {
     name: "termii",

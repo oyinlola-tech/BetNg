@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.7
 # Static browser apps. Build context is the repository root; APP selects web | tv | shop | admin.
 ARG NODE_IMAGE=node:24-alpine
-ARG NGINX_IMAGE=nginxinc/nginx-unprivileged:1.29-alpine
+ARG NGINX_IMAGE=nginxinc/nginx-unprivileged:1.31-alpine
 
 FROM ${NODE_IMAGE} AS build
 

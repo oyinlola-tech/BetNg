@@ -10,9 +10,9 @@ export async function hydrateStorage(): Promise<void> {
   const keys = (await AsyncStorage.getAllKeys()).filter((k) =>
     k.startsWith(PREFIX),
   );
-  const pairs = await AsyncStorage.multiGet(keys);
+  const values = await AsyncStorage.getMany(keys);
 
-  for (const [key, value] of pairs) if (value !== null) cache.set(key, value);
+  for (const [key, value] of Object.entries(values)) if (value !== null) cache.set(key, value);
 }
 
 export const storage: Required<SessionStorage> = {

@@ -4,6 +4,7 @@ import type { ServiceConfig } from "@betng/service-kit";
 import { z } from "@zudojs/validation";
 import { readVapidKeys } from "../services/delivery/webPush.crypto.js";
 import type { VapidKeys } from "../services/delivery/webPush.crypto.js";
+import { withoutTrailingSlashes } from "../utils/url.util.js";
 
 export const SERVICE_NAME = "identity" as const;
 
@@ -294,7 +295,7 @@ function readKyc(env: SecurityEnv, production: boolean, problems: ConfigProblems
   return {
     identityProvider: provider,
     storage: {
-      endpoint: (env.KYC_STORAGE_ENDPOINT ?? "").replace(/\/+$/u, ""),
+      endpoint: withoutTrailingSlashes(env.KYC_STORAGE_ENDPOINT ?? ""),
       region: env.KYC_STORAGE_REGION ?? "",
       bucket: env.KYC_STORAGE_BUCKET ?? "",
       accessKeyId: env.KYC_STORAGE_ACCESS_KEY_ID ?? "",

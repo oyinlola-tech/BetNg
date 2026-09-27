@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { TextInput, View } from "react-native";
+import { TextInput, View, type TextInputInstance } from "react-native";
 import { useTheme } from "../theme";
 import { Pressable } from "./Pressable";
 import { Text } from "./Text";
@@ -17,7 +17,7 @@ export interface CodeFieldProps {
 
 export function CodeField({ label, length, value, onChange, onComplete, error, disabled = false, autoFocus = false }: CodeFieldProps): React.JSX.Element {
   const t = useTheme();
-  const input = useRef<TextInput>(null);
+  const input = useRef<TextInputInstance>(null);
   const [focused, setFocused] = useState(false);
 
   return (

@@ -285,6 +285,28 @@ describe("configuration", () => {
     await expect(production({ EMAIL_FROM_NAME: 'Bet"NG <evil@example.com>' })).rejects.toThrow(/header punctuation/i);
   });
 
+  it("accepts an address and refuses what is not one, however long", async () => {
+    expect((await production({ EMAIL_FROM: "No-Reply@mail.betng.example" })).email.from).toBe("no-reply@mail.betng.example");
+
+    const refused = [
+      "no-reply",
+      "@betng.example",
+      "no-reply@betng",
+      "no-reply@.example",
+      "no-reply@betng.",
+      "a@b@betng.example",
+      "no reply@betng.example",
+      "no-reply@betng.example,evil@example.com",
+      "<no-reply@betng.example>",
+      `${"a".repeat(250)}@betng.example`,
+      `a@${"!.".repeat(50_000)}`,
+    ];
+
+    for (const value of refused) {
+      await expect(production({ EMAIL_FROM: value })).rejects.toThrow(/EMAIL_FROM is not an email address/i);
+    }
+  });
+
   it("keeps the api key out of anything printable", async () => {
     const config = await production({});
     const secret = config.email.sendbyte?.apiKey;

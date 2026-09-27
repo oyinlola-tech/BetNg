@@ -31,3 +31,4 @@ export {
   sixDigitCode,
 } from "./code.util.js";
 export { DEFAULT_CHANNELS, LOCKED_CHANNELS, resolveChannels } from "./preferences.util.js";
+export { withoutTrailingSlashes } from "./url.util.js";

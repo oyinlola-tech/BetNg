@@ -15,6 +15,9 @@ const DEFAULT_TIMEOUT_MS = 10_000;
 
 const MIN_TIMEOUT_MS = 500;
 
+/** RFC 5321's limit on a forward path. */
+const MAX_ADDRESS_LENGTH = 254;
+
 /** The `.env.example` values: public, so refused in production. */
 const PLACEHOLDERS: readonly string[] = ["sk_live_replace_me", "whsec_replace_me"];
 
@@ -99,8 +102,9 @@ function isAddress(value: string): boolean {
   }
 
   const at = value.indexOf("@");
+  const domain = value.slice(at + 1);
 
-  return at > 0 && at === value.lastIndexOf("@") && value.slice(at + 2, -1).includes(".");
+  return at > 0 && !domain.includes("@") && domain.slice(1, -1).includes(".");
 }
 
 function baseUrl(env: Env, production: boolean): string {

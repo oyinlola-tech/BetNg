@@ -233,7 +233,7 @@ describe("delivery providers", () => {
       aud: "https://oauth2.googleapis.com/token",
     });
 
-    const send = calls.find((call) => call.url.includes("fcm.googleapis.com"));
+    const send = calls.find((call) => new URL(call.url).hostname === "fcm.googleapis.com");
 
     expect(send?.url).toBe("https://fcm.googleapis.com/v1/projects/betng-test/messages:send");
     expect((send?.init.headers as Record<string, string>)["authorization"]).toBe("Bearer ya29.token");
