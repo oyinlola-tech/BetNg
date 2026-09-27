@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 #
 # The per-service integration-test databases, betng_test_<service>.
-#   scripts/db-test.sh          creates each one, applies its migrations, then empties it. Idempotent.
-#   scripts/db-test.sh reset    empties the ones that exist; the unit test run does this before its first file.
+#   scripts/db-test.sh          creates each one and applies its migrations. Idempotent; removes nothing.
+#   scripts/db-test.sh reset    empties the ones that exist.
 # Uses the local psql when there is one, otherwise the one inside the compose container.
 
 set -euo pipefail
@@ -27,7 +27,7 @@ if [[ "${MODE}" != "prepare" && "${MODE}" != "reset" ]]; then
 fi
 
 if [[ "${NODE_ENV:-}" == "production" ]]; then
-  echo "Test databases are not reset with NODE_ENV=production." >&2
+  echo "Test databases are not managed with NODE_ENV=production." >&2
   exit 1
 fi
 
@@ -83,8 +83,6 @@ for service in "${SERVICES[@]}"; do
 
   env "${variable}=$(sed -E "s#(://[^/]+/)[^?]+#\1${database}#" <<< "${url}")" \
     pnpm --dir "${ROOT}/apps/services/${service}" exec prisma migrate deploy
-
-  reset "${database}"
 done
 
 echo "Test databases ready: ${SERVICES[*]/#/betng_test_}."
