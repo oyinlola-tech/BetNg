@@ -1,4 +1,4 @@
-// Vitest global setup for the unit project: the service test databases start every run empty.
+// Vitest global setup: the service test databases start a run empty. Not referenced by vitest.config.ts yet.
 import { execFileSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";

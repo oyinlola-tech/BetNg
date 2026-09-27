@@ -22,10 +22,11 @@ const decode = (text) =>
     .replaceAll("&amp;", "&");
 const unique = (values) => [...new Set(values)].join(" ");
 
-const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)]
+// An end tag may carry whitespace or attributes (`</script >`); a browser closes the element on either.
+const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\b[^>]*>/gi)]
   .filter(([, attributes]) => !/\bsrc\s*=/i.test(attributes))
   .map(([, , body]) => hash(body));
-const styles = [...html.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/gi)].map(([, body]) => hash(body));
+const styles = [...html.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style\b[^>]*>/gi)].map(([, body]) => hash(body));
 const styleAttributes = [...html.matchAll(/\sstyle\s*=\s*(?:"([^"]*)"|'([^']*)')/gi)].map(([, double, single]) =>
   hash(decode(double ?? single ?? "")),
 );
