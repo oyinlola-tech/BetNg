@@ -51,6 +51,9 @@ updates:
       default-days: 7
     commit-message:
       prefix: chore(deps)
+    # pydantic pins pydantic-core to one exact version, so it only ever moves with pydantic.
+    ignore:
+      - dependency-name: pydantic-core
     groups:
       python-runtime-minor-patch:
         update-types: [minor, patch]
@@ -83,6 +86,10 @@ updates:
       default-days: 7
     commit-message:
       prefix: chore(deps)
+    # A PostgreSQL major version changes the data directory format: a planned dump and restore, not a merge.
+    ignore:
+      - dependency-name: postgres
+        update-types: ["version-update:semver-major"]
     groups:
       docker-minor-patch:
         update-types: [minor, patch]
@@ -99,6 +106,10 @@ updates:
       default-days: 7
     commit-message:
       prefix: chore(deps)
+    # A PostgreSQL major version changes the data directory format: a planned dump and restore, not a merge.
+    ignore:
+      - dependency-name: postgres
+        update-types: ["version-update:semver-major"]
     groups:
       compose-minor-patch:
         update-types: [minor, patch]
