@@ -48,6 +48,7 @@ class PostgresMatchDirectory(MatchDirectory):
                 if raw_home is not None:
                     if isinstance(raw_home, str):
                         import json
+
                         raw_home = json.loads(raw_home)
                     home_strength = {
                         "attack": float(raw_home.get("attack", 50)),
@@ -64,6 +65,7 @@ class PostgresMatchDirectory(MatchDirectory):
                 if raw_away is not None:
                     if isinstance(raw_away, str):
                         import json
+
                         raw_away = json.loads(raw_away)
                     away_strength = {
                         "attack": float(raw_away.get("attack", 50)),

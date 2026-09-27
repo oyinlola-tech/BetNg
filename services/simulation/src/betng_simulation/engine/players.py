@@ -170,9 +170,7 @@ def _foreign_mix(domestic: str | None) -> tuple[tuple[str, int], ...]:
     return tuple((name, weight) for name, weight in FOREIGN_MIX if name != domestic)
 
 
-def _nationality(
-    rng: random.Random, domestic: str | None, position: Position
-) -> str:
+def _nationality(rng: random.Random, domestic: str | None, position: Position) -> str:
     """Pick where one player is from: the club's country, or the foreign mix."""
     if domestic is None:
         return _weighted_choice(rng, FOREIGN_MIX)

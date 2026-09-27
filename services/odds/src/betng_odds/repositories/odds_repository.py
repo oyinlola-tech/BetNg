@@ -394,9 +394,7 @@ class PostgresOddsRepository(OddsRepository):
             market_ids = [str(row["id"]) for row in await cursor.fetchall()]
 
             if market_ids:
-                await connection.execute(
-                    _SNAPSHOT_SQL, (reason, market_ids)
-                )
+                await connection.execute(_SNAPSHOT_SQL, (reason, market_ids))
 
     async def _active_configuration(
         self, connection: Connection
