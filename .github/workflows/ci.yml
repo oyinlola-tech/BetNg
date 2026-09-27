@@ -46,6 +46,13 @@ jobs:
   unit:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    services:
+      # packages/service-kit tests the Redis lock against a real server.
+      redis:
+        image: redis:8-alpine
+        ports: ["56379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 3s --health-retries 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -78,14 +85,18 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup
+        with:
+          build-packages: "true"
       # .env.example holds only local placeholders for a throwaway CI database.
       - run: cp .env.example .env
       - run: |
+          pnpm --filter @betng/service-kit build
+          pnpm db:generate
+      # Each service's tests run in a database of their own, betng_test_<service>.
+      - run: |
           bash scripts/db-bootstrap.sh
           bash scripts/db-bootstrap.sh betng_test
-      - run: |
-          for name in contracts service-kit client-sdk; do pnpm --filter "@betng/${name}" build; done
-          pnpm db:generate
+          bash scripts/db-test.sh
       - run: pnpm exec vitest run --project unit apps
 
   dom:
@@ -175,6 +186,8 @@ jobs:
           python-version: "3.12"
       - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends postgresql-client redis-tools
       - run: bash scripts/python-install.sh
+      # .env.example holds only local placeholders for a throwaway CI database.
+      - run: cp .env.example .env
       - run: |
           pnpm --filter @betng/service-kit build
           pnpm db:generate
