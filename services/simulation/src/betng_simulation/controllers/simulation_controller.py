@@ -7,6 +7,7 @@ from betng_service_kit import CommandBus, QueryBus
 
 from ..dtos import (
     BatchRunMatchBody,
+    BatchRunMatchFailure,
     BatchRunMatchResponse,
     MatchEventList,
     MatchRunDetail,
@@ -42,13 +43,17 @@ class SimulationController:
         ]
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
-        responses: list[RunMatchResponse | dict[str, str]] = []
-        for result in results:
+        responses: list[RunMatchResponse | BatchRunMatchFailure] = []
+        for item, result in zip(body.matches, results, strict=True):
             # gather(return_exceptions=True) hands back BaseException, and
             # CancelledError is a BaseException rather than an Exception: on
             # Exception alone a cancelled run reached the response model raw.
             if isinstance(result, BaseException):
-                responses.append({"error": str(result)[:200]})
+                responses.append(
+                    BatchRunMatchFailure(
+                        match_id=item.match_id, error=str(result)[:200]
+                    )
+                )
             else:
                 responses.append(result)
 

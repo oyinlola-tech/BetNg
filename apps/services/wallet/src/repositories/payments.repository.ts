@@ -124,6 +124,10 @@ export interface PaymentsRepository {
   /** Failed events whose backoff has elapsed, oldest first. */
   dueWebhookEvents(now: Date, limit: number): Promise<readonly DeadLetterWebhook[]>;
   countAbandonedWebhooks(): Promise<number>;
+  /** Closed, unflagged payments the provider has not yet been asked to confirm, oldest first. */
+  dueReconciliation(now: Date, closedFrom: Date, closedBefore: Date, providers: readonly string[], limit: number): Promise<readonly PaymentRow[]>;
+  markReconciled(id: string, at: Date): Promise<void>;
+  deferReconciliation(id: string, until: Date): Promise<void>;
 }
 
 export interface DeadLetterWebhook {
@@ -132,6 +136,8 @@ export interface DeadLetterWebhook {
   readonly payloadEncrypted: string;
   readonly attempts: number;
 }
+
+const RECONCILABLE_STATUSES = ["CONFIRMED", "FAILED", "EXPIRED", "REVERSED", "CANCELLED"] as const;
 
 function isTerminal(status: string): boolean {
   return PAYMENT_TRANSITIONS[status as PaymentStatus].length === 0 || status === "CONFIRMED";
@@ -183,6 +189,8 @@ interface RawPayment {
   readonly created_at: Date;
   readonly updated_at: Date;
   readonly completed_at: Date | null;
+  readonly reconciled_at: Date | null;
+  readonly reconcile_after: Date | null;
   readonly user_email?: string | null;
 }
 
@@ -221,6 +229,8 @@ function fromRaw(row: RawPayment): PaymentRow {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     completedAt: row.completed_at,
+    reconciledAt: row.reconciled_at,
+    reconcileAfter: row.reconcile_after,
   };
 }
 
@@ -810,6 +820,28 @@ export function createPaymentsRepository(prisma: PrismaClient, logger: Logger): 
     },
 
     countAbandonedWebhooks: async () => prisma.paymentWebhookEvent.count({ where: { abandonedAt: { not: null } } }),
+
+    dueReconciliation: async (now, closedFrom, closedBefore, providers, limit) =>
+      prisma.payment.findMany({
+        where: {
+          provider: { in: [...providers] },
+          status: { in: [...RECONCILABLE_STATUSES] },
+          flaggedAt: null,
+          reconciledAt: null,
+          updatedAt: { gte: closedFrom, lt: closedBefore },
+          OR: [{ reconcileAfter: null }, { reconcileAfter: { lte: now } }],
+        },
+        orderBy: { updatedAt: "asc" },
+        take: limit,
+      }),
+
+    markReconciled: async (id, at) => {
+      await prisma.payment.updateMany({ where: { id, flaggedAt: null, reconciledAt: null }, data: { reconciledAt: at } });
+    },
+
+    deferReconciliation: async (id, until) => {
+      await prisma.payment.updateMany({ where: { id, reconciledAt: null }, data: { reconcileAfter: until } });
+    },
   };
 
   const wrapped = {} as Record<string, unknown>;

@@ -1,7 +1,7 @@
 import { z } from "@zudojs/validation";
 import { isoTimestampSchema, minorUnitsSchema } from "../common/index.js";
 
-// Pending backend: cashier shifts and the cash drawer. Every total here is computed by the platform from its ledger.
+// Cashier shifts and the cash drawer: served by the wallet service. Every total here is computed by the platform from its ledger.
 
 export const shiftStatusSchema = z.enum(["OPEN", "CLOSING", "CLOSED", "RECONCILED"]);
 

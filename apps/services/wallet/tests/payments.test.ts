@@ -755,3 +755,108 @@ describe("history, statements and the play-money routes", () => {
     expect(response.status).toBe(404);
   });
 });
+
+describe("reconciliation", { timeout: 120_000 }, () => {
+  const later = () => new Date(Date.now() + 31 * 60_000);
+
+  async function reconcileUntil(ref: string, done: (row: { status: string; flaggedAt: Date | null; reconciledAt: Date | null; reconcileAfter: Date | null }) => boolean, now = later()) {
+    for (let run = 0; run < 200; run += 1) {
+      const row = await direct.prisma.payment.findUniqueOrThrow({ where: { reference: ref } });
+
+      if (done(row)) {
+        return row;
+      }
+
+      await running.app.payments.reconcile(now, "test");
+    }
+
+    return direct.prisma.payment.findUniqueOrThrow({ where: { reference: ref } });
+  }
+
+  async function settleWithdrawal(ref: string, status: string) {
+    for (let run = 0; run < 40; run += 1) {
+      await running.app.payments.pollWithdrawals("test");
+
+      if ((await direct.prisma.payment.findUniqueOrThrow({ where: { reference: ref } })).status === status) {
+        return;
+      }
+    }
+  }
+
+  it("marks a credited deposit the provider confirms as reconciled", async () => {
+    const customerId = await fixtures.customer();
+    const ref = reference(await initiate(customerId, 520_000));
+
+    paystack.charges.set(ref, { status: "success", amount: 520_000, currency: "NGN" });
+    await webhook("paystack", chargeEvent(ref, 520_000));
+
+    const row = await reconcileUntil(ref, (current) => current.reconciledAt !== null || current.flaggedAt !== null);
+
+    expect(row.status).toBe("CONFIRMED");
+    expect(row.reconciledAt).not.toBeNull();
+    expect(row.flaggedAt).toBeNull();
+  });
+
+  it("flags a deposit the provider shows paid after it expired, without crediting it", async () => {
+    const customerId = await fixtures.customer();
+    const ref = reference(await initiate(customerId, 530_000));
+
+    await running.app.payments.expireDeposits(new Date(Date.now() + 2 * 60 * 60_000), "test");
+    paystack.charges.set(ref, { status: "success", amount: 530_000, currency: "NGN" });
+
+    const row = await reconcileUntil(ref, (current) => current.reconciledAt !== null || current.flaggedAt !== null);
+
+    expect(row.status).toBe("EXPIRED");
+    expect(row.flaggedAt).not.toBeNull();
+    expect(await depositEntries(customerId)).toHaveLength(0);
+  });
+
+  it("waits on an abandoned checkout, then counts it as agreed once the provider has had long enough", async () => {
+    const customerId = await fixtures.customer();
+    const ref = reference(await initiate(customerId, 540_000));
+
+    await running.app.payments.expireDeposits(new Date(Date.now() + 2 * 60 * 60_000), "test");
+
+    const waiting = await reconcileUntil(ref, (current) => current.reconcileAfter !== null || current.reconciledAt !== null);
+
+    expect(waiting.reconciledAt).toBeNull();
+    expect(waiting.reconcileAfter).not.toBeNull();
+
+    const settled = await reconcileUntil(ref, (current) => current.reconciledAt !== null || current.flaggedAt !== null, new Date(Date.now() + 25 * 3_600_000));
+
+    expect(settled.reconciledAt).not.toBeNull();
+    expect(settled.flaggedAt).toBeNull();
+  });
+
+  it("flags a refunded withdrawal the bank paid anyway, and moves no money", async () => {
+    const funded = await fundedWithBank(5_000_000);
+    const before = await balance(funded.customerId);
+    const ref = ((await withdraw(funded, 1_000_000)).body as { reference: string }).reference;
+
+    paystack.transfers.set(ref, { status: "failed", amount: 997_500, currency: "NGN" });
+    await settleWithdrawal(ref, "FAILED");
+    paystack.transfers.set(ref, { status: "success", amount: 997_500, currency: "NGN" });
+
+    const row = await reconcileUntil(ref, (current) => current.reconciledAt !== null || current.flaggedAt !== null);
+
+    expect(row.status).toBe("FAILED");
+    expect(row.flaggedAt).not.toBeNull();
+    expect(await balance(funded.customerId)).toBe(before);
+  });
+
+  it("returns a paid withdrawal the bank sent back, exactly once", async () => {
+    const funded = await fundedWithBank(5_000_000);
+    const before = await balance(funded.customerId);
+    const ref = ((await withdraw(funded, 1_000_000)).body as { reference: string }).reference;
+
+    paystack.transfers.set(ref, { status: "success", amount: 997_500, currency: "NGN" });
+    await settleWithdrawal(ref, "CONFIRMED");
+    paystack.transfers.set(ref, { status: "reversed", amount: 997_500, currency: "NGN" });
+
+    const row = await reconcileUntil(ref, (current) => current.status === "REVERSED" || current.flaggedAt !== null);
+
+    expect(row.status).toBe("REVERSED");
+    expect(await balance(funded.customerId)).toBe(before);
+    expect((await ledgerTypes(funded.customerId)).filter((type) => type === "WITHDRAWAL_REVERSAL")).toHaveLength(1);
+  });
+});

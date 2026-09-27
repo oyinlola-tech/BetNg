@@ -1,7 +1,7 @@
 import { z } from "@zudojs/validation";
 import { isoTimestampSchema, httpsUrlSchema } from "../common/index.js";
 
-// Pending backend: identity service account-security routes. The TOTP secret and backup codes are generated and stored server-side.
+// Served by the identity service's account-security routes (statements by the wallet service). The TOTP secret and backup codes are generated and stored server-side.
 
 export const passwordChangeRequestSchema = z.object({
   currentPassword: z.string().min(1).max(128),

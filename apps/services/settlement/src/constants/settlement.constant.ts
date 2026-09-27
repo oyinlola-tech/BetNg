@@ -81,6 +81,13 @@ export const NOTIFICATION_DELIVERY = Object.freeze({
   MAX_QUEUED: 2_000,
 });
 
+/** Waits before each BET_SETTLED re-publish; past MAX_PENDING in-flight signals a failure is dropped at once. */
+export const SIGNAL_RETRY = Object.freeze({
+  DELAYS_MS: Object.freeze([250, 1_000, 4_000]),
+  JITTER: 0.2,
+  MAX_PENDING: 2_000,
+});
+
 export const LIST_LIMIT = Object.freeze({
   SETTLEMENTS_DEFAULT: 50,
   SETTLEMENTS_MAX: 200,

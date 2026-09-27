@@ -1,7 +1,7 @@
 import { z } from "@zudojs/validation";
 import { isoTimestampSchema, httpsUrlSchema } from "../common/index.js";
 
-// Pending backend: the KYC service. Identity and bank verification providers are called server-side only.
+// Served by the identity service. Identity and bank verification providers are called server-side only.
 
 export const kycStatusSchema = z.enum(["NOT_STARTED", "PENDING", "VERIFIED", "REJECTED", "REQUIRES_ACTION"]);
 

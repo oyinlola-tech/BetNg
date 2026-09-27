@@ -1,7 +1,7 @@
 import { z } from "@zudojs/validation";
 import { currencySchema, isoTimestampSchema, minorUnitsSchema, type Currency, httpsUrlSchema } from "../common/index.js";
 
-// Pending backend: the payments service. Providers (Paystack, Flutterwave, Bachs) are chosen and called server-side only.
+// Served by the wallet service. Providers (Paystack, Flutterwave, Bachs) are chosen and called server-side only.
 
 export const paymentProviderSchema = z.enum(["PAYSTACK", "FLUTTERWAVE", "BACHS"]);
 

@@ -52,6 +52,9 @@ export const LEDGER_KEY = Object.freeze({
   withdrawalReversal: (paymentId: string) => `withdrawal-reversal:${paymentId}`,
 });
 
+/** Associated data for an encrypted webhook body. */
+export const WEBHOOK_PAYLOAD_CONTEXT = "payment-webhook";
+
 export const SAFE_REASON = Object.freeze({
   PROVIDER_UNAVAILABLE: "The payment provider is unavailable. Try again shortly.",
   PROVIDER_DECLINED: "The payment provider declined the payment.",

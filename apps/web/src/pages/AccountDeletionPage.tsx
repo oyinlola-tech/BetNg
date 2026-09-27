@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { Link } from "react-router";
 import { AlertTriangle, CalendarClock, CheckCircle2 } from "lucide-react";
 import type { AccountDeletion } from "@betng/contracts";
 import { DataSourceError, createIdempotencyKey, formatDateTime } from "@betng/ui-core";
@@ -7,11 +8,14 @@ import { isNotImplemented, useDeletion, useSetDeletion } from "../features/accou
 import { Unavailable } from "../features/account/Unavailable";
 import { AccountErrorState, useLogoutFlow } from "../features/auth";
 import { usePageMeta } from "../features/seo";
+import { paths } from "../lib/paths";
 import { accountServices, logger } from "../services/runtime";
 
 const CONFIRM_WORD = "DELETE";
 
-function RequestForm({ onResult }: { readonly onResult: (next: AccountDeletion) => void }): React.JSX.Element {
+const DELETED: readonly string[] = ["Your profile, sign-in details and signed-in sessions", "Saved bank accounts", "Devices registered for notifications"];
+
+function RequestForm({ blockers, onResult }: { readonly blockers: readonly string[]; readonly onResult: (next: AccountDeletion) => void }): React.JSX.Element {
   const [reason, setReason] = useState("");
   const [password, setPassword] = useState("");
   const [confirming, setConfirming] = useState(false);
@@ -44,23 +48,46 @@ function RequestForm({ onResult }: { readonly onResult: (next: AccountDeletion) 
   };
 
   const passwordError = error instanceof DataSourceError && error.code === "VALIDATION" ? error.detail.fields?.["password"] : undefined;
+  const blocked = blockers.length > 0;
 
   return (
     <Card>
       <SectionHeading as="h2">Delete your account</SectionHeading>
       <div className="mt-3 flex items-start gap-2 rounded-sm border border-danger/40 bg-danger-subtle px-3 py-2 text-sm text-text-primary">
         <AlertTriangle className="mt-0.5 size-4 shrink-0 text-danger" aria-hidden />
-        <p>
-          Deleting closes your account for good. The platform schedules it, may keep records it is required to keep, and will tell you if something such as an open bet or a
-          pending payment has to finish first. You can cancel while it is pending.
+        <p>Deleting closes your account for good. The platform schedules it, and you can cancel while it is pending.</p>
+      </div>
+      <div className="mt-4">
+        <h3 className="type-caption">What will be deleted</h3>
+        <ul className="type-small mt-1 list-disc space-y-0.5 pl-5 text-text-secondary">
+          {DELETED.map((item) => (
+            <li key={item}>{item}</li>
+          ))}
+        </ul>
+        <p className="type-small mt-2 text-text-muted">
+          The platform may keep records it is required to keep, such as financial, identity and transaction records.{" "}
+          <Link to={paths.accountClosure} className="rounded-xs font-semibold text-brand hover:underline focus-ring">
+            Closing your account
+          </Link>
         </p>
       </div>
+      {blocked && (
+        <div className="mt-4 rounded-sm border border-warning/40 bg-warning-subtle px-3 py-2" data-testid="deletion-blockers">
+          <h3 className="type-caption">Resolve these first</h3>
+          <ul className="type-small mt-1 list-disc space-y-0.5 pl-5 text-text-primary">
+            {blockers.map((blocker) => (
+              <li key={blocker}>{blocker}</li>
+            ))}
+          </ul>
+          <p className="type-small mt-1 text-text-secondary">You can request deletion once the platform no longer reports these.</p>
+        </div>
+      )}
       <form
         noValidate
         className="mt-4 max-w-md space-y-4"
         onSubmit={(event) => {
           event.preventDefault();
-          if (password !== "") {
+          if (password !== "" && !blocked) {
             setTyped("");
             setConfirming(true);
           }
@@ -86,7 +113,7 @@ function RequestForm({ onResult }: { readonly onResult: (next: AccountDeletion) 
             setPassword(event.target.value);
           }}
         />
-        <Button type="submit" variant="danger" disabled={password === ""} loading={busy && !confirming}>
+        <Button type="submit" variant="danger" disabled={password === "" || blocked} loading={busy && !confirming}>
           Request deletion
         </Button>
       </form>
@@ -259,6 +286,6 @@ export function AccountDeletionPage(): React.JSX.Element {
     case "PENDING":
       return <PendingState deletion={current} onResult={setDeletion} />;
     default:
-      return <RequestForm onResult={setDeletion} />;
+      return <RequestForm blockers={current.blockers ?? []} onResult={setDeletion} />;
   }
 }

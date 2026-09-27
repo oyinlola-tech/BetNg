@@ -30,6 +30,7 @@ import { useSlipPrices, type SlipPriceStatus } from "../../hooks/useSlipPrices";
 import { getRuntimeConfig, logger } from "../../services/runtime";
 import { useBetSlip } from "../../stores/betslip.store";
 import { useAuth } from "../auth/useAuth";
+import { KycRequiredLink } from "../kyc/KycRequired";
 import { ResponsibleGamingBanner } from "../limits/ResponsibleGamingBanner";
 import { useLimitsSummary } from "../limits/limitQueries";
 import { stakeLimitWarning } from "../limits/LimitsStatus";
@@ -432,7 +433,12 @@ function SlipBody({ variant = "plain", heading = true, onDone, className }: BetS
                 ? `${presentError(failure.error).message} Nothing is placed twice: trying again sends the same submission.`
                 : presentError(failure.error).message,
             }}
-            action={<ErrorHelp topic={errorHelpTopic(presentError(failure.error).code)} />}
+            action={
+              <div className="flex flex-wrap justify-center gap-2">
+                <KycRequiredLink error={failure.error} size="md" onNavigate={onDone} />
+                <ErrorHelp topic={errorHelpTopic(presentError(failure.error).code)} className="basis-full justify-center" />
+              </div>
+            }
           />
         )}
         {blocked && outcome === undefined && (

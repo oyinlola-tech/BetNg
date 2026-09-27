@@ -8,6 +8,7 @@ import { LinkButton } from "../wallet/LinkButton";
 import { forgetInFlight, isTerminalPayment, maskedAccount } from "./paymentMeta";
 import { useBankAccounts, usePaymentStatus } from "./paymentQueries";
 import { PaymentStatusCard } from "./PaymentStatusCard";
+import { PaymentTimeline } from "./PaymentTimeline";
 
 function headline(payment: PaymentRecord): { readonly title: string; readonly body: string } {
   const deposit = payment.direction === "DEPOSIT";
@@ -142,6 +143,7 @@ export function PaymentStatusView({ reference, direction, pollDelaysMs }: Paymen
           </>
         }
       />
+      <PaymentTimeline payment={payment} />
     </div>
   );
 }

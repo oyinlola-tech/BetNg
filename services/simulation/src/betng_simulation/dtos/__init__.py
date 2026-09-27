@@ -13,6 +13,7 @@ from .configuration_dto import NULLABLE_PARAMETERS, ModelParametersDto
 from .simulation_dto import (
     BatchMatchItem,
     BatchRunMatchBody,
+    BatchRunMatchFailure,
     BatchRunMatchRequest,
     BatchRunMatchResponse,
     CalculateProbabilitiesRequest,
@@ -49,6 +50,7 @@ __all__ = [
     "AdminSimulationRunList",
     "BatchMatchItem",
     "BatchRunMatchBody",
+    "BatchRunMatchFailure",
     "BatchRunMatchRequest",
     "BatchRunMatchResponse",
     "CalculateProbabilitiesRequest",

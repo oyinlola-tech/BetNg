@@ -26,6 +26,7 @@ import {
 } from "./repositories/index.js";
 import { registerPaymentRoutes, registerWalletRoutes } from "./routes/index.js";
 import { createFieldCipher } from "./security/crypto.js";
+import { rekeyWallet } from "./security/rekey.js";
 import { BankAccountsService } from "./services/payments/bankAccounts.service.js";
 import { PaymentsService } from "./services/payments/payments.service.js";
 import { ShiftsService } from "./services/shifts/shifts.service.js";
@@ -93,7 +94,17 @@ export function createApp(
     logger,
   });
   const shifts = new ShiftsService({ shifts: createShiftsRepository(prisma), wallets, identity, signals });
-  const jobs = createWalletJobs({ payments, statements, logger, intervalMs: settings.payments.jobsIntervalMs });
+  const rekey =
+    cipher === undefined || settings.payments.retiredEncryptionKeys.length === 0
+      ? undefined
+      : async () => rekeyWallet(prisma, cipher);
+  const jobs = createWalletJobs({
+    payments,
+    statements,
+    logger,
+    intervalMs: settings.payments.jobsIntervalMs,
+    ...(rekey === undefined ? {} : { rekey }),
+  });
 
   const controller = createWalletController({
     ...buses,

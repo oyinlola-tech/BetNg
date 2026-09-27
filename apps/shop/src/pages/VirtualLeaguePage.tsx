@@ -38,34 +38,34 @@ const TABS: Readonly<Record<TabKey, { readonly label: string; readonly groups: r
         key: "1x2",
         title: "Match Result",
         columns: [
-          { key: "1", header: "1", kind: "MATCH_RESULT", selectionCode: "HOME" },
-          { key: "x", header: "X", kind: "MATCH_RESULT", selectionCode: "DRAW" },
-          { key: "2", header: "2", kind: "MATCH_RESULT", selectionCode: "AWAY" },
+          { key: "1", header: "1", label: "Match result, home win", kind: "MATCH_RESULT", selectionCode: "HOME" },
+          { key: "x", header: "X", label: "Match result, draw", kind: "MATCH_RESULT", selectionCode: "DRAW" },
+          { key: "2", header: "2", label: "Match result, away win", kind: "MATCH_RESULT", selectionCode: "AWAY" },
         ],
       },
       {
         key: "dc",
         title: "Double Chance",
         columns: [
-          { key: "1x", header: "1X", kind: "DOUBLE_CHANCE", selectionCode: "HOME_DRAW" },
-          { key: "12", header: "12", kind: "DOUBLE_CHANCE", selectionCode: "HOME_AWAY" },
-          { key: "x2", header: "X2", kind: "DOUBLE_CHANCE", selectionCode: "DRAW_AWAY" },
+          { key: "1x", header: "1X", label: "Double chance, home or draw", kind: "DOUBLE_CHANCE", selectionCode: "HOME_DRAW" },
+          { key: "12", header: "12", label: "Double chance, home or away", kind: "DOUBLE_CHANCE", selectionCode: "HOME_AWAY" },
+          { key: "x2", header: "X2", label: "Double chance, draw or away", kind: "DOUBLE_CHANCE", selectionCode: "DRAW_AWAY" },
         ],
       },
       {
         key: "btts",
         title: "GG / NG",
         columns: [
-          { key: "gg", header: "GG", kind: "BOTH_TEAMS_TO_SCORE", selectionCode: "YES" },
-          { key: "ng", header: "NG", kind: "BOTH_TEAMS_TO_SCORE", selectionCode: "NO" },
+          { key: "gg", header: "GG", label: "Both teams to score, yes", kind: "BOTH_TEAMS_TO_SCORE", selectionCode: "YES" },
+          { key: "ng", header: "NG", label: "Both teams to score, no", kind: "BOTH_TEAMS_TO_SCORE", selectionCode: "NO" },
         ],
       },
       {
         key: "ou25",
         title: "Over / Under",
         columns: [
-          { key: "o25", header: "OV 2.5", kind: "OVER_UNDER", line: 2.5, selectionCode: "OVER_2_5" },
-          { key: "u25", header: "UN 2.5", kind: "OVER_UNDER", line: 2.5, selectionCode: "UNDER_2_5" },
+          { key: "o25", header: "OV 2.5", label: "Over 2.5 goals", kind: "OVER_UNDER", line: 2.5, selectionCode: "OVER_2_5" },
+          { key: "u25", header: "UN 2.5", label: "Under 2.5 goals", kind: "OVER_UNDER", line: 2.5, selectionCode: "UNDER_2_5" },
         ],
       },
     ],
@@ -79,8 +79,8 @@ const TABS: Readonly<Record<TabKey, { readonly label: string; readonly groups: r
         key: `ou${tag}`,
         title: `Total Goals ${String(line)}`,
         columns: [
-          { key: `o${tag}`, header: `OV ${String(line)}`, kind: "OVER_UNDER" as const, line, selectionCode: `OVER_${tag}` },
-          { key: `u${tag}`, header: `UN ${String(line)}`, kind: "OVER_UNDER" as const, line, selectionCode: `UNDER_${tag}` },
+          { key: `o${tag}`, header: `OV ${String(line)}`, label: `Over ${String(line)} goals`, kind: "OVER_UNDER" as const, line, selectionCode: `OVER_${tag}` },
+          { key: `u${tag}`, header: `UN ${String(line)}`, label: `Under ${String(line)} goals`, kind: "OVER_UNDER" as const, line, selectionCode: `UNDER_${tag}` },
         ],
       };
     }),
@@ -92,8 +92,8 @@ const TABS: Readonly<Record<TabKey, { readonly label: string; readonly groups: r
         key: "spread",
         title: "Goal Spread 1.5",
         columns: [
-          { key: "h", header: "1 (-1.5)", kind: "GOAL_SPREAD", line: -1.5, selectionCode: "HOME_MINUS_1_5" },
-          { key: "a", header: "2 (+1.5)", kind: "GOAL_SPREAD", line: -1.5, selectionCode: "AWAY_PLUS_1_5" },
+          { key: "h", header: "1 (-1.5)", label: "Goal spread, home minus 1.5", kind: "GOAL_SPREAD", line: -1.5, selectionCode: "HOME_MINUS_1_5" },
+          { key: "a", header: "2 (+1.5)", label: "Goal spread, away plus 1.5", kind: "GOAL_SPREAD", line: -1.5, selectionCode: "AWAY_PLUS_1_5" },
         ],
       },
     ],
@@ -288,13 +288,12 @@ function VirtualLeague(): React.JSX.Element {
           </div>
 
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-border bg-background px-3 py-2">
-            <div role="tablist" aria-label="Market groups" className="flex gap-1">
+            <div role="group" aria-label="Market groups" className="flex gap-1">
               {(Object.keys(TABS) as TabKey[]).map((key) => (
                 <button
                   key={key}
                   type="button"
-                  role="tab"
-                  aria-selected={tab === key}
+                  aria-pressed={tab === key}
                   onClick={() => {
                     setTab(key);
                   }}
@@ -334,7 +333,7 @@ function VirtualLeague(): React.JSX.Element {
               <label htmlFor="fastbet" className="caps-label shrink-0">
                 Fastbet
               </label>
-              <div className="flex h-9 flex-1 items-center rounded-sm border border-border bg-surface-sunken pr-1 transition-colors focus-within:border-brand sm:w-56">
+              <div className="flex h-9 flex-1 items-center rounded-sm border border-border bg-surface-sunken pr-1 transition-colors focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/30 sm:w-56">
                 <input
                   ref={fastbetRef}
                   id="fastbet"
@@ -347,9 +346,12 @@ function VirtualLeague(): React.JSX.Element {
                   autoComplete="off"
                   spellCheck={false}
                   aria-describedby="fastbet-help"
+                  aria-keyshortcuts="/"
                   className="h-full w-full min-w-0 bg-transparent px-2.5 font-mono text-base uppercase text-text-primary outline-none placeholder:normal-case placeholder:text-text-muted"
                 />
-                <Kbd>/</Kbd>
+                <span aria-hidden className="flex">
+                  <Kbd>/</Kbd>
+                </span>
               </div>
               <Button type="submit" size="sm" variant="secondary" icon={<CornerDownLeft className="size-3.5" />} disabled={code.trim() === ""}>
                 Add

@@ -4,6 +4,7 @@ import type { LimitKind, ResponsibleGamingLimit } from "@betng/contracts";
 import { DataSourceError, formatDateTime } from "@betng/ui-core";
 import { Button, Card, ConfirmDialog, FormError, SectionHeading, StatusBadge, useToast } from "@betng/ui-web";
 import { logger } from "../../services/runtime";
+import { EffectiveCountdown } from "./EffectiveCountdown";
 import { DEPOSIT_KINDS, LIMIT_LABEL, LIMIT_STATUS, LOSS_KINDS, SESSION_KINDS, formatLimitValue } from "./limitMeta";
 import { useRemoveLimit } from "./limitQueries";
 import { SetLimitDialog } from "./SetLimitDialog";
@@ -64,14 +65,17 @@ export function LimitRow({ kind, limit, onEdit, onRemove }: { readonly kind: Lim
             <p className="type-small mt-1.5 flex items-start gap-1.5 text-text-secondary" data-testid={`limit-${kind}-pending`}>
               <CalendarClock className="mt-0.5 size-3.5 shrink-0 text-pending" aria-hidden />
               <span>
-                Changing to <span className="type-financial text-text-primary">{formatLimitValue(kind, limit.pendingValue)}</span>. Takes effect on {formatDateTime(limit.pendingEffectiveAt)}. Until then {formatLimitValue(kind, limit.value)} applies.
+                Changing to <span className="type-financial text-text-primary">{formatLimitValue(kind, limit.pendingValue)}</span>. Takes effect on {formatDateTime(limit.pendingEffectiveAt)} (<EffectiveCountdown at={limit.pendingEffectiveAt} />). Until then{" "}
+                {formatLimitValue(kind, limit.value)} applies.
               </span>
             </p>
           )}
           {removalRequested && limit.pendingEffectiveAt !== undefined && (
             <p className="type-small mt-1.5 flex items-start gap-1.5 text-text-secondary">
               <CalendarClock className="mt-0.5 size-3.5 shrink-0 text-pending" aria-hidden />
-              <span>Removal requested. The limit stays in force until {formatDateTime(limit.pendingEffectiveAt)}.</span>
+              <span>
+                Removal requested. The limit stays in force until {formatDateTime(limit.pendingEffectiveAt)} (<EffectiveCountdown at={limit.pendingEffectiveAt} elapsedLabel="ending now" />).
+              </span>
             </p>
           )}
           {limit.status === "expired" && <p className="type-small mt-1.5 text-text-muted">This limit no longer applies.</p>}

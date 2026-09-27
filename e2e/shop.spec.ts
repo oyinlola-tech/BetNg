@@ -36,7 +36,7 @@ test.describe("shop", () => {
 
     test.setTimeout(150_000);
 
-    const cells = page.getByRole("table").first().locator("button[aria-pressed]:not([disabled])");
+    const cells = page.getByRole("grid").first().locator("button[aria-pressed]:not([aria-disabled])");
 
     // An open week with at least 40 seconds left, so betting cannot close mid-test.
     await expect

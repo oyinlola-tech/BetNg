@@ -9,6 +9,7 @@ import { Button, Card, ConfirmDialog, EmptyState, Field, FormError, Input, Selec
 import { useWallet } from "../../hooks/accountQueries";
 import { analytics } from "../../services/analytics";
 import { accountServices, logger } from "../../services/runtime";
+import { KycRequiredLink, KycStatusNotice } from "../kyc/KycRequired";
 import { amountField, amountInputValue } from "../wallet/amount";
 import { LinkButton } from "../wallet/LinkButton";
 import { ServiceError } from "../wallet/ServiceStates";
@@ -174,6 +175,7 @@ export function WithdrawFlow({ pollDelaysMs }: WithdrawFlowProps): React.JSX.Ele
       <div className="space-y-4">
         <OfflineMoneyNotice action="A withdrawal" />
         <FormError error={failure} />
+        <KycRequiredLink error={failure} />
         <Card padding="none">
           <div className="border-b border-border px-4 py-3">
             <h2 className="type-h3 text-text-primary">Review withdrawal</h2>
@@ -234,58 +236,62 @@ export function WithdrawFlow({ pollDelaysMs }: WithdrawFlowProps): React.JSX.Ele
   const accountError = form.formState.errors.bankAccountId?.message;
 
   return (
-    <Card>
-      <form onSubmit={(event) => void quote(event)} noValidate className="space-y-5">
-        <OfflineMoneyNotice action="A withdrawal" />
-        <FormError error={failure} />
-        <Field label="Bank account" error={accountError} required>
-          {(control) => (
-            <Controller
-              control={form.control}
-              name="bankAccountId"
-              render={({ field }) => (
-                <Select
-                  {...control}
-                  ref={field.ref}
-                  name={field.name}
-                  value={field.value}
-                  onChange={field.onChange}
-                  onBlur={field.onBlur}
-                  disabled={busy}
-                  fullWidth
-                  options={bankAccounts.map((account) => ({ value: account.id, label: `${accountLabel(account)}${account.isDefault ? " (default)" : ""}` }))}
-                />
-              )}
+    <div className="space-y-4">
+      <KycStatusNotice action="a withdrawal" />
+      <Card>
+        <form onSubmit={(event) => void quote(event)} noValidate className="space-y-5">
+          <OfflineMoneyNotice action="A withdrawal" />
+          <FormError error={failure} />
+          <KycRequiredLink error={failure} />
+          <Field label="Bank account" error={accountError} required>
+            {(control) => (
+              <Controller
+                control={form.control}
+                name="bankAccountId"
+                render={({ field }) => (
+                  <Select
+                    {...control}
+                    ref={field.ref}
+                    name={field.name}
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    disabled={busy}
+                    fullWidth
+                    options={bankAccounts.map((account) => ({ value: account.id, label: `${accountLabel(account)}${account.isDefault ? " (default)" : ""}` }))}
+                  />
+                )}
+              />
+            )}
+          </Field>
+          <div className="space-y-3">
+            <Input
+              label="Amount"
+              prefix={currentCurrency().symbol}
+              inputMode="decimal"
+              autoComplete="off"
+              disabled={busy}
+              hint={available === undefined ? "The platform checks your available balance." : `Available to withdraw: ${formatMoney(available)}`}
+              error={form.formState.errors.amount?.message}
+              {...form.register("amount")}
             />
-          )}
-        </Field>
-        <div className="space-y-3">
-          <Input
-            label="Amount"
-            prefix={currentCurrency().symbol}
-            inputMode="decimal"
-            autoComplete="off"
-            disabled={busy}
-            hint={available === undefined ? "The platform checks your available balance." : `Available to withdraw: ${formatMoney(available)}`}
-            error={form.formState.errors.amount?.message}
-            {...form.register("amount")}
-          />
-          <AmountPresets
-            disabled={busy}
-            onPick={(preset) => {
-              form.setValue("amount", amountInputValue(preset), { shouldDirty: true, shouldValidate: form.formState.isSubmitted });
-            }}
-          />
-        </div>
-        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-4">
-          <LinkButton to="/wallet/bank-accounts" variant="ghost" size="sm">
-            Manage bank accounts
-          </LinkButton>
-          <Button type="submit" loading={busy}>
-            Review withdrawal
-          </Button>
-        </div>
-      </form>
-    </Card>
+            <AmountPresets
+              disabled={busy}
+              onPick={(preset) => {
+                form.setValue("amount", amountInputValue(preset), { shouldDirty: true, shouldValidate: form.formState.isSubmitted });
+              }}
+            />
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-4">
+            <LinkButton to="/wallet/bank-accounts" variant="ghost" size="sm">
+              Manage bank accounts
+            </LinkButton>
+            <Button type="submit" loading={busy}>
+              Review withdrawal
+            </Button>
+          </div>
+        </form>
+      </Card>
+    </div>
   );
 }

@@ -52,7 +52,7 @@ function ResponsibleGaming(): React.JSX.Element {
 
   return (
     <div className="space-y-5">
-      <ResponsibleGamingBanner />
+      <ResponsibleGamingBanner pendingNotice={false} />
       <div className="grid gap-5 lg:grid-cols-2">
         <div className="space-y-5">
           <DepositLimits limits={limits} />

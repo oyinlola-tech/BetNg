@@ -13,8 +13,10 @@ import type { PaymentSettings } from "../../configs/index.js";
 import {
   AUDIT_ACTION,
   PAYMENT_ERROR,
+  PROVIDER_IDS,
   QUOTE_TTL_MS,
   SAFE_REASON,
+  WEBHOOK_PAYLOAD_CONTEXT,
 } from "../../constants/payments.constant.js";
 import type { ProviderId } from "../../constants/payments.constant.js";
 import type { SignalPublisher } from "../../clients/event.client.js";
@@ -34,6 +36,7 @@ import type { FieldCipher } from "../../security/crypto.js";
 import { formatKobo } from "../../statements/statement.render.js";
 import { toAdminPayment, toPaymentRecord, utcToday } from "../../utils/index.js";
 import type { AdminPaymentDto } from "../../utils/index.js";
+import { reconciliationVerdict } from "./reconciliation.js";
 
 export interface PaymentsServiceDeps {
   readonly settings: PaymentSettings;
@@ -59,8 +62,20 @@ const OPEN_STATUSES: ReadonlySet<string> = new Set(["INITIATED", "PENDING", "PRO
 
 /** Retry schedule for a webhook that verified but could not be applied. */
 const WEBHOOK_RETRY_DELAYS_MS: readonly number[] = [30_000, 120_000, 600_000, 3_600_000, 21_600_000];
-const WEBHOOK_PAYLOAD_CONTEXT = "payment-webhook";
 const WEBHOOK_RETRY_BATCH = 20;
+/** Long enough for a provider to finish a payment we just closed; past the lookback it is a manual matter. */
+const RECONCILE_SETTLE_MS = 30 * 60_000;
+const RECONCILE_LOOKBACK_MS = 72 * 3_600_000;
+const RECONCILE_BATCH = 25;
+const RECONCILE_RETRY_MS = 60 * 60_000;
+const RECONCILE_GIVE_UP_MS = 24 * 3_600_000;
+
+export interface ReconciliationRun {
+  readonly checked: number;
+  readonly agreed: number;
+  readonly flagged: number;
+  readonly settled: number;
+}
 
 function newReference(kind: "d" | "w"): string {
   return `bng${kind}-${randomBytes(12).toString("hex")}`;
@@ -856,6 +871,88 @@ export class PaymentsService {
     }
 
     return processed;
+  }
+
+  /**
+   * Asks the provider again about payments closed between the settle window and the
+   * lookback, catching what no webhook reported: a deposit paid after it expired, a
+   * refunded withdrawal the bank paid anyway, a credit the provider has no record of.
+   */
+  public async reconcile(now: Date, requestId: string): Promise<ReconciliationRun> {
+    const run = { checked: 0, agreed: 0, flagged: 0, settled: 0 };
+    const providers = PROVIDER_IDS.filter((id) => this.deps.registry.get(id)?.configured === true);
+
+    if (providers.length === 0) {
+      return run;
+    }
+
+    const rows = await this.deps.payments.dueReconciliation(
+      now,
+      new Date(now.getTime() - RECONCILE_LOOKBACK_MS),
+      new Date(now.getTime() - RECONCILE_SETTLE_MS),
+      providers,
+      RECONCILE_BATCH,
+    );
+
+    for (const row of rows) {
+      const provider = this.providerOf(row);
+
+      if (row.direction === "WITHDRAWAL" && row.transferRequestedAt === null) {
+        await this.deps.payments.markReconciled(row.id, now);
+        run.agreed += 1;
+        continue;
+      }
+
+      try {
+        const check = {
+          reference: row.reference,
+          providerReference: row.providerReference ?? undefined,
+          amount: Number(row.direction === "DEPOSIT" ? row.amount : row.netAmount),
+          attempt: await this.deps.payments.nextCheck(row.id),
+        };
+        const outcome = row.direction === "DEPOSIT" ? await provider.verifyDeposit(check) : await provider.transferStatus(check);
+        const verdict = reconciliationVerdict(row, outcome, now.getTime() - row.updatedAt.getTime() > RECONCILE_GIVE_UP_MS);
+
+        run.checked += 1;
+
+        switch (verdict.kind) {
+          case "AGREES":
+            await this.deps.payments.markReconciled(row.id, now);
+            run.agreed += 1;
+            break;
+          case "SETTLE":
+            await this.notify(await this.deps.payments.settleWithdrawal(row.id, await this.accountId(row.userId), outcome), requestId);
+            run.settled += 1;
+            break;
+          case "FLAG":
+            await this.deps.payments.flag(row.id, verdict.reason);
+            run.flagged += 1;
+            this.deps.logger.error("Payment disagrees with the provider", {
+              requestId,
+              event: "payment_reconciliation_mismatch",
+              reference: row.reference,
+              direction: row.direction,
+              status: row.status,
+              provider: row.provider,
+              outcome: outcome.kind,
+            });
+            break;
+          case "WAIT":
+            await this.deps.payments.deferReconciliation(row.id, new Date(now.getTime() + RECONCILE_RETRY_MS));
+            break;
+        }
+      } catch (error) {
+        await this.deps.payments.deferReconciliation(row.id, new Date(now.getTime() + RECONCILE_RETRY_MS)).catch(() => undefined);
+        this.deps.logger.warn("Payment reconciliation check failed", {
+          requestId,
+          event: "payment_reconciliation_failed",
+          reference: row.reference,
+          error: error instanceof Error ? error.name : "unknown",
+        });
+      }
+    }
+
+    return run;
   }
 
   public async overview(): Promise<PaymentOverview> {

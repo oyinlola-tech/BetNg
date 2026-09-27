@@ -4,7 +4,7 @@ import { kycDocumentSchema, kycStatusSchema, kycTierSchema } from "../account/ky
 import { paymentRecordSchema } from "../account/payments.type.js";
 import { limitsSummarySchema } from "../account/limits.type.js";
 
-// Pending backend: operator views over KYC, payments and responsible gaming. Reviews are audit-logged by the platform.
+// Operator views over KYC and responsible gaming (identity service) and payments (wallet service). Reviews are audit-logged by the platform.
 
 export const kycReviewItemSchema = z.object({
   userId: z.string().min(1),

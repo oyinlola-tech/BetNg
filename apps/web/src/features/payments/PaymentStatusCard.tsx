@@ -31,7 +31,7 @@ export function PaymentStatusCard({ payment, bankAccountLabel, footer, className
             {formatMoney(payment.amount)}
           </p>
         </div>
-        <PaymentStatusBadge status={payment.status} className="text-base" />
+        <PaymentStatusBadge status={payment.status} direction={payment.direction} className="text-base" />
       </div>
       {payment.failureReason !== undefined && (payment.status === "FAILED" || payment.status === "EXPIRED" || payment.status === "CANCELLED" || payment.status === "REVERSED") && (
         <p className="type-small mx-4 mb-3 rounded-sm border border-border bg-surface-sunken px-3 py-2 text-text-secondary md:mx-5">{payment.failureReason}</p>

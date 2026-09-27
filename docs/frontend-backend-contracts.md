@@ -1,6 +1,6 @@
 # Frontend ↔ Backend Contracts
 
-The five clients (web, mobile, TV, shop, admin) and the services share one set of wire contracts: `@betng/contracts` (zod schemas + TypeScript types). This document says which contracts exist, who is authoritative for each value, how the client treats each answer, and which contracts are **proposals waiting for a backend implementation**. The per-screen wiring (endpoint, cache key, invalidation, realtime event) is in [`frontend-api-matrix.md`](./frontend-api-matrix.md); the served route table is `apps/gateway/src/routes/gateway.table.ts`.
+The five clients (web, mobile, TV, shop, admin) and the services share one set of wire contracts: `@betng/contracts` (zod schemas + TypeScript types). This document says which contracts exist, who is authoritative for each value, how the client treats each answer, and which contracts are still **waiting for a backend implementation** (none today). The per-screen wiring (endpoint, cache key, invalidation, realtime event) is in [`frontend-api-matrix.md`](./frontend-api-matrix.md); the served route table is `apps/gateway/src/routes/gateway.table.ts`.
 
 ## 1. Rules both sides hold to
 
@@ -65,9 +65,9 @@ The original served routes (matches, odds, bets, wallet, shop, admin) are typed 
 | Shop | `shop/shop.type.ts`: `Shop`, `Cashier`, `ShopRole` (`OWNER`/`MANAGER`/`CASHIER`), `ShopSession`, `Ticket`, `TicketStatus`, `ShopTransaction`, `ShopDailyReport` |
 | Admin and platform | `admin/*`, `platform/*`, `risk/*`: sessions, audit log, service health, fixtures, market odds, risk overview/exposure/limits, simulation runs, settlements, operator ledger and periods, commission, analytics overview/breakdown/sessions |
 
-### Proposed by the frontend, pending backend implementation
+### Served by the platform, behind a feature flag
 
-Each is a typed interface with a platform adapter that calls the documented route. Until the route is served the adapter answers `NOT_IMPLEMENTED` and the screen shows an unavailable state; the feature is also off by default behind a flag the platform turns on through `GET /config → features`.
+Each is a typed interface with a platform adapter that calls a served route (section 5): routed in `apps/gateway/src/routes/gateway.table.ts` and implemented in the identity or wallet service. The feature is off by default behind a flag the platform turns on through `GET /config → features`; with the flag off the screen shows an unavailable state.
 
 | Contract file | Types | Flag |
 | --- | --- | --- |
@@ -79,69 +79,73 @@ Each is a typed interface with a platform adapter that calls the documented rout
 | `shop/shift.type.ts` | `CashierShift`, `ShiftTotals` (all platform-computed), `OpenShiftRequest`, `CashMovementRequest`, `CloseShiftRequest` (denomination counts + PIN) | `cashShiftsEnabled` |
 | `admin/compliance.type.ts` | `KycReviewItem`, `KycReviewDecision`, `KycDocumentPreview` (signed URL), `AdminPayment`, `PaymentOverview`, `WithdrawalReview`, `ResponsibleGamingAccount`; permissions `kyc:read`, `kyc:write`, `payments:read`, `payments:write` | `complianceEnabled` |
 
-## 5. Pending backend routes
+### Pending backend implementation
 
-All under `/api/v1`. "Customer" means the gateway resolves a `CUSTOMER` actor from the session and scopes every read and write to that user; no route takes a user id from the client.
+None. Every contract above is served.
 
-| Method | Path | Request | Response | Access | Notes for the backend |
-| --- | --- | --- | --- | --- | --- |
-| POST | `/payments/deposit/initiate` | `DepositInitiateRequest`, `idempotency-key` | `DepositInitiation` | Customer | Picks the provider, creates the provider transaction, returns an allowlisted `checkoutUrl` or `instructions`. Enforces deposit limits, self-exclusion and KYC tier |
-| POST | `/payments/deposit/verify` | `{ reference }` | `PaymentRecord` | Customer | Re-queries the provider; the only way a client learns the outcome. Crediting happens on the verified webhook or this check, exactly once |
-| GET | `/payments/history` | `page`, `pageSize`, `direction`, `status` | `Page<PaymentRecord>` | Customer | |
-| POST | `/payments/withdraw/quote` | `WithdrawalRequest` | `WithdrawalQuote` | Customer | Fee and net are the platform's |
-| POST | `/payments/withdraw/request` | `WithdrawalRequest`, `idempotency-key` | `PaymentRecord` | Customer | Reserves funds atomically; KYC tier and limits enforced |
-| GET | `/payments/withdraw/status/:reference` | — | `PaymentRecord` | Customer | |
-| GET | `/payments/banks` | — | `{ items: Bank[] }` | Customer | |
-| POST | `/payments/bank-accounts/verify` | `BankAccountVerifyRequest` | `BankAccountVerification` | Customer | Name enquiry through the provider; returns masked number and account name |
-| POST | `/payments/bank-accounts` | `SaveBankAccountRequest` | `BankAccount` | Customer | Saves from the verification only |
-| GET | `/payments/bank-accounts` | — | `{ items: BankAccount[] }` | Customer | Masked numbers only |
-| POST | `/payments/bank-accounts/:id/default` | — | `BankAccount` | Customer | |
-| DELETE | `/payments/bank-accounts/:id` | — | `204` | Customer | Refuse while a withdrawal to it is in flight |
-| POST | `/payments/webhook/{paystack,flutterwave,bachs}` | provider payload | `200` | Provider signature | Never called by a client |
-| GET | `/kyc/status` | — | `KycOverview` | Customer | |
-| GET | `/kyc/documents` | — | `{ items: KycDocument[] }` | Customer | No storage URLs |
-| POST | `/kyc/documents/uploads` | `KycUploadRequest` | `KycUploadTicket` | Customer | Short-lived, single-use, size- and type-bound signed target |
-| POST | `/kyc/documents` | `{ uploadId }` | `KycDocument` | Customer | Server re-validates type and size and scans the file |
-| POST | `/kyc/verify/bvn` | `BvnVerifyRequest` | `IdentityCheckResult` | Customer | Numbers never logged |
-| POST | `/kyc/verify/nin` | `NinVerifyRequest` | `IdentityCheckResult` | Customer | Numbers never logged |
-| GET | `/limits/summary` | — | `LimitsSummary` | Customer | |
-| PUT | `/limits` | `{ kind, value }` | `LimitsSummary` | Customer | Tightening applies at once; loosening waits out a cooling-off period |
-| DELETE | `/limits/:kind` | — | `LimitsSummary` | Customer | Removal waits out the cooling-off period |
-| POST | `/limits/self-exclude` | `SelfExcludeRequest` | `SelfExclusion` | Customer | Password re-check; blocks betting and deposits immediately |
-| DELETE | `/limits/self-exclude` | — | `SelfExclusion` | Customer | Refused before `canCancelAt` |
-| GET | `/limits/history` | — | `{ items: LimitHistoryEntry[] }` | Customer | |
-| POST | `/auth/login` (extended) | `CustomerLoginRequest` | `CustomerSession` or `{ twoFactor: TwoFactorChallenge }` | Public | |
-| POST | `/auth/login/2fa` | `TwoFactorChallengeRequest` | `CustomerSession` | Public (challenge) | Attempt-limited |
-| POST | `/auth/password/reset` | `PasswordResetConfirmRequest` | `204` | Public | Revokes every session |
-| POST | `/auth/session/refresh` | — | `SessionRefresh` | Customer | Cookie sessions refresh by `Set-Cookie` |
-| PUT | `/account/password` | `PasswordChangeRequest` | `204` | Customer | Breach check returned as a `VALIDATION` field error on `newPassword` |
-| GET | `/account/2fa` | — | `TwoFactorStatus` | Customer | |
-| POST | `/account/2fa/enroll` | — | `TwoFactorEnrollment` | Customer | Secret generated and stored server-side |
-| POST | `/account/2fa/confirm` | `TwoFactorConfirmRequest` | `BackupCodes` | Customer | Codes shown once; stored hashed |
-| POST | `/account/2fa/disable` | `TwoFactorDisableRequest` | `TwoFactorStatus` | Customer | Password + code |
-| POST | `/account/2fa/backup-codes` | `{ code }` | `BackupCodes` | Customer | Replaces the previous set |
-| GET | `/account/sessions` | — | `{ items: AccountSession[] }` | Customer | Location only if the platform derives it |
-| DELETE | `/account/sessions/:id` | — | `204` | Customer | Revocation must take effect at the gateway at once |
-| DELETE | `/account/sessions` | — | `204` | Customer | All but the current session |
-| GET / POST / DELETE | `/account/deletion` | `AccountDeletionRequest` + `idempotency-key` on POST | `AccountDeletion` | Customer | |
-| POST | `/account/statements` | `StatementRequest` | `StatementJob` | Customer | Generated server-side from the ledger |
-| GET | `/account/statements/:id` | — | `StatementJob` | Customer | `downloadUrl` is short-lived and signed |
-| GET / PUT | `/notifications/preferences` | `{ channels }` on PUT | `ChannelPreferences` | Customer | |
-| GET | `/notifications/push/devices` | — | `{ items: PushDevice[] }` | Customer | |
-| POST | `/notifications/push/register` | `RegisterPushDeviceRequest` | `PushDevice` | Customer | |
-| DELETE | `/notifications/push/devices/:id` | — | `204` | Customer | |
-| GET | `/shop/shifts/current` | — | `{ shift: CashierShift \| null }` | Cashier | |
-| POST | `/shop/shifts` | `OpenShiftRequest`, `idempotency-key` | `CashierShift` | Cashier | |
-| POST | `/shop/shifts/current/cash` | `CashMovementRequest`, `idempotency-key` | `CashierShift` | Cashier (+ permission) | |
-| POST | `/shop/shifts/:id/close` | `CloseShiftRequest`, `idempotency-key` | `CashierShift` | Cashier | Platform computes expected cash and discrepancy |
-| GET | `/shop/shifts` | `date?` | `{ items: CashierShift[] }` | Cashier (`reports:read` for others') | |
-| GET | `/admin/kyc/pending` | `page`, `pageSize`, `search`, `status` | `Page<KycReviewItem>` | Admin `kyc:read` | |
-| POST | `/admin/kyc/review/:userId` | `KycReviewDecision` | `KycReviewItem` | Admin `kyc:write` | Audit-logged |
-| GET | `/admin/kyc/documents/:id/preview` | — | `KycDocumentPreview` | Admin `kyc:read` | Signed, short-lived; access audit-logged |
-| GET | `/admin/payments/overview` | — | `PaymentOverview` | Admin `payments:read` | |
-| GET | `/admin/payments` | `page`, `pageSize`, `search`, `direction`, `status`, `provider`, `from`, `to` | `Page<AdminPayment>` | Admin `payments:read` | |
-| POST | `/admin/payments/withdrawals/:reference/review` | `WithdrawalReview` | `AdminPayment` | Admin `payments:write` | Audit-logged |
-| GET | `/admin/responsible-gaming` | `page`, `pageSize`, `search`, `flag` | `Page<ResponsibleGamingAccount>` | Admin `users:read` | |
+## 5. Account, payment, compliance and shift routes
+
+All under `/api/v1`, all served: each row is routed in `apps/gateway/src/routes/gateway.table.ts` and implemented by the service named (identity: `apps/services/identity/src/routes/*.route.ts`; wallet: `apps/services/wallet/src/routes/payments.route.ts`). "Customer" means the gateway resolves a `CUSTOMER` actor from the session and scopes every read and write to that user; no route takes a user id from the client.
+
+| Method | Path | Request | Response | Access | Service | Notes |
+| --- | --- | --- | --- | --- | --- | --- |
+| POST | `/payments/deposit/initiate` | `DepositInitiateRequest`, `idempotency-key` | `DepositInitiation` | Customer | wallet | Picks the provider, creates the provider transaction, returns an allowlisted `checkoutUrl` or `instructions`. Enforces deposit limits, self-exclusion and KYC tier |
+| POST | `/payments/deposit/verify` | `{ reference }` | `PaymentRecord` | Customer | wallet | Re-queries the provider; the only way a client learns the outcome. Crediting happens on the verified webhook or this check, exactly once |
+| GET | `/payments/history` | `page`, `pageSize`, `direction`, `status` | `Page<PaymentRecord>` | Customer | wallet | |
+| POST | `/payments/withdraw/quote` | `WithdrawalRequest` | `WithdrawalQuote` | Customer | wallet | Fee and net are the platform's |
+| POST | `/payments/withdraw/request` | `WithdrawalRequest`, `idempotency-key` | `PaymentRecord` | Customer | wallet | Reserves funds atomically; KYC tier and limits enforced |
+| GET | `/payments/withdraw/status/:reference` | — | `PaymentRecord` | Customer | wallet | |
+| GET | `/payments/banks` | — | `{ items: Bank[] }` | Customer | wallet | |
+| POST | `/payments/bank-accounts/verify` | `BankAccountVerifyRequest` | `BankAccountVerification` | Customer | wallet | Name enquiry through the provider; returns masked number and account name |
+| POST | `/payments/bank-accounts` | `SaveBankAccountRequest` | `BankAccount` | Customer | wallet | Saves from the verification only |
+| GET | `/payments/bank-accounts` | — | `{ items: BankAccount[] }` | Customer | wallet | Masked numbers only |
+| POST | `/payments/bank-accounts/:id/default` | — | `BankAccount` | Customer | wallet | |
+| DELETE | `/payments/bank-accounts/:id` | — | `204` | Customer | wallet | Refuse while a withdrawal to it is in flight |
+| POST | `/payments/webhook/{paystack,flutterwave,bachs}` | provider payload | `200` | Provider signature | wallet | Never called by a client |
+| GET | `/kyc/status` | — | `KycOverview` | Customer | identity | |
+| GET | `/kyc/documents` | — | `{ items: KycDocument[] }` | Customer | identity | No storage URLs |
+| POST | `/kyc/documents/uploads` | `KycUploadRequest` | `KycUploadTicket` | Customer | identity | Short-lived, single-use, size- and type-bound signed target |
+| POST | `/kyc/documents` | `{ uploadId }` | `KycDocument` | Customer | identity | Server re-validates type and size and scans the file |
+| POST | `/kyc/verify/bvn` | `BvnVerifyRequest` | `IdentityCheckResult` | Customer | identity | Numbers never logged |
+| POST | `/kyc/verify/nin` | `NinVerifyRequest` | `IdentityCheckResult` | Customer | identity | Numbers never logged |
+| GET | `/limits/summary` | — | `LimitsSummary` | Customer | identity | |
+| PUT | `/limits` | `{ kind, value }` | `LimitsSummary` | Customer | identity | Tightening applies at once; loosening waits out a cooling-off period |
+| DELETE | `/limits/:kind` | — | `LimitsSummary` | Customer | identity | Removal waits out the cooling-off period |
+| POST | `/limits/self-exclude` | `SelfExcludeRequest` | `SelfExclusion` | Customer | identity | Password re-check; blocks betting and deposits immediately |
+| DELETE | `/limits/self-exclude` | — | `SelfExclusion` | Customer | identity | Refused before `canCancelAt` |
+| GET | `/limits/history` | — | `{ items: LimitHistoryEntry[] }` | Customer | identity | |
+| POST | `/auth/login` (extended) | `CustomerLoginRequest` | `CustomerSession` or `{ twoFactor: TwoFactorChallenge }` | Public | identity | |
+| POST | `/auth/login/2fa` | `TwoFactorChallengeRequest` | `CustomerSession` | Public (challenge) | identity | Attempt-limited |
+| POST | `/auth/password/reset` | `PasswordResetConfirmRequest` | `204` | Public | identity | Revokes every session |
+| POST | `/auth/session/refresh` | — | `SessionRefresh` | Customer | identity | Cookie sessions refresh by `Set-Cookie` |
+| PUT | `/account/password` | `PasswordChangeRequest` | `204` | Customer | identity | Breach check returned as a `VALIDATION` field error on `newPassword` |
+| GET | `/account/2fa` | — | `TwoFactorStatus` | Customer | identity | |
+| POST | `/account/2fa/enroll` | — | `TwoFactorEnrollment` | Customer | identity | Secret generated and stored server-side |
+| POST | `/account/2fa/confirm` | `TwoFactorConfirmRequest` | `BackupCodes` | Customer | identity | Codes shown once; stored hashed |
+| POST | `/account/2fa/disable` | `TwoFactorDisableRequest` | `TwoFactorStatus` | Customer | identity | Password + code |
+| POST | `/account/2fa/backup-codes` | `{ code }` | `BackupCodes` | Customer | identity | Replaces the previous set |
+| GET | `/account/sessions` | — | `{ items: AccountSession[] }` | Customer | identity | Location only if the platform derives it |
+| DELETE | `/account/sessions/:id` | — | `204` | Customer | identity | Revocation must take effect at the gateway at once |
+| DELETE | `/account/sessions` | — | `204` | Customer | identity | All but the current session |
+| GET / POST / DELETE | `/account/deletion` | `AccountDeletionRequest` + `idempotency-key` on POST | `AccountDeletion` | Customer | identity | |
+| POST | `/account/statements` | `StatementRequest` | `StatementJob` | Customer | wallet | Generated server-side from the ledger |
+| GET | `/account/statements/:id` | — | `StatementJob` | Customer | wallet | `downloadUrl` is short-lived and signed |
+| GET / PUT | `/notifications/preferences` | `{ channels }` on PUT | `ChannelPreferences` | Customer | identity | |
+| GET | `/notifications/push/devices` | — | `{ items: PushDevice[] }` | Customer | identity | |
+| POST | `/notifications/push/register` | `RegisterPushDeviceRequest` | `PushDevice` | Customer | identity | |
+| DELETE | `/notifications/push/devices/:id` | — | `204` | Customer | identity | |
+| GET | `/shop/shifts/current` | — | `{ shift: CashierShift \| null }` | Cashier `shifts:operate` | wallet | |
+| POST | `/shop/shifts` | `OpenShiftRequest`, `idempotency-key` | `CashierShift` | Cashier `shifts:operate` | wallet | |
+| POST | `/shop/shifts/current/cash` | `CashMovementRequest`, `idempotency-key` | `CashierShift` | Cashier `cash:move` | wallet | |
+| POST | `/shop/shifts/:id/close` | `CloseShiftRequest`, `idempotency-key` | `CashierShift` | Cashier `shifts:operate` | wallet | Platform computes expected cash and discrepancy |
+| GET | `/shop/shifts` | `date?` | `{ items: CashierShift[] }` | Cashier `shifts:operate` (`reports:read` for others') | wallet | |
+| GET | `/admin/kyc/pending` | `page`, `pageSize`, `search`, `status` | `Page<KycReviewItem>` | Admin `kyc:read` | identity | |
+| POST | `/admin/kyc/review/:userId` | `KycReviewDecision` | `KycReviewItem` | Admin `kyc:write` | identity | Audit-logged |
+| GET | `/admin/kyc/documents/:id/preview` | — | `KycDocumentPreview` | Admin `kyc:read` | identity | Signed, short-lived; access audit-logged |
+| GET | `/admin/payments/overview` | — | `PaymentOverview` | Admin `payments:read` | wallet | |
+| GET | `/admin/payments` | `page`, `pageSize`, `search`, `direction`, `status`, `provider`, `from`, `to` | `Page<AdminPayment>` | Admin `payments:read` | wallet | |
+| POST | `/admin/payments/withdrawals/:reference/review` | `WithdrawalReview` | `AdminPayment` | Admin `payments:write` | wallet | Audit-logged |
+| GET | `/admin/responsible-gaming` | `page`, `pageSize`, `search`, `flag` | `Page<ResponsibleGamingAccount>` | Admin `users:read` | identity | |
 
 ## 6. Sessions
 

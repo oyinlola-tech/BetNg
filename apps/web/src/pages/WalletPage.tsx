@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
-import { ArrowDownToLine, ArrowUpFromLine, FileText, History, Info, Landmark } from "lucide-react";
+import { ArrowDownToLine, ArrowUpFromLine, Clock, FileText, History, Info, Landmark } from "lucide-react";
 import type { PaymentRecord } from "@betng/contracts";
 import { formatDateTime, formatMoney, formatSignedMoney, type TransactionView, type WalletView } from "@betng/ui-core";
 import { Button, Card, EmptyState, SectionHeader, SectionHeading, SkeletonRows, WalletSkeleton, cn, useFlag } from "@betng/ui-web";
@@ -10,6 +10,7 @@ import { DIRECTION_LABEL, isTerminalPayment, paymentPath } from "../features/pay
 import { usePaymentHistory } from "../features/payments/paymentQueries";
 import { PaymentStatusBadge } from "../features/payments/PaymentStatusBadge";
 import { usePageMeta } from "../features/seo";
+import { paths } from "../lib/paths";
 import { LinkButton } from "../features/wallet/LinkButton";
 import { SignedAmount, TransactionDetailDialog, TransactionTypeLabel } from "../features/wallet/TransactionParts";
 import { TRANSACTION_TYPES, TRANSACTION_TYPE_META, transactionDescription, transactionTypeMeta } from "../features/wallet/transactionMeta";
@@ -125,13 +126,44 @@ function InFlightPayments({ items }: { readonly items: readonly PaymentRecord[] 
               </span>
               <span className="flex flex-col items-end gap-1">
                 <span className="type-financial text-text-primary">{formatMoney(payment.amount)}</span>
-                <PaymentStatusBadge status={payment.status} />
+                <PaymentStatusBadge status={payment.status} direction={payment.direction} />
               </span>
             </Link>
           </li>
         ))}
       </ul>
     </Card>
+  );
+}
+
+/** The prominent signal that withdrawal money is held while the platform processes it. */
+function PendingWithdrawalBanner({ items }: { readonly items: readonly PaymentRecord[] }): React.JSX.Element | null {
+  const open = items.filter((payment) => payment.direction === "WITHDRAWAL" && (payment.status === "PENDING" || payment.status === "PROCESSING"));
+  const [first] = open;
+
+  if (first === undefined) return null;
+
+  const single = open.length === 1;
+  const total = open.reduce((sum, payment) => sum + payment.amount, 0);
+
+  return (
+    <div role="status" className="flex items-start gap-2.5 rounded-sm border border-info/40 bg-info-subtle px-3 py-2.5" data-testid="pending-withdrawal-banner">
+      <Clock className="mt-0.5 size-4 shrink-0 text-info" aria-hidden />
+      <p className="type-small text-text-primary">
+        <span className="font-semibold">
+          {single
+            ? `Your ${formatMoney(first.amount)} withdrawal is ${first.status === "PROCESSING" ? "being processed" : "waiting to be processed"}.`
+            : `${String(open.length)} withdrawals totalling ${formatMoney(total)} are being processed.`}
+        </span>{" "}
+        {single ? "The amount is held" : "The amounts are held"} until the platform confirms the transfer or returns it to your wallet.{" "}
+        <Link
+          to={single ? paymentPath(first.reference, first.direction) : `${paths.payments}?direction=withdrawal`}
+          className="rounded-xs font-semibold text-brand hover:underline focus-ring"
+        >
+          {single ? "View status" : "View withdrawals"}
+        </Link>
+      </p>
+    </div>
   );
 }
 
@@ -180,6 +212,8 @@ export function WalletPage(): React.JSX.Element {
       <SectionHeader as="h1" eyebrow="Account" title="Wallet" />
 
       <ResponsibleGamingBanner />
+
+      {payments && recentPayments.data !== undefined && <PendingWithdrawalBanner items={recentPayments.data.items} />}
 
       {wallet.data !== undefined ? (
         <Balances wallet={wallet.data} payments={payments} onAction={setAction} />

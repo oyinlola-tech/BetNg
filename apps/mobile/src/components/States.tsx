@@ -1,4 +1,4 @@
-import { StyleSheet, View } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
 import { Inbox, RefreshCw, WifiOff } from "lucide-react-native";
 import { useTheme } from "../theme";
 import { presentError } from "../lib/errors";
@@ -93,6 +93,24 @@ export function ErrorState({
           style={{ marginTop: 16 }}
         />
       )}
+      {p.requestId !== undefined && (
+        <Text
+          variant="caption"
+          tone="muted"
+          align="center"
+          style={[styles.reference, { marginTop: 16, fontSize: t.text.xs }]}
+        >
+          Support reference{" "}
+          <Text
+            variant="caption"
+            tone="secondary"
+            selectable
+            style={[styles.reference, { fontSize: t.text.xs }]}
+          >
+            {p.requestId}
+          </Text>
+        </Text>
+      )}
     </View>
   );
 }
@@ -154,6 +172,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 32,
     paddingHorizontal: 16,
+  },
+  reference: {
+    fontFamily: Platform.select({ ios: "Menlo", default: "monospace" }),
   },
   icon: {
     width: 40,

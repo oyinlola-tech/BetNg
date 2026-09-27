@@ -48,8 +48,13 @@ class BatchRunMatchRequest(ContractModel):
     matches: list[BatchMatchItem]
 
 
+class BatchRunMatchFailure(ContractModel):
+    match_id: UUID
+    error: str
+
+
 class BatchRunMatchResponse(ContractModel):
-    results: list[RunMatchResponse | dict[str, str]]
+    results: list[RunMatchResponse | BatchRunMatchFailure]
 
 
 class MatchScoreResult(ContractModel):

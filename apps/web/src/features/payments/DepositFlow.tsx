@@ -8,6 +8,7 @@ import { DataSourceError, createIdempotencyKey, currentCurrency, formatDateTime,
 import { Button, Card, FormError, Input, RadioGroup, SectionHeading, useToast } from "@betng/ui-web";
 import { analytics } from "../../services/analytics";
 import { accountServices, env, logger } from "../../services/runtime";
+import { KycRequiredLink } from "../kyc/KycRequired";
 import { amountField, amountInputValue } from "../wallet/amount";
 import { LinkButton } from "../wallet/LinkButton";
 import { AmountPresets } from "./AmountPresets";
@@ -153,8 +154,6 @@ export function DepositFlow({ checkoutHosts = env.checkoutHosts, pollDelaysMs, o
   const busy = state.phase === "validating" || state.phase === "initiating";
 
   if (editing) {
-    const kycNeeded = state.error instanceof DataSourceError && state.error.code === "KYC_REQUIRED";
-
     return (
       <div className="space-y-4" data-phase={state.phase}>
         {resumable !== undefined && state.error === undefined && (
@@ -170,11 +169,7 @@ export function DepositFlow({ checkoutHosts = env.checkoutHosts, pollDelaysMs, o
           <form onSubmit={onSubmit} noValidate className="space-y-5" aria-busy={busy}>
             <OfflineMoneyNotice action="A deposit" />
             <FormError error={state.error} />
-            {kycNeeded && (
-              <LinkButton to="/kyc" size="sm">
-                Verify your identity
-              </LinkButton>
-            )}
+            <KycRequiredLink error={state.error} />
             <div className="space-y-3">
               <Input
                 label="Amount"

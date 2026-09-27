@@ -5,6 +5,7 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
+from betng_simulation.engine import simulate
 from betng_simulation.interfaces import MatchView
 
 from .conftest import (
@@ -92,6 +93,35 @@ class TestInternalRoutes:
             )
             assert response.status_code == 404
             assert response.json()["error"]["code"] == "NOT_FOUND"
+
+    def test_a_failed_batch_match_is_reported_by_its_match_id(
+        self, audit: FakeAuditRecorder, matches: FakeMatchReadModel
+    ) -> None:
+        good_id, bad_id = new_match_id(), new_match_id()
+
+        def fail_one(match_id: str, *args: Any, **kwargs: Any) -> Any:
+            if match_id == bad_id:
+                return failing_simulate(match_id, *args, **kwargs)
+            return simulate(match_id, *args, **kwargs)
+
+        with running_client(audit, matches, fail_one) as client:
+            response = client.post(
+                "/internal/simulation/matches/batch",
+                json={
+                    "matches": [
+                        run_match_payload(bad_id),
+                        run_match_payload(good_id),
+                    ]
+                },
+            )
+
+        assert response.status_code == 200
+        failed, completed = response.json()["results"]
+        assert failed["matchId"] == bad_id
+        assert failed["error"]
+        assert "match_id" not in failed
+        assert completed["matchId"] == good_id
+        assert completed["status"] == "COMPLETED"
 
     def test_a_malformed_match_id_is_rejected(self, client: TestClient) -> None:
         response = client.get("/internal/simulation/matches/not-a-uuid")

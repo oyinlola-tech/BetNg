@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
+import { forwardRef, useEffect, useId, useImperativeHandle, useRef } from "react";
 import { ScanLine, Search } from "lucide-react";
 import { Button, cn } from "@betng/ui-web";
 import { normaliseCode } from "../lib/ticket";
@@ -23,6 +23,7 @@ export const ManualTicketEntry = forwardRef<ManualTicketEntryHandle, ManualTicke
   handle,
 ) {
   const ref = useRef<HTMLInputElement>(null);
+  const id = useId();
 
   useImperativeHandle(handle, () => ({ select: () => ref.current?.select() }), []);
 
@@ -46,7 +47,7 @@ export const ManualTicketEntry = forwardRef<ManualTicketEntryHandle, ManualTicke
         ref.current?.select();
       }}
     >
-      <label htmlFor="ticket-lookup" className="caps-label mb-1.5 block">
+      <label htmlFor={`${id}-input`} className="caps-label mb-1.5 block">
         {label}
       </label>
       <div className="flex gap-2">
@@ -54,7 +55,7 @@ export const ManualTicketEntry = forwardRef<ManualTicketEntryHandle, ManualTicke
           <ScanLine className={cn("size-6 shrink-0", scanned ? "text-success" : "text-text-muted")} aria-hidden />
           <input
             ref={ref}
-            id="ticket-lookup"
+            id={`${id}-input`}
             value={value}
             onChange={(event) => {
               onChange(event.target.value.toUpperCase());
@@ -65,7 +66,7 @@ export const ManualTicketEntry = forwardRef<ManualTicketEntryHandle, ManualTicke
             spellCheck={false}
             enterKeyHint="search"
             maxLength={16}
-            aria-describedby="ticket-lookup-hint"
+            aria-describedby={`${id}-hint`}
             className="h-full w-full min-w-0 bg-transparent px-3 font-mono text-3xl font-semibold tracking-widest text-text-primary outline-none placeholder:font-normal placeholder:tracking-wider placeholder:text-text-muted/60"
           />
         </div>
@@ -73,8 +74,11 @@ export const ManualTicketEntry = forwardRef<ManualTicketEntryHandle, ManualTicke
           {actionLabel}
         </Button>
       </div>
-      <p id="ticket-lookup-hint" className="mt-1.5 text-sm text-text-muted">
+      <p id={`${id}-hint`} className="mt-1.5 text-sm text-text-muted">
         {hint}
+      </p>
+      <p role="status" className="sr-only">
+        {scanned && value !== "" ? `Scanned ${value}` : ""}
       </p>
     </form>
   );

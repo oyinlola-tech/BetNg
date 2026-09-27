@@ -28,7 +28,7 @@ const COLUMNS: readonly Column<PaymentRecord>[] = [
   { key: "direction", header: "Type", cell: (p) => <span className="type-body text-text-primary">{DIRECTION_LABEL[p.direction]}</span> },
   { key: "method", header: "Method", hideBelow: "lg", cell: (p) => <span className="type-small text-text-secondary">{p.method === undefined ? "–" : METHOD_META[p.method].label}</span> },
   { key: "amount", header: "Amount", numeric: true, hideable: false, cell: (p) => <span className="type-financial text-text-primary">{formatMoney(p.amount)}</span> },
-  { key: "status", header: "Status", hideable: false, cell: (p) => <PaymentStatusBadge status={p.status} /> },
+  { key: "status", header: "Status", hideable: false, cell: (p) => <PaymentStatusBadge status={p.status} direction={p.direction} /> },
 ];
 
 function PaymentCard({ payment }: { readonly payment: PaymentRecord }): React.JSX.Element {
@@ -41,7 +41,7 @@ function PaymentCard({ payment }: { readonly payment: PaymentRecord }): React.JS
       </div>
       <div className="flex flex-col items-end gap-1">
         <span className="type-financial text-text-primary">{formatMoney(payment.amount)}</span>
-        <PaymentStatusBadge status={payment.status} />
+        <PaymentStatusBadge status={payment.status} direction={payment.direction} />
       </div>
     </div>
   );
@@ -80,7 +80,7 @@ function History(): React.JSX.Element {
         onChange={(value) => {
           patch({ status: value === "ALL" ? undefined : value.toLowerCase(), page: undefined });
         }}
-        options={[{ value: "ALL", label: "All statuses" }, ...PAYMENT_STATUSES.map((value) => ({ value, label: paymentStatusLabel(value) }))]}
+        options={[{ value: "ALL", label: "All statuses" }, ...PAYMENT_STATUSES.map((value) => ({ value, label: paymentStatusLabel(value, direction) }))]}
       />
       {filtered && (
         <Button

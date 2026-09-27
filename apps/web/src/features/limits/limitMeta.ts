@@ -1,5 +1,5 @@
-import type { LimitHistoryEntry, LimitKind, LimitStatus, SelfExclusionPeriod } from "@betng/contracts";
-import { formatMoney } from "@betng/ui-core";
+import type { LimitHistoryEntry, LimitKind, LimitStatus, ResponsibleGamingLimit, SelfExclusionPeriod } from "@betng/contracts";
+import { formatCountdown, formatMoney } from "@betng/ui-core";
 import type { StatusTone } from "@betng/ui-web";
 
 export const DEPOSIT_KINDS: readonly LimitKind[] = ["deposit_daily", "deposit_weekly", "deposit_monthly"];
@@ -33,6 +33,30 @@ export function formatMinutes(minutes: number): string {
   const rest = minutes % 60;
 
   return rest === 0 ? `${String(hours)} h` : `${String(hours)} h ${String(rest)} min`;
+}
+
+/** `3d 4h` beyond a day, `23h 14m` or `14:05` within one. */
+export function formatTimeLeft(milliseconds: number): string {
+  const days = Math.floor(milliseconds / 86_400_000);
+
+  if (days < 1) return formatCountdown(milliseconds);
+
+  const hours = Math.floor((milliseconds % 86_400_000) / 3_600_000);
+
+  return hours === 0 ? `${String(days)}d` : `${String(days)}d ${String(hours)}h`;
+}
+
+/** The pending change that lands soonest, whether a new value or a removal. */
+export function nextPendingLimit(limits: readonly ResponsibleGamingLimit[]): (ResponsibleGamingLimit & { readonly pendingEffectiveAt: string }) | undefined {
+  let next: (ResponsibleGamingLimit & { readonly pendingEffectiveAt: string }) | undefined;
+
+  for (const limit of limits) {
+    const at = limit.pendingEffectiveAt;
+
+    if (at !== undefined && (next === undefined || Date.parse(at) < Date.parse(next.pendingEffectiveAt))) next = { ...limit, pendingEffectiveAt: at };
+  }
+
+  return next;
 }
 
 export function formatLimitValue(kind: LimitKind, value: number): string {

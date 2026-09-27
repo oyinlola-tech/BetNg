@@ -139,10 +139,15 @@ with the active version or repeats one.
 New: `WALLET_ENCRYPTION_KEY_VERSION`, `WALLET_ENCRYPTION_KEYS_RETIRED`
 (`version:base64key`, comma separated).
 
-> Caveat, deliberately not hidden: `lookupHash` follows the **active** key, so a
-> rotation must re-hash bank-account lookups alongside re-encrypting them or
-> lookups stop matching. The re-encryption pass itself is not written yet — see
-> §4.1.
+> `lookupHash` follows the **active** key, so a rotation must re-hash bank-account
+> lookups alongside re-encrypting them or lookups stop matching. The re-encryption
+> pass does both in one write; see §4.1.
+>
+> Found while writing that pass: the `*_ciphertext_only` CHECK constraints on
+> `bank_accounts` and `bank_account_verifications` accepted only `v1:`, so the
+> first bank-account write after a rotation would have failed. Migration
+> `20260923120200_ciphertext_key_versions` accepts any key version and still
+> refuses plaintext.
 
 ### 2.4 Webhook dead-letter queue (was MEDIUM)
 
@@ -263,25 +268,33 @@ Recorded so nobody acts on them again.
 No upgrade is outstanding. What section 9 should have asked for is dependency
 *monitoring* — see §4.6.
 
-### 1.11 — settlement realtime signals: partly fixed, and the backstop is still load-bearing
+### 1.11 — settlement realtime signals: fixed, and the backstop stays
 
 Settlement **does** publish `BET_SETTLED` (`settlement/src/clients/bet.signals.ts`)
 and wallet publishes `WALLET_UPDATED`, so "settlement doesn't signal" is stale.
-But publication is fire-and-forget: a failure is logged and never retried, so a
-signal can genuinely be dropped. The 60-second re-read in
-`ui-core/src/adapters/platformDataSource.ts` is therefore still the only recovery
-path, and removing it would leave an account view that silently stops moving.
-Making publication reliable belongs on settlement's side, not in the client.
+Publication was fire-and-forget. Since 2026-09-23 a failed publish is retried
+after 250 ms, 1 s and 4 s, off the settlement path, and `idle()` drains retries on
+shutdown. A signal can still be lost if the process dies mid-retry, so the
+60-second re-read in `ui-core/src/adapters/platformDataSource.ts` stays as the
+backstop.
 
 ---
 
 ## 4. What is still open
 
-### 4.1 Re-encryption pass for key rotation (MEDIUM)
-The key ring (§2.3) makes rotation *possible*; nothing yet walks existing rows,
-decrypts under the retired key and rewrites under the active one, re-hashing
-`lookupHash` in the same pass. Until it exists a rotation leaves old rows on the
-old key indefinitely, and the retired key can never be dropped.
+### 4.1 Re-encryption pass for key rotation — done 2026-09-23
+`apps/services/wallet/src/security/rekey.ts` moves bank accounts, verifications and
+dead-letter webhook bodies onto the active key, re-hashing `lookupHash` in the same
+compare-and-set write. The wallet job runs it in batches while
+`WALLET_ENCRYPTION_KEYS_RETIRED` is set, and logs `wallet_rekey_complete` once no row
+is left on a retired key. Only then can the retired key be removed from config.
+A row that no configured key opens is logged as `wallet_rekey_unreadable` and left
+untouched.
+
+Rotation, end to end: set the new key as `WALLET_ENCRYPTION_KEY` with a higher
+`WALLET_ENCRYPTION_KEY_VERSION`, move the old one into
+`WALLET_ENCRYPTION_KEYS_RETIRED`, deploy, wait for `wallet_rekey_complete`, then
+remove the retired entry.
 
 ### 4.2 Risk engine has no caching (MEDIUM)
 `evaluate_stake_handler.py` loads limits, selection states and the book on every
@@ -290,10 +303,20 @@ states the intent — "exposure and market state are always read live" — so th
 a deliberate correctness-over-latency choice, not an oversight. Revisit under
 measured load, not before.
 
-### 4.3 Reconciliation tooling (MEDIUM)
-The dead-letter queue (§2.4) makes a lost webhook visible and replayable. There is
-still no tool that reconciles our payment rows against a provider's settlement
-report, which is what catches an event the provider never sent at all.
+### 4.3 Reconciliation — done 2026-09-23
+The wallet job asks the provider again about every payment closed between 30
+minutes and 72 hours ago. That catches what no webhook reported: a deposit paid
+after it expired, a credit the provider has no record of, a refunded withdrawal the
+bank paid anyway, or a wrong amount.
+- **Agreement:** sets `reconciled_at`.
+- **Disagreement:** flags the payment for an operator (`payment_reconciliation_mismatch`).
+- **Bank-returned withdrawal:** the only case that moves money, through the existing reversal path.
+- **Provider still processing:** backed off hourly through `reconcile_after`, and decided after 24 hours. An unpaid, abandoned checkout counts as agreement; a money-moving payment gets flagged.
+
+It works per payment through the providers' existing verify calls. A
+bulk import of a provider's settlement report would also catch a charge made
+against a reference we never created. That needs the report APIs and is not
+written.
 
 ### 4.4 No WebSocket in the Python services (INFO)
 Realtime fan-out is the TypeScript event service. Python services reach clients
@@ -332,9 +355,12 @@ Current state, through the project config: the whole `unit` project is green,
 1177 tests across 97 files, with match + identity + wallet contributing 419.
 Python: odds 102, simulation 1791, both green, with `ruff` and `mypy` clean.
 
-### 4.6 Dependency monitoring (LOW)
-Nothing is out of date, but nothing watches: no Dependabot or Renovate, no
-scheduled `pnpm audit` / `pip-audit`, no advisory subscription.
+### 4.6 Dependency monitoring — done 2026-09-23
+`.github/dependabot.yml` covers npm, pip for every Python service, the Docker
+constraints file, Actions and Docker/compose, weekly and grouped with a 7-day
+cooldown. `.github/workflows/audit.yml` runs `pnpm audit --audit-level high` and
+`pip-audit` per service each week. Neither has run on GitHub yet. Dependabot cannot
+read Dockerfile base images set through `ARG` defaults, so those stay manual.
 
 ### 4.7 Demo credentials in the seed (LOW, accepted)
 `identity/src/seeds/demo.seed.ts` holds `betng-admin` / `betng-demo`. The seed
@@ -357,4 +383,4 @@ The technical critical path is now shorter than it was. In-running pricing was
 the item that could not be deferred, because static odds during live play are
 exploitable by anyone who watches a match faster than the market. That is done.
 What remains before a real-money launch is mostly procurement, compliance and
-operations rather than code — with the exception of §4.1 and §4.5, which are ours.
+operations rather than code — with the exception of §4.5, which is ours.

@@ -134,6 +134,10 @@ model Payment {
   createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt           DateTime  @default(now()) @map("updated_at") @db.Timestamptz(3)
   completedAt         DateTime? @map("completed_at") @db.Timestamptz(3)
+  /// When the provider last agreed with this closed payment; see the reconciliation job.
+  reconciledAt        DateTime? @map("reconciled_at") @db.Timestamptz(3)
+  /// Not before this is the provider asked again about a payment it had not finished with.
+  reconcileAfter      DateTime? @map("reconcile_after") @db.Timestamptz(3)
 
   bankAccount BankAccount? @relation(fields: [bankAccountId], references: [id], onDelete: Restrict)
 

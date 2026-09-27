@@ -7,7 +7,7 @@ import { DataSourceError, currentCurrency, formatDateTime, parseMoney } from "@b
 import { Button, Dialog, FormError, Input, applyFieldErrors, useToast } from "@betng/ui-web";
 import { logger } from "../../services/runtime";
 import { amountField, amountInputValue } from "../wallet/amount";
-import { LIMIT_LABEL, formatLimitValue, isMoneyLimit } from "./limitMeta";
+import { LIMIT_LABEL, formatLimitValue, formatTimeLeft, isMoneyLimit } from "./limitMeta";
 import { useSetLimit } from "./limitQueries";
 
 interface Values {
@@ -48,7 +48,7 @@ function LimitForm({ kind, current, onClose }: { readonly kind: LimitKind; reado
         tone: "info",
         title: "Limit updated",
         message: waiting
-          ? `${LIMIT_LABEL[kind]}: ${formatLimitValue(kind, saved.pendingValue ?? value)} takes effect on ${formatDateTime(saved.pendingEffectiveAt ?? "")}.`
+          ? `${LIMIT_LABEL[kind]}: ${formatLimitValue(kind, saved.pendingValue ?? value)} takes effect on ${formatDateTime(saved.pendingEffectiveAt ?? "")} (in ${formatTimeLeft(Date.parse(saved.pendingEffectiveAt ?? "") - Date.now())}).`
           : `${LIMIT_LABEL[kind]} is now ${formatLimitValue(kind, saved?.value ?? value)}.`,
       });
       onClose();

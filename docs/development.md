@@ -41,7 +41,7 @@ Only public values belong in `VITE_*` variables; see each app's `.env.example`. 
 
 ## Backend requirements
 
-Served today: every route in `apps/gateway/src/routes/gateway.table.ts`. Pending (frontend built against the contract): payments, KYC, responsible gaming, account security, notification channels, cashier shifts and admin compliance, listed with methods, bodies and access rules in [`frontend-backend-contracts.md`](./frontend-backend-contracts.md#5-pending-backend-routes). Realtime: the event service's WebSocket (or SSE) endpoint with `match:{id}` channels and an account channel for signed-in users.
+Served today: every route in `apps/gateway/src/routes/gateway.table.ts`, including payments, KYC, responsible gaming, account security, notification channels, cashier shifts and admin compliance, listed with methods, bodies and access rules in [`frontend-backend-contracts.md`](./frontend-backend-contracts.md#5-account-payment-compliance-and-shift-routes). No route is pending. Realtime: the event service's WebSocket (or SSE) endpoint with `match:{id}` channels and an account channel for signed-in users.
 
 ## Checks
 

@@ -1,10 +1,23 @@
 import { DataSourceError } from "@betng/ui-core";
 
-export function presentError(error: unknown): {
+export interface PresentedError {
   readonly title: string;
   readonly message: string;
   readonly retryable: boolean;
-} {
+  readonly requestId?: string;
+}
+
+export function presentError(error: unknown): PresentedError {
+  const presented = presentBase(error);
+  const requestId =
+    error instanceof DataSourceError ? error.detail.requestId : undefined;
+
+  return requestId === undefined || requestId === ""
+    ? presented
+    : { ...presented, requestId };
+}
+
+function presentBase(error: unknown): PresentedError {
   if (error instanceof DataSourceError) {
     switch (error.code) {
       case "NOT_FOUND":

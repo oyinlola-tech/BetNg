@@ -18,14 +18,16 @@ export interface LinkButtonProps {
   readonly size?: keyof typeof SIZES;
   readonly icon?: React.ReactNode;
   readonly className?: string;
+  readonly onClick?: (() => void) | undefined;
   readonly children: React.ReactNode;
 }
 
 /** Navigation that looks like a button; it stays a link for the keyboard, screen readers and new tabs. */
-export function LinkButton({ to, variant = "secondary", size = "md", icon, className, children }: LinkButtonProps): React.JSX.Element {
+export function LinkButton({ to, variant = "secondary", size = "md", icon, className, onClick, children }: LinkButtonProps): React.JSX.Element {
   return (
     <Link
       to={to}
+      onClick={onClick}
       className={cn(
         "inline-flex shrink-0 items-center justify-center rounded-sm border font-semibold whitespace-nowrap transition-colors focus-ring pointer-coarse:min-h-11",
         VARIANTS[variant],

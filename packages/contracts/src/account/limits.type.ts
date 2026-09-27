@@ -1,7 +1,7 @@
 import { z } from "@zudojs/validation";
 import { isoTimestampSchema } from "../common/index.js";
 
-// Pending backend: responsible gaming limits, enforced by the wallet and betting services.
+// Responsible gaming limits: served by the identity service, enforced by the wallet and betting services.
 
 export const limitKindSchema = z.enum(["deposit_daily", "deposit_weekly", "deposit_monthly", "loss_daily", "loss_weekly", "session_minutes"]);
 

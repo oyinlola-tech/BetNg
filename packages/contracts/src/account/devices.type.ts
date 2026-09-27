@@ -1,7 +1,7 @@
 import { z } from "@zudojs/validation";
 import { isoTimestampSchema } from "../common/index.js";
 
-// Pending backend: notification delivery. Email, SMS and push providers are configured server-side only.
+// Notification channels: served by the identity service. Email, SMS and push providers are configured server-side only.
 
 export const notificationChannelSchema = z.enum(["email", "sms", "push"]);
 
