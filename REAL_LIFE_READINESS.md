@@ -373,11 +373,13 @@ connected to it, so a second test run cannot empty one a first run is using.
 before the first test file. Until it is added to the `unit` project in
 `vitest.config.ts`, nothing changes.
 
-Found alongside: CI never creates these databases. The `unit` job bootstraps
-`betng` and `betng_test`, while the harnesses connect to
-`betng_test_<service>`, which nothing in the workflow creates or migrates.
-`scripts/db-test.sh` with no argument does both and is meant for that step; it is
-not yet in `.github/workflows/ci.yml`.
+Found alongside: CI never created these databases. The `service-tests` job
+bootstrapped `betng` and `betng_test`, while the harnesses connect to
+`betng_test_<service>`, so every service suite failed on GitHub with
+`database "betng_test_betting" does not exist`. `scripts/db-test.sh` with no
+argument creates and migrates all six and removes nothing; the job now runs it.
+Run locally it reports no pending migrations. It has not yet run on GitHub
+against an empty server.
 
 ### 4.6 Dependency monitoring — done 2026-09-23
 `.github/dependabot.yml` covers npm, pip for every Python service, the Docker
@@ -385,6 +387,56 @@ constraints file, Actions and Docker/compose, weekly and grouped with a 7-day
 cooldown. `.github/workflows/audit.yml` runs `pnpm audit --audit-level high` and
 `pip-audit` per service each week. Neither has run on GitHub yet. Dependabot cannot
 read Dockerfile base images set through `ARG` defaults, so those stay manual.
+
+**Status 2026-09-27.** Dependabot has run and opened seven pull requests. Decided:
+
+| Pull request | Decision |
+|---|---|
+| #1 nginx-unprivileged 1.29.8 → 1.31.5 | Taken. Digest checked against the registry; the edge configuration passes `nginx -t` under 1.31.5. `web.Dockerfile` moved to `1.31-alpine` with it. |
+| #2 postgres 17 → 18 | Refused. A major version changes the data directory format; that is a planned dump and restore. Major bumps are now ignored. |
+| #3 pydantic-core 2.46.5 → 2.49.0 | Refused. pydantic 2.13.5 requires `pydantic-core==2.46.5` exactly, so the constraint file would stop resolving. Ignored; it moves with pydantic. |
+| #4 react 19.3.0, react-native 0.87.1 and four more in `apps/mobile` | Refused. Expo SDK 54 fixes react 19.1.0 and react-native 0.81; its own typecheck and lint fail on the pull request. |
+| #5 async-storage 3, #6 expo-constants, #7 expo 57 | Refused for the same reason: an Expo SDK upgrade is one change made with `npx expo install --fix`. |
+
+`apps/mobile` is excluded from npm version updates. Security alerts still cover it.
+
+### 4.8 Code scanning, secret scanning and CI (2026-09-27)
+Six CodeQL alerts were open. Five are fixed in code:
+
+| Alert | Fix |
+|---|---|
+| #10 biased random, `applicationReference.ts` | `randomInt` per character. The old code was not actually biased, since 256 is a multiple of the 32-character alphabet, but it would have become so the moment the alphabet changed. |
+| #9 polynomial regex, email `service.config.ts` | The address is checked by position, with a 254-character limit. Tested against a 100,000-character hostile value. |
+| #6 polynomial regex, `sms.provider.ts` | `withoutTrailingSlashes` walks back from the end. The same pattern in identity's KYC endpoint uses it too. |
+| #5 bad tag filter, `csp-hashes.mjs` | End tags with whitespace or attributes are matched, so an inline script closed by `</script >` is still hashed. |
+| #8 URL substring, `providers.test.ts` | The test compares the parsed hostname. |
+
+**#7, SHA-1 over a password in `breachChecker.service.ts`, cannot be fixed in
+code.** The HIBP range API is defined over SHA-1; the digest is never stored and
+only its first five characters leave the service. The inline `codeql[...]`
+comment does not suppress an alert on GitHub. It has to be dismissed there as a
+false positive.
+
+The three secret-scanning alerts are placeholder signing secrets in test files
+(`whsec_0123456789abcdef…`). They are in history, so changing the files closes
+nothing; they have to be closed on GitHub as used in tests. `gitleaks` reported
+eleven findings across history, every one a test placeholder or a published
+example key; each was checked at its commit and recorded in `.gitleaksignore`,
+and the history scan is clean.
+
+CI on `main` was red in six jobs, each for its own reason:
+
+| Job | Cause | State |
+|---|---|---|
+| `codeql` | The repository has CodeQL default setup enabled, and code scanning refuses a workflow upload while it is. | Job removed from `security.yml`; default setup covers Actions, JavaScript/TypeScript and Python. |
+| `secrets` | The eleven gitleaks findings above. | Fixed. |
+| `service-tests` | No `betng_test_<service>` database; `@betng/ui-core` not built for the mobile test. | Fixed in the workflow. |
+| `unit` | `redisLock.test.ts` needs Redis and the job had none. | Redis service added. |
+| `python` | `ruff format --check` failed on four files. | Formatted; `python-check.sh` passes. |
+| `e2e` | No `.env`, so `prisma generate` had no database URL. | `.env.example` is copied first. Anything behind that failure is still unseen. |
+
+The workflow changes are verified by reading the failure logs and by running the
+same commands locally. None has run on GitHub yet.
 
 ### 4.7 Demo credentials in the seed (LOW, accepted)
 `identity/src/seeds/demo.seed.ts` holds `betng-admin` / `betng-demo`. The seed
