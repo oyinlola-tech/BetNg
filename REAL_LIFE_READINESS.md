@@ -254,21 +254,31 @@ Recorded so nobody acts on them again.
 
 ### Actual dependency state
 
+Every npm and Python dependency was moved to its newest published version on
+2026-09-27. `pnpm outdated -r` and `pip list --outdated` list only the three
+exceptions below.
+
 | | Version |
 |---|---|
 | Node / pnpm | `engines`: node >= 24, pnpm >= 11 (`packageManager: pnpm@11.24.0`). No `.nvmrc`. |
 | TypeScript | 7.0.2 |
-| React / React DOM | 19.1.0–19.3.0 / 19.3.0 |
+| React / React DOM | 19.3.0 in the web apps; 19.2.3 in `apps/mobile` |
 | Prisma / `@prisma/client` | 7.10.0 |
-| Vite / Vitest | 8.3 / 5.0 |
+| Vite / Vitest | 8.3.1 / 5.0.2 |
 | Tailwind | 4.3.3 |
-| Zod | 4.3.6 |
-| Expo / React Native | 54 / 0.81.4 |
-| `@zudojs/*` | http 1.3.0, rpc 1.3.0, cqrs 1.1.1 |
-| Python | `requires-python >= 3.12`; FastAPI 0.120+, Pydantic 2.10+, psycopg 3.2+ |
+| Zod | 4.6.5 |
+| Expo / React Native | SDK 57 (57.0.25) / 0.86.3 |
+| `@zudojs/*` | http 1.4.4, rpc 1.4.3, cqrs 1.2.3, logger 1.4.3, validation 1.1.2 |
+| Python | `requires-python >= 3.12`; every environment at the newest release, the runtime constraints file matched to them |
 
-No upgrade is outstanding. What section 9 should have asked for is dependency
-*monitoring* — see §4.6.
+Three packages are not at the highest number that exists, each for a reason
+found by trying it:
+
+| Package | Held at | Newest | Why |
+|---|---|---|---|
+| `react-native`, with `react` and `@types/react` in `apps/mobile` | 0.86.3 / 19.2.3 | 0.87.1 / 19.3.0 | Expo 57 is the newest Expo and its bundler loads `react-native/rn-get-polyfills`, which 0.87.1 no longer ships. The bundle fails. 0.86.3 is the newest release Expo can build, and React must match the renderer inside it. |
+| `prisma` | 7.10.0 | 8.0.0-rc.17 | The `latest` tag points at a release candidate while `@prisma/client` latest is 7.10.0. The two must be the same version. |
+| `pydantic-core` | 2.46.5 | 2.49.0 | pydantic 2.13.5, the newest pydantic, requires exactly 2.46.5. |
 
 ### 1.11 — settlement realtime signals: fixed, and the backstop stays
 
@@ -388,17 +398,43 @@ cooldown. `.github/workflows/audit.yml` runs `pnpm audit --audit-level high` and
 `pip-audit` per service each week. Neither has run on GitHub yet. Dependabot cannot
 read Dockerfile base images set through `ARG` defaults, so those stay manual.
 
-**Status 2026-09-27.** Dependabot has run and opened seven pull requests. Decided:
+**Status 2026-09-27.** Dependabot has run and opened eight pull requests.
+Nothing is excluded from it except the two cases named below; `apps/mobile` and
+the web apps are covered like everything else.
 
-| Pull request | Decision |
+| Pull request | Outcome |
 |---|---|
 | #1 nginx-unprivileged 1.29.8 → 1.31.5 | Taken. Digest checked against the registry; the edge configuration passes `nginx -t` under 1.31.5. `web.Dockerfile` moved to `1.31-alpine` with it. |
-| #2 postgres 17 → 18 | Refused. A major version changes the data directory format; that is a planned dump and restore. Major bumps are now ignored. |
-| #3 pydantic-core 2.46.5 → 2.49.0 | Refused. pydantic 2.13.5 requires `pydantic-core==2.46.5` exactly, so the constraint file would stop resolving. Ignored; it moves with pydantic. |
-| #4 react 19.3.0, react-native 0.87.1 and four more in `apps/mobile` | Refused. Expo SDK 54 fixes react 19.1.0 and react-native 0.81; its own typecheck and lint fail on the pull request. |
-| #5 async-storage 3, #6 expo-constants, #7 expo 57 | Refused for the same reason: an Expo SDK upgrade is one change made with `npx expo install --fix`. |
+| #4 npm group, #5 async-storage 3.1.1, #6 expo-constants, #7 expo 57, #8 expo-status-bar | Taken, in one upgrade of the whole workspace, except react-native 0.87.1 and react 19.3.0 in `apps/mobile` (see the table in §3). |
+| #3 pydantic-core 2.46.5 → 2.49.0 | Cannot be taken: no released pydantic accepts it. Ignored in the constraints file; it moves with pydantic. |
+| #2 postgres 17 → 18 | Not taken. A major version changes the data directory format, so the existing volumes would not start; it needs a dump and restore. Major bumps of the image are ignored. |
 
-`apps/mobile` is excluded from npm version updates. Security alerts still cover it.
+The upgrade broke three things, all found by the checks and fixed:
+
+- **Every service would have logged bare text.** `@zudojs/logger` 1.4 moved the
+  formatted line from `entry.message` to `entry.formatted`. The stdout transport
+  in `service-kit` printed `entry.message`, so structured JSON logs became the
+  message alone. Nineteen identity tests failed on it. Fixed, and
+  `packages/service-kit/tests/serviceLogger.test.ts` now pins the line format,
+  which nothing did before.
+- **Mobile did not compile.** React Native's `TextInput` ref type changed,
+  `Linking.getInitialURL` may resolve `undefined`, and async-storage 3 replaced
+  `multiGet` with `getMany`. The default async-storage export still reads what
+  version 2 wrote, so nobody is signed out by the upgrade.
+- **Mobile did not bundle, and had not before the upgrade either.** The shared
+  validation packages import `node:crypto`, which a device does not have, and
+  there was no Metro configuration. `metro.config.mjs` resolves it to
+  `src/platform/nodeCrypto.ts`, which draws from the device's secure source and
+  throws when there is none.
+
+CI has a `mobile-bundle` job now. Typecheck passes React Native 0.87.1 with
+Expo 57; only bundling shows that the pair does not work, so that is what guards
+the next Dependabot pull request for it.
+
+Not verified: the app running on a device. `expo install --check` still reports
+async-storage, screens, safe-area-context and svg as newer than the versions
+Expo Go 57 carries natively. They bundle; a development build compiles them, but
+Expo Go may not match them.
 
 ### 4.8 Code scanning, secret scanning and CI (2026-09-27)
 Six CodeQL alerts were open. Five are fixed in code:
@@ -414,15 +450,23 @@ Six CodeQL alerts were open. Five are fixed in code:
 **#7, SHA-1 over a password in `breachChecker.service.ts`, cannot be fixed in
 code.** The HIBP range API is defined over SHA-1; the digest is never stored and
 only its first five characters leave the service. The inline `codeql[...]`
-comment does not suppress an alert on GitHub. It has to be dismissed there as a
-false positive.
+comment does not suppress an alert on GitHub. It was dismissed there as a false
+positive on 2026-09-27, with that reasoning recorded on the alert.
 
 The three secret-scanning alerts are placeholder signing secrets in test files
 (`whsec_0123456789abcdef…`). They are in history, so changing the files closes
-nothing; they have to be closed on GitHub as used in tests. `gitleaks` reported
+nothing; they were closed on GitHub as used in tests on 2026-09-27. `gitleaks` reported
 eleven findings across history, every one a test placeholder or a published
 example key; each was checked at its commit and recorded in `.gitleaksignore`,
 and the history scan is clean.
+
+Dependabot raised four security alerts, all on packages this repository never
+names: `mysql2` (two) and `deepmerge-ts` arrive through Prisma, `uuid` through
+Expo's Xcode tooling, each pinned by its parent below the fix. `overrides` in
+`pnpm-workspace.yaml` force `mysql2` 3.24.4, `deepmerge-ts` 8.0.2 and `uuid`
+14.0.2. Checked after: Prisma generates and reads its configuration, migrations
+report clean, Expo resolves its config and its Xcode project writer still
+produces ids. `pnpm audit` reports no known vulnerabilities.
 
 CI on `main` was red in six jobs, each for its own reason:
 
