@@ -271,12 +271,13 @@ exceptions below.
 | `@zudojs/*` | http 1.4.4, rpc 1.4.3, cqrs 1.2.3, logger 1.4.3, validation 1.1.2 |
 | Python | `requires-python >= 3.12`; every environment at the newest release, the runtime constraints file matched to them |
 
-Three packages are not at the highest number that exists, each for a reason
+These packages are not at the highest number that exists, each for a reason
 found by trying it:
 
 | Package | Held at | Newest | Why |
 |---|---|---|---|
 | `react-native`, with `react` and `@types/react` in `apps/mobile` | 0.86.3 / 19.2.3 | 0.87.1 / 19.3.0 | Expo 57 is the newest Expo and its bundler loads `react-native/rn-get-polyfills`, which 0.87.1 no longer ships. The bundle fails. 0.86.3 is the newest release Expo can build, and React must match the renderer inside it. |
+| `@react-native-async-storage/async-storage`, `react-native-screens`, `react-native-safe-area-context`, `react-native-svg` | 2.2.0, 4.26, 5.7, 15.15.4 | 3.1.1, 4.28.0, 5.10.0, 15.15.5 | Native modules: Expo Go 57 contains these versions and no others. On a phone, async-storage 3.1.1 stopped the app at launch with "Native module is null, cannot access legacy storage". |
 | `prisma` | 7.10.0 | 8.0.0-rc.17 | The `latest` tag points at a release candidate while `@prisma/client` latest is 7.10.0. The two must be the same version. |
 | `pydantic-core` | 2.46.5 | 2.49.0 | pydantic 2.13.5, the newest pydantic, requires exactly 2.46.5. |
 
@@ -405,7 +406,7 @@ the web apps are covered like everything else.
 | Pull request | Outcome |
 |---|---|
 | #1 nginx-unprivileged 1.29.8 → 1.31.5 | Taken. Digest checked against the registry; the edge configuration passes `nginx -t` under 1.31.5. `web.Dockerfile` moved to `1.31-alpine` with it. |
-| #4 npm group, #5 async-storage 3.1.1, #6 expo-constants, #7 expo 57, #8 expo-status-bar | Taken, in one upgrade of the whole workspace, except react-native 0.87.1 and react 19.3.0 in `apps/mobile` (see the table in §3). |
+| #4 npm group, #5 async-storage 3.1.1, #6 expo-constants, #7 expo 57, #8 expo-status-bar | Expo 57 and its packages taken in one upgrade of the whole workspace. React Native 0.87.1, react 19.3.0 and the four native modules are held at the Expo SDK's versions (see the table in §3). |
 | #3 pydantic-core 2.46.5 → 2.49.0 | Cannot be taken: no released pydantic accepts it. Ignored in the constraints file; it moves with pydantic. |
 | #2 postgres 17 → 18 | Not taken. A major version changes the data directory format, so the existing volumes would not start; it needs a dump and restore. Major bumps of the image are ignored. |
 
@@ -431,10 +432,50 @@ CI has a `mobile-bundle` job now. Typecheck passes React Native 0.87.1 with
 Expo 57; only bundling shows that the pair does not work, so that is what guards
 the next Dependabot pull request for it.
 
-Not verified: the app running on a device. `expo install --check` still reports
-async-storage, screens, safe-area-context and svg as newer than the versions
-Expo Go 57 carries natively. They bundle; a development build compiles them, but
-Expo Go may not match them.
+Run on a phone through Expo Go on 2026-09-27. The first attempt failed on
+async-storage 3.1.1, which the bundle check cannot see: the JavaScript bundles,
+and the native half is simply absent from Expo Go. The four native modules now
+match the Expo SDK, and `expo install --check` reports only TypeScript, which is
+a build tool and not shipped. `async-storage` 3 also renamed `multiGet` to
+`getMany`; the code is back on `multiGet`.
+
+The second failure on the phone was every request answering "Something went
+wrong". The shared client opens each request with `crypto.randomUUID()`, and a
+device has no global `crypto`, so the call threw before anything was sent; the
+platform was healthy throughout. `expo-crypto` is now installed as that global
+at the app's entry (`src/platform/webCrypto.ts`). No test runs the client
+without a global `crypto`, which is why only a phone showed it.
+
+A signed-out user sees matches, scores, odds, standings and live updates, and
+builds a slip. The slip offers *Log in* and *Create account* in place of the
+stake controls, and the platform refuses `POST /bets` without a session.
+
+The home page opens on *Bet now*: the matches open for betting, each with its
+1, X, 2 prices, so a selection goes on the slip without leaving the page. The
+lobby opens on the same list, ahead of live matches. Prices for the whole list
+come from one read of `GET /odds?matchIds=`, exposed as `listMatchMarkets` on
+the shared data source, not one request per match. The dot on the *Live* tab was
+drawn unconditionally; it now shows only while a match is in play.
+
+**Push notifications.** The platform side was already written (FCM HTTP v1) and
+the app's registration flow too, but the device adapter was a stub that answered
+"unavailable". `src/platform/expoPushNotifications.ts` is the real one, on
+`expo-notifications`: permission, the device token, foreground display, an
+Android channel, and opening the right screen from a tapped notification. Three
+things stand between this and a delivered notification, none of them code in
+this repository:
+
+| Needed | Why |
+|---|---|
+| An installed build of the app | Expo Go is signed by Expo and cannot receive BETNG's push. The app says so there. |
+| A Firebase project: `google-services.json` beside `app.config.js`, and `PUSH_PROVIDER=fcm` with `FCM_PROJECT_ID`, `FCM_CLIENT_EMAIL`, `FCM_PRIVATE_KEY` on the platform | FCM is how the platform sends. Both files are environment secrets and are git-ignored. |
+| For iPhone: an Apple developer account and an APNs key, plus either Firebase's iOS messaging module in the app or an APNs sender on the platform | An iPhone's native token is an APNs token, which FCM cannot address. The app offers no token on iPhone until one of the two exists. |
+
+Nothing here has delivered a notification to a device yet.
+
+`apps/mobile/app.config.js` lets a phone reach the platform: `localhost` in
+`app.json` means the phone itself, so `BETNG_MOBILE_API_URL` and
+`BETNG_MOBILE_REALTIME_URL` override it for a development run.
 
 ### 4.8 Code scanning, secret scanning and CI (2026-09-27)
 Six CodeQL alerts were open. Five are fixed in code:
