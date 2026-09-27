@@ -20,6 +20,7 @@ export { Timeline } from "./Timeline";
 export { Stats } from "./Stats";
 export { FormPips, LeagueTable } from "./LeagueTable";
 export { OddsButton } from "./OddsButton";
+export { QuickBetRow } from "./QuickBetRow";
 export { Markets } from "./Markets";
 export { BetSlipSheet } from "./BetSlipSheet";
 export { SlipBar } from "./SlipBar";

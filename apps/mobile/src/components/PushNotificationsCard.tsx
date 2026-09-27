@@ -3,7 +3,7 @@ import { Platform } from "react-native";
 import { useAuth } from "../hooks/useAuth";
 import { useFlags } from "../hooks/useFlags";
 import { presentError } from "../lib/errors";
-import { pushNotifications, registerForPush } from "../platform";
+import { pushNotifications, registerForPush, runsInExpoGo } from "../platform";
 import { getAccountServices } from "../services/dataSource";
 import { Button } from "./Button";
 import { Card } from "./Card";
@@ -12,7 +12,11 @@ import { Text } from "./Text";
 const MESSAGES = {
   registered: "Push notifications are on for this device.",
   denied: "Notifications are blocked for BETNG. Allow them in your device settings, then try again.",
-  unavailable: "Push notifications are not available in this build of the app.",
+  unavailable: runsInExpoGo()
+    ? "Expo Go cannot receive BETNG push notifications. They work in the installed app."
+    : Platform.OS === "ios"
+      ? "Push notifications are not available on iPhone yet."
+      : "Push notifications are not available in this build of the app.",
 } as const;
 
 export function PushNotificationsCard(): React.JSX.Element | null {

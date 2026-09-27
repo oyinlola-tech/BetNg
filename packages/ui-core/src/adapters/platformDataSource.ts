@@ -19,6 +19,7 @@ import type {
   MatchClock,
   MatchEvent,
   MatchId,
+  MatchOdds,
   Notification,
   Team,
   TeamId,
@@ -48,6 +49,7 @@ import type {
   HeadToHeadView,
   MatchClockView,
   MatchLineupsView,
+  MatchMarketsView,
   MatchPhase,
   PlatformConfigView,
   LeagueView,
@@ -261,6 +263,39 @@ function toRefusal(
     ...(Array.isArray(rejected)
       ? { rejectedSelectionIds: rejected as BetPlacementView["rejectedSelectionIds"] & {} }
       : {}),
+  };
+}
+
+function toMarketsView(odds: MatchOdds): MatchMarketsView {
+  return {
+    matchId: odds.matchId,
+    generatedAt: odds.generatedAt,
+    markets: odds.markets.map((m): MarketView => {
+      const shape = marketShape(m.type, m.selections.length);
+
+      return {
+        id: m.id,
+        matchId: m.matchId,
+        kind: m.type,
+        name: shape.name,
+        ...(m.line === undefined ? {} : { line: m.line }),
+        status: m.status,
+        columns: shape.columns,
+        group: shape.group,
+        updatedAt: m.updatedAt,
+        ...(m.oddsVersion === undefined ? {} : { oddsVersion: m.oddsVersion }),
+        selections: m.selections.map((s) => ({
+          id: s.id,
+          marketId: s.marketId,
+          code: s.code,
+          label: s.label,
+          shortLabel: s.label,
+          odds: s.odds,
+          probability: s.probability,
+          trend: "STEADY",
+        })),
+      };
+    }),
   };
 }
 
@@ -826,42 +861,11 @@ export function createPlatformDataSource(
     getMatch: async (matchId: MatchId) =>
       toView(await required(() => rest.getMatch(matchId))),
 
-    getMatchMarkets: async (matchId: MatchId) => {
-      const odds = await required(() => rest.getMatchOdds(matchId));
+    getMatchMarkets: async (matchId: MatchId) =>
+      toMarketsView(await required(() => rest.getMatchOdds(matchId))),
 
-      return {
-        matchId,
-        generatedAt: odds.generatedAt,
-        markets: odds.markets.map((m): MarketView => {
-          const shape = marketShape(m.type, m.selections.length);
-
-          return {
-            id: m.id,
-            matchId: m.matchId,
-            kind: m.type,
-            name: shape.name,
-            ...(m.line === undefined ? {} : { line: m.line }),
-            status: m.status,
-            columns: shape.columns,
-            group: shape.group,
-            updatedAt: m.updatedAt,
-            ...(m.oddsVersion === undefined
-              ? {}
-              : { oddsVersion: m.oddsVersion }),
-            selections: m.selections.map((s) => ({
-              id: s.id,
-              marketId: s.marketId,
-              code: s.code,
-              label: s.label,
-              shortLabel: s.label,
-              odds: s.odds,
-              probability: s.probability,
-              trend: "STEADY",
-            })),
-          };
-        }),
-      };
-    },
+    listMatchMarkets: async (matchIds) =>
+      (await required(() => rest.listMatchOdds(matchIds))).map(toMarketsView),
 
     listCompletedMatchdays: async (leagueId, season) => {
       const matches = await required(() =>

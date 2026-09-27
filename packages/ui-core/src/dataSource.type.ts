@@ -78,6 +78,8 @@ export interface BetNgDataSource {
   listMatches(filter?: MatchFilter): Promise<readonly MatchSummary[]>;
   getMatch(matchId: MatchId): Promise<MatchView>;
   getMatchMarkets(matchId: MatchId): Promise<MatchMarketsView>;
+  /** Markets for several matches in one read; a match the platform has no odds for is left out. */
+  listMatchMarkets(matchIds: readonly MatchId[]): Promise<readonly MatchMarketsView[]>;
   getMatchLineups(matchId: MatchId): Promise<MatchLineupsView>;
   getHeadToHead(matchId: MatchId): Promise<HeadToHeadView>;
   search(query: SearchQuery): Promise<SearchResults>;

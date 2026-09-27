@@ -9,7 +9,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Receipt, Trash2, X } from "lucide-react-native";
+import { Lock, Receipt, Trash2, X } from "lucide-react-native";
 import {
   QUICK_STAKES,
   STAKE_LIMITS,
@@ -65,7 +65,7 @@ export function BetSlipSheet({
   const insets = useSafeAreaInsets();
   const { open, setOpen, selections, stake, remove, clear, setStake, submitOnOpen, resumeSubmit } =
     useBetSlip();
-  const { isAuthenticated, requireAuth } = useAuth();
+  const { isAuthenticated, requireAuth, openAuth } = useAuth();
   const version = useAccountVersion();
   const online = useCanTransact();
   const wallet = useAsync(
@@ -179,6 +179,16 @@ export function BetSlipSheet({
       reason: "Log in to place this bet. Your slip stays as it is.",
       run: () => {
         resumeSubmit(true);
+        setOpen(true);
+      },
+    });
+  };
+
+  const signIn = (view: "login" | "register"): void => {
+    setOpen(false);
+    openAuth(view, {
+      reason: "Log in to stake on this slip. Your selections stay as they are.",
+      run: () => {
         setOpen(true);
       },
     });
@@ -361,159 +371,199 @@ export function BetSlipSheet({
                     Total odds {formatOdds(totals.totalOdds)}
                   </Text>
                 </View>
-                <View>
-                  <Text variant="caps" tone="muted">
-                    Stake
-                  </Text>
-                  <View
-                    style={{
-                      marginTop: 6,
-                      flexDirection: "row",
-                      alignItems: "center",
-                      height: 48,
-                      borderRadius: t.radius.sm,
-                      borderWidth: 1,
-                      borderColor:
-                        problem !== undefined && problem !== "EMPTY"
-                          ? t.colors.danger
-                          : t.colors.border,
-                      backgroundColor: t.colors.surfaceSunken,
-                      paddingHorizontal: 12,
-                    }}
-                  >
-                    <Text variant="title" tone="muted">
-                      {currentCurrency().symbol}
+                {isAuthenticated ? (
+                  <>
+                  <View>
+                    <Text variant="caps" tone="muted">
+                      Stake
                     </Text>
-                    <TextInput
-                      value={stakeText}
-                      onChangeText={updateStake}
-                      keyboardType="decimal-pad"
-                      accessibilityLabel="Stake in naira"
+                    <View
                       style={{
-                        flex: 1,
-                        marginLeft: 6,
-                        fontSize: 18,
-                        fontWeight: "700",
-                        color: t.colors.textPrimary,
-                        fontVariant: ["tabular-nums"],
+                        marginTop: 6,
+                        flexDirection: "row",
+                        alignItems: "center",
+                        height: 48,
+                        borderRadius: t.radius.sm,
+                        borderWidth: 1,
+                        borderColor:
+                          problem !== undefined && problem !== "EMPTY"
+                            ? t.colors.danger
+                            : t.colors.border,
+                        backgroundColor: t.colors.surfaceSunken,
+                        paddingHorizontal: 12,
                       }}
-                    />
-                  </View>
-                  <View style={{ flexDirection: "row", gap: 6, marginTop: 8 }}>
-                    {QUICK_STAKES.map((q) => (
-                      <Pressable
-                        key={q}
-                        onPress={() => {
-                          updateStake((q / 100).toString());
-                        }}
+                    >
+                      <Text variant="title" tone="muted">
+                        {currentCurrency().symbol}
+                      </Text>
+                      <TextInput
+                        value={stakeText}
+                        onChangeText={updateStake}
+                        keyboardType="decimal-pad"
+                        accessibilityLabel="Stake in naira"
                         style={{
                           flex: 1,
-                          minHeight: 32,
-                          height: 32,
-                          borderRadius: t.radius.xs,
-                          alignItems: "center",
-                          justifyContent: "center",
-                          borderWidth: 1,
-                          borderColor:
-                            stake === q ? t.colors.brand : t.colors.border,
-                          backgroundColor:
-                            stake === q
-                              ? t.colors.brandSubtle
-                              : t.colors.surface,
+                          marginLeft: 6,
+                          fontSize: 18,
+                          fontWeight: "700",
+                          color: t.colors.textPrimary,
+                          fontVariant: ["tabular-nums"],
                         }}
-                      >
-                        <Text
-                          variant="caption"
-                          tabular
-                          tone={stake === q ? "brand" : "secondary"}
-                          style={{ fontWeight: "600" }}
+                      />
+                    </View>
+                    <View style={{ flexDirection: "row", gap: 6, marginTop: 8 }}>
+                      {QUICK_STAKES.map((q) => (
+                        <Pressable
+                          key={q}
+                          onPress={() => {
+                            updateStake((q / 100).toString());
+                          }}
+                          style={{
+                            flex: 1,
+                            minHeight: 32,
+                            height: 32,
+                            borderRadius: t.radius.xs,
+                            alignItems: "center",
+                            justifyContent: "center",
+                            borderWidth: 1,
+                            borderColor:
+                              stake === q ? t.colors.brand : t.colors.border,
+                            backgroundColor:
+                              stake === q
+                                ? t.colors.brandSubtle
+                                : t.colors.surface,
+                          }}
                         >
-                          {formatMoneyCompact(q)}
-                        </Text>
-                      </Pressable>
-                    ))}
+                          <Text
+                            variant="caption"
+                            tabular
+                            tone={stake === q ? "brand" : "secondary"}
+                            style={{ fontWeight: "600" }}
+                          >
+                            {formatMoneyCompact(q)}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </View>
                   </View>
-                </View>
-                {problem === "BELOW_MIN" && (
-                  <Text variant="caption" tone="danger">
-                    Minimum stake is {formatMoney(STAKE_LIMITS.min)}.
-                  </Text>
-                )}
-                {problem === "ABOVE_MAX" && (
-                  <Text variant="caption" tone="danger">
-                    Maximum stake is {formatMoney(STAKE_LIMITS.max)}.
-                  </Text>
-                )}
-                {problem === "INSUFFICIENT" && (
-                  <Text variant="caption" tone="danger">
-                    Exceeds your available balance.
-                  </Text>
-                )}
-                {feedback !== undefined && (
-                  <View accessibilityLiveRegion="polite" style={{ gap: 8 }}>
-                    <Text variant="caption" tone={feedback.tone}>
-                      {feedback.text}
+                  {problem === "BELOW_MIN" && (
+                    <Text variant="caption" tone="danger">
+                      Minimum stake is {formatMoney(STAKE_LIMITS.min)}.
                     </Text>
-                    {feedback.maxStake !== undefined && (
-                      <Button
-                        label={`Use ${formatMoney(feedback.maxStake)}`}
-                        size="sm"
-                        variant="secondary"
-                        onPress={() => {
-                          updateStake(((feedback.maxStake ?? 0) / 100).toString());
-                        }}
-                      />
-                    )}
-                    {feedback.rejected !== undefined && feedback.rejected.length > 0 && (
-                      <Button
-                        label="Remove unavailable selections"
-                        size="sm"
-                        variant="secondary"
-                        onPress={() => {
-                          for (const id of feedback.rejected ?? []) remove(id);
-                        }}
-                      />
-                    )}
+                  )}
+                  {problem === "ABOVE_MAX" && (
+                    <Text variant="caption" tone="danger">
+                      Maximum stake is {formatMoney(STAKE_LIMITS.max)}.
+                    </Text>
+                  )}
+                  {problem === "INSUFFICIENT" && (
+                    <Text variant="caption" tone="danger">
+                      Exceeds your available balance.
+                    </Text>
+                  )}
+                  {feedback !== undefined && (
+                    <View accessibilityLiveRegion="polite" style={{ gap: 8 }}>
+                      <Text variant="caption" tone={feedback.tone}>
+                        {feedback.text}
+                      </Text>
+                      {feedback.maxStake !== undefined && (
+                        <Button
+                          label={`Use ${formatMoney(feedback.maxStake)}`}
+                          size="sm"
+                          variant="secondary"
+                          onPress={() => {
+                            updateStake(((feedback.maxStake ?? 0) / 100).toString());
+                          }}
+                        />
+                      )}
+                      {feedback.rejected !== undefined && feedback.rejected.length > 0 && (
+                        <Button
+                          label="Remove unavailable selections"
+                          size="sm"
+                          variant="secondary"
+                          onPress={() => {
+                            for (const id of feedback.rejected ?? []) remove(id);
+                          }}
+                        />
+                      )}
+                    </View>
+                  )}
+                  <View style={{ gap: 4 }}>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      <Text variant="caption" tone="secondary">
+                        Estimated profit
+                      </Text>
+                      <Text variant="caption" tabular>
+                        {formatMoney(Math.max(0, totals.potentialProfit))}
+                      </Text>
+                    </View>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      <Text variant="bodyStrong">Estimated return</Text>
+                      <Text variant="bodyStrong" tabular>
+                        {formatMoney(totals.potentialReturn)}
+                      </Text>
+                    </View>
                   </View>
-                )}
-                <View style={{ gap: 4 }}>
+                  {!online && (
+                    <Text variant="caption" tone="warning" accessibilityLiveRegion="polite">
+                      {OFFLINE_COMMAND_MESSAGE}
+                    </Text>
+                  )}
+                  <Button
+                    label="Place bet"
+                    size="lg"
+                    loading={placing}
+                    disabled={problem !== undefined || !online}
+                    onPress={place}
+                  />
+                  </>
+                ) : (
                   <View
                     style={{
-                      flexDirection: "row",
-                      justifyContent: "space-between",
+                      gap: 10,
+                      padding: 14,
+                      borderRadius: t.radius.md,
+                      borderWidth: 1,
+                      borderColor: t.colors.border,
+                      backgroundColor: t.colors.surface,
                     }}
                   >
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                      <Lock size={16} color={t.colors.textSecondary} />
+                      <Text variant="bodyStrong">Log in to stake</Text>
+                    </View>
                     <Text variant="caption" tone="secondary">
-                      Estimated profit
+                      Your selections stay on this slip. Log in or create an account to set a stake and place the bet.
                     </Text>
-                    <Text variant="caption" tabular>
-                      {formatMoney(Math.max(0, totals.potentialProfit))}
-                    </Text>
+                    <View style={{ flexDirection: "row", gap: 8 }}>
+                      <Button
+                        label="Log in"
+                        style={{ flex: 1 }}
+                        onPress={() => {
+                          signIn("login");
+                        }}
+                      />
+                      <Button
+                        label="Create account"
+                        variant="secondary"
+                        style={{ flex: 1 }}
+                        onPress={() => {
+                          signIn("register");
+                        }}
+                      />
+                    </View>
                   </View>
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      justifyContent: "space-between",
-                    }}
-                  >
-                    <Text variant="bodyStrong">Estimated return</Text>
-                    <Text variant="bodyStrong" tabular>
-                      {formatMoney(totals.potentialReturn)}
-                    </Text>
-                  </View>
-                </View>
-                {!online && (
-                  <Text variant="caption" tone="warning" accessibilityLiveRegion="polite">
-                    {OFFLINE_COMMAND_MESSAGE}
-                  </Text>
                 )}
-                <Button
-                  label={isAuthenticated ? "Place bet" : "Log in to place bet"}
-                  size="lg"
-                  loading={placing}
-                  disabled={problem !== undefined || !online}
-                  onPress={place}
-                />
                 <Text variant="caption" tone="muted" align="center">
                   18+. Bet responsibly.
                 </Text>

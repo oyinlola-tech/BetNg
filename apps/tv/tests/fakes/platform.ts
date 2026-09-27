@@ -155,6 +155,7 @@ export function createFakePlatform(): { readonly state: FakePlatform; readonly s
 
       return found;
     },
+    listMatchMarkets: async (ids: readonly MatchId[]) => ids.flatMap((id) => state.markets.get(id) ?? []),
     getStandings: async () => {
       throw new Error("not served");
     },

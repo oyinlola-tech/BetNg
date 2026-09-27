@@ -12,16 +12,17 @@ import {
   LiveMatchCard,
   MatchRow,
   Pressable,
+  QuickBetRow,
   Screen,
   SectionHeader,
   Skeleton,
   SkeletonRows,
   Text,
-  UpcomingCard,
 } from "../components";
 import { useAccountVersion } from "../hooks/useAccount";
 import { useAsync } from "../hooks/useAsync";
 import { useAuth } from "../hooks/useAuth";
+import { useQuickBets } from "../hooks/useQuickBets";
 import { getDataSource } from "../services/dataSource";
 import { useTheme } from "../theme";
 
@@ -44,11 +45,12 @@ export function HomeScreen(): React.JSX.Element {
     () =>
       getDataSource().listMatches({
         phases: ["BETTING_OPEN"],
-        limit: 6,
+        limit: 8,
       }),
     [],
     5000,
   );
+  const prices = useQuickBets(soon.data);
   const starting = useAsync(
     () =>
       getDataSource().listMatches({
@@ -91,20 +93,17 @@ export function HomeScreen(): React.JSX.Element {
   };
 
   return (
-    <Screen
-      padded={false}
-      style={{ paddingTop: insets.top + 8 }}
-      refreshing={live.refreshing}
-      onRefresh={() =>
-        void Promise.all([live.refresh(), soon.refresh(), starting.refresh(), recent.refresh()])
-      }
-    >
+    <View style={{ flex: 1, backgroundColor: t.colors.background }}>
       <View
         style={{
           flexDirection: "row",
           alignItems: "center",
           paddingHorizontal: 16,
-          marginBottom: 6,
+          paddingTop: insets.top + 8,
+          paddingBottom: 8,
+          backgroundColor: t.colors.background,
+          borderBottomWidth: 1,
+          borderBottomColor: t.colors.border,
         }}
       >
         <BrandLogo size={28} />
@@ -176,212 +175,223 @@ export function HomeScreen(): React.JSX.Element {
           />
         )}
       </View>
+      <Screen
+        padded={false}
+        style={{ paddingTop: 0 }}
+        refreshing={live.refreshing}
+        onRefresh={() =>
+          void Promise.all([live.refresh(), soon.refresh(), prices.refresh(), starting.refresh(), recent.refresh()])
+        }
+      >
 
-      {openBets.length > 0 && (
+        {openBets.length > 0 && (
+          <View style={{ paddingHorizontal: 16 }}>
+            <SectionHeader
+              eyebrow="Your account"
+              title="Current bets"
+              onPress={() => {
+                navigation.navigate("Tabs", { screen: "Bets" });
+              }}
+            />
+            <Card>
+              {openBets.slice(0, 2).map((bet, i) => (
+                <Pressable
+                  key={bet.id}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Open bet, ${String(bet.legs.length)} selections, returns ${formatMoney(bet.potentialPayout)}`}
+                  onPress={() => {
+                    navigation.navigate("Tabs", { screen: "Bets" });
+                  }}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 12,
+                    paddingHorizontal: 14,
+                    height: 56,
+                    borderTopWidth: i === 0 ? 0 : 1,
+                    borderTopColor: t.colors.border,
+                  }}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text variant="bodyStrong" numberOfLines={1}>
+                      {bet.legs.length === 1 ? (bet.legs[0]?.selectionLabel ?? "Single") : `${String(bet.legs.length)}-fold accumulator`}
+                    </Text>
+                    <Text variant="caption" tone="muted" numberOfLines={1}>
+                      {bet.legs.length === 1 ? bet.legs[0]?.matchLabel : `Stake ${formatMoney(bet.stake)}`} · @ {formatOdds(bet.totalOdds)}
+                    </Text>
+                  </View>
+                  <Text variant="bodyStrong" tabular>
+                    {formatMoney(bet.potentialPayout)}
+                  </Text>
+                </Pressable>
+              ))}
+            </Card>
+          </View>
+        )}
+
         <View style={{ paddingHorizontal: 16 }}>
           <SectionHeader
-            eyebrow="Your account"
-            title="Current bets"
+            eyebrow="Virtual football"
+            title="Bet now"
             onPress={() => {
-              navigation.navigate("Tabs", { screen: "Bets" });
+              navigation.navigate("Tabs", { screen: "Virtuals" });
+            }}
+            linkLabel="Lobby"
+          />
+          {soon.loading && soon.data === undefined ? (
+            <Card style={{ padding: 12 }}>
+              <SkeletonRows rows={4} />
+            </Card>
+          ) : soon.error !== undefined && soon.data === undefined ? (
+            <ErrorState error={soon.error} onRetry={() => void soon.refresh()} />
+          ) : (soon.data ?? []).length === 0 ? (
+            <Card>
+              <EmptyState title="No matches open for betting" description="The next matchday opens shortly." />
+            </Card>
+          ) : (
+            <Card>
+              {(soon.data ?? []).map((m, i) => (
+                <View key={m.id} style={{ borderTopWidth: i === 0 ? 0 : 1, borderTopColor: t.colors.border }}>
+                  <QuickBetRow
+                    match={m}
+                    markets={prices.byMatch.get(m.id)}
+                    loading={prices.loading}
+                    onOpen={() => {
+                      navigation.navigate("Match", { matchId: m.id, tab: "MARKETS" });
+                    }}
+                  />
+                </View>
+              ))}
+            </Card>
+          )}
+        </View>
+
+        <View style={{ paddingHorizontal: 16 }}>
+          <SectionHeader
+            title="Live now"
+            onPress={() => {
+              navigation.navigate("Tabs", { screen: "Live" });
             }}
           />
-          <Card>
-            {openBets.slice(0, 2).map((bet, i) => (
-              <Pressable
-                key={bet.id}
-                accessibilityRole="button"
-                accessibilityLabel={`Open bet, ${String(bet.legs.length)} selections, returns ${formatMoney(bet.potentialPayout)}`}
-                onPress={() => {
-                  navigation.navigate("Tabs", { screen: "Bets" });
-                }}
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 12,
-                  paddingHorizontal: 14,
-                  height: 56,
-                  borderTopWidth: i === 0 ? 0 : 1,
-                  borderTopColor: t.colors.border,
-                }}
-              >
-                <View style={{ flex: 1 }}>
-                  <Text variant="bodyStrong" numberOfLines={1}>
-                    {bet.legs.length === 1 ? (bet.legs[0]?.selectionLabel ?? "Single") : `${String(bet.legs.length)}-fold accumulator`}
-                  </Text>
-                  <Text variant="caption" tone="muted" numberOfLines={1}>
-                    {bet.legs.length === 1 ? bet.legs[0]?.matchLabel : `Stake ${formatMoney(bet.stake)}`} · @ {formatOdds(bet.totalOdds)}
-                  </Text>
-                </View>
-                <Text variant="bodyStrong" tabular>
-                  {formatMoney(bet.potentialPayout)}
-                </Text>
-              </Pressable>
-            ))}
-          </Card>
         </View>
-      )}
-
-      <View style={{ paddingHorizontal: 16 }}>
-        <SectionHeader
-          eyebrow="Virtual football"
-          title="Live now"
-          onPress={() => {
-            navigation.navigate("Tabs", { screen: "Live" });
-          }}
-        />
-      </View>
-      {live.loading && live.data === undefined ? (
-        <View style={{ paddingHorizontal: 16 }}>
-          <Skeleton height={150} radius={8} />
-        </View>
-      ) : live.error !== undefined && live.data === undefined ? (
-        <ErrorState error={live.error} onRetry={() => void live.refresh()} />
-      ) : (live.data ?? []).length === 0 ? (
-        <Card style={{ marginHorizontal: 16 }}>
-          <EmptyState
-            title="No matches in play"
-            description="The next kick-off is moments away."
-          />
-        </Card>
-      ) : (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 16, gap: 10 }}
-          snapToInterval={296}
-          decelerationRate="fast"
-        >
-          {(live.data ?? []).map((m) => (
-            <LiveMatchCard
-              key={m.id}
-              match={m}
-              width={286}
-              onPress={() => {
-                openMatch(m.id);
-              }}
-            />
-          ))}
-        </ScrollView>
-      )}
-
-      <View style={{ paddingHorizontal: 16 }}>
-        <SectionHeader
-          title="Play now"
-          onPress={() => {
-            navigation.navigate("Tabs", { screen: "Virtuals" });
-          }}
-          linkLabel="Lobby"
-        />
-      </View>
-      {soon.loading && soon.data === undefined ? (
-        <View style={{ paddingHorizontal: 16 }}>
-          <Skeleton height={120} radius={8} />
-        </View>
-      ) : (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 16, gap: 10 }}
-          snapToInterval={250}
-          decelerationRate="fast"
-        >
-          {(soon.data ?? []).map((m) => (
-            <UpcomingCard
-              key={m.id}
-              match={m}
-              width={240}
-              onPress={() => {
-                openMatch(m.id);
-              }}
-            />
-          ))}
-        </ScrollView>
-      )}
-
-      {(starting.data ?? []).length > 0 && (
-        <>
+        {live.loading && live.data === undefined ? (
           <View style={{ paddingHorizontal: 16 }}>
-            <SectionHeader title="Starting soon" />
-            <Text variant="caption" tone="muted" style={{ marginTop: -4, marginBottom: 8 }}>
-              Betting has closed. These matches kick off shortly.
-            </Text>
+            <Skeleton height={150} radius={8} />
           </View>
-          <View style={{ paddingHorizontal: 16, gap: 8 }}>
-            {(starting.data ?? []).map((m) => (
-              <MatchRow
+        ) : live.error !== undefined && live.data === undefined ? (
+          <ErrorState error={live.error} onRetry={() => void live.refresh()} />
+        ) : (live.data ?? []).length === 0 ? (
+          <Card style={{ marginHorizontal: 16 }}>
+            <EmptyState
+              title="No matches in play"
+              description="The next kick-off is moments away."
+            />
+          </Card>
+        ) : (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 16, gap: 10 }}
+            snapToInterval={296}
+            decelerationRate="fast"
+          >
+            {(live.data ?? []).map((m) => (
+              <LiveMatchCard
                 key={m.id}
                 match={m}
+                width={286}
                 onPress={() => {
                   openMatch(m.id);
                 }}
               />
             ))}
-          </View>
-        </>
-      )}
+          </ScrollView>
+        )}
 
-      <View style={{ paddingHorizontal: 16 }}>
-        <SectionHeader title="Leagues" />
-        <View style={{ flexDirection: "row", gap: 10 }}>
-          {(leagues.data ?? []).map((l) => (
-            <Card key={l.id} style={{ flex: 1 }}>
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => {
-                  navigation.navigate("League", { leagueId: l.id });
-                }}
-                style={{ padding: 12, gap: 4 }}
-              >
-                <Text variant="caps" tone="secondary">
-                  {l.code}
-                </Text>
-                <Text variant="bodyStrong" numberOfLines={2}>
-                  {l.name}
-                </Text>
-                <Text variant="caption" tone="muted">
-                  S{l.currentSeason} · MD{" "}
-                  {String(l.currentMatchday).padStart(2, "0")}
-                </Text>
-              </Pressable>
-            </Card>
-          ))}
-        </View>
-
-        <SectionHeader
-          title="Recent results"
-          onPress={() => {
-            navigation.navigate("Results", {});
-          }}
-        />
-        <Card>
-          {recent.loading && recent.data === undefined ? (
-            <View style={{ padding: 12 }}>
-              <SkeletonRows rows={4} />
+        {(starting.data ?? []).length > 0 && (
+          <>
+            <View style={{ paddingHorizontal: 16 }}>
+              <SectionHeader title="Starting soon" />
+              <Text variant="caption" tone="muted" style={{ marginTop: -4, marginBottom: 8 }}>
+                Betting has closed. These matches kick off shortly.
+              </Text>
             </View>
-          ) : (recent.data ?? []).length === 0 ? (
-            <EmptyState title="No results yet" />
-          ) : (
-            (recent.data ?? []).map((m, i) => (
-              <View
-                key={m.id}
-                style={{
-                  borderTopWidth: i === 0 ? 0 : 1,
-                  borderTopColor: t.colors.border,
-                }}
-              >
+            <View style={{ paddingHorizontal: 16, gap: 8 }}>
+              {(starting.data ?? []).map((m) => (
                 <MatchRow
+                  key={m.id}
                   match={m}
-                  showLeague
                   onPress={() => {
                     openMatch(m.id);
                   }}
                 />
+              ))}
+            </View>
+          </>
+        )}
+
+        <View style={{ paddingHorizontal: 16 }}>
+          <SectionHeader title="Leagues" />
+          <View style={{ flexDirection: "row", gap: 10 }}>
+            {(leagues.data ?? []).map((l) => (
+              <Card key={l.id} style={{ flex: 1 }}>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => {
+                    navigation.navigate("League", { leagueId: l.id });
+                  }}
+                  style={{ padding: 12, gap: 4 }}
+                >
+                  <Text variant="caps" tone="secondary">
+                    {l.code}
+                  </Text>
+                  <Text variant="bodyStrong" numberOfLines={2}>
+                    {l.name}
+                  </Text>
+                  <Text variant="caption" tone="muted">
+                    S{l.currentSeason} · MD{" "}
+                    {String(l.currentMatchday).padStart(2, "0")}
+                  </Text>
+                </Pressable>
+              </Card>
+            ))}
+          </View>
+
+          <SectionHeader
+            title="Recent results"
+            onPress={() => {
+              navigation.navigate("Results", {});
+            }}
+          />
+          <Card>
+            {recent.loading && recent.data === undefined ? (
+              <View style={{ padding: 12 }}>
+                <SkeletonRows rows={4} />
               </View>
-            ))
-          )}
-        </Card>
-      </View>
-    </Screen>
+            ) : (recent.data ?? []).length === 0 ? (
+              <EmptyState title="No results yet" />
+            ) : (
+              (recent.data ?? []).map((m, i) => (
+                <View
+                  key={m.id}
+                  style={{
+                    borderTopWidth: i === 0 ? 0 : 1,
+                    borderTopColor: t.colors.border,
+                  }}
+                >
+                  <MatchRow
+                    match={m}
+                    showLeague
+                    onPress={() => {
+                      openMatch(m.id);
+                    }}
+                  />
+                </View>
+              ))
+            )}
+          </Card>
+        </View>
+      </Screen>
+    </View>
   );
 }

@@ -18,6 +18,8 @@ import { useTheme } from "../theme";
 import { env } from "../configs/env";
 import { pushNotifications } from "../platform";
 import { deepLinkOptions, listenForDeepLinks, listenForNotificationTaps } from "../platform/linking";
+import { useAsync } from "../hooks/useAsync";
+import { getDataSource } from "../services/dataSource";
 import { logger } from "../services/logger";
 import { gated } from "./gated";
 import { navigationRef } from "./ref";
@@ -94,6 +96,8 @@ function TabBar({
 }: BottomTabBarProps): React.JSX.Element {
   const t = useTheme();
   const insets = useSafeAreaInsets();
+  const inPlay = useAsync(() => getDataSource().listMatches({ phases: ["LIVE", "HALFTIME"], limit: 1 }), [], 10_000);
+  const liveNow = (inPlay.data ?? []).length > 0;
 
   return (
     <>
@@ -110,7 +114,9 @@ function TabBar({
         {state.routes.map((route, index) => {
           const focused = state.index === index;
           const Icon = TAB_ICONS[route.name as keyof typeof TAB_ICONS];
-          const label = descriptors[route.key]?.options.title ?? route.name;
+          const title = descriptors[route.key]?.options.title ?? route.name;
+          const marked = route.name === "Live" && liveNow;
+          const label = marked ? `${title}, matches in play` : title;
 
           return (
             <Pressable
@@ -142,7 +148,7 @@ function TabBar({
                   color={focused ? t.colors.brand : t.colors.textMuted}
                   strokeWidth={focused ? 2.4 : 2}
                 />
-                {route.name === "Live" && (
+                {marked && (
                   <View
                     style={{
                       position: "absolute",
@@ -163,7 +169,7 @@ function TabBar({
                   color: focused ? t.colors.brand : t.colors.textMuted,
                 }}
               >
-                {label}
+                {title}
               </Text>
             </Pressable>
           );

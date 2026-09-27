@@ -11,7 +11,7 @@ export interface PushNotifications {
   onTap(listener: (data: unknown) => void): () => void;
 }
 
-/** expo-notifications is not installed in this workspace. */
+/** For a build that cannot receive push, such as Expo Go. */
 export function createUnavailablePushNotifications(): PushNotifications {
   return {
     permission: () => Promise.resolve("unavailable"),
