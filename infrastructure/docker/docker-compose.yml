@@ -527,7 +527,7 @@ services:
   edge:
     profiles: ["platform", "edge"]
     <<: *hardened
-    image: nginxinc/nginx-unprivileged:1.29.8-alpine@sha256:0c79d56aee561a1d81c63f00eee5fb5fe29279560cdc55e91425133104c7fbe6
+    image: nginxinc/nginx-unprivileged:1.31.5-alpine@sha256:19c132c9ab02d3b783f478743dafc7a7f42e27aa7d2bdcbec1bb1128ca8f2a07
     init: false
     ulimits:
       nofile: { soft: 16384, hard: 16384 }
