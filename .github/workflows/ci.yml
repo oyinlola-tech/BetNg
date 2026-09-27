@@ -139,6 +139,19 @@ jobs:
           retention-days: 3
           if-no-files-found: error
 
+  # Typecheck alone passes a React Native release the Expo SDK cannot bundle; only Metro shows it.
+  mobile-bundle:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          build-packages: "true"
+      - run: pnpm --filter @betng/mobile exec expo export --platform android --output-dir "${RUNNER_TEMP}/mobile-export"
+
   public-env:
     needs: build
     runs-on: ubuntu-24.04
