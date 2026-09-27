@@ -102,3 +102,7 @@ scripts/e2e/.logs/
 # ---------------------------------------------------------------------------
 package-lock.json
 yarn.lock
+
+# Firebase client configuration for the mobile app; each environment supplies its own.
+apps/mobile/google-services.json
+apps/mobile/GoogleService-Info.plist
