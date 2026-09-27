@@ -17,13 +17,13 @@
   "dependencies": {
     "@betng/contracts": "workspace:*",
     "@betng/service-kit": "workspace:*",
-    "@zudojs/container": "1.1.2",
-    "@zudojs/errors": "1.2.0",
-    "@zudojs/rpc": "1.3.0",
-    "@zudojs/validation": "1.0.3"
+    "@zudojs/container": "1.2.3",
+    "@zudojs/errors": "1.3.2",
+    "@zudojs/rpc": "1.4.3",
+    "@zudojs/validation": "1.1.2"
   },
   "devDependencies": {
-    "@types/node": "^26.6.2",
+    "@types/node": "^26.6.3",
     "tsx": "^4.23.15",
     "typescript": "7.0.2"
   }
