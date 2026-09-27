@@ -1,9 +1,11 @@
-import { forwardRef, useState, type ForwardRefExoticComponent, type RefAttributes } from "react";
-import { TextInput, View, type TextInputInstance, type TextInputProps } from "react-native";
+import { forwardRef, useState, type ComponentRef, type ForwardRefExoticComponent, type RefAttributes } from "react";
+import { TextInput, View, type TextInputProps } from "react-native";
 import { Eye, EyeOff } from "lucide-react-native";
 import { useTheme } from "../theme";
 import { Pressable } from "./Pressable";
 import { Text } from "./Text";
+
+export type TextFieldRef = ComponentRef<typeof TextInput>;
 
 export interface TextFieldProps extends Omit<TextInputProps, "style"> {
   readonly label: string;
@@ -12,7 +14,7 @@ export interface TextFieldProps extends Omit<TextInputProps, "style"> {
   readonly secure?: boolean;
 }
 
-export const TextField: ForwardRefExoticComponent<TextFieldProps & RefAttributes<TextInputInstance>> = forwardRef<TextInputInstance, TextFieldProps>(function TextField({ label, error, hint, secure = false, editable = true, onFocus, onBlur, ...rest }, ref) {
+export const TextField: ForwardRefExoticComponent<TextFieldProps & RefAttributes<TextFieldRef>> = forwardRef<TextFieldRef, TextFieldProps>(function TextField({ label, error, hint, secure = false, editable = true, onFocus, onBlur, ...rest }, ref) {
   const t = useTheme();
   const [focused, setFocused] = useState(false);
   const [visible, setVisible] = useState(false);

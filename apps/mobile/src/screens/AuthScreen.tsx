@@ -1,10 +1,10 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, View, type TextInputInstance } from "react-native";
+import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Check, MailCheck, TriangleAlert, WifiOff } from "lucide-react-native";
 import { DataSourceError } from "@betng/ui-core";
-import { Button, CodeField, Pressable, Text, TextField, useToast } from "../components";
+import { Button, CodeField, Pressable, Text, TextField, useToast, type TextFieldRef } from "../components";
 import { presentError } from "../lib/errors";
 import { codeError, displayNameError, emailError, passwordError, phoneError } from "../lib/validation";
 import type { AuthView, RootStackParamList } from "../navigation/types";
@@ -76,8 +76,8 @@ function LoginView({ go, done, email: initialEmail, locked = false }: ViewProps 
   const [errors, setErrors] = useState<{ email?: string | undefined; password?: string | undefined }>({});
   const [failure, setFailure] = useState<unknown>();
   const [busy, setBusy] = useState(false);
-  const emailRef = useRef<TextInputInstance>(null);
-  const passwordRef = useRef<TextInputInstance>(null);
+  const emailRef = useRef<TextFieldRef>(null);
+  const passwordRef = useRef<TextFieldRef>(null);
 
   const submit = async (): Promise<void> => {
     const next = { email: emailError(email), password: passwordError(password, "login") };
@@ -180,7 +180,7 @@ function RegisterView({ go }: ViewProps): React.JSX.Element {
   const [errors, setErrors] = useState<Partial<Record<"displayName" | "email" | "phone" | "password" | "accepted", string | undefined>>>({});
   const [failure, setFailure] = useState<unknown>();
   const [busy, setBusy] = useState(false);
-  const refs = { displayName: useRef<TextInputInstance>(null), email: useRef<TextInputInstance>(null), phone: useRef<TextInputInstance>(null), password: useRef<TextInputInstance>(null) };
+  const refs = { displayName: useRef<TextFieldRef>(null), email: useRef<TextFieldRef>(null), phone: useRef<TextFieldRef>(null), password: useRef<TextFieldRef>(null) };
 
   const set = (key: keyof typeof values) => (text: string) => {
     setValues((v) => ({ ...v, [key]: text }));
