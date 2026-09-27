@@ -2,3 +2,17 @@
 cedcea657a925642bd27c42845399bf41eefc333:packages/client-sdk/tests/resilience.test.ts:generic-api-key:100
 cedcea657a925642bd27c42845399bf41eefc333:packages/ui-core/tests/platformDataSource.test.ts:generic-api-key:108
 84d6ba0a598b57a61167d26ab23eb762eb50f0cf:apps/services/identity/src/utils/credential.util.ts:generic-api-key:5
+
+# Reviewed false positives: provider-shaped placeholders in tests (sequential characters), a generated-looking
+# temporary password in an email fixture, and the RFC 8291 / web-push documentation example keys.
+a1ed348d9efce21c7d209b294c0eadd9399af967:packages/service-kit/tests/webhookSignature.test.ts:generic-api-key:6
+64bed0263d026c17526f6d1fa93ead389de05764:apps/services/email/tests/sendbyte.test.ts:stripe-access-token:46
+64bed0263d026c17526f6d1fa93ead389de05764:apps/services/email/tests/sendbyte.test.ts:stripe-access-token:91
+64bed0263d026c17526f6d1fa93ead389de05764:apps/services/email/tests/sendbyte.test.ts:generic-api-key:10
+64bed0263d026c17526f6d1fa93ead389de05764:apps/services/email/tests/support.ts:generic-api-key:50
+64bed0263d026c17526f6d1fa93ead389de05764:apps/services/email/tests/support.ts:stripe-access-token:49
+64bed0263d026c17526f6d1fa93ead389de05764:apps/services/email/tests/email.test.ts:generic-api-key:60
+64bed0263d026c17526f6d1fa93ead389de05764:apps/services/email/tests/email.test.ts:stripe-access-token:273
+48d9fa2e18c6b811b5d78c84db7536fb421f976e:apps/web/tests/audit/push-and-analytics.test.tsx:generic-api-key:11
+dfb0e8b0b93a7f37b9da8b71da4e42a61b8d6554:apps/services/wallet/tests/paymentsUnit.test.ts:generic-api-key:44
+e34b5f438dda9b5471f664744c441bdcfa83cb90:apps/services/identity/tests/webPush.test.ts:generic-api-key:21
