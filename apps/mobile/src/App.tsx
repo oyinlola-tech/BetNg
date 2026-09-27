@@ -11,8 +11,9 @@ import {
 } from "./components";
 import { openAuth, useAuth } from "./hooks/useAuth";
 import { RootNavigator } from "./navigation/RootNavigator";
+import { OnboardingScreen } from "./screens/OnboardingScreen";
 import { useBetSlip } from "./stores/betslip.store";
-import { hydrateDevicePreferences } from "./stores/preferences.store";
+import { hydrateDevicePreferences, useDevicePreferences } from "./stores/preferences.store";
 import { initRuntime } from "./services/dataSource";
 import { crashReporter } from "./platform";
 import { logger } from "./services/logger";
@@ -46,6 +47,8 @@ function Body(): React.JSX.Element {
 export function App(): React.JSX.Element {
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
+  const onboarded = useDevicePreferences((s) => s.onboarded);
+  const completeOnboarding = useDevicePreferences((s) => s.completeOnboarding);
   const t = useTheme();
 
   useEffect(() => {
@@ -70,9 +73,13 @@ export function App(): React.JSX.Element {
     <SafeAreaProvider>
       <StatusBar style={t.name === "dark" ? "light" : "dark"} />
       {ready ? (
-        <ToastProvider>
-          <Body />
-        </ToastProvider>
+        onboarded ? (
+          <ToastProvider>
+            <Body />
+          </ToastProvider>
+        ) : (
+          <OnboardingScreen onDone={completeOnboarding} />
+        )
       ) : (
         <View
           style={{

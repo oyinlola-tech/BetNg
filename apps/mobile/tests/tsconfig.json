@@ -15,6 +15,7 @@
     "../src/platform/notificationRoutes.ts",
     "../src/platform/haptics.ts",
     "../src/lib/attemptKey.ts",
+    "../src/lib/onboarding.ts",
     "../src/lib/payments.ts",
     "../src/lib/profile.ts",
     "../src/lib/errors.ts"
