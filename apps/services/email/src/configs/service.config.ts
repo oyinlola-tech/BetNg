@@ -85,11 +85,22 @@ function address(env: Env, key: string, required: boolean): string | undefined {
     return undefined;
   }
 
-  if (!/^[^\s@,;<>"]+@[^\s@,;<>"]+\.[^\s@,;<>"]+$/u.test(raw)) {
+  if (!isAddress(raw)) {
     fail(`${key} is not an email address.`);
   }
 
   return raw;
+}
+
+/** One `@`, something before it, and a domain with a dot inside it. Checked by position: no pattern to backtrack. */
+function isAddress(value: string): boolean {
+  if (value.length > MAX_ADDRESS_LENGTH || /[\s,;<>"]/u.test(value)) {
+    return false;
+  }
+
+  const at = value.indexOf("@");
+
+  return at > 0 && at === value.lastIndexOf("@") && value.slice(at + 2, -1).includes(".");
 }
 
 function baseUrl(env: Env, production: boolean): string {

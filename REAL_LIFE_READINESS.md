@@ -194,9 +194,11 @@ reached the response model as a raw exception object. Now tested as
 
 `ruff` and `mypy` are clean across all 94 simulation files; 1791 tests pass.
 
-Still open as a product question, not a bug: a failed match in `results` is
-`{"error": ...}` with no `match_id`, so a caller can only tell *which* match
-failed by its position in the list.
+Closed, verified 2026-09-27: a failed match in `results` used to be
+`{"error": ...}` with no `match_id`, so a caller could only tell *which* match
+failed by its position in the list. It is now a `BatchRunMatchFailure` carrying
+`match_id` and `error`, covered by
+`test_a_failed_batch_match_is_reported_by_its_match_id`.
 
 ### 2.6 Every club in the game fielded one country's players
 
@@ -354,6 +356,28 @@ for a global query or an absolute count and scope it.
 Current state, through the project config: the whole `unit` project is green,
 1177 tests across 97 files, with match + identity + wallet contributing 419.
 Python: odds 102, simulation 1791, both green, with `ruff` and `mypy` clean.
+
+**Status 2026-09-27.** The `unit` project is still green, now 1204 tests across
+100 files. The accumulation is measured rather than assumed:
+`betng_test_match` holds 25,277 `match_transitions` and 14,079 simulation events,
+`betng_test_identity` 5,021 audit logs and 3,400 customers, `betng_test_wallet`
+4,950 ledger rows and 2,550 accounts. Betting and settlement share the pattern.
+
+A reset is written but **has not been run and is not wired in**:
+`scripts/db-test.sh` and `infrastructure/postgres/reset-test.sql`. `reset`
+empties every table of each `betng_test_<service>` database and keeps the schema
+and migration history; it refuses any database not named that way, refuses
+`NODE_ENV=production`, and leaves a database alone while another session is
+connected to it, so a second test run cannot empty one a first run is using.
+`scripts/vitest-unit-setup.mjs` is the vitest global setup that would call it
+before the first test file. Until it is added to the `unit` project in
+`vitest.config.ts`, nothing changes.
+
+Found alongside: CI never creates these databases. The `unit` job bootstraps
+`betng` and `betng_test`, while the harnesses connect to
+`betng_test_<service>`, which nothing in the workflow creates or migrates.
+`scripts/db-test.sh` with no argument does both and is meant for that step; it is
+not yet in `.github/workflows/ci.yml`.
 
 ### 4.6 Dependency monitoring — done 2026-09-23
 `.github/dependabot.yml` covers npm, pip for every Python service, the Docker

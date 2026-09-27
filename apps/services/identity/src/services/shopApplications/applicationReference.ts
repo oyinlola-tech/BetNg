@@ -1,4 +1,4 @@
-import { randomBytes } from "node:crypto";
+import { randomInt } from "node:crypto";
 
 /** Crockford base32 without I, L, O or U: no pair a person can confuse when reading one out. */
 const ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
@@ -7,15 +7,14 @@ const LENGTH = 16;
 
 /**
  * The only handle an applicant has, and the only thing standing between a guesser and someone else's
- * application — so it is 16 characters of `randomBytes`, about 80 bits, not a sequence. A status lookup
+ * application — so it is 16 characters of `randomInt`, 80 bits, not a sequence. A status lookup
  * still needs the verified address as well.
  */
 export function applicationReference(): string {
-  const bytes = randomBytes(LENGTH);
   let reference = "";
 
-  for (const byte of bytes) {
-    reference += ALPHABET[byte % ALPHABET.length];
+  for (let index = 0; index < LENGTH; index += 1) {
+    reference += ALPHABET[randomInt(ALPHABET.length)];
   }
 
   return `BNGA-${reference}`;
