@@ -21,6 +21,12 @@ allowBuilds:
   "esbuild": true
   prisma: true
 
+# Patched versions of dependencies that Prisma and Expo pin below a security fix.
+overrides:
+  deepmerge-ts: ^8.0.2
+  mysql2: ^3.24.4
+  uuid: ^14.0.2
+
 minimumReleaseAgeExclude:
   - '@zudojs/config@1.2.0'
   - '@zudojs/constants@1.1.1'
