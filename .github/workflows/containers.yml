@@ -69,8 +69,10 @@ jobs:
           ignore-unfixed: true
           exit-code: "1"
 
+  # Publishing needs the production endpoints. A repository that has not set them skips this job;
+  # one that set them wrongly still fails in the first step.
   publish:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.FRONTEND_API_URL != '' && vars.FRONTEND_WS_URL != ''
     needs: build-scan
     runs-on: ubuntu-24.04
     timeout-minutes: 30
