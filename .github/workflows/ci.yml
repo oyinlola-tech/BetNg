@@ -74,7 +74,7 @@ jobs:
           POSTGRES_DB: postgres
         ports: ["55432:5432"]
         options: >-
-          --health-cmd "pg_isready -U betng" --health-interval 5s --health-timeout 5s --health-retries 20
+          --health-cmd "pg_isready -U betng -d postgres" --health-interval 5s --health-timeout 5s --health-retries 20
       redis:
         image: redis:8-alpine
         ports: ["56379:6379"]
@@ -181,7 +181,7 @@ jobs:
           POSTGRES_DB: postgres
         ports: ["55432:5432"]
         options: >-
-          --health-cmd "pg_isready -U betng" --health-interval 5s --health-timeout 5s --health-retries 20
+          --health-cmd "pg_isready -U betng -d postgres" --health-interval 5s --health-timeout 5s --health-retries 20
       redis:
         image: redis:8-alpine
         ports: ["56379:6379"]
