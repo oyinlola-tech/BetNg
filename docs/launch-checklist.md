@@ -72,12 +72,17 @@ The platform sends through FCM HTTP v1 and the app registers a device through `e
 
 Everything else is at the newest published version. Each of these was tried.
 
-| Package                                                                                                                   | Held at                  | Why                                                                                            |
-| ------------------------------------------------------------------------------------------------------------------------- | ------------------------ | ---------------------------------------------------------------------------------------------- |
-| `react-native`, `react`, `@types/react` in `apps/mobile`                                                                  | 0.86.3, 19.2.3           | Expo SDK 57 cannot bundle React Native 0.87; React must match the renderer inside React Native |
-| `@react-native-async-storage/async-storage`, `react-native-screens`, `react-native-safe-area-context`, `react-native-svg` | the Expo SDK 57 versions | Native modules must match what Expo Go contains, or the app stops at launch                    |
-| `prisma`                                                                                                                  | 7.10.0                   | The `latest` tag is a release candidate that does not match `@prisma/client`                   |
-| `pydantic-core`                                                                                                           | 2.46.5                   | The newest pydantic requires exactly this version                                              |
+| Package                                     | Held at | Why                                                                                                                                                    |
+| ------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `react-native` in `apps/mobile`             | 0.86.3  | Expo SDK 57 cannot bundle React Native 0.87: its bundler loads `react-native/rn-get-polyfills`, which 0.87 does not ship                               |
+| `expo-notifications`                        | 57.0.21 | 58 belongs to the Expo SDK 58 preview and imports `Platform`, `UnavailabilityError`, `CodedError` and `uuid` from `expo`, which SDK 57 does not export |
+| `@react-native-async-storage/async-storage` | 2.2.0   | Expo Go 57 does not contain the native half of 3.x; the app stops at launch                                                                            |
+| `prisma`                                    | 7.10.0  | The `latest` tag is a release candidate that does not match `@prisma/client`                                                                           |
+| `pydantic-core`                             | 2.46.5  | The newest pydantic requires exactly this version                                                                                                      |
+
+`react` 19.3.0, `@types/react` 19.3.0, `react-native-screens` 4.28.0, `react-native-safe-area-context` 5.10.0
+and `react-native-svg` 15.15.5 are ahead of what `expo install --check` expects for SDK 57. They typecheck,
+lint and bundle; they have not been run on a phone since the change on 2026-09-28.
 
 `mysql2`, `deepmerge-ts` and `uuid` are forced to patched versions by `overrides` in
 `pnpm-workspace.yaml`; their parents pin them below a security fix.
