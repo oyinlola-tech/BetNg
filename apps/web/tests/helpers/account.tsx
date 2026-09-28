@@ -138,6 +138,8 @@ function unexpected(name: string) {
 export function fakeDataSource(overrides: Partial<BetNgDataSource> = {}): BetNgDataSource {
   const base: Partial<BetNgDataSource> = {
     getMatchMarkets: async (matchId): Promise<MatchMarketsView> => ({ matchId, markets: [market(matchId)], generatedAt: "2026-09-21T12:00:00.000Z" }),
+    listMatchMarkets: async (matchIds): Promise<readonly MatchMarketsView[]> =>
+      matchIds.map((matchId) => ({ matchId, markets: [market(matchId)], generatedAt: "2026-09-21T12:00:00.000Z" })),
     subscribeMatch: () => ({ unsubscribe: () => undefined }),
     subscribeConnection: () => () => undefined,
     subscribeAccount: () => () => undefined,

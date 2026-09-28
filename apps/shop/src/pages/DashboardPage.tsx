@@ -35,7 +35,7 @@ function LiveStrip(): React.JSX.Element {
   if (live.data.length === 0) return <EmptyState compact icon={<Radio className="size-5" />} title="Nothing in play" description="The next round kicks off within a few minutes." />;
 
   return (
-    <ul className="flex gap-2 overflow-x-auto p-3 scrollbar-thin">
+    <ul tabIndex={0} aria-label="Matches in play" className="flex gap-2 overflow-x-auto p-3 scrollbar-thin focus-ring">
       {live.data.map((m) => (
         <li key={m.id} className="w-52 shrink-0 rounded-sm border border-border bg-surface-sunken/50 px-3 py-2">
           <p className="mb-1 flex items-center justify-between text-xs">
@@ -90,7 +90,7 @@ export function DashboardPage(): React.JSX.Element {
               <span className="block text-md font-semibold">{action.label}</span>
               <span className={cn("block truncate text-sm", action.primary ? "text-text-on-brand" : "text-text-muted")}>{action.hint}</span>
             </span>
-            <Kbd className={action.primary ? "border-white/30 bg-white/15 text-text-on-brand" : undefined}>{action.key}</Kbd>
+            <Kbd className={action.primary ? "border-text-on-brand/40 bg-transparent text-text-on-brand" : undefined}>{action.key}</Kbd>
           </Link>
         ))}
       </section>

@@ -115,7 +115,7 @@ export function CommentaryPanel({
           {emptyMessage}
         </p>
       ) : (
-        <ul className="min-h-0 flex-1 overflow-y-auto scrollbar-thin">
+        <ul tabIndex={0} aria-label="Commentary" className="min-h-0 flex-1 overflow-y-auto scrollbar-thin focus-ring">
           {ordered.map((event) => (
             <CommentaryItem
               key={event.id}

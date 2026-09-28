@@ -1,12 +1,12 @@
 import { canBet, type MatchSummary } from "@betng/ui-core";
 import { SelectionButton, Skeleton } from "@betng/ui-web";
 import { useSlipSelection } from "../../features/betslip";
-import { useMarkets } from "../../hooks/queries";
+import { useRowMarkets } from "../../hooks/queries";
 
 /** The match-result prices for a list row. Rendered only while the platform says the match can be bet on. */
 export function ResultMarket({ match, className }: { readonly match: MatchSummary; readonly className?: string }): React.JSX.Element | null {
   const bettable = canBet(match.phase);
-  const markets = useMarkets(match.id, { poll: true, enabled: bettable });
+  const markets = useRowMarkets(match.id, { enabled: bettable });
   const { selectedIds, toggle } = useSlipSelection();
 
   if (!bettable) return null;

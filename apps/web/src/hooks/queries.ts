@@ -1,6 +1,7 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import type { LeagueId, MatchId, TeamId } from "@betng/contracts";
 import type { MatchFilter, SearchQuery } from "@betng/ui-core";
+import { createMarketsBatch } from "../lib/marketsBatch";
 import { keys } from "../lib/queryKeys";
 import { dataSource } from "../services/runtime";
 
@@ -67,6 +68,19 @@ export function useMarkets(matchId: string | undefined, options: { readonly poll
     queryFn: () => dataSource.getMatchMarkets(matchId as MatchId),
     enabled: matchId !== undefined && (options.enabled ?? true),
     refetchInterval: options.poll === true ? 15_000 : false,
+    placeholderData: keepPreviousData,
+  });
+}
+
+const rowMarkets = createMarketsBatch((matchIds) => dataSource.listMatchMarkets(matchIds));
+
+/** Prices for one row of a list. Rows asked for together share a single read. */
+export function useRowMarkets(matchId: string | undefined, options: { readonly enabled?: boolean } = {}) {
+  return useQuery({
+    queryKey: keys.markets(matchId ?? ""),
+    queryFn: () => rowMarkets.load(matchId as MatchId),
+    enabled: matchId !== undefined && (options.enabled ?? true),
+    refetchInterval: 15_000,
     placeholderData: keepPreviousData,
   });
 }

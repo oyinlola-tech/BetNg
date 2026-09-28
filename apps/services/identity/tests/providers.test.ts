@@ -88,6 +88,23 @@ describe("provider selection", () => {
   ])("refuses %o in production", async (override, problem) => {
     await expect(loadIdentityConfig({ ...PRODUCTION, ...override })).rejects.toThrow(problem);
   });
+
+  const KYC_STORAGE = {
+    KYC_STORAGE_ENDPOINT: "https://storage.example.com",
+    KYC_STORAGE_REGION: "af-south-1",
+    KYC_STORAGE_BUCKET: "betng-kyc",
+    KYC_STORAGE_ACCESS_KEY_ID: "placeholder-access-key-id",
+    KYC_STORAGE_SECRET_ACCESS_KEY: "placeholder-secret-access-key",
+  };
+
+  it("refuses production KYC storage that would keep identity documents unencrypted", async () => {
+    await expect(loadIdentityConfig({ ...PRODUCTION, ...KYC_STORAGE })).rejects.toThrow(/KYC_STORAGE_SSE is required in production/u);
+    await expect(loadIdentityConfig({ ...PRODUCTION, ...KYC_STORAGE, KYC_STORAGE_SSE: "aws:kms" })).rejects.toThrow(/KYC_STORAGE_SSE_KMS_KEY_ID is required/u);
+
+    const config = await loadIdentityConfig({ ...PRODUCTION, ...KYC_STORAGE, KYC_STORAGE_SSE: "AES256" });
+
+    expect(config.kyc.storage?.encryption).toMatchObject({ algorithm: "AES256" });
+  });
 });
 
 describe("S3 SigV4 (AWS documentation vectors)", () => {

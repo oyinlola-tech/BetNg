@@ -282,7 +282,7 @@ export function SlipPanel({ className }: { readonly className?: string }): React
               }}
             >
               Review ticket
-              <Kbd className="ml-1 border-white/30 bg-white/15 text-text-on-brand">F9</Kbd>
+              <Kbd className="ml-1 border-text-on-brand/40 bg-transparent text-text-on-brand">F9</Kbd>
             </Button>
           </div>
         </>

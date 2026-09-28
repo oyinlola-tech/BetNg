@@ -35,6 +35,8 @@ describe.each([
   it("keeps text on brand and on live fills readable, and brand links readable on surfaces", () => {
     expect(contrast(theme.textOnBrand, theme.brand)).toBeGreaterThanOrEqual(4.5);
     expect(contrast(theme.textOnLive, theme.live)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(theme.live, theme.liveSubtle)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(theme.live, theme.surface)).toBeGreaterThanOrEqual(4.5);
     expect(contrast(theme.brand, theme.surface)).toBeGreaterThanOrEqual(4.5);
     expect(contrast(theme.brand, theme.brandSubtle)).toBeGreaterThanOrEqual(4.5);
   });

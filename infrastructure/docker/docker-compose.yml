@@ -140,7 +140,7 @@ x-after-migrate: &after-migrate
 
 services:
   postgres:
-    image: postgres:17.11-alpine@sha256:18cfe3ef5e6815560c98237d6216d1e5119702fb0f3894c8785dd58b8bbe5d73
+    image: postgres:17.11-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24
     container_name: betng-postgres
     restart: unless-stopped
     # Nine service pools of 10 plus operations logins exceed the default 100.
@@ -590,7 +590,7 @@ services:
 
   backup:
     profiles: ["backup"]
-    image: postgres:17.11-alpine@sha256:18cfe3ef5e6815560c98237d6216d1e5119702fb0f3894c8785dd58b8bbe5d73
+    image: postgres:17.11-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24
     restart: "no"
     user: "70:70"
     entrypoint: ["bash", "/opt/betng/backup/pg-backup.sh"]

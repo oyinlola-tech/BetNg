@@ -22,7 +22,7 @@ test.describe("web", () => {
     await competitions.getByRole("link").nth(1).click();
     await expect(page).toHaveURL(/\/leagues\//);
 
-    await expect(page.getByRole("contentinfo")).toContainText(/simulated/i);
+    await expect(page.getByRole("contentinfo")).toContainText(/produced by the platform's simulation/i);
   });
 
   test("searches through the platform and opens a result", async ({ page }) => {

@@ -6,7 +6,7 @@ test.describe("web on a phone", () => {
 
     const bottom = page.getByRole("navigation", { name: "Main" });
 
-    for (const name of ["Home", "Live", "Virtuals", "Bets", "More"]) {
+    for (const name of ["Home", "Football", "Live", "Bets", "More"]) {
       await expect(bottom.getByRole("link", { name }).or(bottom.getByRole("button", { name }))).toBeVisible();
     }
 
@@ -14,7 +14,7 @@ test.describe("web on a phone", () => {
     await expectNoHorizontalScroll(page);
 
     // Routes load lazily: the address changes first and the previous page stays until the new one arrives.
-    for (const [name, heading] of [["Live", /^live$/i], ["Virtuals", /virtual football/i]] as const) {
+    for (const [name, heading] of [["Live", /^live$/i], ["Football", /^football$/i]] as const) {
       await bottom.getByRole("link", { name }).click();
       await expect(page.getByRole("heading", { level: 1, name: heading })).toBeVisible();
       await expectNoHorizontalScroll(page);
